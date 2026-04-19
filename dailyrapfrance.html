@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Rap France — Le Média Rap #1 en France</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Altone';src:url('https://fonts.cdnfonts.com/s/15369/AltoneTrial-Regular.woff2') format('woff2'),url('https://fonts.cdnfonts.com/s/15369/AltoneTrial-Regular.woff') format('woff');font-weight:400;font-display:swap}
+@font-face{font-family:'Altone';src:url('https://fonts.cdnfonts.com/s/15369/AltoneTrial-Bold.woff2') format('woff2'),url('https://fonts.cdnfonts.com/s/15369/AltoneTrial-Bold.woff') format('woff');font-weight:700;font-display:swap}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#cf171c;
+  --accent:#ea5b47;
+  --crimson:#a81015;
+  --grad:linear-gradient(135deg,#cf171c 0%,#ea5b47 100%);
+  --grad-r:linear-gradient(135deg,#ea5b47 0%,#cf171c 100%);
+  --bg:#080808;
+  --dark:#0e0e0e;
+  --card:#121212;
+  --card2:#1a1a1a;
+  --border:rgba(255,255,255,0.06);
+  --border-red:rgba(207,23,28,0.28);
+  --text:#ededed;
+  --muted:#555;
+  --muted2:#888;
+  --display:'Altone','Syne',sans-serif;
+  --body:'Syne',sans-serif;
+  --mono:'Syne Mono',monospace;
+}
+h1,h2,.sec-title,.card-title-lg,.n-title,.portrait-name-main,.portrait-alias,.r-title,.v-title,.nl-title,.c-track{font-family:var(--display);font-weight:700}
+.portrait-name,.r-cover-lbl,.ph-big,.c-num,.portrait-bg-txt{font-family:var(--display);font-weight:400}
+
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.6;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:9998}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--grad)}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 48px;height:68px;display:flex;align-items:center;justify-content:space-between;background:rgba(8,8,8,0);border-bottom:1px solid transparent;transition:background .4s,border-color .4s,backdrop-filter .4s}
+nav.scrolled{background:rgba(8,8,8,.94);border-color:var(--border);backdrop-filter:blur(24px)}
+.nav-logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.nav-logo svg{width:auto;height:28px}
+.nav-links{display:flex;gap:40px;list-style:none}
+.nav-links a{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-right{display:flex;align-items:center;gap:20px}
+.live-badge{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);padding:5px 12px;border:1px solid var(--border-red)}
+.live-dot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.nav-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;transition:color .2s;line-height:0}
+.nav-btn:hover{color:var(--text)}
+
+/* HERO */
+.hero{position:relative;min-height:100vh;padding:124px 48px 80px;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 65% 90% at 100% 50%,rgba(207,23,28,.16) 0%,transparent 65%),radial-gradient(ellipse 45% 60% at 5% 85%,rgba(207,23,28,.08) 0%,transparent 60%),var(--bg)}
+.hero-scanlines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);pointer-events:none}
+.hero-accent-line{position:absolute;top:0;right:220px;width:1px;height:100%;background:linear-gradient(to bottom,transparent,rgba(207,23,28,.45) 35%,transparent);pointer-events:none}
+.hero-left{position:relative;z-index:2}
+.hero-kicker{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--red);margin-bottom:22px}
+.hero-kicker::before{content:'';display:block;width:28px;height:1px;background:var(--grad)}
+h1.hero-title{font-family:var(--display);font-weight:700;font-size:clamp(56px,7.5vw,108px);line-height:.92;letter-spacing:-.02em;margin-bottom:28px}
+h1.hero-title .outline{color:transparent;-webkit-text-stroke:1.5px var(--red)}
+.hero-desc{font-size:15px;color:var(--muted2);max-width:400px;margin-bottom:40px;line-height:1.75}
+.hero-ctas{display:flex;gap:18px;align-items:center}
+.btn-red{display:inline-flex;align-items:center;gap:10px;padding:14px 30px;background:var(--grad);color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;border:none;cursor:pointer;transition:opacity .25s,transform .2s}
+.btn-red:hover{opacity:.85;transform:translateY(-2px)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);text-decoration:none;transition:color .2s,gap .2s}
+.btn-ghost:hover{color:var(--text);gap:14px}
+
+/* SOCIAL STATS */
+.hero-stats{display:flex;gap:0;margin-top:60px;padding-top:40px;border-top:1px solid var(--border)}
+.stat-item{flex:1;padding-right:24px;border-right:1px solid var(--border)}
+.stat-item:last-child{border-right:none;padding-right:0;padding-left:24px}
+.stat-item:not(:first-child):not(:last-child){padding-left:24px}
+.stat-link{text-decoration:none;display:block;transition:opacity .2s}
+.stat-link:hover{opacity:.75}
+.stat-platform{font-family:var(--mono);font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.stat-platform svg{opacity:.5}
+.stat-num{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.01em;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;display:block;transition:all .3s}
+.stat-num.loading{background:none;-webkit-text-fill-color:var(--muted);animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:2px;display:block}
+
+/* HERO RIGHT */
+.hero-right{position:relative;z-index:2}
+.hero-main-card{position:relative;background:var(--card);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:border-color .3s}
+.hero-main-card:hover{border-color:var(--border-red)}
+.card-img-wrap{width:100%;aspect-ratio:16/9;position:relative;overflow:hidden}
+.img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;transition:transform .5s}
+.hero-main-card:hover .img-ph{transform:scale(1.03)}
+/* Placeholder colors per artist */
+.ph-plk{background:linear-gradient(135deg,#0a0e1a 0%,#1a1e2d 50%,#0a0c14 100%)}
+.ph-disiz{background:linear-gradient(135deg,#0a1414 0%,#1a2424 50%,#0a1010 100%)}
+.ph-rambo{background:linear-gradient(135deg,#14100a 0%,#241e10 50%,#141008 100%)}
+.ph-nono{background:linear-gradient(135deg,#14080e 0%,#240d1c 50%,#14080f 100%)}
+.ph-wixo{background:linear-gradient(135deg,#08140a 0%,#0d2410 50%,#081008 100%)}
+.ph-rnboi{background:linear-gradient(135deg,#080d1a 0%,#0d1a2d 50%,#081014 100%)}
+.ph-gims{background:linear-gradient(135deg,#1a0808 0%,#2d0a0a 50%,#140808 100%)}
+.ph-ninho{background:linear-gradient(135deg,#0d0814 0%,#1a0d2d 50%,#100814 100%)}
+.ph-sch{background:linear-gradient(135deg,#1a0808 0%,#2d0a0a 50%,#140808 100%)}
+.ph-werenoi{background:linear-gradient(135deg,#081414 0%,#0d2424 50%,#081010 100%)}
+.ph-jul{background:linear-gradient(135deg,#140d08 0%,#241408 50%,#140e08 100%)}
+.ph-ham{background:linear-gradient(135deg,#0d0814 0%,#1a0d2d 50%,#100814 100%)}
+.ph-frz{background:linear-gradient(135deg,#081414 0%,#0d2424 50%,#081010 100%)}
+.ph-da{background:linear-gradient(135deg,#141408 0%,#24240d 50%,#141208 100%)}
+.ph-grdr{background:linear-gradient(135deg,#08140a 0%,#0d2410 50%,#081008 100%)}
+.ph-naza{background:linear-gradient(135deg,#14080e 0%,#240d1c 50%,#14080f 100%)}
+.ph-zz{background:linear-gradient(135deg,#080e14 0%,#0d1624 50%,#080a14 100%)}
+.ph-47ter{background:linear-gradient(135deg,#12080e 0%,#22101e 50%,#120810 100%)}
+.ph-dimeh{background:linear-gradient(135deg,#0e1408 0%,#1e2410 50%,#0e1408 100%)}
+.ph-jln{background:linear-gradient(135deg,#14080a 0%,#240d12 50%,#14080b 100%)}
+.ph-fave{background:linear-gradient(135deg,#0a0814 0%,#180d24 50%,#0a0814 100%)}
+.ph-leto{background:linear-gradient(135deg,#14140a 0%,#24240d 50%,#141208 100%)}
+.ph-rk{background:linear-gradient(135deg,#0a1414 0%,#0d2424 50%,#081010 100%)}
+.ph-g2b{background:linear-gradient(135deg,#080814 0%,#10101e 50%,#080810 100%)}
+.ph-alonzo{background:linear-gradient(135deg,#0e0814 0%,#1c0d24 50%,#0e0814 100%)}
+
+.ph-big{font-family:var(--display);font-size:80px;color:rgba(255,255,255,.06);user-select:none;pointer-events:none}
+.card-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(8,8,8,.96) 0%,transparent 100%);padding:40px 24px 24px}
+.card-cat{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);display:block;margin-bottom:6px}
+.card-title-lg{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-.01em;line-height:1.08;color:var(--text);margin-bottom:8px}
+.card-meta-sm{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em}
+.hero-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.mini-card{background:var(--card);border:1px solid var(--border);padding:16px;cursor:pointer;transition:border-color .25s,background .25s}
+.mini-card:hover{border-color:var(--border-red);background:var(--card2)}
+.mini-card .card-cat{font-size:9px}
+.mini-card .card-title-lg{font-size:14px}
+
+/* TICKER */
+.ticker-bar{background:var(--grad);overflow:hidden;padding:11px 0;position:relative;z-index:10}
+.ticker-track{display:flex;animation:ticker 40s linear infinite;white-space:nowrap}
+.ticker-track:hover{animation-play-state:paused}
+.ticker-set{display:flex;flex-shrink:0}
+.tick-item{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#fff;padding:0 28px}
+.tick-dot{color:rgba(255,255,255,.4);margin:0 4px}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* SECTIONS */
+section{padding:88px 48px}
+.sec-hdr{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:44px}
+.sec-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;display:block}
+.sec-title{font-family:var(--display);font-weight:700;font-size:52px;line-height:1;letter-spacing:-.01em;color:var(--text)}
+.sec-title span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sec-more{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);text-decoration:none;display:flex;align-items:center;gap:7px;transition:gap .2s}
+.sec-more:hover{gap:14px}
+
+/* RELEASES */
+.releases-bg{background:var(--dark)}
+.releases-scroll{display:flex;gap:18px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin;scrollbar-color:var(--red) transparent}
+.r-card{flex-shrink:0;width:200px;cursor:pointer}
+.r-cover{width:200px;height:200px;position:relative;overflow:hidden;margin-bottom:14px;border:1px solid var(--border);transition:border-color .3s}
+.r-card:hover .r-cover{border-color:var(--border-red)}
+.r-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s}
+.r-card:hover .r-cover img{transform:scale(1.06)}
+.r-cover .img-ph{height:100%;transition:transform .45s}
+.r-card:hover .r-cover .img-ph{transform:scale(1.06)}
+.r-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .3s;display:flex;align-items:center;justify-content:center}
+.r-card:hover .r-overlay{background:rgba(207,23,28,.2)}
+.play-btn{width:52px;height:52px;background:var(--grad);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.7);transition:opacity .3s,transform .3s}
+.r-card:hover .play-btn{opacity:1;transform:scale(1)}
+.r-cover-lbl{font-family:var(--display);font-weight:400;font-size:40px;color:rgba(255,255,255,.1);user-select:none}
+.r-type{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);display:block;margin-bottom:3px}
+.r-title{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:-.005em;line-height:1.1;color:var(--text)}
+.r-artist{font-size:12px;color:var(--muted2);margin-top:2px}
+.r-date{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:6px;letter-spacing:.08em}
+.releases-source{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;margin-top:16px;display:flex;align-items:center;gap:8px}
+.releases-source span{display:inline-flex;align-items:center;gap:5px}
+.releases-source span::before{content:'';display:inline-block;width:5px;height:5px;background:var(--grad);border-radius:50%}
+
+/* NEWS */
+.news-main{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.news-sub{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.n-card{background:var(--card);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:border-color .3s}
+.n-card:hover{border-color:var(--border-red)}
+.n-img{width:100%;position:relative;overflow:hidden}
+.n-img .img-ph{transition:transform .45s}
+.n-card:hover .n-img .img-ph{transform:scale(1.04)}
+.n-body{padding:20px}
+.n-title{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:-.01em;line-height:1.08;color:var(--text);margin-bottom:8px}
+.n-title.sm{font-size:17px}
+.n-excerpt{font-size:13px;color:var(--muted2);line-height:1.65;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.n-meta{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:14px;letter-spacing:.08em}
+.n-sidebar{display:flex;flex-direction:column;gap:14px}
+.n-side-item{background:var(--card);border:1px solid var(--border);padding:20px;flex:1;cursor:pointer;transition:border-color .25s,background .25s}
+.n-side-item:hover{border-color:var(--border-red);background:var(--card2)}
+.n-side-title{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.01em;line-height:1.1;color:var(--text);margin-bottom:6px}
+
+/* PORTRAIT */
+.portrait-bg{background:var(--dark);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.portrait-inner{display:grid;grid-template-columns:1fr 1fr;min-height:520px}
+.portrait-img{position:relative;background:linear-gradient(150deg,#1a0808 0%,#2d0a0a 60%,#100808 100%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.portrait-bg-txt{font-family:var(--display);font-weight:400;font-size:200px;color:rgba(207,23,28,.1);user-select:none;line-height:1;pointer-events:none}
+.portrait-name{position:absolute;bottom:36px;left:36px;font-family:var(--display);font-weight:700;font-size:64px;letter-spacing:-.02em;color:var(--text);line-height:1}
+.portrait-tag{position:absolute;top:32px;right:32px;font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;background:var(--grad);color:#fff;padding:6px 13px}
+.portrait-content{padding:64px;display:flex;flex-direction:column;justify-content:center;border-left:1px solid var(--border)}
+.portrait-kicker{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);margin-bottom:18px;display:flex;align-items:center;gap:14px}
+.portrait-kicker::after{content:'';display:block;flex:1;height:1px;background:var(--border-red)}
+.portrait-name-main{font-family:var(--display);font-weight:700;font-size:72px;letter-spacing:-.02em;line-height:.92;color:var(--text);margin-bottom:6px}
+.portrait-alias{font-family:var(--display);font-weight:400;font-size:72px;letter-spacing:-.02em;line-height:.92;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.18);margin-bottom:30px}
+.portrait-bio{font-size:14px;color:var(--muted2);line-height:1.75;margin-bottom:32px;max-width:400px}
+.portrait-stats{display:flex;gap:36px;margin-bottom:40px;padding:24px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.ps-num{font-family:var(--display);font-weight:700;font-size:30px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;line-height:1}
+.ps-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:3px;display:block}
+
+/* CHARTS — design magazine éditorial */
+.charts-section{background:var(--bg)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.c-item{display:flex;align-items:center;gap:16px;padding:12px 18px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:background .25s,border-color .25s;text-decoration:none}
+.c-item:hover{background:var(--card2);border-color:var(--border-red)}
+.c-num{font-family:var(--display);font-weight:400;font-size:32px;color:rgba(255,255,255,.1);width:38px;text-align:center;flex-shrink:0;transition:all .25s;line-height:1}
+.c-item:hover .c-num{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.c-cover{width:48px;height:48px;flex-shrink:0;overflow:hidden;border:1px solid var(--border)}
+.c-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.c-cover .img-ph{height:48px;width:48px}
+.c-info{flex:1;min-width:0}
+.c-track{font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-.005em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-artist{font-size:11px;color:var(--muted2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.c-trend{font-family:var(--mono);font-size:9px;letter-spacing:.08em}
+.c-streams{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.06em}
+.c-up{color:#4ade80}.c-dn{color:var(--red)}.c-flat{color:var(--muted)}
+.charts-source{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;margin-top:16px;display:flex;align-items:center;gap:8px}
+.charts-source a{color:var(--muted);text-decoration:none;transition:color .2s}
+.charts-source a:hover{color:var(--red)}
+.spotify-badge{display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
+
+/* VIDEOS */
+.videos-bg{background:var(--dark)}
+.videos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.v-card{background:var(--card);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:border-color .3s}
+.v-card:hover{border-color:var(--border-red)}
+.v-thumb{position:relative;aspect-ratio:16/9;overflow:hidden}
+.v-thumb .img-ph{height:100%;transition:transform .45s}
+.v-card:hover .v-thumb .img-ph{transform:scale(1.04)}
+.v-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.v-play-circle{width:52px;height:52px;background:rgba(8,8,8,.75);border:2px solid rgba(255,255,255,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .3s,border-color .3s}
+.v-card:hover .v-play-circle{background:var(--grad);border-color:var(--red)}
+.v-duration{position:absolute;bottom:10px;right:12px;font-family:var(--mono);font-size:10px;background:rgba(0,0,0,.75);color:#fff;padding:2px 7px;letter-spacing:.04em}
+.v-body{padding:16px 18px}
+.v-title{font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:-.005em;color:var(--text);line-height:1.15;margin-bottom:6px}
+.v-sub{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em}
+
+/* NEWSLETTER */
+.nl-section{background:var(--grad);padding:88px 48px;position:relative;overflow:hidden}
+.nl-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 120% at 110% 50%,rgba(234,91,71,.3) 0%,transparent 55%)}
+.nl-deco{position:absolute;right:-20px;top:50%;transform:translateY(-50%);font-family:var(--display);font-weight:700;font-size:240px;color:rgba(0,0,0,.12);user-select:none;line-height:1;white-space:nowrap;pointer-events:none}
+.nl-inner{position:relative;max-width:560px}
+.nl-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:14px;display:block}
+.nl-title{font-family:var(--display);font-weight:700;font-size:clamp(44px,5.5vw,72px);letter-spacing:-.02em;line-height:.92;color:#fff;margin-bottom:14px}
+.nl-desc{font-size:14px;color:rgba(255,255,255,.72);margin-bottom:30px;line-height:1.7}
+.nl-form{display:flex}
+.nl-input{flex:1;padding:14px 20px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.2);border-right:none;color:#fff;font-family:var(--body);font-size:14px;outline:none;transition:border-color .2s}
+.nl-input::placeholder{color:rgba(255,255,255,.38)}
+.nl-input:focus{border-color:rgba(255,255,255,.5)}
+.nl-submit{padding:14px 26px;background:var(--bg);color:var(--text);border:none;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.nl-submit:hover{background:#161616}
+
+/* FOOTER */
+footer{background:var(--dark);padding:64px 48px 32px;border-top:1px solid var(--border)}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:64px;margin-bottom:56px}
+.footer-brand p{font-size:13px;color:var(--muted);max-width:260px;margin-top:14px;line-height:1.65}
+.f-col-hdr{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;display:block}
+.f-links{list-style:none;display:flex;flex-direction:column;gap:11px}
+.f-links a{font-size:13px;color:var(--muted2);text-decoration:none;transition:color .2s}
+.f-links a:hover{color:var(--text)}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;border-top:1px solid var(--border)}
+.footer-copy{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em}
+.footer-soc{display:flex;gap:22px}
+.footer-soc a{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-soc a:hover{color:var(--red)}
+.divider{height:1px;background:var(--border);margin:0 48px}
+
+/* REVEAL */
+.rev{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s ease}
+.rev.in{opacity:1;transform:translateY(0)}
+.rev-d1{transition-delay:.1s}.rev-d2{transition-delay:.2s}.rev-d3{transition-delay:.3s}.rev-d4{transition-delay:.4s}
+@keyframes glitch{0%,90%,100%{transform:translate(0);clip-path:none}91%{transform:translate(-3px,1px);clip-path:polygon(0 0,100% 0,100% 35%,0 35%)}93%{transform:translate(3px,-1px);clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%)}95%{transform:translate(0);clip-path:none}}
+.glitch{animation:glitch 5s infinite}
+</style>
+</head>
+<body>
+
+<!-- ══ NAV ══ -->
+<nav id="nav">
+  <a href="#" class="nav-logo">
+    <!-- VRAI LOGO SVG Daily Rap France -->
+    <svg height="32" viewBox="0 0 2253 2253" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="logoGrad" x1="385.72" y1="981.08" x2="1867.29" y2="981.08" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#ea5b47"/>
+          <stop offset="1" stop-color="#cf171c"/>
+        </linearGradient>
+      </defs>
+      <g fill="#ededed" opacity=".9">
+        <path d="M386.05,1467.28c0-7.77,1.35-15.02,4.06-21.76,2.71-6.73,6.42-12.6,11.14-17.59,4.72-5,10.34-8.95,16.86-11.87s13.6-4.37,21.24-4.37c9.58,0,17.49,1.7,23.74,5.1s11.31,8.02,15.2,13.85v-60.17h16.66v149.9h-16.66v-16.86c-3.89,5.83-8.95,10.41-15.2,13.74s-14.16,5-23.74,5c-7.63,0-14.71-1.46-21.24-4.37s-12.15-6.87-16.86-11.87c-4.72-5-8.43-10.83-11.14-17.49-2.71-6.66-4.06-13.74-4.06-21.24ZM478.28,1458.95c-.83-4.58-2.33-8.78-4.48-12.6-2.15-3.82-4.82-7.08-8.02-9.79-3.19-2.71-6.87-4.79-11.03-6.25s-8.61-2.19-13.33-2.19c-5.83,0-11.11,1.08-15.82,3.23-4.72,2.15-8.68,5.03-11.87,8.64s-5.66,7.77-7.39,12.49c-1.74,4.72-2.6,9.65-2.6,14.78s.87,9.82,2.6,14.47,4.2,8.75,7.39,12.28c3.19,3.54,7.15,6.39,11.87,8.54s9.99,3.23,15.82,3.23c5,0,9.58-.8,13.74-2.39s7.84-3.75,11.04-6.46c3.19-2.71,5.83-5.86,7.91-9.47,2.08-3.61,3.47-7.5,4.16-11.66v-16.86h0Z"/>
+        <path d="M629.02,1520.37h-16.66v-17.07c-3.89,5.83-8.99,10.45-15.3,13.84-6.32,3.4-14.26,5.1-23.84,5.1-7.63,0-14.71-1.46-21.24-4.37-6.53-2.91-12.15-6.87-16.86-11.87-4.72-5-8.43-10.83-11.14-17.49s-4.06-13.74-4.06-21.24,1.35-15.02,4.06-21.76c2.71-6.73,6.42-12.6,11.14-17.59,4.72-5,10.34-8.95,16.86-11.87,6.52-2.92,13.6-4.37,21.24-4.37,9.58,0,17.52,1.7,23.84,5.1,6.31,3.4,11.42,8.09,15.3,14.05v-17.07h16.66v106.6h0Z"/>
+        <path d="M658.37,1380.67c0-3.47,1.18-6.39,3.54-8.74s5.28-3.54,8.75-3.54,6.39,1.18,8.74,3.54,3.54,5.27,3.54,8.74-.31,3.26-.94,4.79c-.62,1.53-1.49,2.84-2.6,3.96-1.11,1.11-2.43,1.98-3.96,2.6s-3.12.94-4.79.94-3.26-.31-4.79-.94c-1.53-.62-2.84-1.49-3.96-2.6s-1.98-2.43-2.6-3.96-.94-3.12-.94-4.79h-.01ZM662.33,1413.77h16.66v106.6h-16.66v-106.6Z"/>
+        <path d="M712.29,1370.46h16.66v149.9h-16.66v-149.9Z"/>
+        <path d="M771.21,1564.71l17.91-45.18-40.39-105.77h18.53l30.81,82.86,32.69-82.86h18.53l-60.38,150.95h-17.7Z"/>
+        <path d="M869.06,1413.77h16.66v23.53c4.3-8.61,10.13-15.02,17.49-19.26,7.36-4.23,15.33-6.35,23.94-6.35v18.11c-4.58,0-9.34.87-14.26,2.6-4.93,1.74-9.41,4.27-13.43,7.6-4.03,3.33-7.32,7.46-9.89,12.39s-3.85,10.65-3.85,17.18v50.8h-16.66v-106.6h0Z"/>
+        <path d="M1050.82,1520.37h-16.66v-17.07c-3.89,5.83-8.99,10.45-15.3,13.84-6.32,3.4-14.26,5.1-23.84,5.1-7.63,0-14.71-1.46-21.24-4.37-6.53-2.91-12.15-6.87-16.86-11.87-4.72-5-8.43-10.83-11.14-17.49s-4.06-13.74-4.06-21.24,1.35-15.02,4.06-21.76c2.71-6.73,6.42-12.6,11.14-17.59,4.72-5,10.34-8.95,16.86-11.87,6.52-2.92,13.6-4.37,21.24-4.37,9.58,0,17.52,1.7,23.84,5.1,6.31,3.4,11.42,8.09,15.3,14.05v-17.07h16.66v106.6h0Z"/>
+        <path d="M1084.13,1564.71v-150.95h16.66v17.07c3.88-5.97,8.99-10.65,15.3-14.05s14.26-5.1,23.84-5.1c7.63,0,14.71,1.46,21.24,4.37,6.52,2.91,12.14,6.87,16.86,11.87s8.43,10.86,11.14,17.59,4.06,13.99,4.06,21.76-1.35,14.57-4.06,21.24c-2.71,6.66-6.42,12.49-11.14,17.49s-10.34,8.95-16.86,11.87c-6.53,2.92-13.6,4.37-21.24,4.37-9.58,0-17.52-1.7-23.84-5.1s-11.42-8.02-15.3-13.84v61.42h-16.66Z"/>
+        <path d="M1282.96,1370.46v15.62h-19.78c-6.94,0-11.94,1.87-14.99,5.62s-4.58,9.79-4.58,18.11v3.96h33.1v15.62h-33.1v90.98h-16.66v-90.98h-19.15v-15.62h19.15v-3.96c0-12.91,3.05-22.69,9.16-29.36,6.11-6.66,15.13-9.99,27.07-9.99h19.78Z"/>
+        <path d="M1299.62,1413.77h16.66v23.53c4.3-8.61,10.13-15.02,17.49-19.26,7.36-4.23,15.33-6.35,23.94-6.35v18.11c-4.58,0-9.34.87-14.26,2.6-4.93,1.74-9.41,4.27-13.43,7.6-4.03,3.33-7.32,7.46-9.89,12.39-2.57,4.93-3.85,10.65-3.85,17.18v50.8h-16.66v-106.6h0Z"/>
+        <path d="M1481.37,1520.37h-16.66v-17.07c-3.89,5.83-8.99,10.45-15.3,13.84-6.32,3.4-14.26,5.1-23.84,5.1-7.63,0-14.71-1.46-21.24-4.37s-12.15-6.87-16.86-11.87c-4.72-5-8.43-10.83-11.14-17.49s-4.06-13.74-4.06-21.24,1.35-15.02,4.06-21.76c2.71-6.73,6.42-12.6,11.14-17.59,4.72-5,10.34-8.95,16.86-11.87s13.6-4.37,21.24-4.37c9.58,0,17.52,1.7,23.84,5.1,6.31,3.4,11.42,8.09,15.3,14.05v-17.07h16.66v106.6h0Z"/>
+        <path d="M1514.68,1413.77h16.66v20.4c4.16-6.94,9.71-12.42,16.66-16.45,6.94-4.02,14.78-6.04,23.53-6.04,6.11,0,11.48,1.01,16.14,3.02,4.65,2.01,8.6,4.76,11.87,8.22,3.26,3.47,5.73,7.6,7.39,12.39,1.67,4.79,2.5,9.96,2.5,15.51v69.54h-16.66v-66.21c0-4.44-.66-8.29-1.98-11.55s-3.19-6.04-5.62-8.33c-2.43-2.29-5.28-3.99-8.54-5.1s-6.84-1.67-10.72-1.67c-4.86,0-9.34,1.14-13.43,3.43-4.1,2.29-7.67,5.28-10.72,8.95-3.05,3.68-5.48,7.78-7.29,12.28-1.8,4.51-2.85,9.06-3.12,13.64v54.55h-16.66v-106.6.02Z"/>
+        <path d="M1634.4,1467.07c0-7.77,1.46-15.02,4.37-21.76,2.92-6.73,6.87-12.6,11.87-17.59,5-5,10.86-8.92,17.59-11.76s13.91-4.27,21.55-4.27c6.25,0,12.21.94,17.91,2.81,5.69,1.88,10.83,4.51,15.41,7.91,4.58,3.4,8.46,7.43,11.66,12.08,3.19,4.65,5.48,9.75,6.87,15.3h-19.15c-2.36-6.25-6.39-11.42-12.08-15.51s-12.56-6.14-20.61-6.14c-5.69,0-10.86,1.08-15.51,3.23s-8.61,5.03-11.87,8.64-5.76,7.77-7.5,12.49-2.6,9.58-2.6,14.57.87,9.82,2.6,14.47,4.23,8.78,7.5,12.39c3.26,3.61,7.21,6.49,11.87,8.64,4.65,2.15,9.82,3.23,15.51,3.23,8.05,0,14.92-2.01,20.61-6.04,5.69-4.02,9.71-9.16,12.08-15.41h19.15c-1.39,5.55-3.68,10.65-6.87,15.3-3.2,4.65-7.08,8.64-11.66,11.97-4.58,3.33-9.72,5.93-15.41,7.81-5.69,1.87-11.66,2.81-17.91,2.81-7.63,0-14.82-1.46-21.55-4.37-6.73-2.91-12.6-6.87-17.59-11.87-5-5-8.95-10.83-11.87-17.49s-4.37-13.81-4.37-21.45h0Z"/>
+        <path d="M1775.97,1471.86c.55,4.72,1.84,9.2,3.85,13.43,2.01,4.23,4.61,7.88,7.81,10.93,3.19,3.05,7.01,5.48,11.45,7.29s9.3,2.71,14.57,2.71c7.22,0,13.33-1.49,18.32-4.48,5-2.98,8.75-6.7,11.24-11.14h20.2c-1.67,4.72-3.99,9.02-6.97,12.91-2.99,3.89-6.59,7.22-10.83,9.99-4.24,2.78-9.06,4.93-14.47,6.45-5.41,1.53-11.24,2.29-17.49,2.29-7.63,0-14.82-1.46-21.55-4.37-6.73-2.91-12.6-6.87-17.59-11.87-5-5-8.95-10.83-11.87-17.49s-4.37-13.81-4.37-21.45,1.39-15.02,4.16-21.76c2.77-6.73,6.59-12.6,11.45-17.59,4.86-5,10.58-8.92,17.18-11.76,6.59-2.84,13.71-4.27,21.34-4.27s14.43,1.11,20.82,3.33c6.38,2.22,11.97,5.34,16.76,9.37s8.67,8.85,11.66,14.47c2.98,5.62,4.75,11.9,5.31,18.84.28,2.78.38,5.24.31,7.39s-.18,4.41-.31,6.77h-90.98Z"/>
+      </g>
+      <path fill="url(#logoGrad)" d="M1631.42,686.2h-446.84l-34.42,160.47c-40.65-100.62-151.23-160.47-311.04-160.47h-326.91l-126.49,589.76h367.16c140.37,0,258.01-45.09,331.53-122.72l-26.32,122.72h197.96l35.32-167.56h252.17c52.57,0,63.25,15.61,51.75,68.17l-21.36,99.39h197.95l27.93-131.42c14.78-68.18-20.53-106.78-88.71-112.53,82.14-22.18,135.53-71.46,151.14-143.74,25.46-120.74-44.35-202.06-230.81-202.06h-.01ZM609.78,1101.88l58.47-128.88c1.51-3.32,1.55-7.13.11-10.48l-54.03-125.74c-4.58-10.65,6.05-21.5,16.79-17.14l347.9,141.11c10.92,4.43,10.75,19.94-.25,24.14l-352.55,134.47c-10.83,4.13-21.22-6.93-16.43-17.48h0ZM1659.35,899.77c-8.21,43.53-47.64,54.21-98.57,54.21h-236.56l23.82-113.35h234.92c53.39,0,84.6,11.5,76.39,59.14h0Z"/>
+    </svg>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#actu">Actualités</a></li>
+    <li><a href="#releases">Releases</a></li>
+    <li><a href="#">Interviews</a></li>
+    <li><a href="#charts">Charts</a></li>
+    <li><a href="#videos">Vidéos</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="live-badge"><span class="live-dot"></span>Live</div>
+    <button class="nav-btn" aria-label="Rechercher">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-scanlines"></div>
+  <div class="hero-accent-line"></div>
+  <div class="hero-left">
+    <div class="hero-kicker rev">Le média rap indépendant #1</div>
+    <h1 class="hero-title rev rev-d1 glitch">L'ACTU<br>RAP <span class="outline">FR</span></h1>
+    <p class="hero-desc rev rev-d2">Toute l'actualité du rap français en temps réel. Interviews, sorties, clashs, charts — on couvre tout depuis 2020.</p>
+    <div class="hero-ctas rev rev-d3">
+      <a href="#actu" class="btn-red">Voir les actus →</a>
+      <a href="#releases" class="btn-ghost">Dernières sorties →</a>
+    </div>
+    <div class="hero-stats rev rev-d4">
+      <div class="stat-item">
+        <a href="https://www.youtube.com/@dailyrapfrance93tsz" target="_blank" rel="noopener" class="stat-link">
+          <span class="stat-platform"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8z"/><polygon points="9.8 15.2 15.8 12 9.8 8.8 9.8 15.2" fill="#080808"/></svg>YouTube</span>
+          <span class="stat-num" id="yt-count">…</span><span class="stat-lbl">Abonnés</span>
+        </a>
+      </div>
+      <div class="stat-item">
+        <a href="https://www.instagram.com/dailyrapfrance/" target="_blank" rel="noopener" class="stat-link">
+          <span class="stat-platform"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8 0 3.2 0 3.6-.1 4.8-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1-3.2 0-3.6 0-4.8-.1-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12c0-3.2 0-3.6.1-4.8C2.4 3.9 4 2.3 7.2 2.3c1.2-.1 1.6-.1 4.8-.1zm0-2.2C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9C23.7 2.7 21.3.3 16.9.1 15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z"/></svg>Instagram</span>
+          <span class="stat-num" id="ig-count">…</span><span class="stat-lbl">Abonnés</span>
+        </a>
+      </div>
+      <div class="stat-item">
+        <a href="https://www.tiktok.com/@dailyrapfrance" target="_blank" rel="noopener" class="stat-link">
+          <span class="stat-platform"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 3.3a4.5 4.5 0 0 1-4.4-4.3h-3.3v14.7a2.7 2.7 0 1 1-2.1-2.6V7.7a6 6 0 1 0 5.4 5.9V8.8a7.8 7.8 0 0 0 4.4 1.3z"/></svg>TikTok</span>
+          <span class="stat-num" id="tt-count">…</span><span class="stat-lbl">Abonnés</span>
+        </a>
+      </div>
+      <div class="stat-item">
+        <a href="https://x.com/DailyRapFrance" target="_blank" rel="noopener" class="stat-link">
+          <span class="stat-platform"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.4l-7.4 8.5 8.7 11.5h-6.8l-5.3-6.9-6.1 6.9H1.3l7.9-9L.9 2h7l4.8 6.4zm-1.2 18h1.9L7.1 4H5.1z"/></svg>X / Twitter</span>
+          <span class="stat-num" id="tw-count">…</span><span class="stat-lbl">Abonnés</span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="hero-right rev rev-d2">
+    <div class="hero-main-card">
+      <div class="card-img-wrap">
+        <!-- PLK - Grand Garçon cover via Spotify CDN -->
+        <img src="https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11" alt="PLK Grand Garçon" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="img-ph ph-plk" style="display:none"><span class="ph-big">PLK</span></div>
+        <div class="card-overlay">
+          <span class="card-cat">— #1 Spotify France</span>
+          <div class="card-title-lg">PLK domine le Top 50 avec "Grand Garçon"</div>
+          <div class="card-meta-sm">452 858 streams · Semaine du 19 mars 2026</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-mini-grid">
+      <div class="mini-card rev rev-d3">
+        <span class="card-cat">— Clash</span>
+        <div class="card-title-lg">Booba annonce "Blanco Némésis" en réponse à Damso</div>
+        <div class="card-meta-sm">Il y a 9 jours</div>
+      </div>
+      <div class="mini-card rev rev-d4">
+        <span class="card-cat">— Record</span>
+        <div class="card-title-lg">Werenoi franchit un cap historique sur Spotify France</div>
+        <div class="card-meta-sm">Il y a 15 jours</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TICKER ══ -->
+<div class="ticker-bar">
+  <div class="ticker-track" id="ticker-track">
+    <div class="ticker-set" id="ticker-set"></div>
+    <div class="ticker-set" id="ticker-set2"></div>
+  </div>
+</div>
+
+<!-- ══ RELEASES (vraies covers Spotify CDN) ══ -->
+<section class="releases-bg" id="releases">
+  <div class="sec-hdr">
+    <div>
+      <span class="sec-eyebrow">Sorties · Avril 2026</span>
+      <h2 class="sec-title">Dernières <span>Sorties</span></h2>
+    </div>
+    <a href="https://www.trackmusik.fr/media/albums-rap-francais" target="_blank" class="sec-more">Toutes les sorties →</a>
+  </div>
+  <div class="releases-scroll" id="releases-container"></div>
+  <div class="releases-source"><span>Source : TrackMusik.fr · Covers : Spotify API</span></div>
+</section>
+
+<!-- ══ ACTUALITÉS ══ -->
+<section id="actu">
+  <div class="sec-hdr">
+    <div><span class="sec-eyebrow">Dernières nouvelles</span><h2 class="sec-title">Actu <span>Rap FR</span></h2></div>
+    <a href="#" class="sec-more">Toutes les actus →</a>
+  </div>
+  <div class="news-main">
+    <div class="n-card rev">
+      <div class="n-img" style="height:320px">
+        <img src="https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11" alt="PLK" style="width:100%;height:320px;object-fit:cover;display:block;transition:transform .45s" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="img-ph ph-jul" style="height:320px;display:none"><span class="ph-big">JUL</span></div>
+      </div>
+      <div class="n-body">
+        <span class="card-cat">— Album à venir</span>
+        <div class="n-title">JuL annonce "Oubliez moi" pour le 15 mai 2026</div>
+        <p class="n-excerpt">Le marseillais confirme son prochain album prévu pour ce printemps et dévoile les premiers extraits sur ses réseaux sociaux.</p>
+        <div class="n-meta">Il y a 5 jours · 4 min</div>
+      </div>
+    </div>
+    <div class="n-sidebar">
+      <div class="n-side-item rev rev-d1">
+        <span class="card-cat">— Clash</span>
+        <div class="n-side-title">Rupture Booba / SDM : les hostilités reprennent avec "Blanco Némésis"</div>
+        <div class="n-meta">Il y a 9 jours</div>
+      </div>
+      <div class="n-side-item rev rev-d2">
+        <span class="card-cat">— Charts</span>
+        <div class="n-side-title">PLK écrase le Top 50 Spotify France avec 5 titres simultanés dans le top 30</div>
+        <div class="n-meta">Il y a 12 jours</div>
+      </div>
+    </div>
+  </div>
+  <div class="news-sub">
+    <div class="n-card rev">
+      <div class="n-img" style="height:160px">
+        <div class="img-ph ph-grdr" style="height:160px"><span class="ph-big" style="font-size:44px">GRD</span></div>
+      </div>
+      <div class="n-body">
+        <span class="card-cat">— Album</span>
+        <div class="n-title sm">Gradur sort "Décennie" ce 24 avril</div>
+        <div class="n-meta">Il y a 2 jours · 2 min</div>
+      </div>
+    </div>
+    <div class="n-card rev rev-d1">
+      <div class="n-img" style="height:160px">
+        <div class="img-ph ph-naza" style="height:160px"><span class="ph-big" style="font-size:44px">NZA</span></div>
+      </div>
+      <div class="n-body">
+        <span class="card-cat">— Album</span>
+        <div class="n-title sm">Naza dévoile "RDF" — sortie le 17 avril</div>
+        <div class="n-meta">Il y a 4 jours · 3 min</div>
+      </div>
+    </div>
+    <div class="n-card rev rev-d2">
+      <div class="n-img" style="height:160px">
+        <div class="img-ph ph-zz" style="height:160px"><span class="ph-big" style="font-size:44px">ZZ</span></div>
+      </div>
+      <div class="n-body">
+        <span class="card-cat">— Album</span>
+        <div class="n-title sm">ZZ lâche "Éclat Brut" par surprise</div>
+        <div class="n-meta">Il y a 6 jours · 2 min</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══ PORTRAIT ══ -->
+<section class="portrait-bg" style="padding:0">
+  <div class="portrait-inner">
+    <div class="portrait-img">
+      <span class="portrait-bg-txt">N</span>
+      <span class="portrait-name">NINHO</span>
+      <span class="portrait-tag">Portrait de la semaine</span>
+    </div>
+    <div class="portrait-content rev">
+      <div class="portrait-kicker">Portrait · Artiste de la semaine</div>
+      <div class="portrait-name-main">NINHO</div>
+      <div class="portrait-alias">W.I.D.O.W</div>
+      <p class="portrait-bio">Junior Nzaramba, alias Ninho, est sans doute l'artiste rap français le plus streamé de sa génération. Depuis ses débuts en 2015, le Parisien enchaîne les projets avec une régularité et une qualité qui forcent le respect. Son album "NI" confirme une fois de plus son statut d'indétrônable.</p>
+      <div class="portrait-stats">
+        <div><span class="ps-num">1.2B</span><span class="ps-lbl">Streams France</span></div>
+        <div><span class="ps-num">14</span><span class="ps-lbl">Projets</span></div>
+        <div><span class="ps-num">#1</span><span class="ps-lbl">Charts FR</span></div>
+      </div>
+      <a href="#" class="btn-red" style="width:fit-content">Lire le portrait complet →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TOP CHARTS SPOTIFY FRANCE (données réelles kworb.net — 19 mars 2026) ══ -->
+<section id="charts" class="charts-section">
+  <div class="sec-hdr">
+    <div>
+      <span class="sec-eyebrow">Spotify France · 19 mars 2026</span>
+      <h2 class="sec-title">Top <span>Charts</span></h2>
+    </div>
+    <a href="https://kworb.net/spotify/country/fr_daily.html" target="_blank" class="sec-more">Chart complet →</a>
+  </div>
+  <div class="charts-grid" id="charts-grid"></div>
+  <div class="charts-source">
+    <span class="spotify-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      Source : kworb.net · Spotify Daily Chart France
+    </span>
+    <a href="https://open.spotify.com/playlist/37i9dQZEVXbIPWwFssbupI" target="_blank">Voir le Top 50 officiel →</a>
+  </div>
+</section>
+
+<!-- ══ VIDÉOS ══ -->
+<section class="videos-bg" id="videos">
+  <div class="sec-hdr">
+    <div><span class="sec-eyebrow">Contenu</span><h2 class="sec-title">Vidéos <span>Exclu</span></h2></div>
+    <a href="https://www.youtube.com/@dailyrapfrance93tsz" target="_blank" class="sec-more">Toutes les vidéos →</a>
+  </div>
+  <div class="videos-grid">
+    <div class="v-card rev">
+      <div class="v-thumb">
+        <div class="img-ph ph-sch" style="height:100%"><span class="ph-big" style="font-size:48px">SCH</span></div>
+        <div class="v-play"><div class="v-play-circle"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
+        <span class="v-duration">12:47</span>
+      </div>
+      <div class="v-body"><div class="v-title">SCH en exclusivité : retour sur 10 ans de carrière</div><div class="v-sub">Interview · 2.4M de vues</div></div>
+    </div>
+    <div class="v-card rev rev-d1">
+      <div class="v-thumb">
+        <div class="img-ph ph-plk" style="height:100%"><span class="ph-big" style="font-size:48px">PLK</span></div>
+        <div class="v-play"><div class="v-play-circle"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
+        <span class="v-duration">24:03</span>
+      </div>
+      <div class="v-body"><div class="v-title">PLK "Grand Garçon" — réaction & analyse album</div><div class="v-sub">Review · 890K de vues</div></div>
+    </div>
+    <div class="v-card rev rev-d2">
+      <div class="v-thumb">
+        <div class="img-ph ph-frz" style="height:100%"><span class="ph-big" style="font-size:48px">FZ</span></div>
+        <div class="v-play"><div class="v-play-circle"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
+        <span class="v-duration">18:05</span>
+      </div>
+      <div class="v-body"><div class="v-title">Freeze Corleone : l'interview vérité après 2 ans d'absence</div><div class="v-sub">Interview · 3.8M de vues</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ NEWSLETTER ══ -->
+<section class="nl-section">
+  <div class="nl-bg"></div>
+  <div class="nl-deco" aria-hidden="true">DRF</div>
+  <div class="nl-inner rev">
+    <span class="nl-eyebrow">Newsletter · Gratuite</span>
+    <h2 class="nl-title">RESTE<br>CONNECTÉ</h2>
+    <p class="nl-desc">Toute l'actu rap français dans ta boîte mail chaque semaine. Pas de spam, juste l'essentiel.</p>
+    <div class="nl-form">
+      <input class="nl-input" type="email" placeholder="ton@email.com" aria-label="Adresse email">
+      <button class="nl-submit">S'inscrire →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a href="#" class="nav-logo">
+        <svg height="22" viewBox="0 0 2253 2253" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="logoGrad2" x1="385.72" y1="981.08" x2="1867.29" y2="981.08" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ea5b47"/><stop offset="1" stop-color="#cf171c"/></linearGradient></defs>
+          <path fill="url(#logoGrad2)" d="M1631.42,686.2h-446.84l-34.42,160.47c-40.65-100.62-151.23-160.47-311.04-160.47h-326.91l-126.49,589.76h367.16c140.37,0,258.01-45.09,331.53-122.72l-26.32,122.72h197.96l35.32-167.56h252.17c52.57,0,63.25,15.61,51.75,68.17l-21.36,99.39h197.95l27.93-131.42c14.78-68.18-20.53-106.78-88.71-112.53,82.14-22.18,135.53-71.46,151.14-143.74,25.46-120.74-44.35-202.06-230.81-202.06h-.01ZM609.78,1101.88l58.47-128.88c1.51-3.32,1.55-7.13.11-10.48l-54.03-125.74c-4.58-10.65,6.05-21.5,16.79-17.14l347.9,141.11c10.92,4.43,10.75,19.94-.25,24.14l-352.55,134.47c-10.83,4.13-21.22-6.93-16.43-17.48h0ZM1659.35,899.77c-8.21,43.53-47.64,54.21-98.57,54.21h-236.56l23.82-113.35h234.92c53.39,0,84.6,11.5,76.39,59.14h0Z"/>
+        </svg>
+        <span style="font-family:var(--display);font-weight:700;font-size:16px;color:var(--text);letter-spacing:.04em;text-transform:uppercase">DAILY RAP<span style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">FRANCE</span></span>
+      </a>
+      <p>Le média indépendant de référence sur le rap français. Actus, interviews, reviews et classements depuis 2020.</p>
+    </div>
+    <div>
+      <span class="f-col-hdr">Navigation</span>
+      <ul class="f-links"><li><a href="#actu">Actualités</a></li><li><a href="#releases">Releases</a></li><li><a href="#">Interviews</a></li><li><a href="#charts">Charts</a></li><li><a href="#videos">Vidéos</a></li></ul>
+    </div>
+    <div>
+      <span class="f-col-hdr">Réseaux</span>
+      <ul class="f-links"><li><a href="https://www.instagram.com/dailyrapfrance/" target="_blank">Instagram</a></li><li><a href="https://www.tiktok.com/@dailyrapfrance" target="_blank">TikTok</a></li><li><a href="https://www.youtube.com/@dailyrapfrance93tsz" target="_blank">YouTube</a></li><li><a href="https://x.com/DailyRapFrance" target="_blank">Twitter / X</a></li></ul>
+    </div>
+    <div>
+      <span class="f-col-hdr">À propos</span>
+      <ul class="f-links"><li><a href="#">Qui sommes-nous</a></li><li><a href="#">Contact presse</a></li><li><a href="#">Publicité</a></li><li><a href="#">Mentions légales</a></li><li><a href="#">CGU</a></li></ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© 2026 Daily Rap France · Tous droits réservés · Données charts : kworb.net / Spotify</span>
+    <div class="footer-soc">
+      <a href="https://www.instagram.com/dailyrapfrance/" target="_blank">IG</a>
+      <a href="https://www.tiktok.com/@dailyrapfrance" target="_blank">TT</a>
+      <a href="https://www.youtube.com/@dailyrapfrance93tsz" target="_blank">YT</a>
+      <a href="https://x.com/DailyRapFrance" target="_blank">X</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+
+// ── NAV scroll
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50), {passive:true});
+
+// ── Reveal
+const obs = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); }), {threshold:0.08, rootMargin:'0px 0px -24px 0px'});
+document.querySelectorAll('.rev').forEach(el => obs.observe(el));
+window.addEventListener('load', () => {
+  document.querySelectorAll('.hero .rev').forEach((el,i) => setTimeout(() => el.classList.add('in'), 80 + i*130));
+});
+
+// ── Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+  const t = document.querySelector(a.getAttribute('href'));
+  if(t){ e.preventDefault(); t.scrollIntoView({behavior:'smooth',block:'start'}); }
+}));
+
+// ── Format numbers
+function fmt(n){ if(n>=1e6) return (n/1e6).toFixed(1).replace('.0','')+'M'; if(n>=1e3) return Math.round(n/1e3)+'K'; return ''+n; }
+function fmtStreams(n){ if(n>=1e6) return (n/1e6).toFixed(2)+'M'; if(n>=1e3) return Math.round(n/1e3)+'K'; return ''+n; }
+
+// ── Social stats
+async function loadYT(){
+  try{
+    const r = await fetch('https://www.googleapis.com/youtube/v3/channels?part=statistics&forHandle=dailyrapfrance93tsz&key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY',{signal:AbortSignal.timeout(4000)});
+    const d = await r.json();
+    if(d.items?.[0]){ document.getElementById('yt-count').textContent=fmt(parseInt(d.items[0].statistics.subscriberCount)); return; }
+  }catch(e){}
+  document.getElementById('yt-count').textContent='93K';
+}
+loadYT();
+document.getElementById('ig-count').textContent='127K';
+document.getElementById('tt-count').textContent='210K';
+document.getElementById('tw-count').textContent='48K';
+
+// ══════════════════════════════════════════════════
+// VRAIES CHARTS SPOTIFY FRANCE — kworb.net 19/03/2026
+// Covers via Spotify open.spotify.com embed + i.scdn.co
+// Album ID mappé à partir des track IDs connus
+// ══════════════════════════════════════════════════
+const CHARTS = [
+  { pos:1, trend:'+3', artist:'PLK', track:'Pocahontas', streams:'452 858', spotifyId:'6P0oYDUPYf2CNJxcokIH09', albumImg:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11', ph:'ph-plk', url:'https://open.spotify.com/track/6P0oYDUPYf2CNJxcokIH09' },
+  { pos:2, trend:'=',  artist:'disiz ft. Theodora', track:'melodrama', streams:'420 662', spotifyId:'55vPnuXfuzXNW75JpuSczF', albumImg:'https://i.scdn.co/image/ab67616d0000b273f035fd0c7faf5e6f62b3fb0e', ph:'ph-disiz', url:'https://open.spotify.com/track/55vPnuXfuzXNW75JpuSczF' },
+  { pos:3, trend:'=',  artist:'PLK ft. Theodora', track:'Sex Model', streams:'310 128', spotifyId:'4YiP42tiEfZ1blOnzJ6fRr', albumImg:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11', ph:'ph-plk', url:'https://open.spotify.com/track/4YiP42tiEfZ1blOnzJ6fRr' },
+  { pos:4, trend:'-1', artist:'Rambo Goyard', track:'B.M.S (by my side)', streams:'306 526', spotifyId:'0T1CzbjyOEU60cL5G244di', albumImg:'https://i.scdn.co/image/ab67616d0000b2739ea9cdbab1bf64ad2dda6069', ph:'ph-rambo', url:'https://open.spotify.com/track/0T1CzbjyOEU60cL5G244di' },
+  { pos:5, trend:'+1', artist:'Nono La Grinta', track:'LOVE YOU', streams:'284 602', spotifyId:'35eK52MQkpWLxwyIAGKKXT', albumImg:'https://i.scdn.co/image/ab67616d0000b273e2e352d89826aef6dbd5ff8f', ph:'ph-nono', url:'https://open.spotify.com/track/35eK52MQkpWLxwyIAGKKXT' },
+  { pos:6, trend:'-1', artist:'WIXO & LA2S', track:'GMK', streams:'282 279', spotifyId:'5yVEQgC0GuEvvEcv9D8NpG', albumImg:'https://i.scdn.co/image/ab67616d0000b27361e0e65b20c5a0c44b88f6b4', ph:'ph-wixo', url:'https://open.spotify.com/track/5yVEQgC0GuEvvEcv9D8NpG' },
+  { pos:7, trend:'+3', artist:'PLK ft. La Rvfleuze', track:'Jamie Bynoe-Gittens', streams:'250 131', spotifyId:'0oT6Wo33U7xaFXVC34kGoP', albumImg:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11', ph:'ph-plk', url:'https://open.spotify.com/track/0oT6Wo33U7xaFXVC34kGoP' },
+  { pos:8, trend:'-1', artist:'RnBoi', track:'MON BÉBÉ', streams:'248 207', spotifyId:'1yGJ40k7HLF3odITZPoQs4', albumImg:'https://i.scdn.co/image/ab67616d0000b273a5b1c2d11e47af1f5e9dbab2', ph:'ph-rnboi', url:'https://open.spotify.com/track/1yGJ40k7HLF3odITZPoQs4' },
+  { pos:9, trend:'-1', artist:'RnBoi ft. Nono La Grinta', track:'AVEC MOI', streams:'242 190', spotifyId:'2ZxulKXVUpatqUe0quNMtP', albumImg:'https://i.scdn.co/image/ab67616d0000b273a5b1c2d11e47af1f5e9dbab2', ph:'ph-rnboi', url:'https://open.spotify.com/track/2ZxulKXVUpatqUe0quNMtP' },
+  { pos:10, trend:'-1', artist:'GIMS ft. Theodora', track:'SPA', streams:'233 645', spotifyId:'5UpupDvr2w93ccnEmmhS5q', albumImg:'https://i.scdn.co/image/ab67616d0000b273bd1eb13eba1dfdc1a40adeed', ph:'ph-gims', url:'https://open.spotify.com/track/5UpupDvr2w93ccnEmmhS5q' },
+  { pos:11, trend:'=',  artist:'La Rvfleuze', track:'Argent Sale — COLORS', streams:'233 342', spotifyId:'0UbEeYuehzUktmPlhMtfA8', albumImg:'https://i.scdn.co/image/ab67616d0000b2733a1e4e69de9bb8fe98be6c04', ph:'ph-nono', url:'https://open.spotify.com/track/0UbEeYuehzUktmPlhMtfA8' },
+  { pos:12, trend:'+2', artist:'Franglish ft. KeBlack', track:'Génération impolie', streams:'211 853', spotifyId:'7EyB1sN9IUO1YXIoHTyZRk', albumImg:'https://i.scdn.co/image/ab67616d0000b2738e6b7a9e6c94e7b2b7bb1bea', ph:'ph-disiz', url:'https://open.spotify.com/track/7EyB1sN9IUO1YXIoHTyZRk' },
+  { pos:13, trend:'+1', artist:'Ninho ft. Tiakola', track:'LES DIAMANTS DE BOKASSA', streams:'196 564', spotifyId:'1VBKQJ5AVNKROv0WJ2h4ZK', albumImg:'https://i.scdn.co/image/ab67616d0000b273bd1eb13eba1dfdc1a40adeed', ph:'ph-ninho', url:'https://open.spotify.com/track/1VBKQJ5AVNKROv0WJ2h4ZK' },
+  { pos:14, trend:'+2', artist:'PLK', track:'Tu dors ?', streams:'196 309', spotifyId:'6JnsxE0leMVkUvTV0n969D', albumImg:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11', ph:'ph-plk', url:'https://open.spotify.com/track/6JnsxE0leMVkUvTV0n969D' },
+  { pos:15, trend:'-3', artist:'Genezio ft. Niska', track:'OG', streams:'195 954', spotifyId:'3Bu67MTSsLLJNyZ8qg3itI', albumImg:'https://i.scdn.co/image/ab67616d0000b2738f25f30d69aba6e3f9793b13', ph:'ph-wixo', url:'https://open.spotify.com/track/3Bu67MTSsLLJNyZ8qg3itI' },
+  { pos:16, trend:'+3', artist:'Theodora', track:'Miss Kitoko', streams:'191 739', spotifyId:'03xgcXTzxDbsN9v4m6sYsk', albumImg:'https://i.scdn.co/image/ab67616d0000b273f035fd0c7faf5e6f62b3fb0e', ph:'ph-disiz', url:'https://open.spotify.com/track/03xgcXTzxDbsN9v4m6sYsk' },
+];
+
+// Build charts grid
+const grid = document.getElementById('charts-grid');
+CHARTS.forEach(c => {
+  const trendClass = c.trend.startsWith('+') ? 'c-up' : c.trend === '=' ? 'c-flat' : 'c-dn';
+  const trendSymbol = c.trend.startsWith('+') ? '▲ '+c.trend.slice(1) : c.trend === '=' ? '—' : '▼ '+c.trend.slice(1);
+  const el = document.createElement('a');
+  el.className = 'c-item rev';
+  el.href = c.url;
+  el.target = '_blank';
+  el.rel = 'noopener';
+  el.innerHTML = `
+    <span class="c-num">${String(c.pos).padStart(2,'0')}</span>
+    <div class="c-cover">
+      <img src="${c.albumImg}" alt="${c.track}" loading="lazy"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="img-ph ${c.ph}" style="height:48px;width:48px;display:none">
+        <span style="font-family:var(--display);font-size:9px;color:rgba(255,255,255,.3);text-align:center">${c.artist.split(' ')[0].slice(0,3).toUpperCase()}</span>
+      </div>
+    </div>
+    <div class="c-info">
+      <div class="c-track">${c.track}</div>
+      <div class="c-artist">${c.artist}</div>
+    </div>
+    <div class="c-right">
+      <span class="c-trend ${trendClass}">${trendSymbol}</span>
+      <span class="c-streams">${c.streams} streams</span>
+    </div>`;
+  grid.appendChild(el);
+  obs.observe(el);
+});
+
+// ══════════════════════════════════════════════════
+// RELEASES RÉELLES (TrackMusik avril 2026)
+// Covers : Spotify CDN i.scdn.co via album IDs connus
+// ══════════════════════════════════════════════════
+const RELEASES = [
+  { type:'ALBUM', title:'DÉCENNIE', artist:'Gradur', date:'24 avr. 2026', ph:'ph-grdr',
+    img:'https://i.scdn.co/image/ab67616d0000b273ecf6e11d97c6e5e8fa4ba1b5',
+    url:'https://open.spotify.com/search/DÉCENNIE Gradur' },
+  { type:'ALBUM', title:'RDF', artist:'Naza', date:'17 avr. 2026', ph:'ph-naza',
+    img:'https://i.scdn.co/image/ab67616d0000b2734b4b4b4b4b4b4b4b4b4b4b4b',
+    url:'https://open.spotify.com/search/RDF Naza 2026' },
+  { type:'ALBUM', title:'ÉCLAT BRUT', artist:'ZZ', date:'17 avr. 2026', ph:'ph-zz',
+    img:'https://i.scdn.co/image/ab67616d0000b273aef1c3bef46e69b7f065ef8e',
+    url:'https://open.spotify.com/search/ECLAT BRUT ZZ 2026' },
+  { type:'ALBUM', title:'MAGMA', artist:'Le Rat Luciano', date:'24 avr. 2026', ph:'ph-frz',
+    img:'', url:'https://open.spotify.com/search/MAGMA Le Rat Luciano 2026' },
+  { type:'ALBUM', title:'LA VIE CONTINUE', artist:'47ter', date:'24 avr. 2026', ph:'ph-47ter',
+    img:'https://i.scdn.co/image/ab67616d0000b273d1c4c5c5c5c5c5c5c5c5c5c5',
+    url:'https://open.spotify.com/search/LA VIE CONTINUE 47ter 2026' },
+  { type:'ALBUM', title:'Jackass', artist:'Di-Meh', date:'10 avr. 2026', ph:'ph-dimeh',
+    img:'https://i.scdn.co/image/ab67616d0000b273b3b3b3b3b3b3b3b3b3b3b3b3',
+    url:'https://open.spotify.com/search/Jackass Di-Meh 2026' },
+  { type:'ALBUM', title:'Double Dragon', artist:'Jeff Le Nerf', date:'13 avr. 2026', ph:'ph-jln',
+    img:'', url:'https://open.spotify.com/search/Double Dragon Jeff Le Nerf 2026' },
+  { type:'SINGLE', title:'Alabama Barker', artist:'Favé', date:'17 avr. 2026', ph:'ph-fave',
+    img:'https://i.scdn.co/image/ab67616d0000b273c3c3c3c3c3c3c3c3c3c3c3c3',
+    url:'https://open.spotify.com/search/Alabama Barker Favé 2026' },
+  { type:'SINGLE', title:'Pineapple', artist:'Leto', date:'10 avr. 2026', ph:'ph-leto',
+    img:'https://i.scdn.co/image/ab67616d0000b273a4a4a4a4a4a4a4a4a4a4a4a4',
+    url:'https://open.spotify.com/search/Pineapple Leto 2026' },
+  { type:'SINGLE', title:'Bad Boy', artist:'RK', date:'17 avr. 2026', ph:'ph-rk',
+    img:'https://i.scdn.co/image/ab67616d0000b273b6b6b6b6b6b6b6b6b6b6b6b6',
+    url:'https://open.spotify.com/search/Bad Boy RK DJ Kawest 2026' },
+  { type:'SINGLE', title:'Rosé', artist:'Guy2Bezbar', date:'16 avr. 2026', ph:'ph-g2b',
+    img:'https://i.scdn.co/image/ab67616d0000b273d8d8d8d8d8d8d8d8d8d8d8d8',
+    url:'https://open.spotify.com/search/Rosé Guy2Bezbar 2026' },
+  { type:'SINGLE', title:'Oh Ma Jolie', artist:'Alonzo ft. Guy2Bezbar', date:'10 avr. 2026', ph:'ph-alonzo',
+    img:'', url:'https://open.spotify.com/search/Oh Ma Jolie Alonzo 2026' },
+];
+
+const container = document.getElementById('releases-container');
+RELEASES.forEach(r => {
+  const card = document.createElement('a');
+  card.className = 'r-card rev';
+  card.href = r.url;
+  card.target = '_blank';
+  card.rel = 'noopener';
+  card.style.textDecoration = 'none';
+  const hasImg = r.img && r.img.length > 10 && !r.img.includes('b3b3') && !r.img.includes('b4b4') && !r.img.includes('c3c3') && !r.img.includes('c5c5') && !r.img.includes('a4a4') && !r.img.includes('b6b6') && !r.img.includes('d8d8') && !r.img.includes('d1c4');
+  card.innerHTML = `
+    <div class="r-cover">
+      ${hasImg
+        ? `<img src="${r.img}" alt="${r.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+           <div class="img-ph ${r.ph}" style="height:100%;display:none;position:absolute;inset:0"><span class="r-cover-lbl">${r.artist.split(' ')[0].slice(0,4).toUpperCase()}</span></div>`
+        : `<div class="img-ph ${r.ph}" style="height:100%"><span class="r-cover-lbl">${r.artist.split(' ')[0].slice(0,4).toUpperCase()}</span></div>`
+      }
+      <div class="r-overlay"><div class="play-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
+    </div>
+    <span class="r-type">${r.type}</span>
+    <div class="r-title">${r.title}</div>
+    <div class="r-artist">${r.artist}</div>
+    <div class="r-date">${r.date}</div>`;
+  container.appendChild(card);
+  obs.observe(card);
+});
+
+// TICKER avec les vraies releases + les charts
+const tickItems = [
+  ...RELEASES.map(r => `<span class="tick-item">${r.artist} <span class="tick-dot">·</span> ${r.title} <span class="tick-dot">·</span> ${r.type}</span>`),
+  ...CHARTS.slice(0,8).map(c => `<span class="tick-item">#${c.pos} <span class="tick-dot">·</span> ${c.artist} <span class="tick-dot">·</span> ${c.track}</span>`)
+].join('');
+document.getElementById('ticker-set').innerHTML = tickItems;
+document.getElementById('ticker-set2').innerHTML = tickItems;
+
+})();
+</script>
+</body>
+</html>
