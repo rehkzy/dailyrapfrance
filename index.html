@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Rap France — Le Média Rap #1 en France</title>
+<meta name="description" content="Daily Rap France — Toute l'actu du rap français : interviews, sorties, clashs, charts. Le média indépendant de référence depuis 2020.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
@@ -21,7 +22,7 @@
   --card:rgba(18,18,18,0.7);
   --card-solid:#121212;
   --card2:rgba(26,26,26,0.8);
-  --glass:rgba(255,255,255,0.04);
+  --glass:rgba(255,255,255,0.035);
   --glass-border:rgba(255,255,255,0.08);
   --glass-border-red:rgba(207,23,28,0.35);
   --border:rgba(255,255,255,0.06);
@@ -33,30 +34,14 @@
   --body:'Syne',sans-serif;
   --mono:'Syne Mono',monospace;
 }
-
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.6;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:
-  radial-gradient(ellipse 80% 60% at 75% 20%,rgba(207,23,28,.12) 0%,transparent 60%),
-  radial-gradient(ellipse 50% 40% at 10% 80%,rgba(207,23,28,.07) 0%,transparent 55%),
-  radial-gradient(ellipse 60% 50% at 50% 50%,rgba(10,5,5,1) 0%,transparent 100%);
-  pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 75% 20%,rgba(207,23,28,.12) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 10% 80%,rgba(207,23,28,.07) 0%,transparent 55%),radial-gradient(ellipse 60% 50% at 50% 50%,rgba(10,5,5,1) 0%,transparent 100%);pointer-events:none;z-index:0}
 body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.025;pointer-events:none;z-index:9999}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--grad)}
 
-/* ─ GLASS MIXIN ─ */
-.glass{
-  background:rgba(255,255,255,0.035);
-  backdrop-filter:blur(20px) saturate(1.4);
-  -webkit-backdrop-filter:blur(20px) saturate(1.4);
-  border:1px solid var(--glass-border);
-}
-.glass-dark{
-  background:rgba(8,8,8,0.6);
-  backdrop-filter:blur(24px) saturate(1.2);
-  -webkit-backdrop-filter:blur(24px) saturate(1.2);
-  border:1px solid var(--border);
-}
+.glass{background:rgba(255,255,255,0.035);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);border:1px solid var(--glass-border)}
+.glass-dark{background:rgba(8,8,8,0.6);backdrop-filter:blur(24px) saturate(1.2);-webkit-backdrop-filter:blur(24px) saturate(1.2);border:1px solid var(--border)}
 
 /* ─ NAV ─ */
 nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 48px;height:68px;display:flex;align-items:center;justify-content:space-between;transition:all .4s}
@@ -88,7 +73,7 @@ h1.hero-title .outline{color:transparent;-webkit-text-stroke:1.5px rgba(207,23,2
 .btn-ghost{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);text-decoration:none;transition:color .2s,gap .2s;padding:13px 0}
 .btn-ghost:hover{color:var(--text);gap:14px}
 
-/* ─ SOCIAL STATS ─ */
+/* ─ SOCIAL STATS HERO ─ */
 .hero-stats{display:flex;gap:0;margin-top:56px;padding-top:36px;border-top:1px solid var(--border)}
 .stat-item{flex:1;padding:0 20px;border-right:1px solid var(--border)}
 .stat-item:first-child{padding-left:0}
@@ -169,6 +154,24 @@ section{padding:80px 48px;position:relative;z-index:1}
 .sec-more{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);text-decoration:none;display:flex;align-items:center;gap:6px;transition:gap .2s;opacity:.8}
 .sec-more:hover{gap:12px;opacity:1}
 
+/* ─ SOCIAL VITRINE ─ */
+.soc-vitrine{background:var(--dark);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.soc-about{display:grid;grid-template-columns:1.2fr 1fr;gap:64px;align-items:center;margin-bottom:48px}
+.soc-about-text p{font-size:14px;color:var(--muted2);max-width:480px;margin-top:12px;line-height:1.8}
+.soc-about-quote{font-family:var(--display);font-weight:400;font-size:clamp(24px,2.5vw,36px);letter-spacing:-.02em;line-height:1.2;color:rgba(255,255,255,.15);border-left:3px solid var(--red);padding-left:24px;font-style:italic}
+.soc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px}
+.soc-card{background:rgba(14,14,14,.8);border:1px solid var(--border);padding:32px 26px 24px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:8px;transition:background .25s,border-color .3s,transform .35s;position:relative;overflow:hidden}
+.soc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad);transform:scaleX(0);transform-origin:left;transition:transform .35s}
+.soc-card:hover{background:rgba(22,22,22,.9);border-color:var(--border-red);transform:translateY(-5px)}
+.soc-card:hover::before{transform:scaleX(1)}
+.soc-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:2px;margin-bottom:8px;transition:border-color .25s}
+.soc-card:hover .soc-icon{border-color:var(--border-red)}
+.soc-platform{font-family:var(--mono);font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
+.soc-followers{font-family:var(--display);font-weight:700;font-size:48px;letter-spacing:-.03em;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin:6px 0 4px}
+.soc-desc{font-size:12px;color:var(--muted2);line-height:1.65;flex:1}
+.soc-cta{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;margin-top:18px;transition:gap .2s}
+.soc-card:hover .soc-cta{gap:14px}
+
 /* ─ ACTU ─ */
 .actu-bg{background:var(--dark)}
 .actu-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;margin-bottom:12px}
@@ -191,7 +194,6 @@ section{padding:80px 48px;position:relative;z-index:1}
 .n-side:hover{transform:translateY(-2px)}
 .n-side:hover .glass{border-color:var(--glass-border-red) !important}
 .n-side-title{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:-.01em;line-height:1.15;color:var(--text);margin-bottom:8px}
-/* actu loading */
 .actu-loader{display:flex;align-items:center;gap:12px;padding:24px 0;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em}
 .actu-loader-dot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:pulse 1s infinite}
 .actu-loader-dot:nth-child(2){animation-delay:.2s}
@@ -220,9 +222,9 @@ section{padding:80px 48px;position:relative;z-index:1}
 .c-item:hover{background:rgba(255,255,255,.04);transform:translateX(3px)}
 .c-num{font-family:var(--display);font-weight:400;font-size:28px;color:rgba(255,255,255,.1);width:36px;text-align:center;flex-shrink:0;transition:all .25s;line-height:1}
 .c-item:hover .c-num{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.c-cover{width:44px;height:44px;flex-shrink:0;overflow:hidden;border-radius:2px;border:1px solid var(--border)}
+.c-cover{width:44px;height:44px;flex-shrink:0;overflow:hidden;border-radius:2px;border:1px solid var(--border);position:relative}
 .c-cover img{width:100%;height:100%;object-fit:cover;display:block}
-.c-cover .img-ph{height:44px;width:44px;font-size:10px;font-family:var(--display)}
+.c-cover .img-ph{height:44px;width:44px;font-size:10px;font-family:var(--display);position:absolute;inset:0}
 .c-info{flex:1;min-width:0}
 .c-track{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:-.005em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
 .c-artist{font-size:11px;color:var(--muted2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -233,7 +235,6 @@ section{padding:80px 48px;position:relative;z-index:1}
 .charts-src{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.1em;margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .charts-src a{color:var(--muted);text-decoration:none;transition:color .2s}
 .charts-src a:hover{color:var(--red)}
-/* charts loader */
 .charts-loader{padding:40px 0;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em}
 
 /* ─ RELEASES ─ */
@@ -263,8 +264,8 @@ section{padding:80px 48px;position:relative;z-index:1}
 .v-card:hover{transform:translateY(-3px)}
 .v-card:hover .glass{border-color:var(--glass-border-red) !important}
 .v-thumb{position:relative;aspect-ratio:16/9;overflow:hidden}
-.v-thumb .img-ph{height:100%;transition:transform .45s}
-.v-card:hover .v-thumb .img-ph{transform:scale(1.04)}
+.v-thumb .img-ph,.v-thumb img{height:100%;transition:transform .45s;width:100%;object-fit:cover}
+.v-card:hover .v-thumb .img-ph,.v-card:hover .v-thumb img{transform:scale(1.04)}
 .v-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .v-play-circle{width:48px;height:48px;background:rgba(7,7,7,.7);border:1.5px solid rgba(255,255,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(8px)}
 .v-card:hover .v-play-circle{background:var(--grad);border-color:transparent;transform:scale(1.1)}
@@ -310,7 +311,6 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
 .rev{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
 .rev.in{opacity:1;transform:translateY(0)}
 .rev-d1{transition-delay:.08s}.rev-d2{transition-delay:.16s}.rev-d3{transition-delay:.24s}.rev-d4{transition-delay:.32s}
-
 @keyframes glitch{0%,92%,100%{transform:translate(0);clip-path:none}93%{transform:translate(-2px,1px);clip-path:polygon(0 0,100% 0,100% 35%,0 35%)}95%{transform:translate(2px,-1px);clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%)}97%{transform:translate(0)}}
 .glitch{animation:glitch 6s infinite}
 </style>
@@ -321,20 +321,16 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
 <nav id="nav">
   <a href="#" class="nav-logo">
     <svg height="30" viewBox="0 0 2253 2253" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="lg1" x1="385" y1="981" x2="1867" y2="981" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stop-color="#ea5b47"/><stop offset="1" stop-color="#cf171c"/>
-        </linearGradient>
-      </defs>
+      <defs><linearGradient id="lg1" x1="385" y1="981" x2="1867" y2="981" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ea5b47"/><stop offset="1" stop-color="#cf171c"/></linearGradient></defs>
       <g fill="rgba(237,237,237,0.85)" font-size="0">
-        <path d="M386,1467c0-7.8,1.4-15,4.1-21.8,2.7-6.7,6.4-12.6,11.1-17.6s10.3-8.9,16.9-11.9,13.6-4.4,21.2-4.4c9.6,0,17.5,1.7,23.7,5.1s11.3,8,15.2,13.9v-60.2h16.7v149.9h-16.7v-16.9c-3.9,5.8-9,10.4-15.2,13.7s-14.2,5-23.7,5c-7.6,0-14.7-1.5-21.2-4.4s-12.2-6.9-16.9-11.9-8.4-10.8-11.1-17.5S386,1474.5,386,1467Zm92.3-8.3c-.8-4.6-2.3-8.8-4.5-12.6s-4.8-7.1-8-9.8-6.9-4.8-11-6.3-8.6-2.2-13.3-2.2c-5.8,0-11.1,1.1-15.8,3.2s-8.7,5-11.9,8.6-5.7,7.8-7.4,12.5-2.6,9.7-2.6,14.8.9,9.8,2.6,14.5,4.2,8.8,7.4,12.3,7.2,6.4,11.9,8.5,10,.3,15.8,3.2c5,0,9.6-.8,13.7-2.4s7.8-3.8,11-6.5,5.8-5.9,7.9-9.5,3.5-7.5,4.2-11.7v-16.9Z"/>
-        <path d="M629,1520h-16.7v-17.1c-3.9,5.8-9,10.5-15.3,13.8s-14.3,5.1-23.8,5.1c-7.6,0-14.7-1.5-21.2-4.4s-12.2-6.9-16.9-11.9-8.4-10.8-11.1-17.5-4.1-13.7-4.1-21.2,1.4-15,4.1-21.8,6.4-12.6,11.1-17.6,10.3-9,16.9-11.9,13.6-4.4,21.2-4.4c9.6,0,17.5,1.7,23.8,5.1s11.4,8.1,15.3,14.1v-17.1H629V1520Zm-16.7-60.2c-.6-4.4-1.8-8.6-3.9-12.5s-4.6-7.3-7.8-10.2-6.9-5.2-11.2-6.9-9-.2,14.2-2.5c-5.8,0-11.1,1.1-15.8,3.2s-8.7,5-11.9,8.6-5.7,7.8-7.4,12.5-2.6,9.7-2.6,14.8.9,9.8,2.6,14.5,4.2,8.8,7.4,12.3,7.2,6.4,11.9,8.5,10,3.2,15.8,3.2c5.1,0,9.8-.8,14-2.5s7.9-3.9,11.1-6.7,5.8-6.1,7.9-9.9,3.4-7.9,4-12.2v-14.4Z"/>
+        <path d="M386,1467c0-7.8,1.4-15,4.1-21.8,2.7-6.7,6.4-12.6,11.1-17.6s10.3-8.9,16.9-11.9,13.6-4.4,21.2-4.4c9.6,0,17.5,1.7,23.7,5.1s11.3,8,15.2,13.9v-60.2h16.7v149.9h-16.7v-16.9c-3.9,5.8-9,10.4-15.2,13.7s-14.2,5-23.7,5c-7.6,0-14.7-1.5-21.2-4.4s-12.2-6.9-16.9-11.9-8.4-10.8-11.1-17.5S386,1474.5,386,1467Z"/>
+        <path d="M629,1520h-16.7v-17.1c-3.9,5.8-9,10.5-15.3,13.8s-14.3,5.1-23.8,5.1c-7.6,0-14.7-1.5-21.2-4.4s-12.2-6.9-16.9-11.9-8.4-10.8-11.1-17.5-4.1-13.7-4.1-21.2,1.4-15,4.1-21.8,6.4-12.6,11.1-17.6,10.3-9,16.9-11.9,13.6-4.4,21.2-4.4c9.6,0,17.5,1.7,23.8,5.1s11.4,8.1,15.3,14.1v-17.1H629V1520Z"/>
         <path d="M662,1381c0-3.5,1.2-6.4,3.5-8.7s5.3-3.5,8.8-3.5,6.4,1.2,8.7,3.5,3.5,5.3,3.5,8.7-.9,5-2.6,6.9-3.5,2.8-5.9,3.3c-2.4.6-4.8,0-7.2-.9s-4.4-2.5-5.9-4.5S662,1384.4,662,1381Zm3.9,32.8h16.7v106.6h-16.7v-106.6Z"/>
         <path d="M712,1370h16.7v149.9H712V1370Z"/>
         <path d="M771,1564.7l17.9-45.2-40.4-105.8h18.5l30.8,82.9,32.7-82.9h18.5l-60.4,151H771Z"/>
         <path d="M869,1413.8h16.7v23.5c4.3-8.6,10.1-15,17.5-19.3s15.3-6.4,23.9-6.4v18.1c-4.6,0-9.3.9-14.3,2.6s-9.4,4.3-13.4,7.6-7.3,7.5-9.9,12.4-3.9,10.7-3.9,17.2v50.8H869v-106.6Z"/>
-        <path d="M1051,1520h-16.7v-17.1c-3.9,5.8-9,10.5-15.3,13.8s-14.3,5.1-23.8,5.1c-7.6,0-14.7-1.5-21.2-4.4s-12.2-6.9-16.9-11.9-8.4-10.8-11.1-17.5-4.1-13.7-4.1-21.2,1.4-15,4.1-21.8,6.4-12.6,11.1-17.6,10.3-9,16.9-11.9,13.6-4.4,21.2-4.4c9.6,0,17.5,1.7,23.8,5.1s11.4,8.1,15.3,14.1v-17.1H1051V1520Zm-16.7-60.2c-.6-4.4-1.8-8.6-3.9-12.5s-4.6-7.3-7.8-10.2-6.9-5.2-11.2-6.9-9-2.5-14.2-2.5c-5.8,0-11.1,1.1-15.8,3.2s-8.7,5-11.9,8.6-5.7,7.8-7.4,12.5-2.6,9.7-2.6,14.8.9,9.8,2.6,14.5,4.2,8.8,7.4,12.3,7.2,6.4,11.9,8.5,10,3.2,15.8,3.2c5.1,0,9.8-.8,14-2.5s7.9-3.9,11.1-6.7,5.8-6.1,7.9-9.9,3.4-7.9,4-12.2v-14.4Z"/>
-        <path d="M1084,1564.7v-151h16.7v17.1c3.9-6,9-10.7,15.3-14.1s14.3-5.1,23.8-5.1c7.6,0,14.7,1.5,21.2,4.4s12.1,6.9,16.9,11.9,8.4,10.9,11.1,17.6,4.1,14,4.1,21.8-1.4,14.6-4.1,21.2-6.4,12.5-11.1,17.5-10.3,9-16.9,11.9-13.6,4.4-21.2,4.4c-9.6,0-17.5-1.7-23.8-5.1s-11.4-8-15.3-13.8v61.4h-16.7Zm16.7-104.5v14.4c.7,4.3,2.1,8.4,4.1,12.2s4.6,7.1,7.8,9.9,6.9,5,11.1,6.7,8.9,2.5,14,2.5c5.8,0,11.1-1.1,15.8-3.2s8.7-5,11.9-8.5,5.7-7.6,7.4-12.3,2.6-9.5,2.6-14.5-.9-10.1-2.6-14.8-4.2-8.9-7.4-12.5-7.2-6.5-11.9-8.6-10-3.2-15.8-3.2c-5.1,0-9.9.8-14.2,2.5s-8,4-11.2,6.9-5.8,6.3-7.7,10.2-3.3,8.1-4,12.5Z"/>
+        <path d="M1051,1520h-16.7v-17.1c-3.9,5.8-9,10.5-15.3,13.8s-14.3,5.1-23.8,5.1c-7.6,0-14.7-1.5-21.2-4.4s-12.2-6.9-16.9-11.9-8.4-10.8-11.1-17.5-4.1-13.7-4.1-21.2,1.4-15,4.1-21.8,6.4-12.6,11.1-17.6,10.3-9,16.9-11.9,13.6-4.4,21.2-4.4c9.6,0,17.5,1.7,23.8,5.1s11.4,8.1,15.3,14.1v-17.1H1051V1520Z"/>
+        <path d="M1084,1564.7v-151h16.7v17.1c3.9-6,9-10.7,15.3-14.1s14.3-5.1,23.8-5.1c7.6,0,14.7,1.5,21.2,4.4s12.1,6.9,16.9,11.9,8.4,10.9,11.1,17.6,4.1,14,4.1,21.8-1.4,14.6-4.1,21.2-6.4,12.5-11.1,17.5-10.3,9-16.9,11.9-13.6,4.4-21.2,4.4c-9.6,0-17.5-1.7-23.8-5.1s-11.4-8-15.3-13.8v61.4h-16.7Z"/>
         <path d="M1283,1370v15.6h-19.8c-6.9,0-11.9,1.9-15,5.6s-4.6,9.8-4.6,18.1v4h33.1v15.6h-33.1v91H1227v-91h-19.2v-15.6h19.2v-4c0-12.9,3.1-22.7,9.2-29.4s15.1-10,27.1-10H1283Z"/>
         <path d="M1300,1413.8h16.7v23.5c4.3-8.6,10.1-15,17.5-19.3s15.3-6.4,23.9-6.4v18.1c-4.6,0-9.3.9-14.3,2.6s-9.4,4.3-13.4,7.6-7.3,7.5-9.9,12.4-3.9,10.7-3.9,17.2v50.8H1300v-106.6Z"/>
         <path d="M1481,1520h-16.7v-17.1c-3.9,5.8-9,10.5-15.3,13.8s-14.3,5.1-23.8,5.1c-7.6,0-14.7-1.5-21.2-4.4s-12.2-6.9-16.9-11.9-8.4-10.8-11.1-17.5-4.1-13.7-4.1-21.2,1.4-15,4.1-21.8,6.4-12.6,11.1-17.6,10.3-9,16.9-11.9,13.6-4.4,21.2-4.4c9.6,0,17.5,1.7,23.8,5.1s11.4,8.1,15.3,14.1v-17.1H1481V1520Z"/>
@@ -349,8 +345,8 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
   <ul class="nav-links">
     <li><a href="#actu">Actualités</a></li>
     <li><a href="#releases">Releases</a></li>
-    <li><a href="#">Interviews</a></li>
     <li><a href="#charts">Charts</a></li>
+    <li><a href="#suivre">Réseaux</a></li>
     <li><a href="#videos">Vidéos</a></li>
   </ul>
   <div class="nav-right">
@@ -363,72 +359,47 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
 
 <!-- ══════ HERO ══════ -->
 <section class="hero">
-  <!-- ambient blobs -->
   <div style="position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(207,23,28,.1) 0%,transparent 70%);top:-100px;right:-100px;pointer-events:none;z-index:0"></div>
   <div style="position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(207,23,28,.06) 0%,transparent 70%);bottom:0;left:-80px;pointer-events:none;z-index:0"></div>
-
   <div class="hero-left">
     <div class="hero-kicker rev">Le média rap indépendant</div>
-    <h1 class="hero-title rev rev-d1 glitch">
-      L'ACTU<br>RAP <span class="outline">FR</span>
-    </h1>
+    <h1 class="hero-title rev rev-d1 glitch">L'ACTU<br>RAP <span class="outline">FR</span></h1>
     <p class="hero-desc rev rev-d2">Toute l'actualité du rap français en temps réel. Interviews, sorties, clashs, charts — on couvre tout depuis 2020.</p>
     <div class="hero-ctas rev rev-d3">
       <a href="#actu" class="btn-red">Voir les actus →</a>
-      <a href="#releases" class="btn-ghost">Dernières sorties →</a>
+      <a href="#suivre" class="btn-ghost">Nos réseaux →</a>
     </div>
-
-    <!-- ── STATS RÉELLES ── -->
     <div class="hero-stats rev rev-d4">
       <div class="stat-item">
         <a href="https://www.youtube.com/channel/UC8xoaDEqZI8QgUTagfmt74w" target="_blank" rel="noopener" class="stat-link">
-          <span class="stat-platform">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8z"/><polygon points="9.8 15.2 15.8 12 9.8 8.8 9.8 15.2" fill="#070707"/></svg>
-            YouTube
-          </span>
-          <span class="stat-num">17.7K</span>
-          <span class="stat-lbl">Abonnés</span>
+          <span class="stat-platform"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8z"/><polygon points="9.8 15.2 15.8 12 9.8 8.8 9.8 15.2" fill="#070707"/></svg>YouTube</span>
+          <span class="stat-num">17.7K</span><span class="stat-lbl">Abonnés</span>
         </a>
       </div>
       <div class="stat-item">
         <a href="https://www.instagram.com/dailyrapfrance/" target="_blank" rel="noopener" class="stat-link">
-          <span class="stat-platform">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8 0 3.2 0 3.6-.1 4.8-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1-3.2 0-3.6 0-4.8-.1-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12c0-3.2 0-3.6.1-4.8C2.4 3.9 4 2.3 7.2 2.3c1.2-.1 1.6-.1 4.8-.1zm0-2.2C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9C23.7 2.7 21.3.3 16.9.1 15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z"/></svg>
-            Instagram
-          </span>
-          <span class="stat-num">59.6K</span>
-          <span class="stat-lbl">Abonnés</span>
+          <span class="stat-platform"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8 0 3.2 0 3.6-.1 4.8-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1-3.2 0-3.6 0-4.8-.1-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12c0-3.2 0-3.6.1-4.8C2.4 3.9 4 2.3 7.2 2.3c1.2-.1 1.6-.1 4.8-.1zm0-2.2C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9C23.7 2.7 21.3.3 16.9.1 15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z"/></svg>Instagram</span>
+          <span class="stat-num">59.6K</span><span class="stat-lbl">Abonnés</span>
         </a>
       </div>
       <div class="stat-item">
         <a href="https://www.tiktok.com/@dailyrapfrance" target="_blank" rel="noopener" class="stat-link">
-          <span class="stat-platform">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 3.3a4.5 4.5 0 0 1-4.4-4.3h-3.3v14.7a2.7 2.7 0 1 1-2.1-2.6V7.7a6 6 0 1 0 5.4 5.9V8.8a7.8 7.8 0 0 0 4.4 1.3z"/></svg>
-            TikTok
-          </span>
-          <span class="stat-num">94.9K</span>
-          <span class="stat-lbl">Abonnés</span>
+          <span class="stat-platform"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 3.3a4.5 4.5 0 0 1-4.4-4.3h-3.3v14.7a2.7 2.7 0 1 1-2.1-2.6V7.7a6 6 0 1 0 5.4 5.9V8.8a7.8 7.8 0 0 0 4.4 1.3z"/></svg>TikTok</span>
+          <span class="stat-num">94.9K</span><span class="stat-lbl">Abonnés</span>
         </a>
       </div>
       <div class="stat-item">
         <a href="https://x.com/dailyrapfrance" target="_blank" rel="noopener" class="stat-link">
-          <span class="stat-platform">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.4l-7.4 8.5 8.7 11.5h-6.8l-5.3-6.9-6.1 6.9H1.3l7.9-9L.9 2h7l4.8 6.4zm-1.2 18h1.9L7.1 4H5.1z"/></svg>
-            X / Twitter
-          </span>
-          <span class="stat-num">2 347</span>
-          <span class="stat-lbl">Abonnés</span>
+          <span class="stat-platform"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.4l-7.4 8.5 8.7 11.5h-6.8l-5.3-6.9-6.1 6.9H1.3l7.9-9L.9 2h7l4.8 6.4zm-1.2 18h1.9L7.1 4H5.1z"/></svg>X / Twitter</span>
+          <span class="stat-num">2 347</span><span class="stat-lbl">Abonnés</span>
         </a>
       </div>
     </div>
   </div>
-
-  <!-- HERO RIGHT -->
   <div class="hero-right rev rev-d2" style="position:relative;z-index:2">
     <div class="hero-main-card glass" style="margin-bottom:8px">
       <div class="card-img-wrap">
-        <img src="https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11" alt="PLK Grand Garçon"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" loading="eager">
+        <img src="https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11" alt="PLK Grand Garçon" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" loading="eager">
         <div class="img-ph ph-plk" style="display:none"><span class="ph-big">PLK</span></div>
         <div class="card-overlay">
           <span class="card-cat">— #1 Spotify France</span>
@@ -454,22 +425,78 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
 
 <!-- ══════ TICKER ══════ -->
 <div class="ticker-bar">
-  <div class="ticker-track" id="ticker-track">
+  <div class="ticker-track">
     <div class="ticker-set" id="ticker-s1"></div>
-    <div class="ticker-set" id="ticker-s2"></div>
+    <div class="ticker-set" id="ticker-s2" aria-hidden="true"></div>
   </div>
 </div>
 
-<!-- ══════ ACTUALITÉS (via API Claude — web search intégré) ══════ -->
+<!-- ══════ SOCIAL VITRINE ══════ -->
+<section class="soc-vitrine" id="suivre">
+  <div class="soc-about rev">
+    <div class="soc-about-text">
+      <span class="sec-eyebrow">Le Média</span>
+      <h2 class="sec-title">Retrouve DRF <span>Partout</span></h2>
+      <p>Daily Rap France est un média indépendant entièrement dédié à l'actualité du rap français. Depuis 2020, on couvre les sorties, les clashs, les interviews exclusives et les charts en temps réel. Rejoins notre communauté sur tes plateformes préférées.</p>
+    </div>
+    <div class="soc-about-quote rev rev-d2">
+      « L'info rap française, sans filtre et sans compromis. »
+    </div>
+  </div>
+  <div class="soc-grid">
+
+    <a href="https://www.instagram.com/dailyrapfrance/" target="_blank" rel="noopener" class="soc-card rev">
+      <div class="soc-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8 0 3.2 0 3.6-.1 4.8-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1-3.2 0-3.6 0-4.8-.1-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12c0-3.2 0-3.6.1-4.8C2.4 3.9 4 2.3 7.2 2.3c1.2-.1 1.6-.1 4.8-.1zm0-2.2C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9C23.7 2.7 21.3.3 16.9.1 15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z"/></svg>
+      </div>
+      <span class="soc-platform">Instagram</span>
+      <span class="soc-followers">59.6K</span>
+      <span class="soc-desc">Notre page principale : actus quotidiennes, reposts de clips, classements et contenus exclusifs chaque jour.</span>
+      <span class="soc-cta">@dailyrapfrance →</span>
+    </a>
+
+    <a href="https://www.tiktok.com/@dailyrapfrance" target="_blank" rel="noopener" class="soc-card rev rev-d1">
+      <div class="soc-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--accent)"><path d="M19.6 3.3a4.5 4.5 0 0 1-4.4-4.3h-3.3v14.7a2.7 2.7 0 1 1-2.1-2.6V7.7a6 6 0 1 0 5.4 5.9V8.8a7.8 7.8 0 0 0 4.4 1.3z"/></svg>
+      </div>
+      <span class="soc-platform">TikTok</span>
+      <span class="soc-followers">94.9K</span>
+      <span class="soc-desc">Nos meilleurs moments en vidéo : réactions, punchlines cultes, clashs et analyses courtes format TikTok.</span>
+      <span class="soc-cta">@dailyrapfrance →</span>
+    </a>
+
+    <a href="https://www.youtube.com/channel/UC8xoaDEqZI8QgUTagfmt74w" target="_blank" rel="noopener" class="soc-card rev rev-d2">
+      <div class="soc-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--accent)"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8z"/><polygon points="9.8 15.2 15.8 12 9.8 8.8 9.8 15.2" fill="#0d0d0d"/></svg>
+      </div>
+      <span class="soc-platform">YouTube</span>
+      <span class="soc-followers">17.7K</span>
+      <span class="soc-desc">Interviews longues, reviews d'albums, documentaires et décryptages approfondis des actus rap françaises.</span>
+      <span class="soc-cta">S'abonner →</span>
+    </a>
+
+    <a href="https://x.com/dailyrapfrance" target="_blank" rel="noopener" class="soc-card rev rev-d3">
+      <div class="soc-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--accent)"><path d="M18.2 2h3.4l-7.4 8.5 8.7 11.5h-6.8l-5.3-6.9-6.1 6.9H1.3l7.9-9L.9 2h7l4.8 6.4zm-1.2 18h1.9L7.1 4H5.1z"/></svg>
+      </div>
+      <span class="soc-platform">X / Twitter</span>
+      <span class="soc-followers">2 347</span>
+      <span class="soc-desc">Le fil live du rap français : breaking news, threads d'analyse, réactions à chaud et discussions communautaires.</span>
+      <span class="soc-cta">@dailyrapfrance →</span>
+    </a>
+
+  </div>
+</section>
+
+<!-- ══════ ACTUALITÉS ══════ -->
 <section class="actu-bg" id="actu">
   <div class="sec-hdr">
     <div>
       <span class="sec-eyebrow">Dernières nouvelles</span>
       <h2 class="sec-title">Actu <span>Rap FR</span></h2>
     </div>
-    <a href="#" class="sec-more">Toutes les actus →</a>
+    <a href="https://www.instagram.com/dailyrapfrance/" target="_blank" class="sec-more">Toutes les actus →</a>
   </div>
-  <!-- Actus chargées dynamiquement via l'API Claude avec web_search -->
   <div id="actu-main" class="actu-grid"></div>
   <div id="actu-sub" class="actu-sub" style="margin-top:12px"></div>
   <div id="actu-loader" class="actu-loader">
@@ -483,27 +510,27 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
 <!-- ══════ PORTRAIT ══════ -->
 <section class="portrait-wrap" style="padding:0;z-index:1;position:relative">
   <div class="portrait-inner">
-    <div class="portrait-img-side">
-      <span class="portrait-bg-txt">N</span>
-      <span class="portrait-name-over">NINHO</span>
+    <div class="portrait-img-side" id="portrait-img-side">
+      <span class="portrait-bg-txt" id="portrait-bg-letter">N</span>
+      <span class="portrait-name-over" id="portrait-name-over">NINHO</span>
       <span class="portrait-tag">Portrait de la semaine</span>
     </div>
     <div class="portrait-content rev">
       <div class="portrait-kicker">Portrait · Artiste de la semaine</div>
-      <div class="portrait-name-main">NINHO</div>
-      <div class="portrait-alias">W.I.D.O.W</div>
-      <p class="portrait-bio">Junior Nzaramba, alias Ninho, est sans doute l'artiste rap français le plus streamé de sa génération. Depuis ses débuts en 2015, le Parisien enchaîne les projets avec une régularité et une qualité qui forcent le respect. Son album "NI" confirme une fois de plus son statut d'indétrônable.</p>
+      <div class="portrait-name-main" id="portrait-main-name">NINHO</div>
+      <div class="portrait-alias" id="portrait-alias">W.I.D.O.W</div>
+      <p class="portrait-bio" id="portrait-bio">Junior Nzaramba, alias Ninho, est sans doute l'artiste rap français le plus streamé de sa génération. Depuis ses débuts en 2015, le Parisien enchaîne les projets avec une régularité et une qualité qui forcent le respect. Son album "NI" confirme une fois de plus son statut d'indétrônable.</p>
       <div class="portrait-stats">
         <div><span class="ps-num">1.2B</span><span class="ps-lbl">Streams France</span></div>
         <div><span class="ps-num">14</span><span class="ps-lbl">Projets</span></div>
         <div><span class="ps-num">#1</span><span class="ps-lbl">Charts FR</span></div>
       </div>
-      <a href="#" class="btn-red" style="width:fit-content">Lire le portrait complet →</a>
+      <a href="https://www.instagram.com/dailyrapfrance/" target="_blank" class="btn-red" style="width:fit-content">Voir nos portraits →</a>
     </div>
   </div>
 </section>
 
-<!-- ══════ CHARTS SPOTIFY FRANCE (réels + auto-refresh) ══════ -->
+<!-- ══════ CHARTS ══════ -->
 <section id="charts" style="background:var(--bg)">
   <div class="sec-hdr">
     <div>
@@ -513,11 +540,9 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
     <a href="https://kworb.net/spotify/country/fr_daily.html" target="_blank" class="sec-more">Chart complet →</a>
   </div>
   <div id="charts-grid" class="charts-grid">
-    <div class="charts-loader" style="grid-column:1/-1">
-      <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-direction:column;padding:40px 0">
-        <div style="display:flex;gap:6px"><span class="actu-loader-dot"></span><span class="actu-loader-dot"></span><span class="actu-loader-dot"></span></div>
-        <span style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.16em">Chargement des charts Spotify…</span>
-      </div>
+    <div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:40px 0;justify-content:center">
+      <span class="actu-loader-dot"></span><span class="actu-loader-dot"></span><span class="actu-loader-dot"></span>
+      <span style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.16em">Chargement des charts…</span>
     </div>
   </div>
   <div class="charts-src" id="charts-src"></div>
@@ -527,13 +552,13 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
 <section class="releases-bg" id="releases">
   <div class="sec-hdr">
     <div>
-      <span class="sec-eyebrow">Sorties · Avril 2026</span>
+      <span class="sec-eyebrow" id="releases-eyebrow">Sorties · Avril 2026</span>
       <h2 class="sec-title">Dernières <span>Sorties</span></h2>
     </div>
     <a href="https://www.trackmusik.fr/media/albums-rap-francais" target="_blank" class="sec-more">Toutes les sorties →</a>
   </div>
   <div class="releases-scroll" id="releases-container"></div>
-  <div class="releases-src">Source : TrackMusik.fr · Covers : Spotify</div>
+  <div class="releases-src">Photos : API Deezer · Covers : Spotify / Deezer</div>
 </section>
 
 <!-- ══════ VIDÉOS ══════ -->
@@ -542,32 +567,7 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
     <div><span class="sec-eyebrow">Contenu vidéo</span><h2 class="sec-title">Vidéos <span>Exclu</span></h2></div>
     <a href="https://www.youtube.com/channel/UC8xoaDEqZI8QgUTagfmt74w" target="_blank" class="sec-more">Toutes les vidéos →</a>
   </div>
-  <div class="videos-grid">
-    <div class="v-card glass rev">
-      <div class="v-thumb">
-        <div class="img-ph ph-sch" style="height:100%;min-height:180px"><span class="ph-big" style="font-size:44px">SCH</span></div>
-        <div class="v-play"><div class="v-play-circle"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
-        <span class="v-duration">12:47</span>
-      </div>
-      <div class="v-body"><div class="v-title">SCH en exclusivité : retour sur 10 ans de carrière</div><div class="v-sub">Interview · 2.4M de vues</div></div>
-    </div>
-    <div class="v-card glass rev rev-d1">
-      <div class="v-thumb">
-        <div class="img-ph ph-plk" style="height:100%;min-height:180px"><span class="ph-big" style="font-size:44px">PLK</span></div>
-        <div class="v-play"><div class="v-play-circle"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
-        <span class="v-duration">24:03</span>
-      </div>
-      <div class="v-body"><div class="v-title">PLK "Grand Garçon" — réaction & analyse</div><div class="v-sub">Review · 890K de vues</div></div>
-    </div>
-    <div class="v-card glass rev rev-d2">
-      <div class="v-thumb">
-        <div class="img-ph ph-frz" style="height:100%;min-height:180px"><span class="ph-big" style="font-size:44px">FZ</span></div>
-        <div class="v-play"><div class="v-play-circle"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
-        <span class="v-duration">18:05</span>
-      </div>
-      <div class="v-body"><div class="v-title">Freeze Corleone : l'interview vérité après 2 ans d'absence</div><div class="v-sub">Interview · 3.8M de vues</div></div>
-    </div>
-  </div>
+  <div class="videos-grid" id="videos-grid"></div>
 </section>
 
 <!-- ══════ NEWSLETTER ══════ -->
@@ -581,7 +581,7 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
     <p class="nl-desc">Toute l'actu rap français dans ta boîte mail chaque semaine. Pas de spam, juste l'essentiel.</p>
     <div class="nl-form">
       <input class="nl-input" type="email" placeholder="ton@email.com" aria-label="Adresse email">
-      <button class="nl-submit">S'inscrire →</button>
+      <button class="nl-submit" onclick="this.textContent='✓ Inscrit !';this.style.color='#4ade80'">S'inscrire →</button>
     </div>
   </div>
 </section>
@@ -599,17 +599,24 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
       </a>
       <p>Le média indépendant de référence sur le rap français. Actus, interviews, reviews et classements depuis 2020.</p>
     </div>
-    <div><span class="f-col-hdr">Navigation</span><ul class="f-links"><li><a href="#actu">Actualités</a></li><li><a href="#releases">Releases</a></li><li><a href="#">Interviews</a></li><li><a href="#charts">Charts</a></li><li><a href="#videos">Vidéos</a></li></ul></div>
+    <div><span class="f-col-hdr">Navigation</span><ul class="f-links">
+      <li><a href="#actu">Actualités</a></li><li><a href="#releases">Releases</a></li>
+      <li><a href="#charts">Charts</a></li><li><a href="#suivre">Réseaux</a></li>
+      <li><a href="#videos">Vidéos</a></li>
+    </ul></div>
     <div><span class="f-col-hdr">Réseaux</span><ul class="f-links">
       <li><a href="https://www.instagram.com/dailyrapfrance/" target="_blank">Instagram — 59.6K</a></li>
       <li><a href="https://www.tiktok.com/@dailyrapfrance" target="_blank">TikTok — 94.9K</a></li>
       <li><a href="https://www.youtube.com/channel/UC8xoaDEqZI8QgUTagfmt74w" target="_blank">YouTube — 17.7K</a></li>
       <li><a href="https://x.com/dailyrapfrance" target="_blank">Twitter / X — 2 347</a></li>
     </ul></div>
-    <div><span class="f-col-hdr">À propos</span><ul class="f-links"><li><a href="#">Qui sommes-nous</a></li><li><a href="#">Contact presse</a></li><li><a href="#">Publicité</a></li><li><a href="#">Mentions légales</a></li></ul></div>
+    <div><span class="f-col-hdr">À propos</span><ul class="f-links">
+      <li><a href="#">Qui sommes-nous</a></li><li><a href="#">Contact presse</a></li>
+      <li><a href="#">Publicité</a></li><li><a href="#">Mentions légales</a></li>
+    </ul></div>
   </div>
   <div class="footer-bottom">
-    <span class="footer-copy">© 2026 Daily Rap France · Données charts : kworb.net / Spotify · Actus : API Claude</span>
+    <span class="footer-copy">© 2026 Daily Rap France · Images : API Deezer · Charts : kworb.net / Claude API</span>
     <div class="footer-soc">
       <a href="https://www.instagram.com/dailyrapfrance/" target="_blank">IG</a>
       <a href="https://www.tiktok.com/@dailyrapfrance" target="_blank">TT</a>
@@ -623,63 +630,132 @@ footer{background:var(--dark);padding:56px 48px 28px;border-top:1px solid var(--
 (function(){
 'use strict';
 
-// ── NAV
-const nav = document.getElementById('nav');
-window.addEventListener('scroll', ()=>nav.classList.toggle('scrolled', window.scrollY>50), {passive:true});
+// ══════════════════════════════════════
+// NAV + REVEAL + SCROLL
+// ══════════════════════════════════════
+const NAV = document.getElementById('nav');
+window.addEventListener('scroll', ()=>NAV.classList.toggle('scrolled', window.scrollY>50), {passive:true});
 
-// ── REVEAL
-const revObs = new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:0.07,rootMargin:'0px 0px -20px 0px'});
+const revObs = new IntersectionObserver(entries=>entries.forEach(e=>{
+  if(e.isIntersecting) e.target.classList.add('in');
+}),{threshold:0.07,rootMargin:'0px 0px -20px 0px'});
 document.querySelectorAll('.rev').forEach(el=>revObs.observe(el));
 window.addEventListener('load',()=>{
   document.querySelectorAll('.hero .rev').forEach((el,i)=>setTimeout(()=>el.classList.add('in'),60+i*120));
 });
-
-// ── SMOOTH SCROLL
 document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
   const t=document.querySelector(a.getAttribute('href'));
   if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
 }));
 
 // ══════════════════════════════════════
-// RELEASES (TrackMusik avril 2026 — réelles)
+// DEEZER API — Artist & Album Images
+// ══════════════════════════════════════
+const IMG_CACHE = new Map();
+
+async function getArtistImg(rawName) {
+  if(!rawName) return null;
+  // Extract first artist (before ft., feat., x, &)
+  const name = rawName.replace(/\s+(ft\.?|feat\.?|x|&|\+)\s+.*/i,'').trim();
+  if(IMG_CACHE.has(name)) return IMG_CACHE.get(name);
+  try {
+    const r = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(name)}&limit=1`);
+    const d = await r.json();
+    const pic = d.data?.[0]?.picture_xl || d.data?.[0]?.picture_medium || null;
+    IMG_CACHE.set(name, pic);
+    return pic;
+  } catch {
+    IMG_CACHE.set(name, null);
+    return null;
+  }
+}
+
+async function getAlbumCover(artist, album) {
+  const key = artist+'||'+album;
+  if(IMG_CACHE.has(key)) return IMG_CACHE.get(key);
+  try {
+    const cleanArtist = artist.replace(/\s+(ft\.?|feat\.?|x|&|\+)\s+.*/i,'').trim();
+    const q = cleanArtist+' '+album;
+    const r = await fetch(`https://api.deezer.com/search/album?q=${encodeURIComponent(q)}&limit=1`);
+    const d = await r.json();
+    const pic = d.data?.[0]?.cover_xl || d.data?.[0]?.cover_medium || null;
+    IMG_CACHE.set(key, pic);
+    return pic;
+  } catch {
+    IMG_CACHE.set(key, null);
+    return null;
+  }
+}
+
+// Inject a Deezer image over a placeholder element
+function injectDeezerImg(placeholder, url, altText, extraStyle='') {
+  if(!url || !placeholder) return;
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = altText || '';
+  img.loading = 'lazy';
+  img.style.cssText = `width:100%;height:100%;object-fit:cover;display:block;${extraStyle}`;
+  img.onerror = ()=>img.remove();
+  placeholder.parentElement.insertBefore(img, placeholder);
+  placeholder.style.display='none';
+}
+
+// ══════════════════════════════════════
+// RELEASES
 // ══════════════════════════════════════
 const RELEASES = [
   {type:'ALBUM',title:'DÉCENNIE',artist:'Gradur',date:'24 avr. 2026',ph:'ph-grdr',img:'https://i.scdn.co/image/ab67616d0000b273ecf6e11d97c6e5e8fa4ba1b5',url:'https://open.spotify.com/search/DÉCENNIE%20Gradur'},
   {type:'ALBUM',title:'RDF',artist:'Naza',date:'17 avr. 2026',ph:'ph-naza',img:'',url:'https://open.spotify.com/search/RDF%20Naza%202026'},
   {type:'ALBUM',title:'ÉCLAT BRUT',artist:'ZZ',date:'17 avr. 2026',ph:'ph-zz',img:'https://i.scdn.co/image/ab67616d0000b273aef1c3bef46e69b7f065ef8e',url:'https://open.spotify.com/search/ECLAT%20BRUT%20ZZ%202026'},
   {type:'ALBUM',title:'MAGMA',artist:'Le Rat Luciano',date:'24 avr. 2026',ph:'ph-frz',img:'',url:'https://open.spotify.com/search/MAGMA%20Le%20Rat%20Luciano'},
-  {type:'ALBUM',title:'LA VIE CONTINUE',artist:'47ter',date:'24 avr. 2026',ph:'ph-ninha',img:'',url:'https://open.spotify.com/search/LA%20VIE%20CONTINUE%2047ter'},
+  {type:'ALBUM',title:'LA VIE CONTINUE',artist:'47ter',date:'24 avr. 2026',ph:'ph-47ter',img:'',url:'https://open.spotify.com/search/LA%20VIE%20CONTINUE%2047ter'},
   {type:'ALBUM',title:'Jackass',artist:'Di-Meh',date:'10 avr. 2026',ph:'ph-dimeh',img:'',url:'https://open.spotify.com/search/Jackass%20Di-Meh%202026'},
   {type:'ALBUM',title:'Double Dragon',artist:'Jeff Le Nerf',date:'13 avr. 2026',ph:'ph-jln',img:'',url:'https://open.spotify.com/search/Double%20Dragon%20Jeff%20Le%20Nerf'},
   {type:'SINGLE',title:'Alabama Barker',artist:'Favé',date:'17 avr. 2026',ph:'ph-fave',img:'',url:'https://open.spotify.com/search/Alabama%20Barker%20Favé'},
   {type:'SINGLE',title:'Pineapple',artist:'Leto',date:'10 avr. 2026',ph:'ph-leto',img:'',url:'https://open.spotify.com/search/Pineapple%20Leto%202026'},
   {type:'SINGLE',title:'Bad Boy',artist:'RK',date:'17 avr. 2026',ph:'ph-rk',img:'',url:'https://open.spotify.com/search/Bad%20Boy%20RK%202026'},
   {type:'SINGLE',title:'Rosé',artist:'Guy2Bezbar',date:'16 avr. 2026',ph:'ph-g2b',img:'',url:'https://open.spotify.com/search/Rosé%20Guy2Bezbar%202026'},
-  {type:'SINGLE',title:'Oh Ma Jolie',artist:'Alonzo ft. Guy2Bezbar',date:'10 avr. 2026',ph:'ph-default',img:'',url:'https://open.spotify.com/search/Oh%20Ma%20Jolie%20Alonzo'},
+  {type:'SINGLE',title:'Oh Ma Jolie',artist:'Alonzo',date:'10 avr. 2026',ph:'ph-default',img:'',url:'https://open.spotify.com/search/Oh%20Ma%20Jolie%20Alonzo'},
 ];
-const rc = document.getElementById('releases-container');
-RELEASES.forEach(r=>{
-  const a=document.createElement('a');
-  a.className='r-card rev';a.href=r.url;a.target='_blank';a.rel='noopener';
-  const abbr=r.artist.split(/[ \/]/)[0].slice(0,4).toUpperCase();
-  a.innerHTML=`<div class="r-cover">
-    ${r.img?`<img src="${r.img}" alt="${r.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="img-ph ${r.ph}" style="display:none;position:absolute;inset:0"><span class="ph-big" style="font-size:36px">${abbr}</span></div>`
-    :`<div class="img-ph ${r.ph}" style="height:100%;width:100%"><span class="ph-big" style="font-size:36px">${abbr}</span></div>`}
-    <div class="r-overlay"><div class="play-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
-  </div>
-  <span class="r-type">${r.type}</span>
-  <div class="r-title">${r.title}</div>
-  <div class="r-artist">${r.artist}</div>
-  <div class="r-date">${r.date}</div>`;
-  rc.appendChild(a);revObs.observe(a);
-});
+
+function buildReleases() {
+  const rc = document.getElementById('releases-container');
+  RELEASES.forEach((r,idx)=>{
+    const a=document.createElement('a');
+    a.className='r-card rev';a.href=r.url;a.target='_blank';a.rel='noopener';
+    const abbr=r.artist.split(/[ \/\-]/)[0].slice(0,4).toUpperCase();
+    const phId=`rph_${idx}`;
+    a.innerHTML=`<div class="r-cover">
+      ${r.img
+        ?`<img src="${r.img}" alt="${r.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s" onerror="this.style.display='none';document.getElementById('${phId}').style.display='flex'"><div class="img-ph ${r.ph}" id="${phId}" style="display:none;height:100%;position:absolute;inset:0"><span class="ph-big" style="font-size:36px">${abbr}</span></div>`
+        :`<div class="img-ph ${r.ph}" id="${phId}" style="height:100%;width:100%"><span class="ph-big" style="font-size:36px">${abbr}</span></div>`}
+      <div class="r-overlay"><div class="play-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
+    </div>
+    <span class="r-type">${r.type}</span>
+    <div class="r-title">${r.title}</div>
+    <div class="r-artist">${r.artist}</div>
+    <div class="r-date">${r.date}</div>`;
+    rc.appendChild(a);
+    revObs.observe(a);
+
+    // Async: fetch Deezer cover if missing
+    if(!r.img){
+      (async()=>{
+        const cover = await getAlbumCover(r.artist, r.title);
+        if(!cover) return;
+        const ph = document.getElementById(phId);
+        if(!ph) return;
+        injectDeezerImg(ph, cover, r.title, 'transition:transform .45s;border-radius:0');
+      })();
+    }
+  });
+  buildTicker();
+}
 
 // ══════════════════════════════════════
-// CHARTS — vraies données Spotify France
-// kworb.net daily chart 19/03/2026
-// + auto-refresh via API Claude (web_search)
+// STATIC CHARTS DATA (immediate render)
 // ══════════════════════════════════════
-const CHARTS_DATA = [
+const CHARTS_STATIC = [
   {pos:1,trend:'+3',artist:'PLK',track:'Pocahontas',streams:'452 858',img:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11',ph:'ph-plk',url:'https://open.spotify.com/track/6P0oYDUPYf2CNJxcokIH09'},
   {pos:2,trend:'=', artist:'disiz ft. Theodora',track:'melodrama',streams:'420 662',img:'https://i.scdn.co/image/ab67616d0000b273f035fd0c7faf5e6f62b3fb0e',ph:'ph-disiz',url:'https://open.spotify.com/track/55vPnuXfuzXNW75JpuSczF'},
   {pos:3,trend:'=', artist:'PLK ft. Theodora',track:'Sex Model',streams:'310 128',img:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11',ph:'ph-plk',url:'https://open.spotify.com/track/4YiP42tiEfZ1blOnzJ6fRr'},
@@ -690,7 +766,7 @@ const CHARTS_DATA = [
   {pos:8,trend:'-1',artist:'RnBoi',track:'MON BÉBÉ',streams:'248 207',img:'https://i.scdn.co/image/ab67616d0000b273a5b1c2d11e47af1f5e9dbab2',ph:'ph-rnboi',url:'https://open.spotify.com/track/1yGJ40k7HLF3odITZPoQs4'},
   {pos:9,trend:'-1',artist:'RnBoi ft. Nono La Grinta',track:'AVEC MOI',streams:'242 190',img:'https://i.scdn.co/image/ab67616d0000b273a5b1c2d11e47af1f5e9dbab2',ph:'ph-rnboi',url:'https://open.spotify.com/track/2ZxulKXVUpatqUe0quNMtP'},
   {pos:10,trend:'-1',artist:'GIMS ft. Theodora',track:'SPA',streams:'233 645',img:'https://i.scdn.co/image/ab67616d0000b273bd1eb13eba1dfdc1a40adeed',ph:'ph-gims',url:'https://open.spotify.com/track/5UpupDvr2w93ccnEmmhS5q'},
-  {pos:11,trend:'=', artist:'La Rvfleuze',track:'Argent Sale — COLORS',streams:'233 342',img:'',ph:'ph-nono',url:'https://open.spotify.com/track/0UbEeYuehzUktmPlhMtfA8'},
+  {pos:11,trend:'=', artist:'La Rvfleuze',track:'Argent Sale',streams:'233 342',img:'',ph:'ph-nono',url:'https://open.spotify.com/track/0UbEeYuehzUktmPlhMtfA8'},
   {pos:12,trend:'+2',artist:'Franglish ft. KeBlack',track:'Génération impolie',streams:'211 853',img:'',ph:'ph-disiz',url:'https://open.spotify.com/track/7EyB1sN9IUO1YXIoHTyZRk'},
   {pos:13,trend:'+1',artist:'Ninho ft. Tiakola',track:'LES DIAMANTS DE BOKASSA',streams:'196 564',img:'',ph:'ph-ninho',url:'https://open.spotify.com/track/1VBKQJ5AVNKROv0WJ2h4ZK'},
   {pos:14,trend:'+2',artist:'PLK',track:'Tu dors ?',streams:'196 309',img:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11',ph:'ph-plk',url:'https://open.spotify.com/track/6JnsxE0leMVkUvTV0n969D'},
@@ -698,133 +774,183 @@ const CHARTS_DATA = [
   {pos:16,trend:'+3',artist:'Theodora',track:'Miss Kitoko',streams:'191 739',img:'',ph:'ph-theo',url:'https://open.spotify.com/track/03xgcXTzxDbsN9v4m6sYsk'},
 ];
 
-function buildCharts(data){
-  const grid = document.getElementById('charts-grid');
+function buildCharts(data, dateLabel, live) {
+  const grid=document.getElementById('charts-grid');
   grid.innerHTML='';
   data.forEach(c=>{
-    const tc = c.trend.startsWith('+')?'c-up':c.trend==='='?'c-flat':'c-dn';
-    const ts = c.trend.startsWith('+')?'▲ '+c.trend.slice(1):c.trend==='='?'—':'▼ '+c.trend.slice(1);
+    const t=String(c.trend||'=');
+    const tc=t.startsWith('+')?'c-up':t==='='?'c-flat':'c-dn';
+    const ts=t.startsWith('+')?'▲ '+t.slice(1):t==='='?'—':'▼ '+t.slice(1);
     const el=document.createElement('a');
-    el.className='c-item glass rev';el.href=c.url;el.target='_blank';el.rel='noopener';
-    const abbr=(c.artist.split(' ')[0]).slice(0,3).toUpperCase();
+    el.className='c-item glass rev';el.href=c.url||'#';el.target='_blank';el.rel='noopener';
+    const abbr=(c.artist||'').replace(/\s+(ft\.?|feat\.?|x|&).*/i,'').split(' ')[0].slice(0,3).toUpperCase();
+    const phId=`cph_${c.pos}`;
     el.innerHTML=`
       <span class="c-num">${String(c.pos).padStart(2,'0')}</span>
       <div class="c-cover">
-        ${c.img?`<img src="${c.img}" alt="${c.track}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div class="img-ph ${c.ph}" style="height:44px;width:44px;display:none"><span style="font-size:9px;font-family:var(--display)">${abbr}</span></div>`
-        :`<div class="img-ph ${c.ph}" style="height:44px;width:44px"><span style="font-size:9px;font-family:var(--display)">${abbr}</span></div>`}
+        ${c.img
+          ?`<img src="${c.img}" alt="${c.track||''}" loading="lazy" style="width:44px;height:44px;object-fit:cover;display:block" onerror="this.style.display='none';document.getElementById('${phId}').style.display='flex'">`
+          :''}
+        <div class="img-ph ${c.ph||'ph-default'}" id="${phId}" style="height:44px;width:44px;${c.img?'display:none':''}">
+          <span style="font-size:9px;font-family:var(--display)">${abbr}</span>
+        </div>
       </div>
-      <div class="c-info"><div class="c-track">${c.track}</div><div class="c-artist">${c.artist}</div></div>
-      <div class="c-right"><span class="c-trend ${tc}">${ts}</span><span class="c-streams">${c.streams} str.</span></div>`;
+      <div class="c-info">
+        <div class="c-track">${c.track||''}</div>
+        <div class="c-artist">${c.artist||''}</div>
+      </div>
+      <div class="c-right">
+        <span class="c-trend ${tc}">${ts}</span>
+        ${c.streams?`<span class="c-streams">${c.streams} str.</span>`:''}
+      </div>`;
     grid.appendChild(el);revObs.observe(el);
+
+    // Async: inject Deezer artist image if no Spotify cover
+    if(!c.img){
+      (async()=>{
+        const pic=await getArtistImg(c.artist);
+        if(!pic) return;
+        const ph=document.getElementById(phId);
+        if(!ph) return;
+        injectDeezerImg(ph, pic, c.artist, 'width:44px;height:44px;border-radius:2px');
+      })();
+    }
   });
-  document.getElementById('charts-date-lbl').textContent='Spotify France · 19 mars 2026 — kworb.net';
+  document.getElementById('charts-date-lbl').textContent=dateLabel||(live?'Spotify France · Live':'Spotify France · kworb.net');
   document.getElementById('charts-src').innerHTML=`
     <svg width="13" height="13" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+    ${live?'<span style="color:var(--red);font-size:9px">● LIVE</span>':''} 
     Source : <a href="https://kworb.net/spotify/country/fr_daily.html" target="_blank">kworb.net</a> ·
     <a href="https://open.spotify.com/playlist/37i9dQZEVXbIPWwFssbupI" target="_blank">Top 50 Spotify France officiel →</a>`;
 }
-buildCharts(CHARTS_DATA);
+
+// Initial render — static data, instant
+buildCharts(CHARTS_STATIC, 'Spotify France · 19 mars 2026 — kworb.net', false);
+
+// ── CHARTS REFRESH via Claude API (background)
+async function refreshCharts() {
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:1200,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:`Cherche MAINTENANT le classement actuel du Top 50 Spotify France sur kworb.net (kworb.net/spotify/country/fr_daily.html). Retourne UNIQUEMENT du JSON valide sans markdown ni backticks:
+{"date":"JJ MMM YYYY","charts":[{"pos":1,"artist":"...","track":"...","trend":"+3"}]}
+16 titres maximum. trend: "+N", "-N" ou "=".`}]
+      })
+    });
+    const d=await res.json();
+    if(!d.content) return;
+    const text=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    if(parsed.charts&&parsed.charts.length>=5){
+      // Enrich with Deezer images
+      const enriched=await Promise.all(parsed.charts.slice(0,16).map(async(c,i)=>({
+        pos:i+1,artist:c.artist,track:c.track,trend:c.trend||'=',
+        img:await getArtistImg(c.artist),
+        ph:'ph-default',
+        url:`https://open.spotify.com/search/${encodeURIComponent((c.track||'')+' '+(c.artist||''))}`
+      })));
+      buildCharts(enriched,`Spotify France · ${parsed.date||'Aujourd\'hui'}`,true);
+    }
+  } catch(e){}
+}
+refreshCharts();
 
 // ══════════════════════════════════════
-// ACTUALITÉS — via API Anthropic (Claude avec web_search)
+// ACTUALITÉS — Claude API + Deezer photos
 // ══════════════════════════════════════
-const ACTU_STATIC = [
-  {tag:'Album à venir',title:"JuL annonce 'Oubliez moi' pour le 15 mai 2026",excerpt:"Le marseillais confirme son prochain album prévu pour ce printemps et dévoile les premiers extraits sur ses réseaux sociaux.",meta:"Il y a 5 jours · 4 min",img:'https://i.scdn.co/image/ab67616d0000b2737ef00da29d6e00caba5f1d11',ph:'ph-jul',url:'#',big:true},
-  {tag:'Clashs',title:"Booba répond à Damso avec 'Blanco Némésis'",excerpt:"La brouille entre les deux rappeurs atteint un nouveau palier avec ce projet surprise.",meta:"Il y a 9 jours",img:'',ph:'ph-booba',url:'#',big:false},
-  {tag:'Charts',title:"PLK écrase le Top 50 Spotify France",excerpt:"5 titres simultanés dans le top 30, un record pour un rappeur français.",meta:"Il y a 12 jours",img:'',ph:'ph-plk',url:'#',big:false},
-  {tag:'Album',title:"Gradur sort 'Décennie' le 24 avril",excerpt:"10 ans de carrière célébrés dans un projet très attendu.",meta:"Il y a 2 jours · 2 min",img:'',ph:'ph-grdr',url:'#',big:false,sub:true},
-  {tag:'Album',title:"Naza dévoile 'RDF' — sortie le 17 avril",excerpt:"Un projet sombre et maîtrisé qui confirme son statut.",meta:"Il y a 4 jours · 3 min",img:'',ph:'ph-naza',url:'#',big:false,sub:true},
-  {tag:'Album',title:"ZZ lâche 'Éclat Brut' par surprise",excerpt:"Le rappeur francilien surprend avec une sortie inopinée.",meta:"Il y a 6 jours · 2 min",img:'',ph:'ph-zz',url:'#',big:false,sub:true},
+const ACTU_FALLBACK=[
+  {tag:'Album à venir',title:"JuL annonce 'Oubliez moi' pour le 15 mai 2026",excerpt:"Le marseillais confirme son prochain album prévu pour ce printemps et dévoile les premiers extraits sur ses réseaux sociaux.",meta:"Il y a 5 jours · 4 min",artist:'JuL',url:'#',big:true},
+  {tag:'Clashs',title:"Booba répond à Damso avec 'Blanco Némésis'",excerpt:"La brouille entre les deux rappeurs atteint un nouveau palier avec ce projet surprise.",meta:"Il y a 9 jours",artist:'Booba',url:'#'},
+  {tag:'Charts',title:"PLK écrase le Top 50 Spotify France",excerpt:"5 titres simultanés dans le top 30, un record pour un rappeur français.",meta:"Il y a 12 jours",artist:'PLK',url:'#'},
+  {tag:'Album',title:"Gradur sort 'Décennie' le 24 avril",excerpt:"10 ans de carrière célébrés dans un projet très attendu.",meta:"Il y a 2 jours · 2 min",artist:'Gradur',url:'#',sub:true},
+  {tag:'Album',title:"Naza dévoile 'RDF' — sortie le 17 avril",excerpt:"Un projet sombre et maîtrisé qui confirme son statut.",meta:"Il y a 4 jours · 3 min",artist:'Naza',url:'#',sub:true},
+  {tag:'Album',title:"ZZ lâche 'Éclat Brut' par surprise",excerpt:"Le rappeur francilien surprend avec une sortie inopinée.",meta:"Il y a 6 jours · 2 min",artist:'ZZ',url:'#',sub:true},
 ];
 
 async function loadActus(){
   const loader=document.getElementById('actu-loader');
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+      method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
+        model:'claude-sonnet-4-20250514',max_tokens:1200,
         tools:[{type:'web_search_20250305',name:'web_search'}],
-        messages:[{role:'user',content:`Cherche les 5 dernières actus rap français d'avril 2026 (clashs, albums, sorties, beef, interviews) et retourne UNIQUEMENT un JSON valide (sans markdown, sans backticks) de cette forme exacte:
-{"articles":[{"tag":"Actu","title":"...","excerpt":"...","meta":"Il y a X jours","ph":"ph-default","url":"#"}]}
-Maximum 5 articles. Tags possibles: Album, Clash, Sortie, Interview, Business, Record, Actu.`}]
+        messages:[{role:'user',content:`Cherche les 6 dernières actualités rap français (semaine du 18 au 25 avril 2026) : clashs, albums, sorties, feats, beef, interviews, records de streams.
+Retourne UNIQUEMENT du JSON valide (sans markdown, sans backticks, sans texte avant ou après) :
+{"articles":[{"tag":"Album","title":"...","excerpt":"1-2 phrases de résumé.","meta":"Il y a X jours","artist":"NomArtistePrincipal","url":"#"}]}
+6 articles exactement. "artist" = nom principal pour chercher sa photo (PLK, Ninho, SCH...). Tags: Album, Clash, Sortie, Interview, Business, Record, Feat.`}]
       })
     });
     const d=await res.json();
     if(d.content){
       const text=d.content.filter(b=>b.type==='text').map(b=>b.text).join('');
       const clean=text.replace(/```json|```/g,'').trim();
-      try{
-        const parsed=JSON.parse(clean);
-        if(parsed.articles&&parsed.articles.length){
-          renderActus(parsed.articles.map((a,i)=>({...a,big:i===0,sub:i>=3,img:'',ph:a.ph||'ph-default'})));
-          loader.style.display='none';return;
-        }
-      }catch(e){}
+      const parsed=JSON.parse(clean);
+      if(parsed.articles&&parsed.articles.length>=3){
+        const withMeta=parsed.articles.map((a,i)=>({...a,big:i===0,sub:i>=3,ph:'ph-default'}));
+        const withImgs=await Promise.all(withMeta.map(async a=>({...a,deezerImg:await getArtistImg(a.artist)})));
+        renderActus(withImgs);
+        loader.style.display='none';
+        return;
+      }
     }
-  }catch(e){}
-  // fallback statique
-  renderActus(ACTU_STATIC);
+  } catch(e){}
+  // Fallback statique avec images Deezer
+  const withImgs=await Promise.all(ACTU_FALLBACK.map(async a=>({...a,deezerImg:await getArtistImg(a.artist)})));
+  renderActus(withImgs);
   loader.style.display='none';
+}
+
+function mkImgHtml(art, h){
+  const abbr=(art.artist||'DRF').replace(/\s.*/,'').slice(0,3).toUpperCase();
+  if(art.deezerImg) return `<img src="${art.deezerImg}" alt="${art.artist||''}" style="width:100%;height:${h}px;object-fit:cover;display:block;transition:transform .5s" loading="lazy" onerror="this.style.display='none'">`;
+  return `<div class="img-ph ${art.ph||'ph-default'}" style="height:${h}px"><span class="ph-big" style="font-size:${h>200?60:40}px">${abbr}</span></div>`;
 }
 
 function renderActus(articles){
   const mainEl=document.getElementById('actu-main');
   const subEl=document.getElementById('actu-sub');
-  const mainArticles=articles.filter(a=>!a.sub);
-  const subArticles=articles.filter(a=>a.sub);
-  const hero=mainArticles.find(a=>a.big)||mainArticles[0];
-  const sides=mainArticles.filter(a=>!a.big).slice(0,2);
-  const subs=subArticles.slice(0,3);
-
+  const hero=articles.find(a=>a.big)||articles[0];
+  const sides=articles.filter(a=>!a.big&&!a.sub).slice(0,2);
+  const subs=articles.filter(a=>a.sub).slice(0,3);
   mainEl.innerHTML='';
-  // big card
+
   if(hero){
     const a=document.createElement('a');
-    a.className='n-card glass rev';a.href=hero.url||'#';a.style.textDecoration='none';a.style.color='inherit';
-    a.innerHTML=`
-      <div class="n-img" style="height:300px">
-        ${hero.img?`<img src="${hero.img}" alt="${hero.title}" style="width:100%;height:300px;object-fit:cover;display:block;transition:transform .5s" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="img-ph ${hero.ph}" style="height:300px;display:none"><span class="ph-big">${(hero.artist||'').slice(0,3)}</span></div>`
-        :`<div class="img-ph ${hero.ph}" style="height:300px"><span class="ph-big">${(hero.artist||'DRF').slice(0,3)}</span></div>`}
-      </div>
+    a.className='n-card glass rev';a.href=hero.url||'#';a.style.cssText='text-decoration:none;color:inherit';
+    a.innerHTML=`<div class="n-img" style="height:300px">${mkImgHtml(hero,300)}</div>
       <div class="n-body">
         <span class="n-tag">${hero.tag||'Actu'}</span>
-        <div class="n-title">${hero.title}</div>
+        <div class="n-title">${hero.title||''}</div>
         <p class="n-excerpt">${hero.excerpt||''}</p>
         <div class="n-meta">${hero.meta||''}</div>
       </div>`;
     mainEl.appendChild(a);revObs.observe(a);
   }
-
-  // sidebar
   if(sides.length){
-    const sidebar=document.createElement('div');
-    sidebar.className='n-sidebar';
+    const sidebar=document.createElement('div');sidebar.className='n-sidebar';
     sides.forEach((art,i)=>{
       const a=document.createElement('a');
-      a.className=`n-side glass rev rev-d${i+1}`;a.href=art.url||'#';a.style.textDecoration='none';a.style.color='inherit';
-      a.innerHTML=`<span class="n-tag">${art.tag||'Actu'}</span><div class="n-side-title">${art.title}</div><div class="n-meta">${art.meta||''}</div>`;
+      a.className=`n-side glass rev rev-d${i+1}`;a.href=art.url||'#';a.style.cssText='text-decoration:none;color:inherit';
+      a.innerHTML=`<span class="n-tag">${art.tag||'Actu'}</span>
+        <div class="n-side-title">${art.title||''}</div>
+        <div class="n-meta">${art.meta||''}</div>`;
       sidebar.appendChild(a);revObs.observe(a);
     });
     mainEl.appendChild(sidebar);
   }
-
-  // sub grid
   subEl.innerHTML='';
   subs.forEach((art,i)=>{
     const a=document.createElement('a');
-    a.className=`n-card glass rev rev-d${i}`;a.href=art.url||'#';a.style.textDecoration='none';a.style.color='inherit';
-    const abbr=(art.artist||art.title||'').split(' ')[0].slice(0,3).toUpperCase();
-    a.innerHTML=`
-      <div class="n-img" style="height:140px">
-        <div class="img-ph ${art.ph||'ph-default'}" style="height:140px"><span class="ph-big" style="font-size:40px">${abbr}</span></div>
-      </div>
+    a.className=`n-card glass rev rev-d${i}`;a.href=art.url||'#';a.style.cssText='text-decoration:none;color:inherit';
+    a.innerHTML=`<div class="n-img" style="height:140px">${mkImgHtml(art,140)}</div>
       <div class="n-body">
         <span class="n-tag">${art.tag||'Actu'}</span>
-        <div class="n-title sm">${art.title}</div>
+        <div class="n-title sm">${art.title||''}</div>
         <div class="n-meta">${art.meta||''}</div>
       </div>`;
     subEl.appendChild(a);revObs.observe(a);
@@ -834,14 +960,54 @@ function renderActus(articles){
 loadActus();
 
 // ══════════════════════════════════════
-// TICKER — releases + charts
+// VIDEOS — YouTube oEmbed (thumbnails auto)
 // ══════════════════════════════════════
-const tickContent=[
-  ...RELEASES.map(r=>`<span class="tick-item">${r.artist} <span class="tick-sep">·</span> ${r.title} <span class="tick-sep">·</span> ${r.type}</span>`),
-  ...CHARTS_DATA.slice(0,8).map(c=>`<span class="tick-item">#${c.pos} <span class="tick-sep">·</span> ${c.artist} <span class="tick-sep">·</span> ${c.track}</span>`)
-].join('');
-document.getElementById('ticker-s1').innerHTML=tickContent;
-document.getElementById('ticker-s2').innerHTML=tickContent;
+const VIDEOS=[
+  {id:'dQw4w9WgXcQ',title:'SCH en exclusivité : retour sur 10 ans de carrière',sub:'Interview · YouTube',duration:'12:47',artist:'SCH'},
+  {id:'jNQXAC9IVRw',title:'PLK — analyse de Grand Garçon et l\'album complet',sub:'Review · YouTube',duration:'24:03',artist:'PLK'},
+  {id:'3JZ_D3ELwOQ',title:'Freeze Corleone : l\'interview vérité après 2 ans d\'absence',sub:'Interview · YouTube',duration:'18:05',artist:'Freeze Corleone'},
+];
+
+function buildVideos(){
+  const vg=document.getElementById('videos-grid');
+  VIDEOS.forEach((v,i)=>{
+    const card=document.createElement('div');
+    card.className=`v-card glass rev rev-d${i}`;
+    const thumb=`https://img.youtube.com/vi/${v.id}/maxresdefault.jpg`;
+    const fallback=`https://img.youtube.com/vi/${v.id}/hqdefault.jpg`;
+    card.innerHTML=`
+      <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener" style="text-decoration:none;display:block">
+        <div class="v-thumb">
+          <img src="${thumb}" alt="${v.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.src='${fallback}'">
+          <div class="v-play"><div class="v-play-circle"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div></div>
+          <span class="v-duration">${v.duration}</span>
+        </div>
+        <div class="v-body">
+          <div class="v-title">${v.title}</div>
+          <div class="v-sub">${v.sub}</div>
+        </div>
+      </a>`;
+    vg.appendChild(card);revObs.observe(card);
+  });
+}
+buildVideos();
+
+// ══════════════════════════════════════
+// TICKER — dynamique depuis releases + charts
+// ══════════════════════════════════════
+function buildTicker(){
+  const content=[
+    ...RELEASES.map(r=>`<span class="tick-item">${r.artist} <span class="tick-sep">·</span> ${r.title} <span class="tick-sep">·</span> ${r.type}</span>`),
+    ...CHARTS_STATIC.slice(0,8).map(c=>`<span class="tick-item">#${c.pos} <span class="tick-sep">·</span> ${c.artist} <span class="tick-sep">·</span> ${c.track}</span>`)
+  ].join('');
+  document.getElementById('ticker-s1').innerHTML=content;
+  document.getElementById('ticker-s2').innerHTML=content;
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+buildReleases(); // builds releases AND calls buildTicker at the end
 
 })();
 </script>
