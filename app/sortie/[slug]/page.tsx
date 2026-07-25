@@ -18,7 +18,14 @@ export default async function ReleasePage({ params }: { params: Promise<{ slug: 
             <div className="w-28 h-28 rounded-lg glass shrink-0" />
           )}
           <div>
-            <p className="text-xs font-mono text-gold uppercase tracking-[0.16em] mb-2">{release.type}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs font-mono text-gold uppercase tracking-[0.16em]">{release.type}</p>
+              {release.explicit && (
+                <span className="text-[10px] font-mono uppercase border border-white/20 text-ink-faint rounded px-1.5 py-0.5">
+                  Explicite
+                </span>
+              )}
+            </div>
             <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
               {release.title}
             </h1>
@@ -27,11 +34,16 @@ export default async function ReleasePage({ params }: { params: Promise<{ slug: 
                 {release.artistName}
               </a>
             </p>
-            {release.date && (
-              <p className="font-mono text-sm text-ink-muted mt-3">
-                Sorti le {new Date(release.date).toLocaleDateString("fr-FR")}
-              </p>
-            )}
+            <div className="flex items-center gap-4 mt-3">
+              {release.date && (
+                <p className="font-mono text-sm text-ink-muted">
+                  Sorti le {new Date(release.date).toLocaleDateString("fr-FR")}
+                </p>
+              )}
+              {release.fans != null && (
+                <p className="font-mono text-sm text-ink-faint">{release.fans.toLocaleString("fr-FR")} fans Deezer</p>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -43,7 +55,11 @@ export default async function ReleasePage({ params }: { params: Promise<{ slug: 
             {release.tracks.map((t, i) => (
               <div key={t.title} className="flex items-center gap-4 py-3 px-5 hover:bg-white/5 transition-colors">
                 <span className="font-mono text-ink-faint text-sm w-5">{String(i + 1).padStart(2, "0")}</span>
-                <span className="flex-1">{t.title}</span>
+                <span className="flex-1">
+                  {t.title}
+                  {t.explicit && <span className="ml-2 text-[10px] text-ink-faint border border-white/20 rounded px-1 py-0.5 align-middle">E</span>}
+                </span>
+                {t.bpm ? <span className="font-mono text-xs text-ink-faint hidden sm:inline">{Math.round(t.bpm)} BPM</span> : null}
                 <span className="font-mono text-sm text-ink-muted">{t.duration}</span>
               </div>
             ))}

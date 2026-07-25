@@ -1,0 +1,27 @@
+name: Ingestion Deezer profonde (mensuelle, rap/hip-hop France)
+
+on:
+  schedule:
+    - cron: "0 5 1 * *"   # le 1er de chaque mois, 5h UTC
+  workflow_dispatch: {}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Générer le client Prisma
+        run: npx prisma generate
+
+      - name: Lancer l'ingestion profonde (Rapstars, toutes les stats)
+        run: node pipelines/ingest-deezer-rap-fr.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

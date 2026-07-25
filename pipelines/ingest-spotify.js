@@ -17,10 +17,21 @@ const SEED_ARTISTS = [
   "Freeze Corleone", "Zola", "Hamza", "Laylow", "Dinos",
 ];
 
-async function deezerFetch(path) {
+// Deezer renvoie parfois ses erreurs dans le corps JSON avec un statut HTTP 200 (voir
+// https://developers.deezer.com/api — table des codes d'erreur). QUOTA (code 4) est retryable
+// avec un backoff ; les autres erreurs sont fatales pour cet appel.
+async function deezerFetch(path, retries = 3) {
   const res = await fetch(`https://api.deezer.com${path}`);
-  if (!res.ok) throw new Error(`Deezer ${path} → ${res.status} ${await res.text()}`);
-  return res.json();
+  if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status} ${await res.text()}`);
+  const json = await res.json();
+  if (json && json.error) {
+    if (json.error.code === 4 && retries > 0) {
+      await new Promise((r) => setTimeout(r, 2000));
+      return deezerFetch(path, retries - 1);
+    }
+    throw new Error(`Deezer ${path} → erreur ${json.error.code} (${json.error.type}) : ${json.error.message}`);
+  }
+  return json;
 }
 
 function slugify(name) {

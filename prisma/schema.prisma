@@ -77,6 +77,8 @@ model Release {
 
   spotifyId     String?      @unique
   deezerId      String?      @unique
+  fans          BigInt?      // popularité de l'album sur Deezer (endpoint /album/{id})
+  explicit      Boolean?     // explicit_lyrics Deezer
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -129,6 +131,12 @@ model Track {
   durationSec Int?
   streamsTotal BigInt?
   spotifyId   String?  @unique
+  deezerId    String?  @unique
+  isrc        String?  @unique // code international, fiable pour dédupliquer entre sources
+  deezerRank  Int?     // popularité Deezer du titre (0 à ~1 000 000), rafraîchi à chaque run
+  explicit    Boolean?
+  bpm         Float?
+  gain        Float?   // loudness (dB), pas une "stat" au sens strict mais fournie par Deezer
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -214,13 +222,17 @@ model ChartEntry {
   releaseId  String?
   release    Release? @relation(fields: [releaseId], references: [id])
 
+  @@unique([chartType, periodKey, artistId], name: "chart_entry_natural_key")
   @@index([chartType, periodKey])
 }
 
 enum ChartType {
-  DRF_STREAMING
-  SNEP_RAP
-  HYPE
+  DRF_STREAMING // alimenté par pipelines/ingest-chart.js (playlist Deezer "Rapstars", gratuite,
+                // choisie plutôt que /chart/116 car non dépendante de la géolocalisation IP)
+  SNEP_RAP      // non alimenté : le Top SNEP officiel est explicitement "tous droits réservés
+                // à la SCPP" sur snepmusique.com — pas de PDF/CSV d'export non plus (contrairement
+                // aux certifications). Voir README pour le détail.
+  HYPE          // futur : calculé en interne, voir HypeScore
 }
 
 model HypeScore {

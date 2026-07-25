@@ -78,6 +78,25 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
         </section>
       )}
 
+      {/* Featurings — vraie donnée du graphe de crédits Deezer, pas une liste éditée à la main */}
+      {artist.collaborators.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 pt-14">
+          <h2 className="font-display text-xl font-medium mb-6">A featuré avec</h2>
+          <div className="flex flex-wrap gap-2">
+            {artist.collaborators.map((c) => (
+              <a
+                key={c.slug}
+                href={`/artiste/${c.slug}`}
+                className="glass rounded-full pl-3 pr-2 py-1.5 text-sm flex items-center gap-2 hover:border-gold/40 transition-colors"
+              >
+                {c.name}
+                <span className="font-mono text-xs text-ink-faint bg-white/8 rounded-full px-1.5 py-0.5">{c.count}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Discographie */}
       <section className="max-w-6xl mx-auto px-6 py-14">
         <h2 className="font-display text-xl font-medium mb-6">Discographie</h2>

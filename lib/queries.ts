@@ -68,9 +68,24 @@ export async function getArtistBySlug(slug: string) {
         releases: { include: { release: true } },
         label: true,
         certifications: { include: { release: true }, orderBy: { certifiedAt: "desc" } },
+        credits: { include: { track: { include: { credits: { include: { artist: true } } } } } },
       },
     });
     if (!artist) return null;
+
+    // Featurings réels — déduits du graphe de crédits (voir pipelines/ingest-deezer-rap-fr.js),
+    // pas une liste éditée à la main.
+    const collabCount = new Map<string, { name: string; slug: string; count: number }>();
+    for (const credit of artist.credits) {
+      for (const other of credit.track.credits) {
+        if (other.artistId === artist.id) continue;
+        const cur = collabCount.get(other.artistId) ?? { name: other.artist.name, slug: other.artist.slug, count: 0 };
+        cur.count++;
+        collabCount.set(other.artistId, cur);
+      }
+    }
+    const collaborators = [...collabCount.values()].sort((a, b) => b.count - a.count).slice(0, 12);
+
     return {
       slug: artist.slug,
       name: artist.name,
@@ -90,6 +105,7 @@ export async function getArtistBySlug(slug: string) {
         releaseTitle: c.release?.title ?? null,
         releaseSlug: c.release?.slug ?? null,
       })),
+      collaborators,
     };
   } catch (err) {
     logDbError(err);
@@ -125,7 +141,7 @@ export async function getReleaseBySlug(slug: string) {
   try {
     const release = await prisma.release.findUnique({
       where: { slug },
-      include: { artists: { include: { artist: true } }, tracks: true },
+      include: { artists: { include: { artist: true } }, tracks: { orderBy: { trackNumber: "asc" } } },
     });
     if (!release) return null;
     return {
@@ -135,11 +151,17 @@ export async function getReleaseBySlug(slug: string) {
       status: release.status,
       date: release.releaseDate,
       coverUrl: release.coverUrl,
+      fans: release.fans != null ? Number(release.fans) : null,
+      explicit: release.explicit,
       artistName: release.artists[0]?.artist.name ?? "",
       artistSlug: release.artists[0]?.artist.slug ?? "",
       tracks: release.tracks.map((t) => ({
         title: t.title,
         duration: t.durationSec ? `${Math.floor(t.durationSec / 60)}:${String(t.durationSec % 60).padStart(2, "0")}` : "—",
+        rank: t.deezerRank,
+        bpm: t.bpm,
+        explicit: t.explicit,
+        isrc: t.isrc,
       })),
     };
   } catch (err) {
@@ -167,6 +189,48 @@ export async function getNews(limit = 20) {
   }
 }
 
+// Graphe relationnel réel — paires d'artistes crédités ensemble sur un même titre,
+// pondérées par le nombre de titres partagés. Alimenté par pipelines/ingest-deezer-rap-fr.js
+// (Deezer ne fournit que la liste des artistes crédités, pas les rôles producteur/auteur).
+export async function getCollaborationGraph(limit = 40) {
+  if (!hasDb) return { edges: [] as { aName: string; aSlug: string; bName: string; bSlug: string; count: number }[] };
+  try {
+    const credits = await prisma.credit.findMany({
+      include: { artist: { select: { id: true, name: true, slug: true } } },
+    });
+
+    const byTrack = new Map<string, { id: string; name: string; slug: string }[]>();
+    for (const c of credits) {
+      const arr = byTrack.get(c.trackId) ?? [];
+      if (!arr.some((a) => a.id === c.artistId)) arr.push({ id: c.artistId, name: c.artist.name, slug: c.artist.slug });
+      byTrack.set(c.trackId, arr);
+    }
+
+    const edgeWeight = new Map<string, { a: { id: string; name: string; slug: string }; b: { id: string; name: string; slug: string }; count: number }>();
+    for (const artists of byTrack.values()) {
+      for (let i = 0; i < artists.length; i++) {
+        for (let j = i + 1; j < artists.length; j++) {
+          const [a, b] = [artists[i], artists[j]].sort((x, y) => x.id.localeCompare(y.id));
+          const key = `${a.id}-${b.id}`;
+          const cur = edgeWeight.get(key) ?? { a, b, count: 0 };
+          cur.count++;
+          edgeWeight.set(key, cur);
+        }
+      }
+    }
+
+    return {
+      edges: [...edgeWeight.values()]
+        .sort((x, y) => y.count - x.count)
+        .slice(0, limit)
+        .map((e) => ({ aName: e.a.name, aSlug: e.a.slug, bName: e.b.name, bSlug: e.b.slug, count: e.count })),
+    };
+  } catch (err) {
+    logDbError(err);
+    return { edges: [] };
+  }
+}
+
 export async function getCertifications(limit = 100, level?: "OR" | "PLATINE" | "DIAMANT") {
   if (!hasDb) return [];
   try {
@@ -187,6 +251,37 @@ export async function getCertifications(limit = 100, level?: "OR" | "PLATINE" | 
       artistSlug: c.artist.slug,
       releaseTitle: c.release?.title ?? null,
       releaseSlug: c.release?.slug ?? null,
+    }));
+  } catch (err) {
+    logDbError(err);
+    return [];
+  }
+}
+
+// Chart Rap France (DRF_STREAMING, playlist Deezer "Rapstars") — la période la plus récente.
+// Voir pipelines/ingest-chart.js pour la source (gratuite, publique, mise à jour chaque semaine).
+export async function getStreamingChart(limit = 50) {
+  if (!hasDb) return [];
+  try {
+    const latest = await prisma.chartEntry.findFirst({
+      where: { chartType: "DRF_STREAMING" },
+      orderBy: { periodKey: "desc" },
+      select: { periodKey: true },
+    });
+    if (!latest) return [];
+
+    const entries = await prisma.chartEntry.findMany({
+      where: { chartType: "DRF_STREAMING", periodKey: latest.periodKey },
+      include: { artist: true, release: true },
+      orderBy: { position: "asc" },
+      take: limit,
+    });
+    return entries.map((e) => ({
+      position: e.position,
+      periodKey: e.periodKey,
+      artistName: e.artist?.name ?? "",
+      artistSlug: e.artist?.slug ?? "",
+      releaseTitle: e.release?.title ?? null,
     }));
   } catch (err) {
     logDbError(err);

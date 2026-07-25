@@ -146,6 +146,54 @@ Pour vérifier ou déboguer un échec de build sur Vercel :
   l'import ne reconnaît aucune colonne au premier essai, ouvrez le CSV et ajustez
   `COLUMN_HINTS` en tête du script.
 
+## Toutes les stats Deezer, scopées rap France (ingestion profonde)
+
+- `pipelines/ingest-deezer-rap-fr.js`, lancé une fois par mois par
+  `.github/workflows/ingest-deezer-deep.yml`, parcourt la playlist Deezer **Rapstars 2020**
+  (id `9563400362`, tenue par l'éditrice Rap & R&B France de Deezer) et capture, par titre,
+  tout ce que l'API publique expose : popularité (`rank`), ISRC, BPM, loudness (`gain`),
+  *explicit lyrics*, durée — et par album : fans, *explicit*, label.
+- **Filtre de fraîcheur** : la playlist flagship "Rapstars" (toutes époques confondues) a été
+  écartée volontairement — elle mélangeait des classiques 90s/2000s avec l'actualité (retour
+  utilisateur : trop de titres 2017/2020 remontaient). "Rapstars 2020" reste scopée à la
+  décennie en cours, et le script ignore en plus tout titre dont l'album a plus de
+  `MAX_AGE_YEARS` (3 par défaut, ajustable en tête du script).
+- **Le vrai graphe relationnel** : chaque titre à plusieurs artistes crédités devient des
+  lignes `Credit` (PERFORMER / FEATURED). La page `/explorer/graphe` et la section
+  "A featuré avec" des fiches artiste utilisent maintenant cette donnée réelle — plus le mock.
+  Deezer ne fournit que la liste des artistes crédités, pas les rôles producteur/auteur ; ces
+  rôles resteront à sourcer ailleurs (Genius, Discogs...) pour une V2.
+- Les artistes rencontrés sur Rapstars mais pas encore suivis sont créés automatiquement en
+  `SKELETON` — légitime ici car la source est déjà éditorialement scopée rap FR (contrairement
+  à une recherche générique).
+- C'est un pipeline lourd (un appel par titre + par album) : plafonné à 400 titres par run et
+  espacé de ~130ms entre appels, donc lancé mensuellement plutôt qu'à chaque semaine comme
+  `ingest-chart.js`.
+
+## Charts (chart Rap France, playlist Deezer Rapstars)
+
+- Contrairement aux certifications, celui-ci **est automatisé** : l'API Deezer est publique,
+  gratuite, sans clé, et explicitement pensée pour un usage programmatique. Rien à
+  télécharger à la main ici.
+- Source : la playlist éditoriale **Rapstars 2020** (`api.deezer.com/playlist/9563400362/tracks`),
+  pas `/chart/116` (Rap/Hip Hop). Deezer documente que ses endpoints de genre/chart sont
+  géolocalisés par IP — un run GitHub Actions ne part pas d'une IP française, donc `/chart/116`
+  n'est pas fiablement scopé "France". Une playlist a un ID fixe, indépendant de la
+  géolocalisation : c'est le choix le plus proche d'un "rap France officiel" accessible sans
+  clé et sans scraping.
+- `pipelines/ingest-chart.js`, lancé chaque lundi par
+  `.github/workflows/ingest-chart.yml`, récupère cette playlist, ne garde que les artistes déjà
+  suivis sur le site, et enregistre leur meilleur rang de la semaine (`ChartEntry`,
+  `chartType: DRF_STREAMING`).
+- **Ce n'est pas le Top SNEP officiel.** Le Top SNEP (snepmusique.com/les-tops) affiche
+  explicitement *"tous les droits de reproduction et de communication au public sont
+  réservés à la SCPP"* — et contrairement à la page certifications, il n'a ni CSV ni PDF
+  d'export exploitable. Le type `ChartType.SNEP_RAP` existe dans le schéma mais n'est
+  alimenté par aucun pipeline, volontairement — voir le commentaire dans
+  `prisma/schema.prisma`.
+- La page `/charts` affiche ce chart comme classement principal, avec le classement par fans
+  Deezer en repli si le chart n'a pas encore tourné.
+
 ## Flux d'actus RSS
 
 - Schéma : modèle `NewsItem` dans `prisma/schema.prisma` (titre, lien, source — jamais le
