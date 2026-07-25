@@ -223,18 +223,18 @@ export default async function Home() {
       </section>
       </Reveal>
 
-      {/* Top Popularité — vraies données Spotify (l'Indice de Hype calculé reste à construire) */}
+      {/* Top Fans — vraies données Deezer (l'Indice de Hype calculé reste à construire) */}
       <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-14">
         <div className="flex items-baseline justify-between mb-6">
-          <h2 className="font-display text-xl font-medium">Top Popularité Spotify</h2>
+          <h2 className="font-display text-xl font-medium">Top Fans Deezer</h2>
           <a href="/artistes" className="text-sm text-ink-muted hover:text-ink transition-colors">
             Voir tous les artistes →
           </a>
         </div>
         {topArtists.length === 0 ? (
           <div className="glass rounded-xl p-8 text-center text-ink-muted text-sm">
-            L'ingestion Spotify n'a pas encore tourné — aucun artiste en base pour l'instant.
+            L'ingestion n'a pas encore tourné — aucun artiste en base pour l'instant.
           </div>
         ) : (
           <div className="glass rounded-xl divide-y divide-white/8 overflow-hidden">
@@ -246,7 +246,7 @@ export default async function Home() {
               >
                 <span className="font-mono text-ink-faint w-6 text-sm">{a.rank}</span>
                 <span className="flex-1 font-medium">{a.name}</span>
-                <span className="font-mono text-sm text-gold">{a.score}/100</span>
+                <span className="font-mono text-sm text-gold">{a.score.toLocaleString("fr-FR")}</span>
               </a>
             ))}
           </div>

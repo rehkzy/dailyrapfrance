@@ -1,4 +1,4 @@
-name: Ingestion Spotify (horaire, top artistes)
+name: Ingestion Deezer (horaire, top artistes)
 
 on:
   schedule:
@@ -21,9 +21,7 @@ jobs:
       - name: Générer le client Prisma
         run: npx prisma generate
 
-      - name: Lancer l'ingestion Spotify
+      - name: Lancer l'ingestion Deezer
         run: node pipelines/ingest-spotify.js
         env:
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}   # URL Supabase Postgres (pooler)

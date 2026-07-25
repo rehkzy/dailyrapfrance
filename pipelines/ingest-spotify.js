@@ -1,54 +1,25 @@
-// Pipeline d'ingestion Spotify → Supabase (via Prisma).
+// Pipeline d'ingestion Deezer → Supabase (via Prisma).
 // Lancé toutes les heures par .github/workflows/ingest-spotify.yml (gratuit, GitHub Actions).
 //
-// Limite honnête : Spotify ne fournit pas les "auditeurs mensuels" via son API publique
-// (donnée privée, réservée à l'artiste via Spotify for Artists). On stocke donc les
-// `followers` (abonnés) et le `popularity` (score interne Spotify 0-100), pas un chiffre
-// inventé.
+// Pourquoi Deezer plutôt que Spotify : l'API Web Spotify exige désormais que le compte
+// propriétaire de l'app ait un abonnement Premium actif pour les endpoints de recherche —
+// une restriction imposée par Spotify, indépendante de ce code. L'API publique Deezer,
+// elle, est gratuite et sans authentification, ce qui correspond à l'esprit "rien à payer"
+// du projet (voir 00_MASTER_PROMPT.md, P7).
 
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
-// Liste de départ — à faire grandir au fil du temps. Le pipeline peut être relancé
-// avec une liste plus longue sans dupliquer les entrées existantes (upsert par spotifyId).
 const SEED_ARTISTS = [
   "Gazo", "Tiakola", "Ninho", "SDM", "Luv Resval", "Josman", "Fresh la Peufra",
   "Chily", "Werenoi", "Leto", "Damso", "Naps", "Jul", "Alonzo", "Kaaris",
   "Freeze Corleone", "Zola", "Hamza", "Laylow", "Dinos",
 ];
 
-let cachedToken = null;
-
-async function getAccessToken() {
-  if (cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.value;
-
-  const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    throw new Error("SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET manquants.");
-  }
-
-  const res = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64"),
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!res.ok) throw new Error(`Auth Spotify échouée : ${res.status} ${await res.text()}`);
-  const data = await res.json();
-  cachedToken = { value: data.access_token, expiresAt: Date.now() + (data.expires_in - 60) * 1000 };
-  return cachedToken.value;
-}
-
-async function spotifyFetch(path) {
-  const token = await getAccessToken();
-  const res = await fetch(`https://api.spotify.com/v1${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`Spotify ${path} → ${res.status} ${await res.text()}`);
+async function deezerFetch(path) {
+  const res = await fetch(`https://api.deezer.com${path}`);
+  if (!res.ok) throw new Error(`Deezer ${path} → ${res.status} ${await res.text()}`);
   return res.json();
 }
 
@@ -61,61 +32,57 @@ function slugify(name) {
 }
 
 async function ingestArtist(name) {
-  const search = await spotifyFetch(`/search?q=${encodeURIComponent(name)}&type=artist&market=FR&limit=1`);
-  const item = search.artists?.items?.[0];
+  const search = await deezerFetch(`/search/artist?q=${encodeURIComponent(name)}&limit=1`);
+  const item = search.data?.[0];
   if (!item) {
-    console.log(`  ⚠ Introuvable sur Spotify : ${name}`);
+    console.log(`  ⚠ Introuvable sur Deezer : ${name}`);
     return null;
   }
 
   const artist = await prisma.artist.upsert({
-    where: { spotifyId: item.id },
+    where: { deezerId: String(item.id) },
     update: {
       name: item.name,
-      photoUrl: item.images?.[0]?.url ?? null,
+      photoUrl: item.picture_xl || item.picture_big || null,
       status: "STANDARD",
     },
     create: {
       slug: slugify(item.name),
       name: item.name,
-      spotifyId: item.id,
-      photoUrl: item.images?.[0]?.url ?? null,
+      deezerId: String(item.id),
+      photoUrl: item.picture_xl || item.picture_big || null,
       status: "STANDARD",
       aliases: [],
     },
   });
 
-  // Signal temporel : followers + popularité (les vraies métriques publiques Spotify)
+  // Signal temporel : fans Deezer (vraie métrique publique, pas d'auditeurs mensuels
+  // inventés — Deezer, comme Spotify, ne rend pas cette donnée publique).
   await prisma.socialStat.create({
     data: {
       artistId: artist.id,
-      source: "SPOTIFY",
-      followers: BigInt(item.followers?.total ?? 0),
-      // On réutilise le champ monthlyListeners pour stocker le score de popularité (0-100)
-      // en attendant une vraie source d'auditeurs mensuels (ex: Chartmetric payant).
-      monthlyListeners: BigInt(item.popularity ?? 0),
+      source: "DEEZER",
+      followers: BigInt(item.nb_fan ?? 0),
+      monthlyListeners: BigInt(0), // pas de score de popularité équivalent chez Deezer
     },
   });
 
-  console.log(`  ✓ ${item.name} — ${item.followers?.total?.toLocaleString("fr-FR")} abonnés, popularité ${item.popularity}`);
+  console.log(`  ✓ ${item.name} — ${item.nb_fan?.toLocaleString("fr-FR")} fans Deezer`);
 
-  // Sorties récentes (albums + singles)
-  const albums = await spotifyFetch(`/artists/${item.id}/albums?include_groups=album,single&market=FR&limit=8`);
-  for (const a of albums.items ?? []) {
-    const releaseDate =
-      a.release_date_precision === "day" ? new Date(a.release_date) : new Date(`${a.release_date}-01-01`);
-
+  // Sorties récentes
+  const albums = await deezerFetch(`/artist/${item.id}/albums?limit=8`);
+  for (const a of albums.data ?? []) {
     await prisma.release.upsert({
-      where: { spotifyId: a.id },
-      update: { title: a.name, coverUrl: a.images?.[0]?.url ?? null },
+      where: { deezerId: String(a.id) },
+      update: { title: a.title, coverUrl: a.cover_xl || a.cover_big || null },
       create: {
-        slug: slugify(`${item.name}-${a.name}`),
-        title: a.name,
-        type: a.album_type === "single" ? "SINGLE" : "ALBUM",
+        slug: slugify(`${item.name}-${a.title}`),
+        title: a.title,
+        type: a.record_type === "single" ? "SINGLE" : "ALBUM",
         status: "RELEASED",
-        releaseDate,
-        spotifyId: a.id,
-        coverUrl: a.images?.[0]?.url ?? null,
+        releaseDate: a.release_date ? new Date(a.release_date) : null,
+        deezerId: String(a.id),
+        coverUrl: a.cover_xl || a.cover_big || null,
         artists: { create: { artistId: artist.id, role: "MAIN" } },
       },
     });
@@ -125,7 +92,7 @@ async function ingestArtist(name) {
 }
 
 async function main() {
-  console.log(`Ingestion Spotify — ${SEED_ARTISTS.length} artistes ciblés\n`);
+  console.log(`Ingestion Deezer — ${SEED_ARTISTS.length} artistes ciblés\n`);
   for (const name of SEED_ARTISTS) {
     try {
       await ingestArtist(name);

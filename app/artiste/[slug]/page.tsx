@@ -35,21 +35,17 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
         </div>
       </section>
 
-      {/* Bandeau de signaux — vraies métriques Spotify publiques */}
+      {/* Bandeau de signaux — vraies métriques Deezer publiques */}
       <section className="max-w-6xl mx-auto px-6">
         <div className="glass rounded-xl px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-6">
           <div>
-            <p className="text-xs text-ink-faint uppercase font-mono mb-1">Abonnés Spotify</p>
+            <p className="text-xs text-ink-faint uppercase font-mono mb-1">Fans Deezer</p>
             <p className="font-mono text-xl">{artist.followers.toLocaleString("fr-FR")}</p>
           </div>
-          <div>
-            <p className="text-xs text-ink-faint uppercase font-mono mb-1">Popularité Spotify</p>
-            <p className="font-mono text-xl text-gold">{artist.popularity}/100</p>
-          </div>
-          <div className="col-span-2">
+          <div className="col-span-3">
             <p className="text-xs text-ink-faint uppercase font-mono mb-1">Source</p>
             <p className="text-sm text-ink-muted">
-              Données Spotify Web API, mises à jour à chaque exécution du pipeline.
+              Données Deezer API, mises à jour à chaque exécution du pipeline.
             </p>
           </div>
         </div>

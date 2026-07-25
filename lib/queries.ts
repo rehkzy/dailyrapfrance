@@ -32,9 +32,9 @@ export async function getTopByPopularity(limit = 5) {
   const artists = await getArtists();
   return artists
     .slice()
-    .sort((a, b) => b.popularity - a.popularity)
+    .sort((a, b) => b.followers - a.followers)
     .slice(0, limit)
-    .map((a, i) => ({ rank: i + 1, slug: a.slug, name: a.name, score: a.popularity }));
+    .map((a, i) => ({ rank: i + 1, slug: a.slug, name: a.name, score: a.followers }));
 }
 
 export async function getArtistBySlug(slug: string) {

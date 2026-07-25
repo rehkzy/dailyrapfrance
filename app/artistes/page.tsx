@@ -8,7 +8,7 @@ export default async function ArtistesPage() {
       <h1 className="font-display text-3xl font-semibold mb-2">Artistes</h1>
       <p className="text-ink-muted mb-8">
         {artists.length > 0
-          ? `${artists.length} fiches — triées par abonnés Spotify.`
+          ? `${artists.length} fiches — triées par fans Deezer.`
           : "Aucun artiste pour l'instant."}
       </p>
 
@@ -38,9 +38,8 @@ export default async function ArtistesPage() {
               </div>
               <div className="text-right hidden sm:block">
                 <p className="font-mono text-sm">{a.followers.toLocaleString("fr-FR")}</p>
-                <p className="text-xs text-ink-faint">abonnés Spotify</p>
+                <p className="text-xs text-ink-faint">fans Deezer</p>
               </div>
-              <div className="font-mono text-sm text-gold w-10 text-right">{a.popularity}</div>
             </a>
           ))}
         </div>
