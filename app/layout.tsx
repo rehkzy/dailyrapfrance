@@ -14,8 +14,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="bg-orbs" aria-hidden="true" />
         <header className="glass sticky top-0 z-50 rounded-none">
           <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-            <a href="/" className="font-display font-semibold text-lg tracking-tight">
-              DRF<span className="text-gold">.</span>
+            <a href="/" className="flex items-center">
+              <img src="/logo.svg" alt="DailyRapFrance" className="h-6 w-auto" />
             </a>
             <nav className="hidden md:flex items-center gap-6 text-sm text-ink-muted">
               <a href="/artistes" className="hover:text-ink transition-colors">Artistes</a>
