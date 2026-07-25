@@ -5,8 +5,9 @@ export function generateStaticParams() {
   return artists.map((a) => ({ slug: a.slug }));
 }
 
-export default function ArtistPage({ params }: { params: { slug: string } }) {
-  const artist = artists.find((a) => a.slug === params.slug);
+export default async function ArtistPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const artist = artists.find((a) => a.slug === slug);
   if (!artist) return notFound();
 
   const discography = releases.filter((r) => r.artistSlug === artist.slug);
@@ -78,7 +79,7 @@ export default function ArtistPage({ params }: { params: { slug: string } }) {
         ) : (
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
             {discography.map((r) => (
-              <a
+              
                 key={r.slug}
                 href={`/sortie/${r.slug}`}
                 className="block border border-line rounded p-4 hover:border-line-strong transition-colors"

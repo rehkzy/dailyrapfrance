@@ -5,8 +5,9 @@ export function generateStaticParams() {
   return releases.map((r) => ({ slug: r.slug }));
 }
 
-export default function ReleasePage({ params }: { params: { slug: string } }) {
-  const release = releases.find((r) => r.slug === params.slug);
+export default async function ReleasePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const release = releases.find((r) => r.slug === slug);
   if (!release) return notFound();
 
   return (

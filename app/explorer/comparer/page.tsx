@@ -1,12 +1,13 @@
 import { artists } from "@/lib/mock-data";
 
-export default function ComparerPage({
+export default async function ComparerPage({
   searchParams,
 }: {
-  searchParams: { a?: string; b?: string };
+  searchParams: Promise<{ a?: string; b?: string }>;
 }) {
-  const a = artists.find((x) => x.slug === searchParams.a) || artists[0];
-  const b = artists.find((x) => x.slug === searchParams.b) || artists[1];
+  const params = await searchParams;
+  const a = artists.find((x) => x.slug === params.a) || artists[0];
+  const b = artists.find((x) => x.slug === params.b) || artists[1];
 
   const rows = [
     { label: "Auditeurs / mois", va: `${(a.monthlyListeners / 1_000_000).toFixed(2)}M`, vb: `${(b.monthlyListeners / 1_000_000).toFixed(2)}M` },
