@@ -1,0 +1,20 @@
+# Dépendances (régénérées par npm install, ne jamais commit)
+node_modules/
+
+# Build Next.js
+.next/
+out/
+
+# Variables d'environnement (contiennent des secrets, ne jamais commit)
+.env
+.env.local
+.env*.local
+
+# Logs
+npm-debug.log*
+
+# Système
+.DS_Store
+
+# Prisma
+prisma/*.db
