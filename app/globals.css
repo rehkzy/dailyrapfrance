@@ -17,7 +17,8 @@ body {
   min-height: 100vh;
 }
 
-/* Fond glassmorphism : halos de couleur flous fixes derrière tout le contenu */
+/* Fond glassmorphism : halos de couleur via dégradé doux natif (pas de filter: blur,
+   beaucoup trop coûteux à recalculer à chaque frame de scroll — cause du lag). */
 .bg-orbs {
   position: fixed;
   inset: 0;
@@ -31,38 +32,37 @@ body {
   content: "";
   position: absolute;
   border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.3;
+  opacity: 0.25;
 }
 
 .bg-orbs::before {
-  width: 600px;
-  height: 600px;
-  top: -150px;
-  left: -100px;
+  width: 900px;
+  height: 900px;
+  top: -250px;
+  left: -200px;
   background: radial-gradient(circle, #f0001c, transparent 70%);
 }
 
 .bg-orbs::after {
-  width: 700px;
-  height: 700px;
-  bottom: -200px;
-  right: -150px;
+  width: 1000px;
+  height: 1000px;
+  bottom: -300px;
+  right: -250px;
   background: radial-gradient(circle, #780101, transparent 70%);
 }
 
 /* Panneaux verre dépoli */
 .glass {
   background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-strong {
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
