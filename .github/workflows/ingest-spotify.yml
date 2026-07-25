@@ -16,11 +16,14 @@ jobs:
           node-version: 20
 
       - name: Installer les dépendances
-        run: npm ci --prefix pipelines
+        run: npm install
+
+      - name: Générer le client Prisma
+        run: npx prisma generate
 
       - name: Lancer l'ingestion Spotify
         run: node pipelines/ingest-spotify.js
         env:
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}   # URL Supabase Postgres
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}   # URL Supabase Postgres (pooler)

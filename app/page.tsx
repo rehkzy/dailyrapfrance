@@ -1,20 +1,14 @@
 import Ticker from "@/components/Ticker";
 import Reveal from "@/components/Reveal";
 import { Search, Heart, Bell, Calendar, GitCompare, Share2 } from "lucide-react";
+import { getTopByPopularity } from "@/lib/queries";
 
-// Données d'exemple — à remplacer par des requêtes Prisma une fois Supabase connecté.
+// Données d'exemple restantes — "Ce qui se passe maintenant" n'a pas encore de pipeline
+// dédié (nécessite une source d'actus/certifications), donc reste illustratif pour l'instant.
 const now = [
   { label: "Sortie du jour", title: "Tiakola — nouvel album annoncé", tag: "sortie" },
   { label: "Mouvement de hype", title: "Gazo +12 pts cette semaine", tag: "hype" },
   { label: "Certification", title: "SDM certifié Platine", tag: "certif" },
-];
-
-const topHype = [
-  { rank: 1, name: "Gazo", score: 91, delta: 12 },
-  { rank: 2, name: "Luv Resval", score: 84, delta: 8 },
-  { rank: 3, name: "Tiakola", score: 79, delta: 6 },
-  { rank: 4, name: "Josman", score: 71, delta: 3 },
-  { rank: 5, name: "Ninho", score: 68, delta: -1 },
 ];
 
 const features = [
@@ -70,7 +64,8 @@ const stats = [
   { value: "1h", label: "fraîcheur sur le top 500" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const topArtists = await getTopByPopularity(5);
   return (
     <>
       {/* Hero — la thèse du produit, pas un carrousel */}
@@ -228,33 +223,34 @@ export default function Home() {
       </section>
       </Reveal>
 
-      {/* Top Hype */}
+      {/* Top Popularité — vraies données Spotify (l'Indice de Hype calculé reste à construire) */}
       <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-14">
         <div className="flex items-baseline justify-between mb-6">
-          <h2 className="font-display text-xl font-medium">Top Hype</h2>
-          <a href="/charts" className="text-sm text-ink-muted hover:text-ink transition-colors">
-            Voir le classement complet →
+          <h2 className="font-display text-xl font-medium">Top Popularité Spotify</h2>
+          <a href="/artistes" className="text-sm text-ink-muted hover:text-ink transition-colors">
+            Voir tous les artistes →
           </a>
         </div>
-        <div className="glass rounded-xl divide-y divide-white/8 overflow-hidden">
-          {topHype.map((a) => (
-            <div key={a.name} className="flex items-center py-3.5 px-5 gap-4">
-              <span className="font-mono text-ink-faint w-6 text-sm">{a.rank}</span>
-              <span className="flex-1 font-medium">{a.name}</span>
-              <span className="font-mono text-sm text-ink-muted">{a.score}</span>
-              <span
-                className={
-                  "font-mono text-sm w-14 text-right " +
-                  (a.delta >= 0 ? "text-risePos" : "text-riseNeg")
-                }
+        {topArtists.length === 0 ? (
+          <div className="glass rounded-xl p-8 text-center text-ink-muted text-sm">
+            L'ingestion Spotify n'a pas encore tourné — aucun artiste en base pour l'instant.
+          </div>
+        ) : (
+          <div className="glass rounded-xl divide-y divide-white/8 overflow-hidden">
+            {topArtists.map((a) => (
+              <a
+                key={a.slug}
+                href={`/artiste/${a.slug}`}
+                className="flex items-center py-3.5 px-5 gap-4 hover:bg-white/8 transition-colors"
               >
-                {a.delta >= 0 ? "+" : ""}
-                {a.delta}
-              </span>
-            </div>
-          ))}
-        </div>
+                <span className="font-mono text-ink-faint w-6 text-sm">{a.rank}</span>
+                <span className="flex-1 font-medium">{a.name}</span>
+                <span className="font-mono text-sm text-gold">{a.score}/100</span>
+              </a>
+            ))}
+          </div>
+        )}
       </section>
       </Reveal>
 

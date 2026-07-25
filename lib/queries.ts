@@ -1,0 +1,99 @@
+import { prisma } from "./prisma";
+
+// Toutes les fonctions renvoient [] / null si la base est encore vide (avant la première
+// ingestion) — les pages gèrent cet état vide proprement, pas de crash.
+
+function latestStat(artist: { socialStats: { followers: bigint | null; monthlyListeners: bigint | null }[] }) {
+  const s = artist.socialStats[0];
+  return {
+    followers: s ? Number(s.followers ?? 0) : 0,
+    // Le champ `monthlyListeners` stocke en réalité le score de popularité Spotify (0-100) —
+    // Spotify ne fournit pas les vrais auditeurs mensuels via son API publique.
+    popularity: s ? Number(s.monthlyListeners ?? 0) : 0,
+  };
+}
+
+export async function getArtists() {
+  const artists = await prisma.artist.findMany({
+    include: { socialStats: { orderBy: { capturedAt: "desc" }, take: 1 } },
+  });
+  return artists
+    .map((a) => ({
+      slug: a.slug,
+      name: a.name,
+      city: a.city,
+      photoUrl: a.photoUrl,
+      ...latestStat(a),
+    }))
+    .sort((a, b) => b.followers - a.followers);
+}
+
+export async function getTopByPopularity(limit = 5) {
+  const artists = await getArtists();
+  return artists
+    .slice()
+    .sort((a, b) => b.popularity - a.popularity)
+    .slice(0, limit)
+    .map((a, i) => ({ rank: i + 1, slug: a.slug, name: a.name, score: a.popularity }));
+}
+
+export async function getArtistBySlug(slug: string) {
+  const artist = await prisma.artist.findUnique({
+    where: { slug },
+    include: {
+      socialStats: { orderBy: { capturedAt: "desc" }, take: 1 },
+      releases: { include: { release: true } },
+    },
+  });
+  if (!artist) return null;
+  return {
+    slug: artist.slug,
+    name: artist.name,
+    city: artist.city,
+    label: artist.label,
+    photoUrl: artist.photoUrl,
+    ...latestStat(artist),
+    releases: artist.releases
+      .map((ra) => ra.release)
+      .sort((a, b) => (b.releaseDate?.getTime() ?? 0) - (a.releaseDate?.getTime() ?? 0)),
+  };
+}
+
+export async function getReleases() {
+  const releases = await prisma.release.findMany({
+    include: { artists: { include: { artist: true } } },
+    orderBy: { releaseDate: "desc" },
+  });
+  return releases.map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    type: r.type,
+    status: r.status,
+    date: r.releaseDate,
+    coverUrl: r.coverUrl,
+    artistName: r.artists.find((a) => a.role === "MAIN")?.artist.name ?? r.artists[0]?.artist.name ?? "",
+    artistSlug: r.artists.find((a) => a.role === "MAIN")?.artist.slug ?? r.artists[0]?.artist.slug ?? "",
+  }));
+}
+
+export async function getReleaseBySlug(slug: string) {
+  const release = await prisma.release.findUnique({
+    where: { slug },
+    include: { artists: { include: { artist: true } }, tracks: true },
+  });
+  if (!release) return null;
+  return {
+    slug: release.slug,
+    title: release.title,
+    type: release.type,
+    status: release.status,
+    date: release.releaseDate,
+    coverUrl: release.coverUrl,
+    artistName: release.artists[0]?.artist.name ?? "",
+    artistSlug: release.artists[0]?.artist.slug ?? "",
+    tracks: release.tracks.map((t) => ({
+      title: t.title,
+      duration: t.durationSec ? `${Math.floor(t.durationSec / 60)}:${String(t.durationSec % 60).padStart(2, "0")}` : "—",
+    })),
+  };
+}
