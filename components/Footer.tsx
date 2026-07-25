@@ -18,6 +18,10 @@ const columns = [
       { href: "/explorer/comparer", label: "Comparateur" },
     ],
   },
+  {
+    title: "Jeu",
+    links: [{ href: "/blindtest", label: "Blind Test" }],
+  },
 ];
 
 const socials = [
@@ -30,7 +34,7 @@ export default function Footer() {
   return (
     <footer className="relative mt-24 border-t border-white/8">
       <div className="glow-line" />
-      <div className="max-w-6xl mx-auto px-6 py-14 grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
+      <div className="max-w-6xl mx-auto px-6 py-14 grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <img src="/logo.svg" alt="DailyRapFrance" className="h-6 w-auto mb-4" />
           <p className="text-sm text-ink-muted max-w-xs leading-relaxed">

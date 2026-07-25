@@ -38,6 +38,7 @@ const explore = [
   { href: "/sorties", label: "Sorties", text: "Albums, EP et singles à venir." },
   { href: "/charts", label: "Charts", text: "Le classement de la scène." },
   { href: "/explorer/graphe", label: "Explorer", text: "Le graphe relationnel du game." },
+  { href: "/blindtest", label: "Blind Test", text: "90s, cloud, 93, 91... seul ou à plusieurs." },
 ];
 
 const socials = [
@@ -233,7 +234,7 @@ export default async function Home() {
       <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-20 md:py-28">
         <h2 className="font-display text-2xl md:text-3xl font-medium mb-10">Explorer la scène</h2>
-        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {explore.map((e) => (
             <a key={e.href} href={e.href} className="group card card-lift p-6 flex flex-col justify-between min-h-[140px]">
               <span className="font-display text-lg font-medium group-hover:text-gold transition-colors">{e.label}</span>

@@ -146,6 +146,27 @@ Pour vérifier ou déboguer un échec de build sur Vercel :
   l'import ne reconnaît aucune colonne au premier essai, ouvrez le CSV et ajustez
   `COLUMN_HINTS` en tête du script.
 
+## Blind Test — jeu solo / multijoueur local
+
+- Page `/blindtest`, composant `components/BlindTest.tsx`. Extraits audio 30s via l'API
+  publique Deezer (champ `preview` des titres — c'est exactement l'usage pour lequel Deezer
+  fournit ces extraits, aucune clé requise).
+- **Pool de données dédié** (`BlindTestTrack`, séparé du catalogue éditorial) : contrairement
+  au reste du site, ce pool garde volontairement les vieux titres (thème "à l'ancienne"). Le
+  filtre de fraîcheur des autres pipelines ne s'applique pas ici.
+- `pipelines/ingest-blindtest-pool.js` peuple ce pool depuis 4 playlists Deezer par décennie
+  (Rapstars 90s / 2000 / 2010 / 2020) — voir `.github/workflows/ingest-blindtest.yml` (mensuel
+  + déclenchable à la main). Léger : pas d'appel par titre, tout est déjà dans la réponse de la
+  playlist.
+- **Thèmes** : à l'ancienne, 2010s, récent, pop (proxy : `rank` Deezer le plus haut — pas de
+  curation subjective), cloud rap, rappeurs du 93, rappeurs du 91. Les deux derniers et "cloud"
+  reposent sur de petites listes d'artistes curées à la main dans le pipeline (Deezer ne fournit
+  ni sous-genre ni ville de naissance) — volontairement courtes et à étendre vous-même, pas une
+  base de données géographique faisant autorité.
+- `app/api/blindtest/pool/route.ts` sert un lot mélangé de titres par thème.
+- Solo : on tape directement sa réponse. Multijoueur local (2 à 8 joueurs, même écran) : chacun
+  a un bouton "buzz", le premier à buzzer répond, les points dépendent du temps restant.
+
 ## Toutes les stats Deezer, scopées rap France (ingestion profonde)
 
 - `pipelines/ingest-deezer-rap-fr.js`, lancé une fois par mois par

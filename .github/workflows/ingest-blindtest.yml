@@ -1,0 +1,27 @@
+name: Ingestion Blind Test (pool de titres, mensuelle)
+
+on:
+  schedule:
+    - cron: "0 4 1 * *"   # le 1er de chaque mois, 4h UTC
+  workflow_dispatch: {}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Générer le client Prisma
+        run: npx prisma generate
+
+      - name: Peupler le pool du blind test
+        run: node pipelines/ingest-blindtest-pool.js
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

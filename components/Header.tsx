@@ -9,6 +9,7 @@ const nav = [
   { href: "/sorties", label: "Sorties" },
   { href: "/charts", label: "Charts" },
   { href: "/certifications", label: "Certifs" },
+  { href: "/blindtest", label: "Blind Test" },
   { href: "/explorer/graphe", label: "Explorer" },
 ];
 
@@ -44,19 +45,19 @@ export default function Header() {
         </a>
 
         {/* Nav desktop */}
-        <nav className="hidden md:flex items-center gap-7">
+        <nav className="hidden lg:flex items-center gap-5">
           {nav.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className="text-sm text-ink-muted hover:text-ink transition-colors"
+              className="text-sm text-ink-muted hover:text-ink transition-colors whitespace-nowrap"
             >
               {item.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
             <span className="pulse-dot" aria-hidden="true" />
             En direct <span className="text-ink-faint/50">·</span> <ParisClock />
@@ -75,7 +76,7 @@ export default function Header() {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="md:hidden p-2 -mr-2 text-ink"
+          className="lg:hidden p-2 -mr-2 text-ink"
           aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
           aria-expanded={open}
         >
@@ -85,7 +86,7 @@ export default function Header() {
 
       {/* Nav mobile */}
       {open && (
-        <nav className="md:hidden border-t border-white/8 px-6 py-5 flex flex-col gap-1">
+        <nav className="lg:hidden border-t border-white/8 px-6 py-5 flex flex-col gap-1">
           {nav.map((item) => (
             <a
               key={item.href}

@@ -246,6 +246,34 @@ model HypeScore {
   @@index([artistId, computedAt])
 }
 
+// ─────────────────────────────────────────────
+// BLIND TEST — pool de titres dédié (séparé du catalogue éditorial : le blind test a besoin
+// de vieux titres pour le thème "à l'ancienne", contrairement au reste du site qui filtre
+// volontairement sur du récent). Voir pipelines/ingest-blindtest-pool.js.
+// ─────────────────────────────────────────────
+
+model BlindTestTrack {
+  id          String       @id @default(cuid())
+  deezerId    String       @unique
+  title       String
+  artistName  String
+  previewUrl  String       // extrait 30s Deezer (public, gratuit, fait pour cet usage)
+  coverUrl    String?
+  era         BlindTestEra
+  rank        Int?         // popularité Deezer — sert de proxy pour le thème "Pop"
+  themes      String[]     // tags libres : "cloud", "dept-93", "dept-91"... (voir pipeline)
+  createdAt   DateTime     @default(now())
+
+  @@index([era])
+}
+
+enum BlindTestEra {
+  NINETIES
+  TWO_THOUSANDS
+  TWENTY_TENS
+  RECENT
+}
+
 // Actus agrégées depuis des flux RSS publics (P6 : sources 100% légales).
 // Chaque entrée renvoie vers l'article original — on ne republie pas le contenu.
 model NewsItem {
