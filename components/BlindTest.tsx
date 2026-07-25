@@ -142,7 +142,7 @@ export default function BlindTest() {
       const res = await fetch(`/api/blindtest/pool?${buildQuery(themeId, roundCount)}`);
       const data = await res.json();
       const pool: Track[] = data.tracks ?? [];
-      if (pool.length < 5) {
+      if (pool.length < 3) {
         setSetupError(
           "Pas assez de titres disponibles pour ce thème. Le pool doit être peuplé — voir pipelines/ingest-blindtest-pool.js."
         );

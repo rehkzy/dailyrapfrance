@@ -64,6 +64,48 @@ async function fetchAllPlaylistTracks(playlistId) {
   return tracks;
 }
 
+// Les thèmes "cloud" / "dept-93" / "dept-91" ne dépendent pas d'une époque : on va chercher
+// directement les meilleurs titres de chaque artiste curé, plutôt que d'espérer qu'ils
+// apparaissent dans une des 4 playlists par décennie ci-dessus (ce qui laissait ces thèmes
+// vides la plupart du temps — retour utilisateur : "pas assez de titres disponibles").
+const ARTIST_THEME_SOURCES = [
+  { artists: CLOUD_ARTISTS, theme: "cloud" },
+  { artists: DEPT_93_ARTISTS, theme: "dept-93" },
+  { artists: DEPT_91_ARTISTS, theme: "dept-91" },
+];
+
+async function ingestArtistTopTracks(artistName, theme) {
+  const search = await deezerFetch(`/search/artist?q=${encodeURIComponent(artistName)}&limit=1`);
+  const artist = search.data?.[0];
+  if (!artist) {
+    console.log(`    ⚠ Introuvable sur Deezer : ${artistName}`);
+    return 0;
+  }
+  const top = await deezerFetch(`/artist/${artist.id}/top?limit=10`);
+  let saved = 0;
+  for (const t of top.data ?? []) {
+    if (!t.preview) continue;
+    const existing = await prisma.blindTestTrack.findUnique({ where: { deezerId: String(t.id) } });
+    const themes = Array.from(new Set([...(existing?.themes ?? []), theme]));
+    await prisma.blindTestTrack.upsert({
+      where: { deezerId: String(t.id) },
+      update: { themes },
+      create: {
+        deezerId: String(t.id),
+        title: t.title,
+        artistName: t.artist?.name ?? artistName,
+        previewUrl: t.preview,
+        coverUrl: t.album?.cover_medium || t.album?.cover_big || null,
+        era: "RECENT", // arbitraire ici — ces thèmes filtrent sur `themes`, pas sur `era`
+        rank: t.rank ?? null,
+        themes,
+      },
+    });
+    saved++;
+  }
+  return saved;
+}
+
 function computeThemes(artistName) {
   const n = normalize(artistName);
   const themes = [];
@@ -87,6 +129,9 @@ async function main() {
         skippedNoPreview++;
         continue;
       }
+      const existing = await prisma.blindTestTrack.findUnique({ where: { deezerId: String(t.id) } });
+      const themes = Array.from(new Set([...(existing?.themes ?? []), ...computeThemes(t.artist?.name)]));
+
       await prisma.blindTestTrack.upsert({
         where: { deezerId: String(t.id) },
         update: {
@@ -95,7 +140,7 @@ async function main() {
           previewUrl: t.preview,
           coverUrl: t.album?.cover_medium || t.album?.cover_big || null,
           rank: t.rank ?? null,
-          themes: computeThemes(t.artist?.name),
+          themes,
         },
         create: {
           deezerId: String(t.id),
@@ -105,14 +150,26 @@ async function main() {
           coverUrl: t.album?.cover_medium || t.album?.cover_big || null,
           era: source.era,
           rank: t.rank ?? null,
-          themes: computeThemes(t.artist?.name),
+          themes,
         },
       });
       saved++;
     }
   }
 
-  console.log(`\nTerminé — ${saved} titre(s) dans le pool, ${skippedNoPreview} ignoré(s) (pas de preview).`);
+  console.log(`\n${saved} titre(s) issus des playlists par décennie.`);
+
+  console.log(`\n— Thèmes ciblés (cloud / dept-93 / dept-91) —`);
+  for (const source of ARTIST_THEME_SOURCES) {
+    console.log(`\n${source.theme}`);
+    for (const artistName of source.artists) {
+      const count = await ingestArtistTopTracks(artistName, source.theme);
+      console.log(`  ✓ ${artistName} — ${count} titre(s)`);
+      saved += count;
+    }
+  }
+
+  console.log(`\nTerminé — ${saved} titre(s) au total dans le pool, ${skippedNoPreview} ignoré(s) (pas de preview).`);
 }
 
 main()
