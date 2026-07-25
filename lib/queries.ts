@@ -43,6 +43,7 @@ export async function getArtistBySlug(slug: string) {
     include: {
       socialStats: { orderBy: { capturedAt: "desc" }, take: 1 },
       releases: { include: { release: true } },
+      label: true,
     },
   });
   if (!artist) return null;
@@ -50,7 +51,7 @@ export async function getArtistBySlug(slug: string) {
     slug: artist.slug,
     name: artist.name,
     city: artist.city,
-    label: artist.label,
+    label: artist.label?.name ?? null,
     photoUrl: artist.photoUrl,
     ...latestStat(artist),
     releases: artist.releases
