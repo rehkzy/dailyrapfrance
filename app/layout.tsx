@@ -27,7 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Mag
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/dailyrapfrance/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="glass rounded-full px-4 py-1.5 text-xs font-medium hover:bg-white/8 transition-colors"
               >
                 Nous suivre

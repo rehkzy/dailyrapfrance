@@ -10,10 +10,9 @@ const pillars = [
 ];
 
 const socials = [
-  { label: "Instagram", href: "#" },
-  { label: "TikTok", href: "#" },
-  { label: "YouTube", href: "#" },
-  { label: "X", href: "#" },
+  { label: "Instagram", href: "https://www.instagram.com/dailyrapfrance/" },
+  { label: "TikTok", href: "https://www.tiktok.com/@dailyrapfrance" },
+  { label: "X", href: "https://x.com/DailyRapFrance" },
 ];
 
 export default async function Home() {
@@ -121,6 +120,8 @@ export default async function Home() {
             <a
               key={s.label}
               href={s.href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="glass rounded-full px-6 py-3 text-sm font-medium hover:bg-white/10 transition-colors"
             >
               {s.label}
