@@ -188,9 +188,12 @@ model Certification {
   releaseId  String?
   release    Release? @relation(fields: [releaseId], references: [id])
   level      CertLevel
+  multiplier Int      @default(1) // 1 = Or/Platine/Diamant simple, 2 = Double Platine, 8 = "8 fois Diamant"...
   certifiedAt DateTime
-  source     String   @default("SNEP")
+  source     String   @default("SNEP") // "SNEP" ou "UPFI" — voir pipelines/import-certifications.js
+  sourceUrl  String?  // lien vers la fiche officielle, pour la traçabilité (P6 : on ne republie pas sans source)
 
+  @@unique([artistId, releaseId, level, multiplier, certifiedAt], name: "certification_natural_key")
   @@index([artistId])
   @@index([releaseId])
 }

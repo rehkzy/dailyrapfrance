@@ -1,5 +1,6 @@
 import { getArtistBySlug } from "@/lib/queries";
 import { notFound } from "next/navigation";
+import CertBadge from "@/components/CertBadge";
 
 export const revalidate = 60;
 
@@ -55,6 +56,27 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
           </div>
         </div>
       </section>
+
+      {/* Certifications — SNEP / UPFI, importées manuellement (voir pipelines/import-certifications.js) */}
+      {artist.certifications.length > 0 && (
+        <section className="max-w-6xl mx-auto px-6 pt-14">
+          <h2 className="font-display text-xl font-medium mb-6">Certifications</h2>
+          <div className="flex flex-wrap gap-3">
+            {artist.certifications.map((c, i) => (
+              <div key={i} className="card px-4 py-3 flex items-center gap-3">
+                <CertBadge level={c.level} multiplier={c.multiplier} />
+                <div className="text-sm">
+                  <p className="font-medium leading-snug">{c.releaseTitle ?? "—"}</p>
+                  <p className="text-xs text-ink-faint font-mono">
+                    {new Date(c.certifiedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+                    {" · "}{c.source}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Discographie */}
       <section className="max-w-6xl mx-auto px-6 py-14">

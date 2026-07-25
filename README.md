@@ -119,6 +119,33 @@ Pour vérifier ou déboguer un échec de build sur Vercel :
 4. Si l'erreur ne vient pas de la base (ex. une faute de syntaxe TypeScript), le message
    indique le fichier et la ligne fautifs.
 
+## Certifications (SNEP / UPFI)
+
+- **Il n'existe pas d'API publique officielle** pour les certifications françaises. Le SNEP
+  (majors) et l'UPFI (indépendants, où se trouve une grosse partie du rap FR) ne publient
+  que des pages web avec filtres — pas de endpoint JSON.
+- Le SNEP propose un bouton **"Télécharger en CSV"** sur
+  [snepmusique.com/les-certifications](https://snepmusique.com/les-certifications/), mais
+  **son `robots.txt` interdit l'accès automatisé** à ce fichier (vérifié le 26/07/2026) — un
+  pipeline cron comme `ingest-spotify.js` violerait cette règle. C'est pour ça que l'import
+  des certifications est **volontairement manuel**, contrairement aux autres pipelines.
+- Marche à suivre :
+  1. Téléchargez vous-même le CSV depuis snepmusique.com (bouton dédié) et/ou copiez le
+     tableau depuis [upfi.fr/certifications](https://upfi.fr/certifications).
+  2. Déposez le fichier dans `data/certifications/` — préfixe `snep-` ou `upfi-` selon la
+     source (ex. `data/certifications/snep-2026-07.csv`).
+  3. `git push` : `.github/workflows/import-certifications.yml` lance automatiquement
+     `pipelines/import-certifications.js` sur le fichier ajouté. Vous pouvez aussi le lancer
+     en local : `node pipelines/import-certifications.js data/certifications/snep-2026-07.csv --source=SNEP`.
+- Le script n'importe que les artistes déjà suivis sur le site (nom ou alias) — il liste en
+  fin d'exécution les noms non reconnus, à arbitrer manuellement (ajouter l'artiste ou
+  ignorer).
+- Les noms de colonnes attendus (`Titre`, `Artiste`, `Catégorie`, `Certification`, `Date de
+  constat`, `Date de sortie`) sont déduits de l'interface publique du SNEP — le fichier CSV
+  réel n'a pas pu être inspecté pendant le développement (accès bloqué, justement). Si
+  l'import ne reconnaît aucune colonne au premier essai, ouvrez le CSV et ajustez
+  `COLUMN_HINTS` en tête du script.
+
 ## Flux d'actus RSS
 
 - Schéma : modèle `NewsItem` dans `prisma/schema.prisma` (titre, lien, source — jamais le

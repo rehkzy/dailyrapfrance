@@ -13,6 +13,7 @@ const columns = [
     title: "Data",
     links: [
       { href: "/charts", label: "Charts" },
+      { href: "/certifications", label: "Certifications" },
       { href: "/explorer/graphe", label: "Graphe relationnel" },
       { href: "/explorer/comparer", label: "Comparateur" },
     ],

@@ -1,0 +1,6 @@
+Déposez ici vos exports CSV téléchargés manuellement :
+- data/certifications/snep-2026-07.csv  (bouton "Télécharger en CSV" sur snepmusique.com/les-certifications)
+- data/certifications/upfi-2026-07.csv  (export équivalent depuis upfi.fr/certifications)
+
+Le préfixe du nom de fichier (snep- / upfi-) détermine la source enregistrée.
+Un push sur ce dossier déclenche automatiquement l'import (voir .github/workflows/import-certifications.yml).

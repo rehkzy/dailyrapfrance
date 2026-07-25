@@ -67,6 +67,7 @@ export async function getArtistBySlug(slug: string) {
         socialStats: { orderBy: { capturedAt: "desc" }, take: 1 },
         releases: { include: { release: true } },
         label: true,
+        certifications: { include: { release: true }, orderBy: { certifiedAt: "desc" } },
       },
     });
     if (!artist) return null;
@@ -80,6 +81,15 @@ export async function getArtistBySlug(slug: string) {
       releases: artist.releases
         .map((ra) => ra.release)
         .sort((a, b) => (b.releaseDate?.getTime() ?? 0) - (a.releaseDate?.getTime() ?? 0)),
+      certifications: artist.certifications.map((c) => ({
+        level: c.level,
+        multiplier: c.multiplier,
+        certifiedAt: c.certifiedAt,
+        source: c.source,
+        sourceUrl: c.sourceUrl,
+        releaseTitle: c.release?.title ?? null,
+        releaseSlug: c.release?.slug ?? null,
+      })),
     };
   } catch (err) {
     logDbError(err);
@@ -150,6 +160,33 @@ export async function getNews(limit = 20) {
       link: n.link,
       source: n.source,
       date: n.publishedAt ?? n.createdAt,
+    }));
+  } catch (err) {
+    logDbError(err);
+    return [];
+  }
+}
+
+export async function getCertifications(limit = 100, level?: "OR" | "PLATINE" | "DIAMANT") {
+  if (!hasDb) return [];
+  try {
+    const certs = await prisma.certification.findMany({
+      where: level ? { level } : undefined,
+      include: { artist: true, release: true },
+      orderBy: { certifiedAt: "desc" },
+      take: limit,
+    });
+    return certs.map((c) => ({
+      id: c.id,
+      level: c.level,
+      multiplier: c.multiplier,
+      certifiedAt: c.certifiedAt,
+      source: c.source,
+      sourceUrl: c.sourceUrl,
+      artistName: c.artist.name,
+      artistSlug: c.artist.slug,
+      releaseTitle: c.release?.title ?? null,
+      releaseSlug: c.release?.slug ?? null,
     }));
   } catch (err) {
     logDbError(err);
