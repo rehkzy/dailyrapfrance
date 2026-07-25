@@ -19,27 +19,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/" className="flex items-center">
               <img src="/logo.svg" alt="DailyRapFrance" className="h-6 w-auto" />
             </a>
-            <nav className="hidden md:flex items-center gap-6 text-sm text-ink-muted">
-              <a href="/artistes" className="hover:text-ink transition-colors">Artistes</a>
-              <a href="/sorties" className="hover:text-ink transition-colors">Sorties</a>
-              <a href="/charts" className="hover:text-ink transition-colors">Charts</a>
-              <a href="/explorer/graphe" className="hover:text-ink transition-colors">Explorer</a>
-              <a href="/explorer/comparer" className="hover:text-ink transition-colors">Comparer</a>
-              <a href="/mag" className="hover:text-ink transition-colors">Mag</a>
-            </nav>
-            <button
-              aria-label="Rechercher"
-              className="text-sm text-ink-muted glass rounded px-2.5 py-1 hover:border-white/20 transition-colors font-mono"
+            <a
+              href="#"
+              className="glass rounded-full px-4 py-1.5 text-xs font-medium hover:bg-white/8 transition-colors"
             >
-              ⌘K
-            </button>
+              Nous suivre
+            </a>
           </div>
         </header>
         <main>{children}</main>
         <footer className="glass mt-24 rounded-none">
           <div className="max-w-6xl mx-auto px-6 py-10 text-xs text-ink-faint flex justify-between">
-            <span>DailyRapFrance — projet non-commercial, sources 100% légales.</span>
-            <span>Données horaires sur le top 500 · dernière synchro il y a quelques minutes</span>
+            <span>DailyRapFrance — depuis 2020.</span>
+            <span>Paris, France.</span>
           </div>
         </footer>
       </body>
