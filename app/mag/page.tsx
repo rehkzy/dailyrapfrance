@@ -6,15 +6,17 @@ export default async function MagPage() {
   const news = await getNews(60);
 
   return (
-    <section className="max-w-4xl mx-auto px-6 py-14">
-      <h1 className="font-display text-3xl font-semibold mb-2">Mag</h1>
-      <p className="text-ink-muted mb-8">
+    <section className="max-w-4xl mx-auto px-6 pt-16 pb-24">
+      <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Actualisé en continu</p>
+      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Mag</h1>
+      <p className="text-ink-muted mb-12">
         Les dernières infos du rap français, agrégées depuis nos sources.
       </p>
 
       {news.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center text-ink-muted text-sm">
-          Le flux d'actus n'a pas encore tourné.
+        <div className="card p-10 text-center">
+          <p className="text-ink-muted text-sm mb-1">Le flux d'actus n'a pas encore tourné.</p>
+          <p className="text-ink-faint text-xs">Revenez dans quelques minutes, l'ingestion tourne toutes les 30 min.</p>
         </div>
       ) : (
         <div className="divide-y divide-white/8">

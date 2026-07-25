@@ -94,3 +94,41 @@ d'avoir connecté Supabase.
 
 À partir de là, chaque modification poussée sur GitHub redéploie automatiquement le site
 sur Vercel — aucune manipulation manuelle supplémentaire.
+
+---
+
+## Dépannage — « le site ne se déploie pas »
+
+Cause la plus fréquente à ce stade du projet : la variable `DATABASE_URL` n'est pas encore
+renseignée dans Vercel (étape 4 ci-dessus). Les pages (`/`, `/mag`, `/artistes`, `/sorties`,
+`/charts`…) interrogent la base au moment du build (`next build`) pour générer les pages
+statiquement ; si Prisma ne trouve pas `DATABASE_URL`, ou si les tables n'existent pas encore
+(`prisma db push` jamais lancé), la requête plantait tout le build → déploiement en échec.
+
+Ce dépôt corrige ce point dans `lib/queries.ts` : chaque fonction de requête est protégée
+par un `try/catch` et renvoie une liste vide (`[]`) ou `null` si la base est absente,
+injoignable, ou pas encore migrée — exactement le même état que « base vide », déjà géré
+par les pages. **Le site doit donc maintenant se déployer même sans Supabase configuré**,
+avec les messages « pas encore de données » affichés à la place des fiches.
+
+Pour vérifier ou déboguer un échec de build sur Vercel :
+1. Project → Deployments → cliquer le déploiement en échec → onglet "Build Logs".
+2. Chercher la première ligne en rouge (souvent `Error: ...` juste avant l'arrêt du build).
+3. Si l'erreur mentionne `DATABASE_URL` ou `PrismaClientInitializationError`, vérifier
+   Project → Settings → Environment Variables, et relancer un déploiement.
+4. Si l'erreur ne vient pas de la base (ex. une faute de syntaxe TypeScript), le message
+   indique le fichier et la ligne fautifs.
+
+## Flux d'actus RSS
+
+- Schéma : modèle `NewsItem` dans `prisma/schema.prisma` (titre, lien, source — jamais le
+  contenu de l'article, conforme P6 du master prompt : on ne republie pas, on renvoie vers
+  l'original).
+- Sources actuelles (`pipelines/ingest-news.js`) : Booska-P, Raplume, Rap Elite — flux
+  `/feed/` publics. Pour en ajouter, compléter le tableau `FEEDS` de ce fichier.
+- Ingestion : `.github/workflows/ingest-news.yml`, cron toutes les 30 min (gratuit, GitHub
+  Actions), utilise le secret de repo `DATABASE_URL` (Settings → Secrets and variables →
+  Actions — à renseigner séparément de la variable d'environnement Vercel).
+- Affichage : liste complète sur `/mag`, extrait sur l'accueil (section "Dernières infos"),
+  et un bandeau défilant en direct juste sous le hero de l'accueil
+  (`components/NewsTicker.tsx`), dans l'esprit des bandeaux cinétiques de lenis.dev.

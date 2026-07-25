@@ -11,7 +11,7 @@
 }
 
 body {
-  background: #000000;
+  background: #0a0707;
   color: #f5e8e8;
   position: relative;
   min-height: 100vh;
@@ -22,7 +22,7 @@ body {
 .bg-orbs {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   overflow: hidden;
   pointer-events: none;
 }
@@ -32,23 +32,45 @@ body {
   content: "";
   position: absolute;
   border-radius: 50%;
-  opacity: 0.25;
+  opacity: 0.35;
 }
 
 .bg-orbs::before {
-  width: 900px;
-  height: 900px;
-  top: -250px;
-  left: -200px;
-  background: radial-gradient(circle, #f0001c, transparent 70%);
+  width: 1100px;
+  height: 1100px;
+  top: -320px;
+  left: -260px;
+  background: radial-gradient(circle, #f0001c, transparent 68%);
 }
 
 .bg-orbs::after {
-  width: 1000px;
-  height: 1000px;
-  bottom: -300px;
-  right: -250px;
-  background: radial-gradient(circle, #780101, transparent 70%);
+  width: 1200px;
+  height: 1200px;
+  bottom: -360px;
+  right: -300px;
+  background: radial-gradient(circle, #780101, transparent 68%);
+}
+
+/* Grain — texture fine et fixe par-dessus tout, pour que le rouge ne s'aplatisse jamais
+   en dégradé "IA" trop propre. Un seul <filter> SVG encodé en data-URI, aucun coût JS. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Halo de marque plein écran — réservé aux moments forts (hero), pour retrouver
+   le rouge éclatant et concentré du logo plutôt qu'un simple accent discret. */
+.brand-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(240, 0, 28, 0.35), transparent 70%);
 }
 
 /* Panneaux verre dépoli */
@@ -66,9 +88,51 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Carte "dossier" — remplace les rangées glass ad hoc par un vocabulaire cohérent :
+   lisière qui s'allume au survol, léger relief, jamais de blur recalculé au scroll. */
+.card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+}
+
+.card:hover {
+  border-color: rgba(240, 0, 28, 0.45);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.card-lift:hover {
+  transform: translateY(-3px);
+}
+
+/* Trait de séparation qui porte la marque plutôt qu'un simple hairline blanc */
+.glow-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(240, 0, 28, 0.5), transparent);
+}
+
 ::selection {
   background: #f0001c;
   color: #ffffff;
+}
+
+/* Point "en direct" — le battement de la plateforme, cf. NewsTicker/Header */
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 0, 28, 0.55); }
+  50% { box-shadow: 0 0 0 6px rgba(240, 0, 28, 0); }
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f0001c;
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
 }
 
 /* Ticker signature — le "pouls" de la plateforme (P3 : temps réel perçu) */

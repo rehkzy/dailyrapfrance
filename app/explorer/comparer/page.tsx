@@ -17,20 +17,21 @@ export default async function ComparerPage({
   ];
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-14">
-      <h1 className="font-display text-3xl font-semibold mb-2">Comparateur</h1>
-      <p className="text-ink-muted mb-8">Deux artistes, face à face.</p>
+    <section className="max-w-6xl mx-auto px-6 pt-16 pb-24">
+      <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Explorer</p>
+      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Comparateur</h1>
+      <p className="text-ink-muted mb-10">Deux artistes, face à face.</p>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {[a, b].map((art) => (
-          <div key={art.slug} className="glass rounded-xl p-5 text-center">
+          <div key={art.slug} className="card p-5 text-center">
             <p className="font-display text-xl font-medium">{art.name}</p>
             <p className="text-sm text-ink-muted">{art.city}</p>
           </div>
         ))}
       </div>
 
-      <div className="glass rounded-xl divide-y divide-white/8 overflow-hidden">
+      <div className="card divide-y divide-white/8 overflow-hidden">
         {rows.map((r) => (
           <div key={r.label} className="grid grid-cols-3 items-center py-3.5 px-5 text-sm">
             <span className="font-mono text-right pr-6">{r.va}</span>

@@ -2,20 +2,20 @@ import { artists } from "@/lib/mock-data";
 
 export default function GraphePage() {
   return (
-    <section className="max-w-6xl mx-auto px-6 py-14">
-      <h1 className="font-display text-3xl font-semibold mb-2">Graphe relationnel</h1>
-      <p className="text-ink-muted mb-8 max-w-xl">
-        Visualisation force-directed de tout le graphe (feats, prod, label). C'est la feature
-        signature la plus lourde techniquement (rendu WebGL, calcul de layout, voir
-        02_PRODUCT.md §6.1) — à construire dans une prochaine itération, une fois les données
-        réelles connectées.
+    <section className="max-w-6xl mx-auto px-6 pt-16 pb-24">
+      <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Explorer</p>
+      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Graphe relationnel</h1>
+      <p className="text-ink-muted mb-10 max-w-xl">
+        Visualisation force-directed de tout le graphe (feats, prod, label) — la feature
+        signature la plus lourde techniquement (rendu WebGL, calcul de layout), à construire
+        dans une prochaine itération une fois les données réelles connectées.
       </p>
 
-      <div className="glass rounded-xl p-10 flex flex-wrap gap-6 justify-center items-center min-h-[280px]">
+      <div className="card p-10 flex flex-wrap gap-6 justify-center items-center min-h-[280px]">
         {artists.map((a) => (
           <div
             key={a.slug}
-            className="w-16 h-16 rounded-full glass-strong flex items-center justify-center font-mono text-xs text-ink-muted"
+            className="w-16 h-16 rounded-full glass-strong hover:border-gold/40 flex items-center justify-center font-mono text-xs text-ink-muted transition-colors"
             title={a.name}
           >
             {a.name.slice(0, 3).toUpperCase()}

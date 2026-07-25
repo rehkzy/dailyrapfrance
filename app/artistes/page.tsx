@@ -6,26 +6,32 @@ export default async function ArtistesPage() {
   const artists = await getArtists();
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-14">
-      <h1 className="font-display text-3xl font-semibold mb-2">Artistes</h1>
-      <p className="text-ink-muted mb-8">
+    <section className="max-w-6xl mx-auto px-6 pt-16 pb-24">
+      <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Fiches</p>
+      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Artistes</h1>
+      <p className="text-ink-muted mb-12">
         {artists.length > 0
           ? `${artists.length} fiches — triées par fans Deezer.`
           : "Aucun artiste pour l'instant."}
       </p>
 
       {artists.length === 0 ? (
-        <div className="glass rounded-xl p-8 text-center text-ink-muted text-sm">
-          L'ingestion Spotify n'a pas encore tourné. Lancez-la manuellement depuis l'onglet
-          Actions du repo GitHub, ou attendez la prochaine exécution horaire.
+        <div className="card p-10 text-center">
+          <p className="text-ink-muted text-sm mb-1">
+            L'ingestion Spotify n'a pas encore tourné.
+          </p>
+          <p className="text-ink-faint text-xs">
+            Lancez-la manuellement depuis l'onglet Actions du repo GitHub, ou attendez la
+            prochaine exécution horaire.
+          </p>
         </div>
       ) : (
-        <div className="glass rounded-xl divide-y divide-white/8 overflow-hidden">
+        <div className="card divide-y divide-white/8 overflow-hidden">
           {artists.map((a) => (
             <a
               key={a.slug}
               href={`/artiste/${a.slug}`}
-              className="flex items-center gap-4 py-4 px-5 hover:bg-white/8 transition-colors"
+              className="flex items-center gap-4 py-4 px-5 hover:bg-white/5 transition-colors"
             >
               {a.photoUrl ? (
                 <img src={a.photoUrl} alt={a.name} className="w-10 h-10 rounded-full object-cover" />

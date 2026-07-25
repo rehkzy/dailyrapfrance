@@ -33,10 +33,16 @@ function TickerRow() {
 
 export default function Ticker() {
   return (
-    <div className="glass overflow-hidden whitespace-nowrap py-2.5 rounded-none">
-      <div className="ticker-track inline-block">
-        <TickerRow />
-        <TickerRow />
+    <div className="glass flex items-center overflow-hidden py-2.5 rounded-none border-y border-white/8">
+      <span className="flex items-center gap-2 pl-6 pr-5 shrink-0 font-mono text-[11px] uppercase tracking-[0.16em] text-gold border-r border-white/8">
+        <span className="pulse-dot" aria-hidden="true" />
+        Hype
+      </span>
+      <div className="overflow-hidden whitespace-nowrap flex-1">
+        <div className="ticker-track inline-block">
+          <TickerRow />
+          <TickerRow />
+        </div>
       </div>
     </div>
   );
