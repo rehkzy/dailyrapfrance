@@ -1,5 +1,7 @@
 import { getTopByPopularity } from "@/lib/queries";
 
+export const revalidate = 60;
+
 export default async function ChartsPage() {
   const chartTop = await getTopByPopularity(50);
 

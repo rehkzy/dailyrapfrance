@@ -1,6 +1,8 @@
 import { getReleaseBySlug } from "@/lib/queries";
 import { notFound } from "next/navigation";
 
+export const revalidate = 60;
+
 export default async function ReleasePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const release = await getReleaseBySlug(slug);

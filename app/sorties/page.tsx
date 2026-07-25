@@ -1,5 +1,7 @@
 import { getReleases } from "@/lib/queries";
 
+export const revalidate = 60;
+
 export default async function SortiesPage() {
   const releases = await getReleases();
 

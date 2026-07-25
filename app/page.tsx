@@ -3,6 +3,8 @@ import Reveal from "@/components/Reveal";
 import { Search, Heart, Bell, Calendar, GitCompare, Share2 } from "lucide-react";
 import { getTopByPopularity } from "@/lib/queries";
 
+export const revalidate = 60;
+
 // Données d'exemple restantes — "Ce qui se passe maintenant" n'a pas encore de pipeline
 // dédié (nécessite une source d'actus/certifications), donc reste illustratif pour l'instant.
 const now = [

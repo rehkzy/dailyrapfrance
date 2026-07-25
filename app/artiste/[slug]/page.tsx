@@ -1,6 +1,8 @@
 import { getArtistBySlug } from "@/lib/queries";
 import { notFound } from "next/navigation";
 
+export const revalidate = 60;
+
 export default async function ArtistPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const artist = await getArtistBySlug(slug);

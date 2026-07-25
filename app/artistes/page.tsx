@@ -1,5 +1,7 @@
 import { getArtists } from "@/lib/queries";
 
+export const revalidate = 60;
+
 export default async function ArtistesPage() {
   const artists = await getArtists();
 
