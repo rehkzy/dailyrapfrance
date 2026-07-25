@@ -11,8 +11,8 @@
 }
 
 body {
-  background: #0a0b0d;
-  color: #f2f1ed;
+  background: #000000;
+  color: #f5e8e8;
   position: relative;
   min-height: 100vh;
 }
@@ -32,7 +32,7 @@ body {
   position: absolute;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
 .bg-orbs::before {
@@ -40,7 +40,7 @@ body {
   height: 600px;
   top: -150px;
   left: -100px;
-  background: radial-gradient(circle, #e8a93b, transparent 70%);
+  background: radial-gradient(circle, #f0001c, transparent 70%);
 }
 
 .bg-orbs::after {
@@ -48,7 +48,7 @@ body {
   height: 700px;
   bottom: -200px;
   right: -150px;
-  background: radial-gradient(circle, #4ea8ff, transparent 70%);
+  background: radial-gradient(circle, #780101, transparent 70%);
 }
 
 /* Panneaux verre dépoli */
@@ -67,8 +67,8 @@ body {
 }
 
 ::selection {
-  background: #e8a93b;
-  color: #0a0b0d;
+  background: #f0001c;
+  color: #ffffff;
 }
 
 /* Ticker signature — le "pouls" de la plateforme (P3 : temps réel perçu) */
@@ -83,6 +83,43 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .ticker-track {
+    animation: none;
+  }
+}
+
+/* Révélation au scroll — fade + slide-up (tendance 2026) */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Bandeau typographique cinétique — grand texte qui défile */
+.marquee-big {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee-big-track {
+  display: inline-block;
+  animation: ticker-scroll 26s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-big-track {
     animation: none;
   }
 }

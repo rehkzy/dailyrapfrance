@@ -1,25 +1,25 @@
 import type { Config } from "tailwindcss";
 
-// Design system DRF — voir 00_MASTER_PROMPT.md §P5 (Linear, Apple, Vercel, Arc)
-// Palette : terminal sombre, un seul accent chaud (or/certification), un signal froid (data live)
+// Design system DRF — charte graphique officielle DailyRapFrance
+// Rouge Daily #F0001C (principal), Rouge Article #780101 (secondaire), Noir #000000, Blanc, Gris Sable #F5E8E8
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   darkMode: "class",
   theme: {
     extend: {
       colors: {
-        bg: "#0A0B0D",
-        surface: "#131519",
-        "surface-raised": "#191C21",
-        line: "#22262B",
-        "line-strong": "#31363D",
-        ink: "#F2F1ED",
+        bg: "#000000",
+        surface: "#141414",
+        "surface-raised": "#1c1c1c",
+        line: "#262626",
+        "line-strong": "#363636",
+        ink: "#F5E8E8",
         "ink-muted": "#9BA1A8",
         "ink-faint": "#5B6167",
-        gold: "#E8A93B",     // accent — certifications, hype, signature
-        signal: "#4EA8FF",   // données live, courbes, sparklines
+        gold: "#F0001C",      // Rouge Daily — accent, certifications, hype, signature
+        signal: "#780101",    // Rouge Article — secondaire, halos, profondeur
         risePos: "#4CC38A",
-        riseNeg: "#E5674A",
+        riseNeg: "#E8894A",
       },
       fontFamily: {
         display: ["var(--font-display)", "sans-serif"],

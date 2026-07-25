@@ -1,4 +1,6 @@
 import Ticker from "@/components/Ticker";
+import Reveal from "@/components/Reveal";
+import { Search, Heart, Bell, Calendar, GitCompare, Share2 } from "lucide-react";
 
 // Données d'exemple — à remplacer par des requêtes Prisma une fois Supabase connecté.
 const now = [
@@ -39,10 +41,26 @@ const features = [
   },
 ];
 
+const fanFeatures = [
+  { icon: Search, title: "Recherche instantanée", desc: "⌘K depuis n'importe quelle page, la fiche d'un artiste en moins de 3 frappes." },
+  { icon: Heart, title: "Suivre vos artistes", desc: "Une liste personnelle des artistes que vous suivez, remontée sur votre accueil." },
+  { icon: Bell, title: "Alertes sorties & hype", desc: "Notifié dès qu'un artiste suivi sort un titre ou fait un bond dans le classement." },
+  { icon: Calendar, title: "Calendrier des sorties", desc: "Toutes les sorties confirmées et les rumeurs sourcées, distinguées clairement." },
+  { icon: GitCompare, title: "Carrières alignées", desc: "Comparez deux trajectoires en années depuis le premier projet, pas en dates absolues." },
+  { icon: Share2, title: "Partage social", desc: "Chaque comparaison génère une carte visuelle prête pour X et TikTok." },
+];
+
 const manifesto = [
   { label: "Booska-P, Raplume…", text: "des flux d'articles, des exclus qui vivent 24h, aucune donnée exploitable." },
   { label: "Chartmetric, Soundcharts", text: "B2B, anglophones, chers — zéro profondeur culturelle sur le rap FR." },
   { label: "DailyRapFrance", text: "le graphe complet, vivant et interrogeable de la scène. Gratuit." },
+];
+
+const timeline = [
+  { date: "27 avril 2020", title: "Naissance du projet", text: "DailyRapFrance démarre comme un projet de passion, en plein confinement — l'envie d'un endroit fiable pour suivre la scène." },
+  { date: "2020 → 2025", title: "Une communauté fidèle", text: "Des milliers de lecteurs adoptent DRF comme réflexe quotidien pour suivre sorties, certifications et actualité rap FR." },
+  { date: "2026", title: "Refonte complète", text: "Le passage d'un média éditorial à une vraie plateforme de données : graphe relationnel, indices, temps réel." },
+  { date: "Aujourd'hui", title: "Le graphe du rap français", text: "Une base vivante, gratuite, sans publicité — construite pour durer." },
 ];
 
 const stats = [
@@ -86,7 +104,23 @@ export default function Home() {
       {/* Ticker — élément signature : le pouls de la plateforme */}
       <Ticker />
 
+      {/* Bandeau typographique cinétique */}
+      <div className="marquee-big py-6 border-b border-white/8">
+        <div className="marquee-big-track">
+          {[0, 1].map((i) => (
+            <span key={i} className="inline-flex items-center">
+              {["DEPUIS AVRIL 2020", "LE GRAPHE DU RAP FRANÇAIS", "SANS PUB · SANS ABONNEMENT"].map((t) => (
+                <span key={t} className="font-display text-3xl md:text-5xl font-semibold px-8 text-ink-faint">
+                  {t} <span className="text-gold">•</span>
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* Manifeste — le positionnement, façon vitrine */}
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-16">
         <p className="font-mono text-xs text-ink-faint uppercase tracking-wide mb-3">Le constat</p>
         <h2 className="font-display text-2xl md:text-3xl font-medium max-w-2xl leading-snug mb-10">
@@ -110,8 +144,32 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </Reveal>
+
+      {/* Notre histoire */}
+      <Reveal>
+      <section className="max-w-6xl mx-auto px-6 py-16">
+        <p className="font-mono text-xs text-ink-faint uppercase tracking-wide mb-3">Notre histoire</p>
+        <h2 className="font-display text-2xl md:text-3xl font-medium max-w-2xl leading-snug mb-12">
+          Né un 27 avril 2020, devenu la référence data du rap français.
+        </h2>
+        <div className="relative pl-8 border-l border-white/10 space-y-10">
+          {timeline.map((t, i) => (
+            <Reveal key={t.date} delay={i * 80}>
+              <div className="relative">
+                <span className="absolute -left-[calc(2rem+5px)] top-1.5 w-2.5 h-2.5 rounded-full bg-gold" />
+                <p className="font-mono text-xs text-gold uppercase tracking-wide mb-1">{t.date}</p>
+                <h3 className="font-display text-lg font-medium mb-1">{t.title}</h3>
+                <p className="text-sm text-ink-muted leading-relaxed max-w-xl">{t.text}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+      </Reveal>
 
       {/* Ce qui se passe maintenant */}
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-14">
         <h2 className="font-display text-xl font-medium mb-6">Ce qui se passe maintenant</h2>
         <div className="grid md:grid-cols-3 gap-4">
@@ -123,8 +181,10 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </Reveal>
 
       {/* Features signature — la vitrine produit */}
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-14">
         <h2 className="font-display text-xl font-medium mb-6">Ce qu'aucun concurrent n'a</h2>
         <div className="grid md:grid-cols-3 gap-4">
@@ -144,8 +204,32 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </Reveal>
+
+      {/* Fonctionnalités pensées pour les fans */}
+      <Reveal>
+      <section className="max-w-6xl mx-auto px-6 py-14">
+        <h2 className="font-display text-xl font-medium mb-2">Fait pour ceux qui vivent le rap</h2>
+        <p className="text-ink-muted mb-8 max-w-lg">
+          Pas juste des chiffres — des outils pensés pour un fan qui veut suivre sa scène sans se perdre.
+        </p>
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {fanFeatures.map((f) => {
+            const Icon = f.icon;
+            return (
+              <div key={f.title} className="glass rounded-xl p-5">
+                <Icon className="text-gold mb-3" size={20} strokeWidth={1.75} />
+                <h3 className="font-medium mb-1">{f.title}</h3>
+                <p className="text-sm text-ink-muted leading-relaxed">{f.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+      </Reveal>
 
       {/* Top Hype */}
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-14">
         <div className="flex items-baseline justify-between mb-6">
           <h2 className="font-display text-xl font-medium">Top Hype</h2>
@@ -172,8 +256,10 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </Reveal>
 
       {/* Chiffres — l'ambition du projet */}
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-14">
         <div className="glass rounded-xl grid grid-cols-2 md:grid-cols-4 divide-x divide-white/8">
           {stats.map((s) => (
@@ -184,8 +270,10 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </Reveal>
 
       {/* CTA final */}
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-20 text-center">
         <h2 className="font-display text-2xl md:text-3xl font-medium mb-4">
           Le rap français mérite mieux qu'un flux d'articles.
@@ -201,6 +289,7 @@ export default function Home() {
           Découvrir la plateforme →
         </a>
       </section>
+      </Reveal>
     </>
   );
 }

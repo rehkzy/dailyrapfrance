@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import SmoothScroll from "@/components/SmoothScroll";
 
 export const metadata: Metadata = {
   title: "DailyRapFrance — le graphe du rap français",
@@ -11,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className="dark">
       <body className="font-sans antialiased">
+        <SmoothScroll />
         <div className="bg-orbs" aria-hidden="true" />
         <header className="glass sticky top-0 z-50 rounded-none">
           <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
