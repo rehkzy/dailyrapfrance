@@ -22,12 +22,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/" className="flex items-center">
               <img src="/logo.svg" alt="DailyRapFrance" className="h-6 w-auto" />
             </a>
-            <a
-              href="#"
-              className="glass rounded-full px-4 py-1.5 text-xs font-medium hover:bg-white/8 transition-colors"
-            >
-              Nous suivre
-            </a>
+            <div className="flex items-center gap-4">
+              <a href="/mag" className="text-sm text-ink-muted hover:text-ink transition-colors">
+                Mag
+              </a>
+              <a
+                href="#"
+                className="glass rounded-full px-4 py-1.5 text-xs font-medium hover:bg-white/8 transition-colors"
+              >
+                Nous suivre
+              </a>
+            </div>
           </div>
         </header>
         <main>{children}</main>

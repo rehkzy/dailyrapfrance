@@ -1,4 +1,7 @@
 import Reveal from "@/components/Reveal";
+import { getNews } from "@/lib/queries";
+
+export const revalidate = 300;
 
 const pillars = [
   { n: "01", title: "Actus", text: "Sorties, annonces, mouvements de la scène — traités vite, racontés bien." },
@@ -13,7 +16,8 @@ const socials = [
   { label: "X", href: "#" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const news = await getNews(9);
   return (
     <>
       {/* Hero — immense, presque nu */}
@@ -71,23 +75,45 @@ export default function Home() {
       </section>
       </Reveal>
 
-      {/* Bientôt — honnête sur l'état actuel, sans jargon data */}
+      {/* Dernières infos — vrai flux, agrégé depuis des sources rap FR publiques */}
       <Reveal>
-      <section className="max-w-4xl mx-auto px-6 py-32 md:py-40 text-center">
-        <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">
-          En préparation
-        </p>
-        <h2 className="font-display text-3xl md:text-5xl font-medium leading-tight mb-6">
-          Le nouveau DailyRapFrance arrive.
-        </h2>
-        <p className="text-ink-muted text-lg max-w-xl mx-auto">
-          Articles, interviews, et tout ce qui fait vivre le rap français —
-          bientôt ici. En attendant, suivez-nous.
-        </p>
+      <section className="max-w-4xl mx-auto px-6 py-20 md:py-28">
+        <div className="flex items-baseline justify-between mb-10">
+          <h2 className="font-display text-2xl md:text-3xl font-medium">Dernières infos</h2>
+          <span className="font-mono text-xs text-ink-faint uppercase">Actualisé en continu</span>
+        </div>
+
+        {news.length === 0 ? (
+          <p className="text-ink-muted text-sm">
+            Le flux d'actus n'a pas encore tourné. Revenez dans quelques minutes.
+          </p>
+        ) : (
+          <div className="divide-y divide-white/8">
+            {news.map((n) => (
+              <a
+                key={n.link}
+                href={n.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-6 py-5 group hover:bg-white/5 transition-colors -mx-4 px-4 rounded"
+              >
+                <span className="font-mono text-xs text-gold uppercase shrink-0 pt-1 w-24">
+                  {n.source}
+                </span>
+                <span className="flex-1 font-medium leading-snug group-hover:text-gold transition-colors">
+                  {n.title}
+                </span>
+                <span className="font-mono text-xs text-ink-faint shrink-0 pt-1">
+                  {new Date(n.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
       </section>
       </Reveal>
 
-      {/* Réseaux — le vrai CTA en l'absence de contenu */}
+      {/* Réseaux — le vrai CTA en l'absence de contenu original */}
       <Reveal>
       <section className="max-w-4xl mx-auto px-6 pb-32 md:pb-40">
         <div className="flex flex-wrap justify-center gap-4">

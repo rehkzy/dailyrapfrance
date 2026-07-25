@@ -230,3 +230,16 @@ model HypeScore {
 
   @@index([artistId, computedAt])
 }
+
+// Actus agrégées depuis des flux RSS publics (P6 : sources 100% légales).
+// Chaque entrée renvoie vers l'article original — on ne republie pas le contenu.
+model NewsItem {
+  id          String   @id @default(cuid())
+  title       String
+  link        String   @unique
+  source      String   // nom du média source, ex: "Booska-P"
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([publishedAt])
+}

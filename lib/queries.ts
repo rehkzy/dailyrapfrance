@@ -98,3 +98,16 @@ export async function getReleaseBySlug(slug: string) {
     })),
   };
 }
+
+export async function getNews(limit = 20) {
+  const items = await prisma.newsItem.findMany({
+    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+    take: limit,
+  });
+  return items.map((n) => ({
+    title: n.title,
+    link: n.link,
+    source: n.source,
+    date: n.publishedAt ?? n.createdAt,
+  }));
+}

@@ -1,27 +1,44 @@
-import { briefs } from "@/lib/mock-data";
+import { getNews } from "@/lib/queries";
 
-const tagLabels: Record<string, string> = {
-  sortie: "Sortie",
-  certif: "Certification",
-  hype: "Hype",
-};
+export const revalidate = 300;
 
-export default function MagPage() {
+export default async function MagPage() {
+  const news = await getNews(60);
+
   return (
-    <section className="max-w-6xl mx-auto px-6 py-14">
+    <section className="max-w-4xl mx-auto px-6 py-14">
       <h1 className="font-display text-3xl font-semibold mb-2">Mag</h1>
-      <p className="text-ink-muted mb-8">Brèves auto-générées et articles de la rédaction.</p>
+      <p className="text-ink-muted mb-8">
+        Les dernières infos du rap français, agrégées depuis nos sources.
+      </p>
 
-      <div className="glass rounded-xl divide-y divide-white/8 overflow-hidden">
-        {briefs.map((b) => (
-          <div key={b.slug} className="py-4 px-5">
-            <p className="text-xs font-mono text-ink-faint uppercase mb-1">
-              {tagLabels[b.tag]} · {new Date(b.date).toLocaleDateString("fr-FR")}
-            </p>
-            <p className="font-medium">{b.title}</p>
-          </div>
-        ))}
-      </div>
+      {news.length === 0 ? (
+        <div className="glass rounded-xl p-8 text-center text-ink-muted text-sm">
+          Le flux d'actus n'a pas encore tourné.
+        </div>
+      ) : (
+        <div className="divide-y divide-white/8">
+          {news.map((n) => (
+            <a
+              key={n.link}
+              href={n.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-6 py-5 group hover:bg-white/5 transition-colors -mx-4 px-4 rounded"
+            >
+              <span className="font-mono text-xs text-gold uppercase shrink-0 pt-1 w-24">
+                {n.source}
+              </span>
+              <span className="flex-1 font-medium leading-snug group-hover:text-gold transition-colors">
+                {n.title}
+              </span>
+              <span className="font-mono text-xs text-ink-faint shrink-0 pt-1">
+                {new Date(n.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
