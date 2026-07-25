@@ -3,9 +3,12 @@ import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 
 export const metadata: Metadata = {
-  title: "DailyRapFrance — le graphe du rap français",
+  title: "DailyRapFrance — le média du rap français",
   description:
-    "Données en temps réel, graphe relationnel et indices du rap français. Chaque artiste, chaque sortie, chaque featuring, structurés et interrogeables.",
+    "Le rap français raconté depuis 2020 : actus, interviews, culture. Le nouveau DailyRapFrance arrive bientôt.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
