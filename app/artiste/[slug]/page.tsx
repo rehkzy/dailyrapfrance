@@ -79,7 +79,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
         ) : (
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
             {discography.map((r) => (
-              
+              <a
                 key={r.slug}
                 href={`/sortie/${r.slug}`}
                 className="block border border-line rounded p-4 hover:border-line-strong transition-colors"
