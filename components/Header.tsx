@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X as CloseIcon } from "lucide-react";
 
 const nav = [
@@ -10,6 +10,27 @@ const nav = [
   { href: "/charts", label: "Charts" },
   { href: "/explorer/graphe", label: "Explorer" },
 ];
+
+function ParisClock() {
+  const [time, setTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    const update = () =>
+      setTime(
+        new Intl.DateTimeFormat("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Europe/Paris",
+        }).format(new Date())
+      );
+    update();
+    const id = setInterval(update, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!time) return null;
+  return <span>Paris, {time}</span>;
+}
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -37,7 +58,7 @@ export default function Header() {
         <div className="hidden md:flex items-center gap-4">
           <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
             <span className="pulse-dot" aria-hidden="true" />
-            En direct
+            En direct <span className="text-ink-faint/50">·</span> <ParisClock />
           </span>
           <a
             href="https://www.instagram.com/dailyrapfrance/"
