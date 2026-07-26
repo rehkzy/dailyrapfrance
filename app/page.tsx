@@ -127,6 +127,12 @@ export default async function Home() {
             commercial, en privilégiant les faits, le contexte et la qualité des contenus.
           </p>
         </div>
+        <a
+          href="/a-propos"
+          className="mt-8 inline-flex items-center gap-1 font-mono text-xs text-gold uppercase tracking-[0.14em] hover:text-glow transition-colors"
+        >
+          Notre histoire <ArrowUpRight size={13} />
+        </a>
       </section>
       </Reveal>
 

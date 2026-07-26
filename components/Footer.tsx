@@ -7,6 +7,7 @@ const columns = [
       { href: "/mag", label: "Mag" },
       { href: "/artistes", label: "Artistes" },
       { href: "/sorties", label: "Sorties" },
+      { href: "/a-propos", label: "À propos" },
     ],
   },
   {
