@@ -21,27 +21,6 @@ const socials = [
   { label: "X", href: "https://x.com/DailyRapFrance", Icon: XIcon },
 ];
 
-function ParisClock() {
-  const [time, setTime] = useState<string | null>(null);
-
-  useEffect(() => {
-    const update = () =>
-      setTime(
-        new Intl.DateTimeFormat("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "Europe/Paris",
-        }).format(new Date())
-      );
-    update();
-    const id = setInterval(update, 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (!time) return null;
-  return <span>Paris, {time}</span>;
-}
-
 // Barre de progression de lecture — fine ligne rouge sous le header, discrète mais utile
 // sur un média où on lit des pages longues.
 function ScrollProgress() {
@@ -120,10 +99,6 @@ export default function Header() {
         </nav>
 
         <div className="hidden lg:flex items-center gap-4">
-          <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
-            <span className="pulse-dot" aria-hidden="true" />
-            En direct <span className="text-ink-faint/50">·</span> <ParisClock />
-          </span>
           <a
             href="https://www.instagram.com/dailyrapfrance/"
             target="_blank"
@@ -178,11 +153,7 @@ export default function Header() {
               })}
             </nav>
 
-            <div className="mt-10 flex items-center justify-between">
-              <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
-                <span className="pulse-dot" aria-hidden="true" />
-                En direct · <ParisClock />
-              </span>
+            <div className="mt-10 flex items-center justify-center">
               <div className="flex items-center gap-3">
                 {socials.map(({ label, href, Icon }) => (
                   <a

@@ -31,42 +31,39 @@ export default async function Home() {
     getCertifications(15),
   ]);
 
-  const heroRelease = releases.find((r) => r.coverUrl) ?? null;
   const recentReleases = releases.slice(0, 15);
   const topArtists = artists.slice(0, 15);
 
   return (
     <>
-      {/* Hero — backdrop plein écran façon Netflix, sur la dernière sortie mise en avant */}
-      <section className="relative overflow-hidden min-h-[86vh] flex items-end">
-        {heroRelease?.coverUrl ? (
-          <>
-            <img
-              src={heroRelease.coverUrl}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover opacity-40 scale-110 blur-sm"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/20" />
-            <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/40 to-transparent" />
-          </>
-        ) : (
-          <ParallaxGlow />
-        )}
+      {/* Hero unique — emblème de marque en haut, texte et CTA ancrés en bas de la même section */}
+      <Reveal>
+      <section className="relative overflow-hidden border-b border-white/8 min-h-[92vh] flex flex-col">
+        <ParallaxGlow />
 
-        <div className="relative max-w-6xl mx-auto px-6 pb-20 pt-40 w-full">
-          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">
+        <div className="relative flex-1 flex flex-col items-center justify-center px-6 pt-28 pb-10">
+          <img
+            src="/icon.svg"
+            alt=""
+            aria-hidden="true"
+            className="brand-pulse h-16 md:h-24 w-auto mx-auto mb-8 drop-shadow-[0_0_40px_rgba(240,0,28,0.35)]"
+          />
+          <img src="/logo.svg" alt="DailyRapFrance" className="w-full max-w-md md:max-w-lg mx-auto h-auto" />
+        </div>
+
+        <div className="relative max-w-3xl mx-auto px-6 pb-16 md:pb-20 text-center w-full">
+          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-5">
             Média indépendant · Depuis avril 2020
           </p>
-          <h1 className="font-display font-semibold tracking-tight leading-[1.03] text-[9vw] md:text-[4.6vw] lg:text-6xl max-w-3xl mb-6">
+          <h1 className="font-display font-semibold tracking-tight leading-[1.05] text-[8vw] md:text-4xl lg:text-5xl mb-5">
             Le rap français, raconté en continu<span className="text-gold">.</span>
           </h1>
-          <p className="text-ink-muted text-lg max-w-xl mb-10 leading-relaxed">
+          <p className="text-ink-muted text-lg max-w-xl mx-auto mb-8 leading-relaxed">
             Actualités, sorties, artistes émergents, charts et certifications — un seul endroit
             pour suivre la scène, sans algorithme entre vous et elle.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Magnetic>
               <a
                 href="/mag"
@@ -85,28 +82,6 @@ export default async function Home() {
               </a>
             </Magnetic>
           </div>
-        </div>
-      </section>
-
-      {/* Emblème de marque — le logo devient le contenu, à la manière du "Enter Lenis" de lenis.dev */}
-      <Reveal>
-      <section className="relative overflow-hidden border-y border-white/8 py-24 md:py-36">
-        <ParallaxGlow intensity={0.08} />
-        <div className="relative max-w-3xl mx-auto px-6 text-center">
-          <img
-            src="/icon.svg"
-            alt=""
-            aria-hidden="true"
-            className="brand-pulse h-20 md:h-28 w-auto mx-auto mb-10 drop-shadow-[0_0_40px_rgba(240,0,28,0.35)]"
-          />
-          <img
-            src="/logo.svg"
-            alt="DailyRapFrance"
-            className="w-full max-w-xl mx-auto h-auto"
-          />
-          <p className="mt-8 font-mono text-xs text-ink-faint uppercase tracking-[0.24em]">
-            Le média du rap français · Depuis 2020
-          </p>
         </div>
       </section>
       </Reveal>
