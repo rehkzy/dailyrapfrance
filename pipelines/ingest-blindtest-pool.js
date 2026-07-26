@@ -24,10 +24,13 @@ const SOURCES = [
   { playlistId: 9563400362, era: "RECENT" },         // Rapstars 2020
 ];
 
-// Curation manuelle, à vérifier/étendre — voir avertissement en tête de fichier.
+// Curation manuelle, vérifiée nom par nom (sources : Wikipédia + bios officielles) le
+// 26/07/2026 suite à un signalement utilisateur (SDM avait été placé à tort en 91 — il est en
+// réalité de Clamart/Meudon, 92). Reste volontairement une liste courte et à étendre, pas une
+// base de données géographique faisant autorité — voir avertissement en tête de fichier.
 const CLOUD_ARTISTS = ["suikoden", "josman", "fixpen sill", "le wombat", "lomepal"];
-const DEPT_93_ARTISTS = ["kaaris", "gradur", "mac tyer", "alkpote"];
-const DEPT_91_ARTISTS = ["pnl", "sdm", "kalash criminel"];
+const DEPT_93_ARTISTS = ["kaaris", "mac tyer", "vald", "kalash criminel", "maes", "diddi trix"];
+const DEPT_91_ARTISTS = ["pnl", "niska", "koba lad", "ol kainry"];
 
 function normalize(str) {
   return (str ?? "")
