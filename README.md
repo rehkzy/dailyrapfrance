@@ -104,6 +104,17 @@ d'erreur bloquante).
 variables `NEXT_PUBLIC_SUPABASE_*` dans les Environment Variables du projet Vercel — sans
 elles, la connexion et le classement ne fonctionneront pas en production.
 
+## Google Analytics (optionnel)
+
+`components/GoogleAnalytics.tsx` charge GA4 uniquement si `NEXT_PUBLIC_GA_ID` est configuré
+(ex. `G-XXXXXXXXXX`) — sans cette variable, aucun script analytics n'est chargé, aucune erreur.
+
+⚠️ Le site cible un public français/UE : Google Analytics place des cookies de mesure
+d'audience et transfère des données vers les États-Unis, ce qui nécessite en principe le
+consentement de l'utilisateur (RGPD/ePrivacy, pas d'exemption CNIL pour GA4 contrairement à
+des outils comme Plausible ou Matomo auto-hébergé). Ce repo ne contient pas de bandeau de
+consentement — à ajouter si vous voulez rester dans les clous.
+
 ## Prochaines étapes possibles
 
 Non construites dans cette passe, mais la base (comptes + Postgres) le permet :

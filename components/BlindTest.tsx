@@ -514,26 +514,24 @@ export default function BlindTest() {
             </div>
           )}
 
-          {/* Navigation entre étapes */}
-          {mode !== "online" && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/8">
+          {/* Navigation entre étapes (mode "online" a déjà sa propre UI, retournée plus haut) */}
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/8">
+            <button
+              onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
+              disabled={wizardStep === 0}
+              className="flex items-center gap-1 text-xs font-mono uppercase text-ink-faint hover:text-ink disabled:opacity-0 transition-colors"
+            >
+              <ChevronLeft size={14} /> Précédent
+            </button>
+            {wizardStep < 2 && (
               <button
-                onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
-                disabled={wizardStep === 0}
-                className="flex items-center gap-1 text-xs font-mono uppercase text-ink-faint hover:text-ink disabled:opacity-0 transition-colors"
+                onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
+                className="flex items-center gap-1 text-xs font-mono uppercase text-gold hover:text-glow transition-colors"
               >
-                <ChevronLeft size={14} /> Précédent
+                Suivant <ChevronRight size={14} />
               </button>
-              {wizardStep < 2 && (
-                <button
-                  onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
-                  className="flex items-center gap-1 text-xs font-mono uppercase text-gold hover:text-glow transition-colors"
-                >
-                  Suivant <ChevronRight size={14} />
-                </button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );

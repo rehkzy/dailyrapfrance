@@ -3,6 +3,7 @@ import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 export const metadata: Metadata = {
   title: "DailyRapFrance — le média du rap français",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className="dark">
       <body className="font-sans antialiased">
+        <GoogleAnalytics />
         <SmoothScroll />
         <div className="bg-orbs" aria-hidden="true" />
         <div className="grain" aria-hidden="true" />
