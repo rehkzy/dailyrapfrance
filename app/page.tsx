@@ -1,47 +1,20 @@
-import { Newspaper, Compass, Sparkles, Disc, ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import NewsTicker from "@/components/NewsTicker";
 import Magnetic from "@/components/Magnetic";
 import ParallaxGlow from "@/components/ParallaxGlow";
+import Row from "@/components/Row";
+import PosterCard from "@/components/PosterCard";
 import { InstagramIcon, TikTokIcon, XIcon } from "@/components/SocialIcons";
-import { getNews } from "@/lib/queries";
+import {
+  getNews,
+  getReleases,
+  getArtists,
+  getStreamingChart,
+  getCertifications,
+} from "@/lib/queries";
 
 export const revalidate = 300;
-
-const rubriques = [
-  {
-    Icon: Newspaper,
-    title: "Actualités",
-    text: "Suivez les dernières annonces, les sorties d'albums, les nouveaux clips, les collaborations, les tournées et tous les événements qui rythment le rap français.",
-    href: "/mag",
-  },
-  {
-    Icon: Compass,
-    title: "Découverte",
-    text: "Chaque semaine, découvrez de nouveaux artistes, producteurs, beatmakers et talents émergents qui participent à l'évolution de la scène.",
-    href: "/artistes",
-  },
-  {
-    Icon: Sparkles,
-    title: "Culture",
-    text: "Interviews, analyses, dossiers, rétrospectives et décryptages pour mieux comprendre l'histoire, les tendances et les enjeux du rap français.",
-    href: "/mag",
-  },
-  {
-    Icon: Disc,
-    title: "Sorties musicales",
-    text: "Retrouvez les albums, EP, mixtapes et singles dès leur sortie, réunis dans un espace dédié.",
-    href: "/sorties",
-  },
-];
-
-const explore = [
-  { href: "/artistes", label: "Artistes", text: "Fiches, fans et discographies." },
-  { href: "/sorties", label: "Sorties", text: "Albums, EP et singles à venir." },
-  { href: "/charts", label: "Charts", text: "Le classement de la scène." },
-  { href: "/explorer/graphe", label: "Explorer", text: "Le graphe relationnel du game." },
-  { href: "/blindtest", label: "Blind Test", text: "90s, cloud, 93, 91... seul ou à plusieurs." },
-];
 
 const socials = [
   { label: "Instagram", href: "https://www.instagram.com/dailyrapfrance/", Icon: InstagramIcon },
@@ -50,157 +23,162 @@ const socials = [
 ];
 
 export default async function Home() {
-  const news = await getNews(9);
+  const [news, releases, artists, chart, certifications] = await Promise.all([
+    getNews(9),
+    getReleases(),
+    getArtists(),
+    getStreamingChart(15),
+    getCertifications(15),
+  ]);
+
+  const heroRelease = releases.find((r) => r.coverUrl) ?? null;
+  const recentReleases = releases.slice(0, 15);
+  const topArtists = artists.slice(0, 15);
+
   return (
     <>
-      {/* Hero — le halo rouge concentré de l'identité de marque, pas un accent discret */}
-      <section className="relative overflow-hidden">
-        <ParallaxGlow />
-        <div className="max-w-6xl mx-auto px-6 pt-28 pb-24 md:pt-40 md:pb-32">
-          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-8">
+      {/* Hero — backdrop plein écran façon Netflix, sur la dernière sortie mise en avant */}
+      <section className="relative overflow-hidden min-h-[86vh] flex items-end">
+        {heroRelease?.coverUrl ? (
+          <>
+            <img
+              src={heroRelease.coverUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover opacity-40 scale-110 blur-sm"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/20" />
+            <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/40 to-transparent" />
+          </>
+        ) : (
+          <ParallaxGlow />
+        )}
+
+        <div className="relative max-w-6xl mx-auto px-6 pb-20 pt-40 w-full">
+          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">
             Média indépendant · Depuis avril 2020
           </p>
-          <h1 className="font-display font-semibold tracking-tight leading-[1.02] text-[9vw] md:text-[5.4vw] lg:text-[4.75rem] max-w-5xl">
-            Le média indépendant qui raconte le rap français<span className="text-gold">.</span>
+          <h1 className="font-display font-semibold tracking-tight leading-[1.03] text-[9vw] md:text-[4.6vw] lg:text-6xl max-w-3xl mb-6">
+            Le rap français, raconté en continu<span className="text-gold">.</span>
           </h1>
-          <p className="text-ink-muted text-lg md:text-xl max-w-2xl mt-8 leading-relaxed">
-            Actualités, sorties, interviews, clips, analyses et culture urbaine : DailyRapFrance
-            met en lumière celles et ceux qui font vivre le rap français, des artistes émergents
-            aux figures incontournables.
+          <p className="text-ink-muted text-lg max-w-xl mb-10 leading-relaxed">
+            Actualités, sorties, artistes émergents, charts et certifications — un seul endroit
+            pour suivre la scène, sans algorithme entre vous et elle.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center gap-8">
+          <div className="flex flex-wrap items-center gap-4">
             <Magnetic>
               <a
-                href="#mission"
+                href="/mag"
                 className="inline-flex items-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:bg-glow transition-colors"
               >
-                Découvrir le média
+                Découvrir
                 <ArrowRight size={16} />
               </a>
             </Magnetic>
-            <div className="flex items-center gap-3 text-ink-faint">
-              <span className="font-mono text-xs uppercase tracking-[0.2em]">Scroller</span>
-              <span className="h-8 w-px bg-ink-faint/40 animate-bounce" aria-hidden="true" />
-            </div>
+            <Magnetic>
+              <a
+                href="/a-propos"
+                className="inline-flex items-center gap-2 glass rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
+              >
+                Plus d'infos
+              </a>
+            </Magnetic>
           </div>
         </div>
       </section>
 
-      {/* Flux actu en direct — vrai RSS agrégé (getNews), piste défilante façon lenis.dev */}
+      {/* Emblème de marque — le logo devient le contenu, à la manière du "Enter Lenis" de lenis.dev */}
+      <Reveal>
+      <section className="relative overflow-hidden border-y border-white/8 py-24 md:py-36">
+        <ParallaxGlow intensity={0.08} />
+        <div className="relative max-w-3xl mx-auto px-6 text-center">
+          <img
+            src="/icon.svg"
+            alt=""
+            aria-hidden="true"
+            className="brand-pulse h-20 md:h-28 w-auto mx-auto mb-10 drop-shadow-[0_0_40px_rgba(240,0,28,0.35)]"
+          />
+          <img
+            src="/logo.svg"
+            alt="DailyRapFrance"
+            className="w-full max-w-xl mx-auto h-auto"
+          />
+          <p className="mt-8 font-mono text-xs text-ink-faint uppercase tracking-[0.24em]">
+            Le média du rap français · Depuis 2020
+          </p>
+        </div>
+      </section>
+      </Reveal>
+
+      {/* Flux actu en direct — vrai RSS agrégé */}
       <NewsTicker items={news.map((n) => ({ title: n.title, source: n.source, link: n.link }))} />
 
-      {/* Bandeau cinétique — la seule "donnée" qu'on affiche : notre identité */}
-      <div className="marquee-big py-6 border-y border-white/8">
-        <div className="marquee-big-track">
-          {[0, 1].map((i) => (
-            <span key={i} className="inline-flex items-center">
-              {["DAILYRAPFRANCE", "LE RAP FRANÇAIS, RACONTÉ", "DEPUIS 2020"].map((t) => (
-                <span key={t} className="font-display text-3xl md:text-5xl font-semibold px-8 text-ink-faint">
-                  {t} <span className="text-gold">•</span>
-                </span>
-              ))}
-            </span>
-          ))}
-        </div>
+      {/* Rangées façon Netflix — même vocabulaire de carte partout, contenu réel */}
+      <div className="py-4">
+        {recentReleases.length > 0 && (
+          <Row title="Sorties récentes" viewAllHref="/sorties">
+            {recentReleases.map((r) => (
+              <PosterCard
+                key={r.slug}
+                href={`/sortie/${r.slug}`}
+                title={r.title}
+                subtitle={r.artistName}
+                imageUrl={r.coverUrl}
+                badge={r.type}
+              />
+            ))}
+          </Row>
+        )}
+
+        {topArtists.length > 0 && (
+          <Row title="Artistes en vogue" viewAllHref="/artistes">
+            {topArtists.map((a) => (
+              <PosterCard
+                key={a.slug}
+                href={`/artiste/${a.slug}`}
+                title={a.name}
+                subtitle={a.city ?? undefined}
+                imageUrl={a.photoUrl}
+                circle
+              />
+            ))}
+          </Row>
+        )}
+
+        {chart.length > 0 && (
+          <Row title="Chart Rap France" viewAllHref="/charts">
+            {chart.map((c) => (
+              <PosterCard
+                key={c.artistSlug + c.position}
+                href={`/artiste/${c.artistSlug}`}
+                title={c.artistName}
+                subtitle={c.releaseTitle ?? `#${c.position} cette semaine`}
+                badge={`#${c.position}`}
+              />
+            ))}
+          </Row>
+        )}
+
+        {certifications.length > 0 && (
+          <Row title="Certifications récentes" viewAllHref="/certifications">
+            {certifications.map((c) => (
+              <PosterCard
+                key={c.id}
+                href={`/artiste/${c.artistSlug}`}
+                title={c.releaseTitle ?? c.artistName}
+                subtitle={c.artistName}
+                badge={c.level}
+              />
+            ))}
+          </Row>
+        )}
       </div>
 
-      {/* Notre mission */}
+      {/* Dernières infos — format article, pas poster */}
       <Reveal>
-      <section id="mission" className="max-w-4xl mx-auto px-6 pt-32 pb-24 md:pt-40 md:pb-28 scroll-mt-16">
-        <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">(Mission)</p>
-        <h2 className="font-display text-3xl md:text-5xl font-medium leading-tight mb-10">
-          Notre mission
-        </h2>
-        <div className="space-y-6 text-lg md:text-xl text-ink-muted leading-relaxed max-w-3xl">
-          <p>
-            Chez DailyRapFrance, nous croyons que le rap est bien plus qu'un genre musical :
-            c'est une culture, un mouvement et un reflet de la société.
-          </p>
-          <p>
-            Notre mission est de proposer une information fiable, accessible et indépendante,
-            en donnant de la visibilité aux artistes, aux projets et aux acteurs qui façonnent
-            la scène rap francophone.
-          </p>
-          <p>
-            Nous couvrons l'actualité avec une approche éditoriale libre, sans parti pris
-            commercial, en privilégiant les faits, le contexte et la qualité des contenus.
-          </p>
-        </div>
-        <a
-          href="/a-propos"
-          className="mt-8 inline-flex items-center gap-1 font-mono text-xs text-gold uppercase tracking-[0.14em] hover:text-glow transition-colors"
-        >
-          Notre histoire <ArrowUpRight size={13} />
-        </a>
-      </section>
-      </Reveal>
-
-      {/* Ce que vous trouverez — les quatre rubriques du média */}
-      <Reveal>
-      <section id="rubriques" className="max-w-6xl mx-auto px-6 py-20 md:py-28 scroll-mt-16">
-        <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">(Rubriques)</p>
-        <h2 className="font-display text-3xl md:text-5xl font-medium leading-tight mb-14">
-          Ce que vous trouverez
-        </h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {rubriques.map((r, i) => (
-            <a key={r.title} href={r.href} className="group card card-lift p-8 md:p-10">
-              <div className="flex items-start justify-between mb-8">
-                <r.Icon className="text-gold" size={24} strokeWidth={1.6} />
-                <span className="font-mono text-xs text-ink-faint">{String(i + 1).padStart(2, "0")}</span>
-              </div>
-              <h3 className="font-display text-xl md:text-2xl font-medium mb-3 group-hover:text-gold transition-colors">
-                {r.title}
-              </h3>
-              <p className="text-ink-muted leading-relaxed">{r.text}</p>
-            </a>
-          ))}
-        </div>
-      </section>
-      </Reveal>
-
-      {/* Deux facettes de l'identité éditoriale, en vis-à-vis */}
-      <Reveal>
-      <section className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-        <div className="grid md:grid-cols-2 gap-px bg-white/8 rounded-2xl overflow-hidden">
-          <div className="bg-bg p-10 md:p-14">
-            <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">(Indépendance)</p>
-            <h2 className="font-display text-2xl md:text-3xl font-medium mb-6">Un média indépendant</h2>
-            <div className="space-y-4 text-ink-muted leading-relaxed">
-              <p className="text-ink font-medium">DailyRapFrance est un média éditorial indépendant.</p>
-              <p>
-                Notre priorité est de proposer une couverture de qualité, sans privilégier un
-                label, une plateforme ou un artiste. Nous sélectionnons nos sujets selon leur
-                intérêt éditorial et leur impact sur la culture rap.
-              </p>
-              <p>
-                Notre indépendance nous permet de mettre autant en avant les nouveaux talents
-                que les artistes confirmés.
-              </p>
-            </div>
-          </div>
-          <div className="bg-bg p-10 md:p-14">
-            <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">(Vision)</p>
-            <h2 className="font-display text-2xl md:text-3xl font-medium mb-6">Une vision de la culture rap</h2>
-            <div className="space-y-4 text-ink-muted leading-relaxed">
-              <p className="text-ink font-medium">Le rap évolue chaque jour.</p>
-              <p>
-                Notre ambition est de documenter cette évolution, de conserver la mémoire de
-                cette culture et de créer une plateforme de référence où chacun peut suivre son
-                actualité, découvrir de nouveaux artistes et mieux comprendre l'écosystème du
-                rap français.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-      </Reveal>
-
-      {/* Dernières infos — vrai flux, agrégé depuis des sources rap FR publiques */}
-      <Reveal>
-      <section className="max-w-4xl mx-auto px-6 py-20 md:py-28">
-        <div className="flex items-baseline justify-between mb-10">
+      <section className="max-w-4xl mx-auto px-6 py-16 md:py-20">
+        <div className="flex items-baseline justify-between mb-8">
           <h2 className="font-display text-2xl md:text-3xl font-medium">Dernières infos</h2>
           <a
             href="/mag"
@@ -240,33 +218,33 @@ export default async function Home() {
       </section>
       </Reveal>
 
-      {/* La plateforme — ce que le site fait vraiment, au-delà du flux d'actus */}
+      {/* Teaser mission, condensé — le texte complet vit sur /a-propos */}
       <Reveal>
-      <section className="max-w-6xl mx-auto px-6 py-20 md:py-28">
-        <h2 className="font-display text-2xl md:text-3xl font-medium mb-10">Explorer la scène</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {explore.map((e) => (
-            <a key={e.href} href={e.href} className="group card card-lift p-6 flex flex-col justify-between min-h-[140px]">
-              <span className="font-display text-lg font-medium group-hover:text-gold transition-colors">{e.label}</span>
-              <span className="text-sm text-ink-muted mt-3">{e.text}</span>
-            </a>
-          ))}
-        </div>
+      <section className="max-w-3xl mx-auto px-6 py-16 md:py-20 text-center">
+        <p className="font-display text-2xl md:text-3xl font-medium leading-snug mb-6">
+          Pas d'algorithme qui décide de ce qui mérite d'être vu — une équipe qui écoute,
+          cherche, et croit au potentiel des nouveaux talents.
+        </p>
+        <a
+          href="/a-propos"
+          className="inline-flex items-center gap-1 font-mono text-xs text-gold uppercase tracking-[0.14em] hover:text-glow transition-colors"
+        >
+          Notre histoire <ArrowUpRight size={13} />
+        </a>
       </section>
       </Reveal>
 
-      {/* Rejoignez la communauté — le vrai closer, halo de marque + CTA + réseaux */}
+      {/* Rejoignez la communauté — le closer, halo de marque + CTA + réseaux */}
       <Reveal>
       <section className="relative overflow-hidden">
         <ParallaxGlow />
-        <div className="max-w-4xl mx-auto px-6 py-32 md:py-40 text-center">
+        <div className="max-w-4xl mx-auto px-6 py-28 md:py-36 text-center">
           <h2 className="font-display text-3xl md:text-5xl font-medium leading-tight mb-6">
             Rejoignez la communauté
           </h2>
           <p className="text-ink-muted text-lg max-w-2xl mx-auto leading-relaxed">
             Des milliers de passionnés suivent déjà DailyRapFrance pour rester informés de
-            l'actualité du rap français. Découvrez les dernières sorties, les nouveaux talents
-            et les histoires qui façonnent la culture urbaine.
+            l'actualité du rap français.
           </p>
 
           <Magnetic className="mt-10">

@@ -37,7 +37,7 @@ export default function Footer() {
       <div className="glow-line" />
       <div className="max-w-6xl mx-auto px-6 py-14 grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <img src="/logo.svg" alt="DailyRapFrance" className="h-6 w-auto mb-4" />
+          <img src="/logo.svg" alt="DailyRapFrance" className="h-8 w-auto mb-5" />
           <p className="text-sm text-ink-muted max-w-xs leading-relaxed">
             Le rap français raconté depuis 2020 — actus, artistes, sorties et culture,
             sans le flux interchangeable.

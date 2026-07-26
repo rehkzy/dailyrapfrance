@@ -112,6 +112,28 @@ body {
   background: linear-gradient(90deg, transparent, rgba(240, 0, 28, 0.5), transparent);
 }
 
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Respiration lente de l'emblème de marque — moment "Enter DailyRapFrance" façon lenis.dev */
+@keyframes brand-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.035); opacity: 1; }
+}
+
+.brand-pulse {
+  animation: brand-pulse 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-pulse { animation: none; }
+}
+
 ::selection {
   background: #f0001c;
   color: #ffffff;
