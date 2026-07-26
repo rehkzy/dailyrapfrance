@@ -27,21 +27,23 @@ const ROUND_SECONDS = 25;
 const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
 
 const THEME_OPTIONS = [
-  { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle },
-  { id: "old", label: "À l'ancienne", text: "90s et 2000s", Icon: Clock },
-  { id: "2010s", label: "Années 2010", text: "L'âge d'or du son cloud", Icon: Clock },
-  { id: "recent", label: "Sons récents", text: "Ce qui tourne en ce moment", Icon: Clock },
-  { id: "pop", label: "Pop / mainstream", text: "Les plus gros sons, triés par popularité", Icon: Flame },
-  { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud },
-  { id: "93", label: "Rappeurs du 93", text: "Kaaris, Vald, Maes, Kalash Criminel...", Icon: MapPin },
-  { id: "91", label: "Rappeurs du 91", text: "PNL, Niska, Koba LaD...", Icon: MapPin },
-  { id: "92", label: "Rappeurs du 92", text: "Booba, SDM, Benash...", Icon: MapPin },
-  { id: "77", label: "Rappeurs du 77", text: "Djadja & Dinaz, RK, Timal...", Icon: MapPin },
-  { id: "78", label: "Rappeurs du 78", text: "La Fouine...", Icon: MapPin },
-  { id: "13", label: "Rappeurs de Marseille (13)", text: "JUL, SCH, Soprano, Alonzo...", Icon: MapPin },
-  { id: "59", label: "Rappeurs du 59", text: "Gradur...", Icon: MapPin },
-  { id: "idf", label: "Île-de-France", text: "Tout le rap francilien mélangé", Icon: MapPin },
+  { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle, category: "Époques" },
+  { id: "old", label: "À l'ancienne", text: "90s et 2000s", Icon: Clock, category: "Époques" },
+  { id: "2010s", label: "Années 2010", text: "L'âge d'or du son cloud", Icon: Clock, category: "Époques" },
+  { id: "recent", label: "Sons récents", text: "Ce qui tourne en ce moment", Icon: Clock, category: "Époques" },
+  { id: "pop", label: "Pop / mainstream", text: "Les plus gros sons du moment", Icon: Flame, category: "Styles" },
+  { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud, category: "Styles" },
+  { id: "93", label: "Rappeurs du 93", text: "Kaaris, Vald, Maes, Kalash Criminel...", Icon: MapPin, category: "Régions" },
+  { id: "91", label: "Rappeurs du 91", text: "PNL, Niska, Koba LaD...", Icon: MapPin, category: "Régions" },
+  { id: "92", label: "Rappeurs du 92", text: "Booba, SDM, Benash...", Icon: MapPin, category: "Régions" },
+  { id: "77", label: "Rappeurs du 77", text: "Djadja & Dinaz, RK, Timal...", Icon: MapPin, category: "Régions" },
+  { id: "78", label: "Rappeurs du 78", text: "La Fouine...", Icon: MapPin, category: "Régions" },
+  { id: "13", label: "Marseille (13)", text: "JUL, SCH, Soprano, Alonzo...", Icon: MapPin, category: "Régions" },
+  { id: "59", label: "Rappeurs du 59", text: "Gradur...", Icon: MapPin, category: "Régions" },
+  { id: "idf", label: "Île-de-France", text: "Tout le rap francilien mélangé", Icon: MapPin, category: "Régions" },
 ] as const;
+
+const THEME_CATEGORIES = ["Époques", "Styles", "Régions"] as const;
 
 function buildQuery(themeId: string, count: number) {
   const params = new URLSearchParams();
@@ -318,27 +320,50 @@ export default function BlindTest() {
   if (phase === "setup" || phase === "loading") {
     return (
       <div className="max-w-3xl mx-auto">
-        <div className="card p-6 md:p-8 space-y-8">
+        {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie */}
+        <div className="flex justify-center mb-6">
+          <div className="vinyl-spin w-14 h-14 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full bg-gold flex items-center justify-center">
+              <Disc size={10} className="text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card p-6 md:p-8 space-y-9 border-white/10">
           <div>
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Mode</p>
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setMode("solo")}
-                className={`rounded-xl border p-4 flex flex-col items-center gap-2 transition-colors ${
-                  mode === "solo" ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/20"
+                onClick={() => {
+                  sfx.click();
+                  setMode("solo");
+                }}
+                className={`group rounded-xl border p-5 flex flex-col items-center gap-2.5 transition-all duration-200 ${
+                  mode === "solo"
+                    ? "border-gold bg-gold/10 shadow-[0_0_24px_rgba(240,0,28,0.25)] scale-[1.02]"
+                    : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
                 }`}
               >
-                <User size={20} className={mode === "solo" ? "text-gold" : "text-ink-muted"} />
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${mode === "solo" ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"}`}>
+                  <User size={20} />
+                </div>
                 <span className="text-sm font-medium">Solo</span>
               </button>
               <button
-                onClick={() => setMode("local")}
-                className={`rounded-xl border p-4 flex flex-col items-center gap-2 transition-colors ${
-                  mode === "local" ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/20"
+                onClick={() => {
+                  sfx.click();
+                  setMode("local");
+                }}
+                className={`group rounded-xl border p-5 flex flex-col items-center gap-2.5 transition-all duration-200 ${
+                  mode === "local"
+                    ? "border-gold bg-gold/10 shadow-[0_0_24px_rgba(240,0,28,0.25)] scale-[1.02]"
+                    : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
                 }`}
               >
-                <Users size={20} className={mode === "local" ? "text-gold" : "text-ink-muted"} />
-                <span className="text-sm font-medium">À plusieurs (même écran)</span>
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${mode === "local" ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"}`}>
+                  <Users size={20} />
+                </div>
+                <span className="text-sm font-medium">À plusieurs</span>
               </button>
             </div>
           </div>
@@ -380,27 +405,46 @@ export default function BlindTest() {
             </div>
           )}
 
-          <div>
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Thème</p>
-            <div className="grid sm:grid-cols-2 gap-2.5">
-              {THEME_OPTIONS.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setThemeId(t.id)}
-                  className={`rounded-xl border px-4 py-3 text-left transition-colors flex items-start gap-3 ${
-                    themeId === t.id ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/20"
-                  }`}
-                >
-                  <t.Icon size={17} className={`mt-0.5 shrink-0 ${themeId === t.id ? "text-gold" : "text-ink-faint"}`} />
-                  <span>
-                    <span className={`block text-sm font-medium ${themeId === t.id ? "text-ink" : "text-ink-muted"}`}>
-                      {t.label}
-                    </span>
-                    <span className="block text-xs text-ink-faint mt-0.5">{t.text}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div className="space-y-6">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em]">Thème</p>
+            {THEME_CATEGORIES.map((cat) => (
+              <div key={cat}>
+                <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2.5">{cat}</p>
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  {THEME_OPTIONS.filter((t) => t.category === cat).map((t) => {
+                    const active = themeId === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          sfx.click();
+                          setThemeId(t.id);
+                        }}
+                        className={`group rounded-xl border px-4 py-3 text-left transition-all duration-200 flex items-center gap-3 ${
+                          active
+                            ? "border-gold bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.2)]"
+                            : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
+                        }`}
+                      >
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                            active ? "bg-gold text-white" : "bg-white/5 text-ink-faint group-hover:text-ink"
+                          }`}
+                        >
+                          <t.Icon size={16} />
+                        </div>
+                        <span className="min-w-0">
+                          <span className={`block text-sm font-medium truncate ${active ? "text-ink" : "text-ink-muted"}`}>
+                            {t.label}
+                          </span>
+                          <span className="block text-xs text-ink-faint mt-0.5 truncate">{t.text}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div>
@@ -409,9 +453,12 @@ export default function BlindTest() {
               {[10, 15, 20, 30].map((n) => (
                 <button
                   key={n}
-                  onClick={() => setRoundCount(n)}
-                  className={`rounded-full px-4 py-1.5 text-sm font-mono transition-colors ${
-                    roundCount === n ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+                  onClick={() => {
+                    sfx.click();
+                    setRoundCount(n);
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
+                    roundCount === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
                   }`}
                 >
                   {n}
@@ -429,14 +476,16 @@ export default function BlindTest() {
 
           {setupError && <p className="text-sm text-riseNeg">{setupError}</p>}
 
-          <button
-            onClick={startGame}
-            disabled={phase === "loading"}
-            className="w-full bg-gold hover:bg-glow disabled:opacity-60 text-white rounded-full py-3.5 font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-            {phase !== "loading" && <Play size={16} />}
-          </button>
+          <Magnetic strength={0.15} className="block w-full">
+            <button
+              onClick={startGame}
+              disabled={phase === "loading"}
+              className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full py-4 font-semibold text-base transition-colors flex items-center justify-center gap-2"
+            >
+              {phase === "loading" ? "Chargement..." : "Lancer la partie"}
+              {phase !== "loading" && <Play size={18} />}
+            </button>
+          </Magnetic>
         </div>
       </div>
     );

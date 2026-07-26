@@ -214,6 +214,20 @@ body {
   }
 }
 
+/* Bouton CTA principal du blind test — anneau lumineux qui respire pour inviter au clic */
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 0, 28, 0.45); }
+  50% { box-shadow: 0 0 0 10px rgba(240, 0, 28, 0); }
+}
+
+.cta-glow {
+  animation: cta-pulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-glow { animation: none; }
+}
+
 ::selection {
   background: #f0001c;
   color: #ffffff;
