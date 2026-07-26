@@ -16,6 +16,7 @@ const ALL_DECADE_PLAYLISTS = [1182010551, 4676814864, 5175061384, 9563400362];
 // officielles). Volontairement courte et à étendre — pas une base de données géographique
 // faisant autorité. Deezer ne fournit ni sous-genre ni ville de naissance.
 const CLOUD_ARTISTS = ["suikoden", "josman", "fixpen sill", "le wombat", "lomepal"];
+const LAGUI_SADEK_ARTISTS = ["lagui", "sadek"];
 const DEPT_ARTISTS: Record<string, string[]> = {
   "93": ["kaaris", "mac tyer", "vald", "kalash criminel", "maes", "diddi trix"],
   "91": ["pnl", "niska", "koba lad", "ol kainry"],
@@ -106,8 +107,8 @@ export async function GET(req: NextRequest) {
   try {
     let raw: DeezerTrackSummary[] = [];
 
-    if (themeId === "cloud" || DEPT_ARTISTS[themeId]) {
-      const names = themeId === "cloud" ? CLOUD_ARTISTS : DEPT_ARTISTS[themeId];
+    if (themeId === "cloud" || themeId === "lagui-sadek" || DEPT_ARTISTS[themeId]) {
+      const names = themeId === "cloud" ? CLOUD_ARTISTS : themeId === "lagui-sadek" ? LAGUI_SADEK_ARTISTS : DEPT_ARTISTS[themeId];
       const lists = await Promise.all(names.map(fetchArtistTopTracks));
       raw = lists.flat();
     } else if (themeId === "pop") {

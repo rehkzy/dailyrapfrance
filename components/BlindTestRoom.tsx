@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward } from "lucide-react";
+import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -28,13 +28,22 @@ type RoomRow = {
 type PlayerRow = { room_id: string; user_id: string; display_name: string };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string };
 
-export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: () => void }) {
+export default function BlindTestRoom({
+  user,
+  onExit,
+  initialCode,
+}: {
+  user: User;
+  onExit?: () => void;
+  initialCode?: string;
+}) {
   const supabase = createClient();
   const [screen, setScreen] = useState<"menu" | "lobby" | "playing" | "final">("menu");
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState(initialCode ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [players, setPlayers] = useState<PlayerRow[]>([]);
@@ -60,8 +69,18 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
 
     const channel = supabase
       .channel(`room:${room.id}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` }, (payload) => {
-        setRoom(payload.new as RoomRow);
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` }, () => {
+        // On relit la ligne complète depuis la base plutôt que de faire confiance au message
+        // temps réel tel quel : la liste des morceaux (colonne "tracks") est volumineuse, et
+        // rien ne garantit qu'elle arrive intacte dans le message de diffusion.
+        supabase
+          .from("rooms")
+          .select("*")
+          .eq("id", room.id)
+          .single()
+          .then(({ data }) => {
+            if (data) setRoom(data as RoomRow);
+          });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` }, (payload) => {
         setPlayers((prev) => [...prev, payload.new as PlayerRow]);
@@ -76,6 +95,25 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.id]);
+
+  // Filet de sécurité — tant qu'on est dans le lobby, on relit aussi la liste des joueurs
+  // toutes les 3s, en plus du temps réel. Ça garantit que l'hôte voit toujours les arrivées,
+  // même si un message temps réel est manqué. Effet séparé pour ne pas faire tomber/reprendre
+  // l'abonnement principal à chaque changement d'écran.
+  useEffect(() => {
+    if (!room?.id || screen !== "lobby") return;
+    const poll = setInterval(() => {
+      supabase
+        .from("room_players")
+        .select("*")
+        .eq("room_id", room.id)
+        .then(({ data }) => {
+          if (data) setPlayers(data as PlayerRow[]);
+        });
+    }, 3000);
+    return () => clearInterval(poll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.id, screen]);
 
   // Réagit aux changements de statut/manche envoyés par l'hôte
   useEffect(() => {
@@ -199,6 +237,16 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
     setBusy(false);
   }
 
+  // Rejoint automatiquement si on arrive via un lien d'invitation partagé (?room=CODE) —
+  // on ne redemande pas de retaper le code, c'est tout l'intérêt du bouton "Partager".
+  const autoJoinedRef = useRef(false);
+  useEffect(() => {
+    if (!initialCode || autoJoinedRef.current) return;
+    autoJoinedRef.current = true;
+    joinRoom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCode]);
+
   async function startGame() {
     if (!room) return;
     setBusy(true);
@@ -275,6 +323,23 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
     });
   }
 
+  async function shareRoom() {
+    if (!room) return;
+    const url = `${window.location.origin}/blindtest?room=${room.code}`;
+    const text = `Rejoins ma partie de Blind Test DailyRapFrance ! Code : ${room.code}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Blind Test DailyRapFrance", text, url });
+      } catch {
+        // l'utilisateur a annulé le partage — rien à faire
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 1500);
+    }
+  }
+
   function leaveToMenu() {
     setRoom(null);
     setPlayers([]);
@@ -297,10 +362,22 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
         </button>
         <div className="card p-6 md:p-8 text-center">
           <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Code du salon</p>
-          <button onClick={copyCode} className="inline-flex items-center gap-3 mb-6 group">
+          <button onClick={copyCode} className="inline-flex items-center gap-3 mb-4 group">
             <span className="font-display text-4xl font-semibold tracking-[0.2em]">{room.code}</span>
             {copied ? <Check size={20} className="text-gold" /> : <Copy size={18} className="text-ink-faint group-hover:text-ink" />}
           </button>
+
+          <div className="mb-6">
+            <Magnetic strength={0.15}>
+              <button
+                onClick={shareRoom}
+                className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-5 py-2.5 text-sm font-medium transition-colors"
+              >
+                <Share2 size={15} />
+                {shared ? "Lien envoyé !" : "Partager l'invitation"}
+              </button>
+            </Magnetic>
+          </div>
 
           <div className="glass rounded-xl p-4 mb-6">
             <p className="font-mono text-xs text-ink-faint uppercase tracking-wide mb-3 flex items-center justify-center gap-1.5">
@@ -360,7 +437,34 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
   }
 
   // playing
-  if (!room || !track) return null;
+  if (!room) return null;
+  if (!track) {
+    // Ne devrait plus arriver grâce à la relecture forcée ci-dessus, mais si jamais les
+    // données ne sont vraiment pas encore là, on le montre au lieu de faire disparaître le
+    // jeu sans explication — et on retente une lecture.
+    return (
+      <div className="max-w-lg mx-auto text-center">
+        <div className="card p-8">
+          <p className="text-sm text-ink-muted mb-4">Reconnexion à la partie...</p>
+          <button
+            onClick={() => {
+              supabase
+                .from("rooms")
+                .select("*")
+                .eq("id", room.id)
+                .single()
+                .then(({ data }) => {
+                  if (data) setRoom(data as RoomRow);
+                });
+            }}
+            className="text-xs font-mono uppercase text-gold hover:text-glow transition-colors"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
   const applicable: FieldKey[] = track.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
   const roundSolves = solves.filter((s) => s.round_index === room.current_round);
   const isSolved = (f: FieldKey) => roundSolves.some((s) => s.field === f);
@@ -442,6 +546,24 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
   );
 }
 
+const ROOM_THEMES = [
+  { id: "mix", label: "Mix" },
+  { id: "old", label: "À l'ancienne" },
+  { id: "2010s", label: "Années 2010" },
+  { id: "recent", label: "Sons récents" },
+  { id: "pop", label: "Pop" },
+  { id: "cloud", label: "Cloud rap" },
+  { id: "lagui-sadek", label: "Lagui & Sadek" },
+  { id: "93", label: "93" },
+  { id: "91", label: "91" },
+  { id: "92", label: "92" },
+  { id: "77", label: "77" },
+  { id: "78", label: "78" },
+  { id: "13", label: "Marseille" },
+  { id: "59", label: "59" },
+  { id: "idf", label: "Île-de-France" },
+];
+
 function RoomMenu({
   busy,
   error,
@@ -460,6 +582,7 @@ function RoomMenu({
   onExit?: () => void;
 }) {
   const [rounds, setRounds] = useState(10);
+  const [theme, setTheme] = useState("mix");
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
@@ -470,6 +593,23 @@ function RoomMenu({
       )}
       <div className="card p-6">
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Créer un salon</p>
+
+        <p className="text-xs text-ink-faint mb-2">Thème</p>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {ROOM_THEMES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                theme === t.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
         <div className="flex gap-2 mb-4">
           {[10, 15, 20].map((n) => (
             <button
@@ -485,7 +625,7 @@ function RoomMenu({
         </div>
         <Magnetic strength={0.15} className="block w-full">
           <button
-            onClick={() => onCreate("mix", rounds)}
+            onClick={() => onCreate(theme, rounds)}
             disabled={busy}
             className="w-full bg-gold hover:bg-glow disabled:opacity-60 text-white rounded-full py-3 font-medium transition-colors"
           >

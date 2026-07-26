@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import BlindTest from "@/components/BlindTest";
 
 export const metadata = {
@@ -47,7 +48,9 @@ export default function BlindTestPage() {
           </p>
         </div>
 
-        <BlindTest />
+        <Suspense fallback={<div className="h-96" aria-hidden="true" />}>
+          <BlindTest />
+        </Suspense>
       </section>
 
       {/* Contenu éditorial pour le référencement — pas dans la vue de jeu elle-même, mais

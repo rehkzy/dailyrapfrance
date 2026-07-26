@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, MapPin, Cloud, Flame,
-  Clock, Shuffle, Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
+  Clock, Shuffle, Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward, Mic2,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -38,6 +39,7 @@ const THEME_OPTIONS = [
   { id: "recent", label: "Sons récents", text: "Ce qui tourne en ce moment", Icon: Clock, category: "Époques" },
   { id: "pop", label: "Pop / mainstream", text: "Les plus gros sons du moment", Icon: Flame, category: "Styles" },
   { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud, category: "Styles" },
+  { id: "lagui-sadek", label: "Lagui & Sadek", text: "Que des sons de ces deux-là", Icon: Mic2, category: "Styles" },
   { id: "93", label: "Rappeurs du 93", text: "Kaaris, Vald, Maes, Kalash Criminel...", Icon: MapPin, category: "Régions" },
   { id: "91", label: "Rappeurs du 91", text: "PNL, Niska, Koba LaD...", Icon: MapPin, category: "Régions" },
   { id: "92", label: "Rappeurs du 92", text: "Booba, SDM, Benash...", Icon: MapPin, category: "Régions" },
@@ -59,11 +61,13 @@ function buildQuery(themeId: string, count: number) {
 
 export default function BlindTest() {
   const { user, loading: userLoading } = useUser();
+  const searchParams = useSearchParams();
+  const joinRoomCode = searchParams.get("room");
 
   // Setup — assistant en 3 étapes pour limiter le scroll
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(0);
   // Setup
-  const [mode, setMode] = useState<Mode>("solo");
+  const [mode, setMode] = useState<Mode>(joinRoomCode ? "online" : "solo");
   const [themeId, setThemeId] = useState<string>("mix");
   const [roundCount, setRoundCount] = useState(10);
   const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
@@ -358,7 +362,7 @@ export default function BlindTest() {
   }
 
   if (mode === "online") {
-    return <BlindTestRoom user={user} onExit={() => setMode("solo")} />;
+    return <BlindTestRoom user={user} onExit={() => setMode("solo")} initialCode={joinRoomCode ?? undefined} />;
   }
 
   if (phase === "setup" || phase === "loading") {
