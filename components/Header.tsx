@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X as CloseIcon } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
+import AuthButton from "./AuthButton";
 
 const nav = [
   { href: "/a-propos", label: "À propos" },
   { href: "/blindtest", label: "Blind Test" },
+  { href: "/blindtest/classement", label: "Classement" },
 ];
 
 const socials = [
@@ -98,10 +100,11 @@ export default function Header() {
             href="https://www.instagram.com/dailyrapfrance/"
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-gold text-white rounded-full px-4 py-1.5 text-xs font-medium hover:bg-glow transition-colors"
+            className="glass rounded-full px-4 py-1.5 text-xs font-medium hover:border-gold/40 transition-colors"
           >
             Nous suivre
           </a>
+          <AuthButton />
         </div>
 
         {/* Toggle mobile */}
@@ -148,7 +151,8 @@ export default function Header() {
               })}
             </nav>
 
-            <div className="mt-10 flex items-center justify-center">
+            <div className="mt-10 flex items-center justify-center gap-6">
+              <AuthButton />
               <div className="flex items-center gap-3">
                 {socials.map(({ label, href, Icon }) => (
                   <a

@@ -1,25 +1,46 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Zap, RotateCcw, Users, User } from "lucide-react";
+import {
+  Play, Zap, RotateCcw, Users, User, Disc, MapPin, Cloud, Flame,
+  Clock, Shuffle, Medal, Headphones, Check,
+} from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
+import { sfx } from "@/lib/sfx";
 import Magnetic from "@/components/Magnetic";
+import Confetti from "@/components/Confetti";
 
-type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null };
+type Track = {
+  id: string;
+  title: string;
+  artistName: string;
+  previewUrl: string;
+  coverUrl: string | null;
+  feats: string[];
+};
 type Mode = "solo" | "local";
 type Phase = "setup" | "loading" | "playing" | "final";
+type Player = { id: string; name: string; score: number; jokerUsed: boolean };
+type FieldKey = "title" | "artist" | "feat";
 
-const ROUND_SECONDS = 20;
+const ROUND_SECONDS = 25;
+const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
 
 const THEME_OPTIONS = [
-  { id: "mix", label: "Mix — tout mélanger" },
-  { id: "old", label: "À l'ancienne (90s-2000s)" },
-  { id: "2010s", label: "Années 2010" },
-  { id: "recent", label: "Sons récents" },
-  { id: "pop", label: "Pop / mainstream" },
-  { id: "cloud", label: "Cloud rap" },
-  { id: "93", label: "Rappeurs du 93" },
-  { id: "91", label: "Rappeurs du 91" },
+  { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle },
+  { id: "old", label: "À l'ancienne", text: "90s et 2000s", Icon: Clock },
+  { id: "2010s", label: "Années 2010", text: "L'âge d'or du son cloud", Icon: Clock },
+  { id: "recent", label: "Sons récents", text: "Ce qui tourne en ce moment", Icon: Clock },
+  { id: "pop", label: "Pop / mainstream", text: "Les plus gros sons, triés par popularité", Icon: Flame },
+  { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud },
+  { id: "93", label: "Rappeurs du 93", text: "Kaaris, Vald, Maes, Kalash Criminel...", Icon: MapPin },
+  { id: "91", label: "Rappeurs du 91", text: "PNL, Niska, Koba LaD...", Icon: MapPin },
+  { id: "92", label: "Rappeurs du 92", text: "Booba, SDM, Benash...", Icon: MapPin },
+  { id: "77", label: "Rappeurs du 77", text: "Djadja & Dinaz, RK, Timal...", Icon: MapPin },
+  { id: "78", label: "Rappeurs du 78", text: "La Fouine...", Icon: MapPin },
+  { id: "13", label: "Rappeurs de Marseille (13)", text: "JUL, SCH, Soprano, Alonzo...", Icon: MapPin },
+  { id: "59", label: "Rappeurs du 59", text: "Gradur...", Icon: MapPin },
+  { id: "idf", label: "Île-de-France", text: "Tout le rap francilien mélangé", Icon: MapPin },
 ] as const;
 
 function buildQuery(themeId: string, count: number) {
@@ -28,8 +49,6 @@ function buildQuery(themeId: string, count: number) {
   params.set("count", String(count));
   return params;
 }
-
-type Player = { id: string; name: string; score: number };
 
 export default function BlindTest() {
   // Setup
@@ -50,16 +69,19 @@ export default function BlindTest() {
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   const [buzzedBy, setBuzzedBy] = useState<string | null>(null);
   const [locked, setLocked] = useState<Set<string>>(new Set());
-  const [guess, setGuess] = useState("");
+  const [solved, setSolved] = useState<Partial<Record<FieldKey, string>>>({}); // field -> playerId
+  const [guess, setGuess] = useState<{ title: string; artist: string; feat: string }>({ title: "", artist: "", feat: "" });
   const [revealed, setRevealed] = useState(false);
-  const [winnerId, setWinnerId] = useState<string | null>(null);
-  const [soloWrongFlash, setSoloWrongFlash] = useState(false);
+  const [roundGain, setRoundGain] = useState<{ playerId: string; points: number; nonce: number } | null>(null);
+  const gainCounter = useRef(0);
+  const [wrongFlash, setWrongFlash] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const track = tracks[roundIndex];
+  const applicableFields: FieldKey[] = track?.feats?.length ? ["title", "artist", "feat"] : ["title", "artist"];
 
   const clearTimers = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -70,31 +92,28 @@ export default function BlindTest() {
 
   useEffect(() => clearTimers, [clearTimers]);
 
-  const revealRound = useCallback(
-    (winner: string | null) => {
-      setRevealed(true);
-      setWinnerId(winner);
-      clearTimers();
-      audioRef.current?.pause();
-      advanceTimeoutRef.current = setTimeout(() => {
-        setRoundIndex((i) => {
-          const next = i + 1;
-          if (next >= tracks.length) {
-            setPhase("final");
-          }
-          return next;
-        });
-      }, 2600);
-    },
-    [clearTimers, tracks.length]
-  );
+  const revealRound = useCallback(() => {
+    setRevealed(true);
+    sfx.reveal();
+    clearTimers();
+    audioRef.current?.pause();
+    advanceTimeoutRef.current = setTimeout(() => {
+      setRoundIndex((i) => {
+        const next = i + 1;
+        if (next >= tracks.length) setPhase("final");
+        return next;
+      });
+    }, 3200);
+  }, [clearTimers, tracks.length]);
 
   const tick = useCallback(() => {
     setTimeLeft((t) => {
       if (t <= 1) {
-        revealRound(null);
+        sfx.wrong();
+        revealRound();
         return 0;
       }
+      if (t <= 6) sfx.tick();
       return t - 1;
     });
   }, [revealRound]);
@@ -104,14 +123,14 @@ export default function BlindTest() {
     setTimeLeft(ROUND_SECONDS);
     setBuzzedBy(null);
     setLocked(new Set());
-    setGuess("");
+    setSolved({});
+    setGuess({ title: "", artist: "", feat: "" });
     setRevealed(false);
-    setWinnerId(null);
-    setSoloWrongFlash(false);
+    setRoundGain(null);
+    setWrongFlash(false);
     clearTimers();
   }
 
-  // Reset le round quand on avance dans la partie
   useEffect(() => {
     if (phase === "playing") resetRoundState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,8 +155,8 @@ export default function BlindTest() {
       setTracks(pool);
       setPlayers(
         mode === "solo"
-          ? [{ id: "solo", name: "Toi", score: 0 }]
-          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0 }))
+          ? [{ id: "solo", name: "Toi", score: 0, jokerUsed: false }]
+          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokerUsed: false }))
       );
       setRoundIndex(0);
       setPhase("playing");
@@ -149,58 +168,139 @@ export default function BlindTest() {
 
   function launchExtract() {
     if (started || revealed) return;
+    sfx.click();
     setStarted(true);
     audioRef.current?.play().catch(() => {});
     intervalRef.current = setInterval(tick, 1000);
   }
 
-  function awardPoints(playerId: string) {
-    const bonus = Math.round(100 + timeLeft * 4);
-    setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, score: p.score + bonus } : p)));
+  function useJoker(playerId: string) {
+    const player = players.find((p) => p.id === playerId);
+    const audio = audioRef.current;
+    if (!player || player.jokerUsed || !audio || !started || revealed || buzzedBy) return;
+    sfx.joker();
+    const dur = audio.duration;
+    const jump = Number.isFinite(dur) ? Math.min(dur - 3, audio.currentTime + 9) : audio.currentTime + 9;
+    audio.currentTime = Math.max(0, jump);
+    audio.play().catch(() => {});
+    setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, jokerUsed: true } : p)));
   }
 
-  // Mode local : buzz d'un joueur
+  function awardPoints(playerId: string, points: number) {
+    setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, score: p.score + points } : p)));
+    gainCounter.current += 1;
+    const nonce = gainCounter.current;
+    setRoundGain({ playerId, points, nonce });
+    setTimeout(() => setRoundGain((g) => (g?.nonce === nonce ? null : g)), 1200);
+  }
+
+  function checkFields(playerId: string, values: { title: string; artist: string; feat: string }) {
+    if (!track) return 0;
+    let gained = 0;
+    const newlySolved: Partial<Record<FieldKey, string>> = {};
+
+    if (!solved.title && values.title.trim() && isTitleMatch(values.title, track.title)) {
+      newlySolved.title = playerId;
+      gained += POINTS.title;
+      sfx.correct();
+    }
+    if (!solved.artist && values.artist.trim() && isArtistMatch(values.artist, track.artistName)) {
+      newlySolved.artist = playerId;
+      gained += POINTS.artist;
+      sfx.correct();
+    }
+    if (applicableFields.includes("feat") && !solved.feat && values.feat.trim() && track.feats.some((f) => isArtistMatch(values.feat, f))) {
+      newlySolved.feat = playerId;
+      gained += POINTS.feat;
+      sfx.bonus();
+    }
+
+    if (gained > 0) {
+      setSolved((prev) => ({ ...prev, ...newlySolved }));
+      awardPoints(playerId, gained);
+    }
+    return gained;
+  }
+
+  function isTitleMatch(guessVal: string, title: string) {
+    return checkGuess(guessVal, "", title);
+  }
+  function isArtistMatch(guessVal: string, name: string) {
+    return checkGuess(guessVal, name, "");
+  }
+
+  // Local : buzz
   function handleBuzz(playerId: string) {
     if (!started || revealed || buzzedBy || locked.has(playerId)) return;
+    sfx.buzz();
     setBuzzedBy(playerId);
-    audioRef.current?.pause();
     if (intervalRef.current) clearInterval(intervalRef.current);
   }
 
   function submitLocalGuess() {
     if (!buzzedBy || !track) return;
-    const correct = checkGuess(guess, track.artistName, track.title);
-    if (correct) {
-      awardPoints(buzzedBy);
-      revealRound(buzzedBy);
+    const gained = checkFields(buzzedBy, guess);
+    if (gained === 0) {
+      sfx.wrong();
+      const nextLocked = new Set(locked);
+      nextLocked.add(buzzedBy);
+      setLocked(nextLocked);
+      setBuzzedBy(null);
+      setGuess({ title: "", artist: "", feat: "" });
+      if (nextLocked.size >= players.length) {
+        revealRound();
+        return;
+      }
+      intervalRef.current = setInterval(tick, 1000);
       return;
     }
-    const nextLocked = new Set(locked);
-    nextLocked.add(buzzedBy);
-    setLocked(nextLocked);
+    // Points marqués : le useEffect sur `solved` déclenchera revealRound() tout seul si
+    // c'était le dernier champ manquant — sinon on relance le chrono pour la suite.
     setBuzzedBy(null);
-    setGuess("");
-    if (nextLocked.size >= players.length) {
-      revealRound(null);
-      return;
-    }
-    audioRef.current?.play().catch(() => {});
+    setGuess({ title: "", artist: "", feat: "" });
     intervalRef.current = setInterval(tick, 1000);
   }
 
-  // Mode solo : deviner directement, sans buzz
+  // Solo : formulaire toujours ouvert, champs résolus se verrouillent au fur et à mesure
   function submitSoloGuess() {
     if (!started || revealed || !track) return;
-    const correct = checkGuess(guess, track.artistName, track.title);
-    if (correct) {
-      awardPoints("solo");
-      revealRound("solo");
-    } else {
-      setSoloWrongFlash(true);
-      setGuess("");
-      setTimeout(() => setSoloWrongFlash(false), 500);
+    const gained = checkFields("solo", guess);
+    if (gained === 0) {
+      sfx.wrong();
+      setWrongFlash(true);
+      setTimeout(() => setWrongFlash(false), 450);
+      return;
     }
+    setGuess({ title: "", artist: "", feat: "" });
   }
+
+  useEffect(() => {
+    if (started && !revealed && track && applicableFields.every((f) => solved[f])) {
+      revealRound();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solved]);
+
+  // Sauvegarde du score solo — no-op silencieux si personne n'est connecté (géré côté route).
+  const [scoreSaveStatus, setScoreSaveStatus] = useState<"idle" | "saved" | "guest">("idle");
+  const [showConfetti, setShowConfetti] = useState(false);
+  useEffect(() => {
+    if (phase !== "final") return;
+    sfx.victory();
+    setShowConfetti(true);
+    if (mode !== "solo") return;
+    const solo = players[0];
+    if (!solo) return;
+    fetch("/api/blindtest/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme: themeId, rounds: tracks.length, points: solo.score }),
+    })
+      .then((r) => r.json())
+      .then((data) => setScoreSaveStatus(data.saved ? "saved" : "guest"))
+      .catch(() => setScoreSaveStatus("guest"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   function playAgain() {
     clearTimers();
@@ -208,6 +308,8 @@ export default function BlindTest() {
     setTracks([]);
     setPlayers([]);
     setRoundIndex(0);
+    setScoreSaveStatus("idle");
+    setShowConfetti(false);
     resetRoundState();
   }
 
@@ -215,7 +317,7 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <div className="card p-6 md:p-8 space-y-8">
           <div>
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Mode</p>
@@ -280,16 +382,22 @@ export default function BlindTest() {
 
           <div>
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Thème</p>
-            <div className="grid sm:grid-cols-2 gap-2">
+            <div className="grid sm:grid-cols-2 gap-2.5">
               {THEME_OPTIONS.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setThemeId(t.id)}
-                  className={`rounded-lg border px-4 py-2.5 text-sm text-left transition-colors ${
-                    themeId === t.id ? "border-gold bg-gold/10 text-ink" : "border-white/10 text-ink-muted hover:border-white/20"
+                  className={`rounded-xl border px-4 py-3 text-left transition-colors flex items-start gap-3 ${
+                    themeId === t.id ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/20"
                   }`}
                 >
-                  {t.label}
+                  <t.Icon size={17} className={`mt-0.5 shrink-0 ${themeId === t.id ? "text-gold" : "text-ink-faint"}`} />
+                  <span>
+                    <span className={`block text-sm font-medium ${themeId === t.id ? "text-ink" : "text-ink-muted"}`}>
+                      {t.label}
+                    </span>
+                    <span className="block text-xs text-ink-faint mt-0.5">{t.text}</span>
+                  </span>
                 </button>
               ))}
             </div>
@@ -312,18 +420,23 @@ export default function BlindTest() {
             </div>
           </div>
 
+          <div className="glass rounded-xl p-4 text-xs text-ink-faint leading-relaxed">
+            <span className="text-gold font-mono uppercase tracking-wide">Barème</span> — titre :{" "}
+            <span className="text-ink">1 pt</span> · artiste : <span className="text-ink">1 pt</span> · trouver un
+            featuring : <span className="text-gold">+2 pts</span>. Chaque joueur a un{" "}
+            <span className="text-ink">joker</span> par partie pour écouter un autre passage du son s'il bloque.
+          </div>
+
           {setupError && <p className="text-sm text-riseNeg">{setupError}</p>}
 
-          <Magnetic strength={0.2} className="block w-full">
-            <button
-              onClick={startGame}
-              disabled={phase === "loading"}
-              className="w-full bg-gold hover:bg-glow disabled:opacity-60 text-white rounded-full py-3.5 font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-              {phase !== "loading" && <Play size={16} />}
-            </button>
-          </Magnetic>
+          <button
+            onClick={startGame}
+            disabled={phase === "loading"}
+            className="w-full bg-gold hover:bg-glow disabled:opacity-60 text-white rounded-full py-3.5 font-medium transition-colors flex items-center justify-center gap-2"
+          >
+            {phase === "loading" ? "Chargement..." : "Lancer la partie"}
+            {phase !== "loading" && <Play size={16} />}
+          </button>
         </div>
       </div>
     );
@@ -333,28 +446,70 @@ export default function BlindTest() {
     const ranked = [...players].sort((a, b) => b.score - a.score);
     return (
       <div className="max-w-xl mx-auto text-center">
+        {showConfetti && <Confetti />}
         <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Terminé</p>
-        <h2 className="font-display text-3xl md:text-4xl font-semibold mb-10">
-          {mode === "solo" ? `${ranked[0]?.score ?? 0} points` : "Résultats"}
-        </h2>
-        {mode === "local" && (
-          <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left">
-            {ranked.map((p, i) => (
-              <div key={p.id} className="flex items-center gap-4 py-4 px-5">
-                <span className="font-display text-xl text-ink-faint w-8">{i + 1}</span>
-                <span className="flex-1 font-medium">{p.name}</span>
-                <span className="font-mono text-gold">{p.score}</span>
+        {mode === "solo" ? (
+          <h2 className="font-display text-4xl md:text-5xl font-semibold mb-10">{ranked[0]?.score ?? 0} pts</h2>
+        ) : (
+          <>
+            <h2 className="font-display text-3xl md:text-4xl font-semibold mb-10">Résultats</h2>
+            <div className="flex items-end justify-center gap-3 mb-10">
+              {[ranked[1], ranked[0], ranked[2]].map((p, i) =>
+                p ? (
+                  <div key={p.id} className={`flex flex-col items-center ${i === 1 ? "order-2" : i === 0 ? "order-1" : "order-3"}`}>
+                    <Medal size={i === 1 ? 28 : 20} className={i === 1 ? "text-gold" : "text-ink-faint"} />
+                    <div
+                      className={`glass rounded-t-lg w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 ${
+                        i === 1 ? "h-28 border-gold/40" : i === 0 ? "h-20" : "h-14"
+                      }`}
+                    >
+                      <p className="text-xs font-medium truncate px-1 max-w-full">{p.name}</p>
+                      <p className="font-mono text-xs text-gold">{p.score}</p>
+                    </div>
+                  </div>
+                ) : null
+              )}
+            </div>
+            {ranked.length > 3 && (
+              <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left">
+                {ranked.slice(3).map((p, i) => (
+                  <div key={p.id} className="flex items-center gap-4 py-3 px-5">
+                    <span className="font-mono text-sm text-ink-faint w-6">{i + 4}</span>
+                    <span className="flex-1 text-sm font-medium">{p.name}</span>
+                    <span className="font-mono text-sm text-gold">{p.score}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
-        <button
-          onClick={playAgain}
-          className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-6 py-3 font-medium transition-colors"
-        >
-          <RotateCcw size={16} />
-          Rejouer
-        </button>
+
+        {mode === "solo" && (
+          <p className="text-xs font-mono text-ink-faint mb-8">
+            {scoreSaveStatus === "saved" && "Score enregistré dans ton classement."}
+            {scoreSaveStatus === "guest" && "Connecte-toi pour sauvegarder ce score."}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Magnetic>
+            <button
+              onClick={playAgain}
+              className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-6 py-3 font-medium transition-colors"
+            >
+              <RotateCcw size={16} />
+              Rejouer
+            </button>
+          </Magnetic>
+          {mode === "solo" && (
+            <a
+              href="/blindtest/classement"
+              className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
+            >
+              Voir le classement
+            </a>
+          )}
+        </div>
       </div>
     );
   }
@@ -363,6 +518,7 @@ export default function BlindTest() {
   if (!track) return null;
 
   const activePlayer = mode === "local" ? players.find((p) => p.id === buzzedBy) : players[0];
+  const soloPlayer = players[0];
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -373,9 +529,11 @@ export default function BlindTest() {
           Manche {roundIndex + 1} / {tracks.length}
         </span>
         {mode === "local" && (
-          <div className="flex gap-3 font-mono text-xs text-ink-muted">
+          <div className="flex gap-3 font-mono text-xs text-ink-muted flex-wrap justify-end">
             {players.map((p) => (
-              <span key={p.id}>{p.name} · {p.score}</span>
+              <span key={p.id}>
+                {p.name} · <span className="text-gold">{p.score}</span>
+              </span>
             ))}
           </div>
         )}
@@ -384,20 +542,42 @@ export default function BlindTest() {
       <div className="card p-8 text-center relative overflow-hidden">
         {revealed && <div className="brand-glow" aria-hidden="true" />}
 
-        {!started ? (
-          <button
-            onClick={launchExtract}
-            className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors"
+        {roundGain && (
+          <span
+            key={roundGain.nonce}
+            className="float-points absolute left-1/2 top-6 -translate-x-1/2 z-20 font-display text-2xl font-semibold text-gold pointer-events-none"
           >
-            <Play size={20} />
-            Lancer l'extrait
-          </button>
+            +{roundGain.points}
+          </span>
+        )}
+
+        {!started ? (
+          <Magnetic strength={0.2}>
+            <button
+              onClick={launchExtract}
+              className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors"
+            >
+              <Play size={20} />
+              Lancer l'extrait
+            </button>
+          </Magnetic>
         ) : !revealed ? (
           <>
-            <div className="w-24 h-24 mx-auto rounded-full glass-strong flex items-center justify-center mb-6">
-              <span className="font-display text-3xl text-gold">{timeLeft}</span>
+            {/* Disque mystère qui tourne pendant l'écoute */}
+            <div className="relative w-28 h-28 mx-auto mb-6">
+              <div className="vinyl-spin absolute inset-0 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 shadow-lg">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-gold flex items-center justify-center">
+                    <Disc size={16} className="text-white" />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-8 max-w-xs mx-auto">
+
+            <span className={`font-display text-3xl text-gold block mb-4 transition-colors ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>
+              {timeLeft}
+            </span>
+            <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-6 max-w-xs mx-auto">
               <div
                 className="h-full bg-gold transition-all duration-1000 ease-linear"
                 style={{ width: `${(timeLeft / ROUND_SECONDS) * 100}%` }}
@@ -406,43 +586,72 @@ export default function BlindTest() {
 
             {mode === "local" ? (
               buzzedBy ? (
-                <div className="max-w-sm mx-auto">
-                  <p className="text-sm text-ink-muted mb-3">
-                    <span className="text-gold font-medium">{activePlayer?.name}</span> a buzzé —
-                    artiste ou titre ?
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    submitLocalGuess();
+                  }}
+                  className="max-w-sm mx-auto space-y-2.5"
+                >
+                  <p className="text-sm text-ink-muted mb-2">
+                    <span className="text-gold font-medium">{activePlayer?.name}</span> a buzzé
                   </p>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      submitLocalGuess();
-                    }}
-                    className="flex gap-2"
-                  >
+                  <input
+                    autoFocus
+                    value={guess.title}
+                    onChange={(e) => setGuess((g) => ({ ...g, title: e.target.value }))}
+                    placeholder="Titre (1 pt)"
+                    disabled={!!solved.title}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 disabled:opacity-40"
+                  />
+                  <input
+                    value={guess.artist}
+                    onChange={(e) => setGuess((g) => ({ ...g, artist: e.target.value }))}
+                    placeholder="Artiste (1 pt)"
+                    disabled={!!solved.artist}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 disabled:opacity-40"
+                  />
+                  {applicableFields.includes("feat") && (
                     <input
-                      autoFocus
-                      value={guess}
-                      onChange={(e) => setGuess(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
-                      placeholder="Ta réponse..."
+                      value={guess.feat}
+                      onChange={(e) => setGuess((g) => ({ ...g, feat: e.target.value }))}
+                      placeholder="Featuring (+2 pts)"
+                      disabled={!!solved.feat}
+                      className="w-full bg-white/5 border border-gold/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/60 disabled:opacity-40"
                     />
-                    <button type="submit" className="bg-gold hover:bg-glow text-white rounded-lg px-4 text-sm font-medium">
-                      Valider
-                    </button>
-                  </form>
-                </div>
+                  )}
+                  <button type="submit" className="w-full bg-gold hover:bg-glow text-white rounded-lg py-2.5 text-sm font-medium">
+                    Valider
+                  </button>
+                </form>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto">
-                  {players.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => handleBuzz(p.id)}
-                      disabled={locked.has(p.id)}
-                      className="glass rounded-xl py-4 flex flex-col items-center gap-1.5 hover:border-gold/40 disabled:opacity-30 disabled:hover:border-white/8 transition-colors"
-                    >
-                      <Zap size={18} className="text-gold" />
-                      <span className="text-sm font-medium">{p.name}</span>
-                    </button>
-                  ))}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto">
+                    {players.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => handleBuzz(p.id)}
+                        disabled={locked.has(p.id)}
+                        className="glass rounded-xl py-4 flex flex-col items-center gap-1.5 hover:border-gold/40 disabled:opacity-30 disabled:hover:border-white/8 transition-colors"
+                      >
+                        <Zap size={18} className="text-gold" />
+                        <span className="text-sm font-medium">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {players.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => useJoker(p.id)}
+                        disabled={p.jokerUsed}
+                        className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-full px-3 py-1.5 text-ink-faint hover:text-gold disabled:opacity-30 disabled:hover:text-ink-faint transition-colors"
+                      >
+                        <Headphones size={13} />
+                        Joker {p.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )
             ) : (
@@ -451,20 +660,46 @@ export default function BlindTest() {
                   e.preventDefault();
                   submitSoloGuess();
                 }}
-                className="max-w-sm mx-auto flex gap-2"
+                className={`max-w-sm mx-auto space-y-2.5 ${wrongFlash ? "shake-wrong" : ""}`}
               >
-                <input
-                  autoFocus
-                  value={guess}
-                  onChange={(e) => setGuess(e.target.value)}
-                  className={`flex-1 bg-white/5 border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors ${
-                    soloWrongFlash ? "border-riseNeg" : "border-white/10 focus:border-gold/50"
-                  }`}
-                  placeholder="Artiste ou titre..."
+                <FieldRow
+                  value={guess.title}
+                  onChange={(v) => setGuess((g) => ({ ...g, title: v }))}
+                  placeholder="Titre (1 pt)"
+                  solved={!!solved.title}
+                  wrongFlash={wrongFlash}
                 />
-                <button type="submit" className="bg-gold hover:bg-glow text-white rounded-lg px-4 text-sm font-medium">
-                  Valider
-                </button>
+                <FieldRow
+                  value={guess.artist}
+                  onChange={(v) => setGuess((g) => ({ ...g, artist: v }))}
+                  placeholder="Artiste (1 pt)"
+                  solved={!!solved.artist}
+                  wrongFlash={wrongFlash}
+                />
+                {applicableFields.includes("feat") && (
+                  <FieldRow
+                    value={guess.feat}
+                    onChange={(v) => setGuess((g) => ({ ...g, feat: v }))}
+                    placeholder="Featuring (+2 pts)"
+                    solved={!!solved.feat}
+                    wrongFlash={wrongFlash}
+                    gold
+                  />
+                )}
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 bg-gold hover:bg-glow text-white rounded-lg py-2.5 text-sm font-medium">
+                    Valider
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => useJoker("solo")}
+                    disabled={soloPlayer?.jokerUsed}
+                    className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-lg px-3 disabled:opacity-30"
+                  >
+                    <Headphones size={14} />
+                    Joker
+                  </button>
+                </div>
               </form>
             )}
           </>
@@ -475,15 +710,75 @@ export default function BlindTest() {
             )}
             <p className="font-display text-2xl font-medium">{track.title}</p>
             <p className="text-ink-muted mt-1">{track.artistName}</p>
-            {winnerId && (
+            {track.feats.length > 0 && (
+              <p className="text-xs text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>
+            )}
+            <div className="flex items-center justify-center gap-2 mt-5 flex-wrap">
+              <ResultPill ok={!!solved.title} label="Titre" points={POINTS.title} />
+              <ResultPill ok={!!solved.artist} label="Artiste" points={POINTS.artist} />
+              {applicableFields.includes("feat") && <ResultPill ok={!!solved.feat} label="Feat" points={POINTS.feat} />}
+            </div>
+            {mode === "local" && Object.keys(solved).length > 0 && (
               <p className="mt-4 font-mono text-sm text-gold">
-                {mode === "solo" ? "Bien joué !" : `${players.find((p) => p.id === winnerId)?.name} marque !`}
+                {[...new Set(Object.values(solved))]
+                  .map((id) => players.find((p) => p.id === id)?.name)
+                  .filter(Boolean)
+                  .join(", ")}{" "}
+                marque{Object.values(solved).length > 1 ? "nt" : ""} !
               </p>
             )}
-            {!winnerId && <p className="mt-4 font-mono text-sm text-ink-faint">Personne n'a trouvé.</p>}
+            {Object.keys(solved).length === 0 && <p className="mt-4 font-mono text-sm text-ink-faint">Personne n'a trouvé.</p>}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function FieldRow({
+  value,
+  onChange,
+  placeholder,
+  solved,
+  wrongFlash,
+  gold = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  solved: boolean;
+  wrongFlash: boolean;
+  gold?: boolean;
+}) {
+  if (solved) {
+    return (
+      <div className="solved-pop w-full bg-gold/10 border border-gold/30 rounded-lg px-3 py-2 text-sm text-gold flex items-center gap-2">
+        <Check size={14} />
+        {placeholder.replace(/\s*\(.+\)/, "")} trouvé
+      </div>
+    );
+  }
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors ${
+        wrongFlash ? "border-riseNeg" : gold ? "border-gold/30 focus:border-gold/60" : "border-white/10 focus:border-gold/50"
+      }`}
+    />
+  );
+}
+
+function ResultPill({ ok, label, points }: { ok: boolean; label: string; points: number }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-mono ${
+        ok ? "bg-gold/15 text-gold" : "bg-white/5 text-ink-faint"
+      }`}
+    >
+      {ok && <Check size={11} />}
+      {label} {ok ? `+${points}` : ""}
+    </span>
   );
 }

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Pool de titres du blind test — 100% en direct depuis l'API Deezer, aucune base de données.
-// Volontairement sans persistance : plus simple à déployer (rien à peupler, rien qui puisse
-// être "pas encore prêt"), au prix d'un léger délai de chargement à chaque partie.
+// Volontairement sans persistance : rien à peupler, rien qui puisse être "pas encore prêt".
 //
-// Sources par thème — mêmes playlists/curation que documentées dans le README, mais
-// interrogées à la demande plutôt que pré-ingérées :
+// Sources par thème — playlists éditoriales par décennie pour les thèmes généraux, recherche
+// d'artiste pour les thèmes ciblés (curation manuelle, voir listes ci-dessous).
 const DECADE_PLAYLISTS: Record<string, number[]> = {
   old: [1182010551, 4676814864], // Rapstars 90s + 2000
   "2010s": [5175061384],          // Rapstars 2010
@@ -13,22 +12,35 @@ const DECADE_PLAYLISTS: Record<string, number[]> = {
 };
 const ALL_DECADE_PLAYLISTS = [1182010551, 4676814864, 5175061384, 9563400362];
 
-// Curation manuelle vérifiée le 26/07/2026 (voir historique) — courte et à étendre, pas une
-// base de données géographique faisant autorité. Deezer ne fournit ni sous-genre ni ville.
+// Curation manuelle, vérifiée nom par nom le 26/07/2026 (sources : Wikipédia + bios
+// officielles). Volontairement courte et à étendre — pas une base de données géographique
+// faisant autorité. Deezer ne fournit ni sous-genre ni ville de naissance.
 const CLOUD_ARTISTS = ["suikoden", "josman", "fixpen sill", "le wombat", "lomepal"];
-const DEPT_93_ARTISTS = ["kaaris", "mac tyer", "vald", "kalash criminel", "maes", "diddi trix"];
-const DEPT_91_ARTISTS = ["pnl", "niska", "koba lad", "ol kainry"];
+const DEPT_ARTISTS: Record<string, string[]> = {
+  "93": ["kaaris", "mac tyer", "vald", "kalash criminel", "maes", "diddi trix"],
+  "91": ["pnl", "niska", "koba lad", "ol kainry"],
+  "92": ["booba", "ali", "sdm", "benash"],
+  "77": ["djadja & dinaz", "rk", "timal", "houdi"],
+  "78": ["la fouine"],
+  "13": ["jul", "sch", "soprano", "alonzo", "naps", "soso maness", "akhenaton", "shurik'n"],
+  "59": ["gradur"],
+};
+DEPT_ARTISTS["idf"] = Array.from(new Set([...DEPT_ARTISTS["93"], ...DEPT_ARTISTS["91"], ...DEPT_ARTISTS["92"], ...DEPT_ARTISTS["77"], ...DEPT_ARTISTS["78"]]));
 
-type DeezerTrack = {
+type DeezerTrackSummary = {
   id: number;
   title: string;
   preview?: string;
   rank?: number;
-  artist?: { name?: string };
+  artist?: { id?: number; name?: string };
   album?: { cover_medium?: string; cover_big?: string };
 };
 
-async function deezerFetch(path: string): Promise<{ data?: DeezerTrack[]; error?: { message: string } }> {
+type DeezerTrackFull = DeezerTrackSummary & {
+  contributors?: { id: number; name: string }[];
+};
+
+async function deezerFetch<T = { data?: DeezerTrackSummary[] }>(path: string): Promise<T> {
   const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 1800 } });
   if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
   const json = await res.json();
@@ -36,7 +48,7 @@ async function deezerFetch(path: string): Promise<{ data?: DeezerTrack[]; error?
   return json;
 }
 
-async function fetchPlaylistTracks(id: number): Promise<DeezerTrack[]> {
+async function fetchPlaylistTracks(id: number): Promise<DeezerTrackSummary[]> {
   try {
     const json = await deezerFetch(`/playlist/${id}/tracks?limit=100`);
     return json.data ?? [];
@@ -45,10 +57,12 @@ async function fetchPlaylistTracks(id: number): Promise<DeezerTrack[]> {
   }
 }
 
-async function fetchArtistTopTracks(name: string): Promise<DeezerTrack[]> {
+async function fetchArtistTopTracks(name: string): Promise<DeezerTrackSummary[]> {
   try {
-    const search = await deezerFetch(`/search/artist?q=${encodeURIComponent(name)}&limit=1`);
-    const artist = (search.data as unknown as { id: number }[] | undefined)?.[0];
+    const search = await deezerFetch<{ data?: { id: number }[] }>(
+      `/search/artist?q=${encodeURIComponent(name)}&limit=1`
+    );
+    const artist = search.data?.[0];
     if (!artist) return [];
     const top = await deezerFetch(`/artist/${artist.id}/top?limit=10`);
     return top.data ?? [];
@@ -57,27 +71,43 @@ async function fetchArtistTopTracks(name: string): Promise<DeezerTrack[]> {
   }
 }
 
-function toGameTrack(t: DeezerTrack) {
+// Détail complet — seulement pour le lot final retenu (pas tout le pool candidat), pour
+// récupérer les featurings (`contributors`), absents des objets résumés des playlists.
+async function fetchTrackDetail(id: number): Promise<DeezerTrackFull | null> {
+  try {
+    return await deezerFetch<DeezerTrackFull>(`/track/${id}`);
+  } catch {
+    return null;
+  }
+}
+
+function toGameTrack(t: DeezerTrackFull) {
+  const mainId = t.artist?.id;
+  const feats = (t.contributors ?? [])
+    .filter((c) => c.id !== mainId)
+    .map((c) => c.name)
+    .filter((name, i, arr) => arr.indexOf(name) === i);
   return {
     id: String(t.id),
     title: t.title,
     artistName: t.artist?.name ?? "",
     previewUrl: t.preview ?? "",
     coverUrl: t.album?.cover_medium || t.album?.cover_big || null,
+    feats,
   };
 }
 
-// GET /api/blindtest/pool?theme=mix|old|2010s|recent|pop|cloud|93|91&count=15
+// GET /api/blindtest/pool?theme=mix|old|2010s|recent|pop|cloud|93|91|92|77|78|13|59|idf&count=15
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const themeId = searchParams.get("theme") ?? "mix";
   const count = Math.min(Math.max(Number(searchParams.get("count")) || 15, 1), 50);
 
   try {
-    let raw: DeezerTrack[] = [];
+    let raw: DeezerTrackSummary[] = [];
 
-    if (themeId === "cloud" || themeId === "93" || themeId === "91") {
-      const names = themeId === "cloud" ? CLOUD_ARTISTS : themeId === "93" ? DEPT_93_ARTISTS : DEPT_91_ARTISTS;
+    if (themeId === "cloud" || DEPT_ARTISTS[themeId]) {
+      const names = themeId === "cloud" ? CLOUD_ARTISTS : DEPT_ARTISTS[themeId];
       const lists = await Promise.all(names.map(fetchArtistTopTracks));
       raw = lists.flat();
     } else if (themeId === "pop") {
@@ -96,7 +126,14 @@ export async function GET(req: NextRequest) {
     const pool = themeId === "pop" ? withPreview.slice(0, count * 4) : withPreview;
     const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
 
-    return NextResponse.json({ tracks: shuffled.map(toGameTrack) });
+    // Détail complet uniquement sur le lot final (pas sur tout le pool candidat) pour
+    // récupérer les featurings sans multiplier les appels API.
+    const detailed = await Promise.all(shuffled.map((t) => fetchTrackDetail(t.id)));
+    const tracks = detailed
+      .map((full, i) => (full ? toGameTrack(full) : toGameTrack({ ...shuffled[i], contributors: [] })))
+      .filter((t) => t.previewUrl);
+
+    return NextResponse.json({ tracks });
   } catch (err) {
     console.error("[blindtest/pool] erreur —", err instanceof Error ? err.message : err);
     return NextResponse.json({ tracks: [] });

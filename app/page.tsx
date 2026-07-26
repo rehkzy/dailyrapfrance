@@ -16,7 +16,7 @@ export default function Home() {
           aria-hidden="true"
           className="brand-pulse h-16 md:h-24 w-auto mx-auto mb-8 drop-shadow-[0_0_40px_rgba(240,0,28,0.35)]"
         />
-        <img src="/logo.svg" alt="DailyRapFrance" className="w-full max-w-md md:max-w-lg mx-auto h-auto" />
+        <img src="/logo-hero.svg" alt="DailyRapFrance" className="w-full max-w-lg md:max-w-2xl mx-auto h-auto" />
       </div>
 
       <div className="relative max-w-2xl mx-auto px-6 pb-16 md:pb-20 text-center w-full">

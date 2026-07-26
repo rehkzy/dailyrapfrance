@@ -14,8 +14,10 @@ export default function BlindTestPage() {
           Blind Test Rap Français
         </h1>
         <p className="text-ink-muted max-w-xl mx-auto">
-          90s, 2000s, cloud rap, 93, 91, pop, sons récents... Choisis un thème, seul ou entre
-          potes sur le même écran, et devine l'artiste ou le titre le plus vite possible.
+          90s, 2000s, cloud rap, 93, 91, 92, 77, 78, 13, 59, Île-de-France... Choisis un thème,
+          seul ou entre potes sur le même écran. Titre et artiste rapportent 1 point chacun,
+          trouver un featuring en rapporte 2 — et chacun a un joker pour réécouter un autre
+          passage du son.
         </p>
       </div>
 
