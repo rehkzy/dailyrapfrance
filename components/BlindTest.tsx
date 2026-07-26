@@ -365,8 +365,10 @@ export default function BlindTest() {
     const steps = ["Mode", "Thème", "Réglages"];
     return (
       <div className="max-w-2xl mx-auto">
-        {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie */}
-        <div className="flex justify-center mb-4">
+        {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
+            Masqué sur mobile : l'espace vertical y est plus précieux, la page a déjà l'emblème
+            de marque ailleurs sur le site. */}
+        <div className="hidden sm:flex justify-center mb-4">
           <div className="vinyl-spin w-11 h-11 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 flex items-center justify-center">
             <div className="w-4 h-4 rounded-full bg-gold flex items-center justify-center">
               <Disc size={8} className="text-white" />
@@ -375,7 +377,7 @@ export default function BlindTest() {
         </div>
 
         {/* Fil d'ariane des étapes */}
-        <div className="flex items-center justify-center gap-2 mb-5">
+        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5">
           {steps.map((label, i) => (
             <button
               key={label}
@@ -391,40 +393,45 @@ export default function BlindTest() {
           ))}
         </div>
 
-        <div className="card p-6 md:p-7 min-h-[420px] flex flex-col">
+        <div className="card p-5 sm:p-6 md:p-7 flex flex-col">
           {/* Étape 0 — Mode */}
           {wizardStep === 0 && (
-            <div className="flex-1">
-              <div className="grid grid-cols-3 gap-2.5">
-                {[
-                  { id: "solo" as Mode, label: "Solo", Icon: User },
-                  { id: "local" as Mode, label: "Local", Icon: Users },
-                  { id: "online" as Mode, label: "Salon en ligne", Icon: Globe },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      sfx.click();
-                      setMode(m.id);
-                      if (m.id === "online") return;
-                      setWizardStep(1);
-                    }}
-                    className={`group rounded-xl border p-4 flex flex-col items-center gap-2 transition-all duration-200 ${
-                      mode === m.id
-                        ? "border-gold bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.22)]"
-                        : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
+            <div className="flex-1 space-y-2.5">
+              {[
+                { id: "solo" as Mode, label: "Solo", Icon: User, desc: "Teste tes connaissances à ton rythme." },
+                { id: "local" as Mode, label: "Local", Icon: Users, desc: "Entre potes, sur le même écran, avec un buzzer." },
+                { id: "online" as Mode, label: "Salon en ligne", Icon: Globe, desc: "Un code à partager, chacun sur son téléphone." },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    sfx.click();
+                    setMode(m.id);
+                    if (m.id === "online") return;
+                    setWizardStep(1);
+                  }}
+                  className={`group w-full flex items-center gap-4 rounded-xl border p-4 text-left transition-all duration-200 ${
+                    mode === m.id
+                      ? "border-gold bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.22)]"
+                      : "border-white/10 hover:border-white/25"
+                  }`}
+                >
+                  <div
+                    className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center transition-colors ${
+                      mode === m.id ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${mode === m.id ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"}`}>
-                      <m.Icon size={18} />
-                    </div>
-                    <span className="text-xs font-medium text-center leading-tight">{m.label}</span>
-                  </button>
-                ))}
-              </div>
+                    <m.Icon size={20} />
+                  </div>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">{m.label}</span>
+                    <span className="block text-xs text-ink-faint mt-0.5">{m.desc}</span>
+                  </span>
+                </button>
+              ))}
 
               {mode === "local" && (
-                <div className="mt-5">
+                <div className="pt-2">
                   <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2.5">Joueurs</p>
                   <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                     {playerNames.map((name, i) => (

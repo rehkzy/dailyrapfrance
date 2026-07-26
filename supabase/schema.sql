@@ -1,6 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────
 -- DailyRapFrance — Blind Test : comptes + scores
--- À exécuter dans Supabase → SQL Editor (une seule fois).
+-- À exécuter dans Supabase → SQL Editor. Peut être relancé sans risque autant
+-- de fois que nécessaire (tables en "if not exists", règles recréées à chaque fois).
 -- ─────────────────────────────────────────────────────────────────────────
 
 -- Profil public (nom affiché, avatar) — séparé de auth.users qui n'est pas
@@ -14,10 +15,12 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Les profils sont visibles par tous (classement)" on public.profiles;
 create policy "Les profils sont visibles par tous (classement)"
   on public.profiles for select
   using (true);
 
+drop policy if exists "Chacun ne modifie que son propre profil" on public.profiles;
 create policy "Chacun ne modifie que son propre profil"
   on public.profiles for update
   using (auth.uid() = id);
@@ -87,38 +90,59 @@ alter table public.rooms enable row level security;
 alter table public.room_players enable row level security;
 alter table public.room_round_solves enable row level security;
 
+drop policy if exists "Salons visibles par tout utilisateur connecté" on public.rooms;
 create policy "Salons visibles par tout utilisateur connecté"
   on public.rooms for select
   using (auth.role() = 'authenticated');
 
+drop policy if exists "Un utilisateur connecté peut créer un salon" on public.rooms;
 create policy "Un utilisateur connecté peut créer un salon"
   on public.rooms for insert
   with check (auth.uid() = host_id);
 
+drop policy if exists "Seul l'hôte modifie son salon" on public.rooms;
 create policy "Seul l'hôte modifie son salon"
   on public.rooms for update
   using (auth.uid() = host_id);
 
+drop policy if exists "Joueurs d'un salon visibles par tout utilisateur connecté" on public.room_players;
 create policy "Joueurs d'un salon visibles par tout utilisateur connecté"
   on public.room_players for select
   using (auth.role() = 'authenticated');
 
+drop policy if exists "Un utilisateur ne rejoint que lui-même" on public.room_players;
 create policy "Un utilisateur ne rejoint que lui-même"
   on public.room_players for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Solutions visibles par tout utilisateur connecté" on public.room_round_solves;
 create policy "Solutions visibles par tout utilisateur connecté"
   on public.room_round_solves for select
   using (auth.role() = 'authenticated');
 
+drop policy if exists "Un utilisateur ne revendique une réponse qu'en son nom" on public.room_round_solves;
 create policy "Un utilisateur ne revendique une réponse qu'en son nom"
   on public.room_round_solves for insert
   with check (auth.uid() = user_id);
 
 -- Active la réplication temps réel sur ces trois tables (lobby + scores en direct).
-alter publication supabase_realtime add table public.rooms;
-alter publication supabase_realtime add table public.room_players;
-alter publication supabase_realtime add table public.room_round_solves;
+-- Enveloppé pour ignorer l'erreur si une table est déjà dans la publication (pas de
+-- "ADD TABLE IF NOT EXISTS" en PostgreSQL).
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.rooms;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.room_players;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.room_round_solves;
+  exception when duplicate_object then null;
+  end;
+end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Scores du blind test — une ligne par partie solo terminée.
@@ -141,10 +165,12 @@ create index if not exists blindtest_scores_user_idx on public.blindtest_scores 
 
 alter table public.blindtest_scores enable row level security;
 
+drop policy if exists "Les scores sont visibles par tous (classement)" on public.blindtest_scores;
 create policy "Les scores sont visibles par tous (classement)"
   on public.blindtest_scores for select
   using (true);
 
+drop policy if exists "Chacun n'enregistre que ses propres scores" on public.blindtest_scores;
 create policy "Chacun n'enregistre que ses propres scores"
   on public.blindtest_scores for insert
   with check (auth.uid() = user_id);
