@@ -294,6 +294,14 @@ body {
   }
 }
 
+/* Empêche le zoom automatique de Safari iOS à la mise au point d'un champ — il se déclenche
+   dès qu'un champ affiche moins de 16px. Ça évite le "ça zoome/dézoome" au clavier. */
+@media (max-width: 767px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 ::selection {
   background: #f0001c;
   color: #ffffff;

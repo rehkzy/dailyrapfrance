@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, MapPin, Cloud, Flame,
-  Clock, Shuffle, Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight,
+  Clock, Shuffle, Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -651,7 +651,7 @@ export default function BlindTest() {
         )}
       </div>
 
-      <div className="card p-8 text-center relative overflow-hidden">
+      <div className="card p-8 text-center relative overflow-hidden min-h-[400px] flex flex-col justify-center transition-[height] duration-300">
         {revealed && <div className="brand-glow" aria-hidden="true" />}
 
         {roundGain && (
@@ -689,12 +689,23 @@ export default function BlindTest() {
             <span className={`font-display text-3xl text-gold block mb-4 transition-colors ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>
               {timeLeft}
             </span>
-            <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-6 max-w-xs mx-auto">
+            <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-4 max-w-xs mx-auto">
               <div
                 className="h-full bg-gold transition-all duration-1000 ease-linear"
                 style={{ width: `${(timeLeft / ROUND_SECONDS) * 100}%` }}
               />
             </div>
+
+            {!buzzedBy && (
+              <button
+                type="button"
+                onClick={revealRound}
+                className="mb-6 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
+              >
+                <SkipForward size={13} />
+                Personne ne trouve — passer
+              </button>
+            )}
 
             {mode === "local" ? (
               buzzedBy ? (

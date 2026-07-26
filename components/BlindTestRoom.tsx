@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft } from "lucide-react";
+import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -151,11 +151,24 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
       .select()
       .single();
     if (err || !data) {
-      setError("Impossible de créer le salon. Réessaie.");
+      console.error("[createRoom]", err);
+      setError(
+        err?.message
+          ? `Impossible de créer le salon (${err.message}). Vérifie que les tables "rooms" existent bien dans Supabase.`
+          : "Impossible de créer le salon. Réessaie."
+      );
       setBusy(false);
       return;
     }
-    await supabase.from("room_players").insert({ room_id: data.id, user_id: user.id, display_name: displayName });
+    const { error: joinErr } = await supabase
+      .from("room_players")
+      .insert({ room_id: data.id, user_id: user.id, display_name: displayName });
+    if (joinErr) {
+      console.error("[createRoom:joinSelf]", joinErr);
+      setError(`Salon créé mais impossible de te rejoindre (${joinErr.message}).`);
+      setBusy(false);
+      return;
+    }
     setRoom(data as RoomRow);
     setPlayers([{ room_id: data.id, user_id: user.id, display_name: displayName }]);
     setScreen("lobby");
@@ -362,7 +375,7 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
         <span className="font-mono text-xs text-ink-muted">Salon {room.code}</span>
       </div>
 
-      <div className="card p-6 md:p-8 text-center mb-4">
+      <div className="card p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
         {!started ? (
           <Magnetic strength={0.2}>
             <button onClick={launchExtract} className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors">
@@ -372,6 +385,16 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
         ) : (
           <>
             <span className={`font-display text-2xl text-gold block mb-4 ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>{timeLeft}</span>
+            {isHost && (
+              <button
+                type="button"
+                onClick={advanceRound}
+                className="mb-4 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
+              >
+                <SkipForward size={13} />
+                Personne ne trouve — passer
+              </button>
+            )}
             <div className={`space-y-2.5 max-w-sm mx-auto ${flash === "taken" ? "shake-wrong" : ""}`}>
               {(["title", "artist", "feat"] as FieldKey[])
                 .filter((f) => applicable.includes(f))

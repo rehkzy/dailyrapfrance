@@ -6,7 +6,7 @@ const GRADIENTS = [
   "from-[#3a0a0a] via-[#780101] to-[#F0001C]",
   "from-[#2b0505] via-[#5c0f0f] to-[#F0001C]",
   "from-[#1a0a05] via-[#7a2a0a] to-[#F0001C]",
-  "from-[#0a0a2b] via-[#3a0a4a] to-[#780101]",
+  "from-[#3a0505] via-[#8a1010] to-[#FF3B4E]",
   "from-[#2b1505] via-[#7a4a0a] to-[#F0001C]",
 ];
 
