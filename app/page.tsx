@@ -2,6 +2,7 @@ import { ArrowRight, Gamepad2, Trophy, Users2 } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import Magnetic from "@/components/Magnetic";
 import ParallaxGlow from "@/components/ParallaxGlow";
+import LogoShowcase from "@/components/LogoShowcase";
 import { InstagramIcon, TikTokIcon, XIcon } from "@/components/SocialIcons";
 
 const features = [
@@ -43,11 +44,7 @@ export default function Home() {
         <ParallaxGlow />
 
         <div className="relative flex-1 flex flex-col items-center justify-center px-6 pt-24 pb-8">
-          <img
-            src="/icon.svg"
-            alt="DailyRapFrance"
-            className="brand-pulse h-24 sm:h-28 md:h-36 w-auto mx-auto drop-shadow-[0_0_50px_rgba(240,0,28,0.4)]"
-          />
+          <LogoShowcase />
         </div>
 
         <div className="relative max-w-2xl mx-auto px-6 pb-14 sm:pb-20 text-center w-full">
