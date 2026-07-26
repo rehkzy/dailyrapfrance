@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Play, Zap, RotateCcw, Users, User } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
+import Magnetic from "@/components/Magnetic";
 
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null };
 type Mode = "solo" | "local";
@@ -23,23 +24,8 @@ const THEME_OPTIONS = [
 
 function buildQuery(themeId: string, count: number) {
   const params = new URLSearchParams();
+  params.set("theme", themeId);
   params.set("count", String(count));
-  if (themeId === "old") {
-    params.append("era", "NINETIES");
-    params.append("era", "TWO_THOUSANDS");
-  } else if (themeId === "2010s") {
-    params.append("era", "TWENTY_TENS");
-  } else if (themeId === "recent") {
-    params.append("era", "RECENT");
-  } else if (themeId === "pop") {
-    params.set("pop", "1");
-  } else if (themeId === "cloud") {
-    params.append("theme", "cloud");
-  } else if (themeId === "93") {
-    params.append("theme", "dept-93");
-  } else if (themeId === "91") {
-    params.append("theme", "dept-91");
-  }
   return params;
 }
 
@@ -143,9 +129,7 @@ export default function BlindTest() {
       const data = await res.json();
       const pool: Track[] = data.tracks ?? [];
       if (pool.length < 3) {
-        setSetupError(
-          "Pas assez de titres disponibles pour ce thème. Le pool doit être peuplé — voir pipelines/ingest-blindtest-pool.js."
-        );
+        setSetupError("Deezer n'a pas renvoyé assez de titres pour ce thème. Réessaie, ou choisis un autre thème.");
         setPhase("setup");
         return;
       }
@@ -330,14 +314,16 @@ export default function BlindTest() {
 
           {setupError && <p className="text-sm text-riseNeg">{setupError}</p>}
 
-          <button
-            onClick={startGame}
-            disabled={phase === "loading"}
-            className="w-full bg-gold hover:bg-glow disabled:opacity-60 text-white rounded-full py-3.5 font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-            {phase !== "loading" && <Play size={16} />}
-          </button>
+          <Magnetic strength={0.2} className="block w-full">
+            <button
+              onClick={startGame}
+              disabled={phase === "loading"}
+              className="w-full bg-gold hover:bg-glow disabled:opacity-60 text-white rounded-full py-3.5 font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              {phase === "loading" ? "Chargement..." : "Lancer la partie"}
+              {phase !== "loading" && <Play size={16} />}
+            </button>
+          </Magnetic>
         </div>
       </div>
     );

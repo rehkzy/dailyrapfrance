@@ -1,6 +1,8 @@
 import { Newspaper, Compass, Sparkles, Disc, ArrowRight, ArrowUpRight } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import NewsTicker from "@/components/NewsTicker";
+import Magnetic from "@/components/Magnetic";
+import ParallaxGlow from "@/components/ParallaxGlow";
 import { InstagramIcon, TikTokIcon, XIcon } from "@/components/SocialIcons";
 import { getNews } from "@/lib/queries";
 
@@ -53,7 +55,7 @@ export default async function Home() {
     <>
       {/* Hero — le halo rouge concentré de l'identité de marque, pas un accent discret */}
       <section className="relative overflow-hidden">
-        <div className="brand-glow" aria-hidden="true" />
+        <ParallaxGlow />
         <div className="max-w-6xl mx-auto px-6 pt-28 pb-24 md:pt-40 md:pb-32">
           <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-8">
             Média indépendant · Depuis avril 2020
@@ -68,13 +70,15 @@ export default async function Home() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-8">
-            <a
-              href="#mission"
-              className="inline-flex items-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:bg-glow transition-colors"
-            >
-              Découvrir le média
-              <ArrowRight size={16} />
-            </a>
+            <Magnetic>
+              <a
+                href="#mission"
+                className="inline-flex items-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:bg-glow transition-colors"
+              >
+                Découvrir le média
+                <ArrowRight size={16} />
+              </a>
+            </Magnetic>
             <div className="flex items-center gap-3 text-ink-faint">
               <span className="font-mono text-xs uppercase tracking-[0.2em]">Scroller</span>
               <span className="h-8 w-px bg-ink-faint/40 animate-bounce" aria-hidden="true" />
@@ -248,7 +252,7 @@ export default async function Home() {
       {/* Rejoignez la communauté — le vrai closer, halo de marque + CTA + réseaux */}
       <Reveal>
       <section className="relative overflow-hidden">
-        <div className="brand-glow" aria-hidden="true" />
+        <ParallaxGlow />
         <div className="max-w-4xl mx-auto px-6 py-32 md:py-40 text-center">
           <h2 className="font-display text-3xl md:text-5xl font-medium leading-tight mb-6">
             Rejoignez la communauté
@@ -259,13 +263,15 @@ export default async function Home() {
             et les histoires qui façonnent la culture urbaine.
           </p>
 
-          <a
-            href="/mag"
-            className="mt-10 inline-flex items-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:bg-glow transition-colors"
-          >
-            Explorer DailyRapFrance
-            <ArrowRight size={16} />
-          </a>
+          <Magnetic className="mt-10">
+            <a
+              href="/mag"
+              className="inline-flex items-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:bg-glow transition-colors"
+            >
+              Explorer DailyRapFrance
+              <ArrowRight size={16} />
+            </a>
+          </Magnetic>
 
           <div className="mt-14 flex flex-wrap justify-center gap-4">
             {socials.map((s) => (
