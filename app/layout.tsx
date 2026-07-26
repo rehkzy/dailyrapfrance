@@ -6,8 +6,7 @@ import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "DailyRapFrance — le média du rap français",
-  description:
-    "Le rap français raconté depuis 2020 : actus, artistes, sorties, charts et culture.",
+  description: "Le rap français raconté depuis 2020, avec passion — et le Blind Test qui va avec.",
   icons: {
     icon: "/icon.svg",
   },

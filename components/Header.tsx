@@ -2,17 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X as CloseIcon, ArrowUpRight } from "lucide-react";
+import { Menu, X as CloseIcon } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 
 const nav = [
-  { href: "/mag", label: "Mag" },
-  { href: "/artistes", label: "Artistes" },
-  { href: "/sorties", label: "Sorties" },
-  { href: "/charts", label: "Charts" },
-  { href: "/certifications", label: "Certifs" },
+  { href: "/a-propos", label: "À propos" },
   { href: "/blindtest", label: "Blind Test" },
-  { href: "/explorer/graphe", label: "Explorer" },
 ];
 
 const socials = [
@@ -169,15 +164,6 @@ export default function Header() {
                 ))}
               </div>
             </div>
-
-            <a
-              href="/a-propos"
-              onClick={() => setOpen(false)}
-              className="mt-6 flex items-center justify-between font-mono text-xs uppercase tracking-[0.14em] text-ink-faint hover:text-gold transition-colors"
-            >
-              À propos
-              <ArrowUpRight size={14} />
-            </a>
           </div>
         </div>
       )}

@@ -1,28 +1,8 @@
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 
-const columns = [
-  {
-    title: "Média",
-    links: [
-      { href: "/mag", label: "Mag" },
-      { href: "/artistes", label: "Artistes" },
-      { href: "/sorties", label: "Sorties" },
-      { href: "/a-propos", label: "À propos" },
-    ],
-  },
-  {
-    title: "Data",
-    links: [
-      { href: "/charts", label: "Charts" },
-      { href: "/certifications", label: "Certifications" },
-      { href: "/explorer/graphe", label: "Graphe relationnel" },
-      { href: "/explorer/comparer", label: "Comparateur" },
-    ],
-  },
-  {
-    title: "Jeu",
-    links: [{ href: "/blindtest", label: "Blind Test" }],
-  },
+const links = [
+  { href: "/a-propos", label: "À propos" },
+  { href: "/blindtest", label: "Blind Test" },
 ];
 
 const socials = [
@@ -35,31 +15,23 @@ export default function Footer() {
   return (
     <footer className="relative mt-24 border-t border-white/8">
       <div className="glow-line" />
-      <div className="max-w-6xl mx-auto px-6 py-14 grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="max-w-6xl mx-auto px-6 py-14 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-10">
         <div>
           <img src="/logo.svg" alt="DailyRapFrance" className="h-8 w-auto mb-5" />
           <p className="text-sm text-ink-muted max-w-xs leading-relaxed">
-            Le rap français raconté depuis 2020 — actus, artistes, sorties et culture,
-            sans le flux interchangeable.
+            Le rap français raconté depuis 2020, sans le flux interchangeable.
           </p>
         </div>
 
-        {columns.map((col) => (
-          <div key={col.title}>
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-ink-faint mb-4">
-              {col.title}
-            </p>
-            <ul className="space-y-2.5">
-              {col.links.map((l) => (
-                <li key={l.href}>
-                  <a href={l.href} className="text-sm text-ink-muted hover:text-ink transition-colors">
-                    {l.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <ul className="flex gap-8">
+          {links.map((l) => (
+            <li key={l.href}>
+              <a href={l.href} className="text-sm text-ink-muted hover:text-ink transition-colors">
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 pb-10 flex flex-col-reverse sm:flex-row items-start sm:items-center justify-between gap-6">

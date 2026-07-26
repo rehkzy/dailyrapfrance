@@ -157,10 +157,10 @@ export default function AProposPage() {
       <section className="max-w-4xl mx-auto px-6 pb-28 md:pb-36 text-center">
         <Magnetic>
           <a
-            href="/mag"
+            href="/blindtest"
             className="inline-flex items-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:bg-glow transition-colors"
           >
-            Découvrir le mag
+            Jouer au Blind Test
             <ArrowRight size={16} />
           </a>
         </Magnetic>
