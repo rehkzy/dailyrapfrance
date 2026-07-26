@@ -3,12 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, MapPin, Cloud, Flame,
-  Clock, Shuffle, Medal, Headphones, Check,
+  Clock, Shuffle, Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
+import { useUser } from "@/lib/useUser";
+import { createClient } from "@/lib/supabase/client";
 import Magnetic from "@/components/Magnetic";
 import Confetti from "@/components/Confetti";
+import ThemeCover from "@/components/ThemeCover";
+import BlindTestRoom from "@/components/BlindTestRoom";
 
 type Track = {
   id: string;
@@ -18,7 +22,7 @@ type Track = {
   coverUrl: string | null;
   feats: string[];
 };
-type Mode = "solo" | "local";
+type Mode = "solo" | "local" | "online";
 type Phase = "setup" | "loading" | "playing" | "final";
 type Player = { id: string; name: string; score: number; jokerUsed: boolean };
 type FieldKey = "title" | "artist" | "feat";
@@ -53,6 +57,11 @@ function buildQuery(themeId: string, count: number) {
 }
 
 export default function BlindTest() {
+  const { user, loading: userLoading } = useUser();
+
+  // Setup — assistant en 3 étapes pour limiter le scroll
+  const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(0);
+  const [activeCategory, setActiveCategory] = useState<(typeof THEME_CATEGORIES)[number]>("Époques");
   // Setup
   const [mode, setMode] = useState<Mode>("solo");
   const [themeId, setThemeId] = useState<string>("mix");
@@ -307,6 +316,7 @@ export default function BlindTest() {
   function playAgain() {
     clearTimers();
     setPhase("setup");
+    setWizardStep(0);
     setTracks([]);
     setPlayers([]);
     setRoundIndex(0);
@@ -317,175 +327,213 @@ export default function BlindTest() {
 
   // ── Rendu ──────────────────────────────────────────────────────────────
 
+  if (userLoading) {
+    return <div className="h-64" aria-hidden="true" />;
+  }
+
+  if (!user) {
+    return <SignInGate />;
+  }
+
+  if (mode === "online") {
+    return <BlindTestRoom user={user} onExit={() => setMode("solo")} />;
+  }
+
   if (phase === "setup" || phase === "loading") {
+    const steps = ["Mode", "Thème", "Réglages"];
     return (
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-2xl mx-auto">
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie */}
-        <div className="flex justify-center mb-6">
-          <div className="vinyl-spin w-14 h-14 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 flex items-center justify-center">
-            <div className="w-5 h-5 rounded-full bg-gold flex items-center justify-center">
-              <Disc size={10} className="text-white" />
+        <div className="flex justify-center mb-4">
+          <div className="vinyl-spin w-11 h-11 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-gold flex items-center justify-center">
+              <Disc size={8} className="text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card p-6 md:p-8 space-y-9 border-white/10">
-          <div>
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Mode</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  sfx.click();
-                  setMode("solo");
-                }}
-                className={`group rounded-xl border p-5 flex flex-col items-center gap-2.5 transition-all duration-200 ${
-                  mode === "solo"
-                    ? "border-gold bg-gold/10 shadow-[0_0_24px_rgba(240,0,28,0.25)] scale-[1.02]"
-                    : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
-                }`}
-              >
-                <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${mode === "solo" ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"}`}>
-                  <User size={20} />
-                </div>
-                <span className="text-sm font-medium">Solo</span>
-              </button>
-              <button
-                onClick={() => {
-                  sfx.click();
-                  setMode("local");
-                }}
-                className={`group rounded-xl border p-5 flex flex-col items-center gap-2.5 transition-all duration-200 ${
-                  mode === "local"
-                    ? "border-gold bg-gold/10 shadow-[0_0_24px_rgba(240,0,28,0.25)] scale-[1.02]"
-                    : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
-                }`}
-              >
-                <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${mode === "local" ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"}`}>
-                  <Users size={20} />
-                </div>
-                <span className="text-sm font-medium">À plusieurs</span>
-              </button>
-            </div>
-          </div>
+        {/* Fil d'ariane des étapes */}
+        <div className="flex items-center justify-center gap-2 mb-5">
+          {steps.map((label, i) => (
+            <button
+              key={label}
+              onClick={() => setWizardStep(i as 0 | 1 | 2)}
+              className={`flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide transition-colors ${
+                i === wizardStep ? "text-gold" : "text-ink-faint hover:text-ink-muted"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${i === wizardStep ? "bg-gold" : "bg-ink-faint/40"}`} />
+              {label}
+              {i < steps.length - 1 && <span className="text-ink-faint/30 ml-1">—</span>}
+            </button>
+          ))}
+        </div>
 
-          {mode === "local" && (
-            <div>
-              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Joueurs</p>
-              <div className="space-y-2">
-                {playerNames.map((name, i) => (
-                  <div key={i} className="flex gap-2">
-                    <input
-                      value={name}
-                      onChange={(e) =>
-                        setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))
-                      }
-                      placeholder={`Joueur ${i + 1}`}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
-                    />
-                    {playerNames.length > 2 && (
+        <div className="card p-6 md:p-7 min-h-[420px] flex flex-col">
+          {/* Étape 0 — Mode */}
+          {wizardStep === 0 && (
+            <div className="flex-1">
+              <div className="grid grid-cols-3 gap-2.5">
+                {[
+                  { id: "solo" as Mode, label: "Solo", Icon: User },
+                  { id: "local" as Mode, label: "Local", Icon: Users },
+                  { id: "online" as Mode, label: "Salon en ligne", Icon: Globe },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      sfx.click();
+                      setMode(m.id);
+                      if (m.id === "online") return;
+                      setWizardStep(1);
+                    }}
+                    className={`group rounded-xl border p-4 flex flex-col items-center gap-2 transition-all duration-200 ${
+                      mode === m.id
+                        ? "border-gold bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.22)]"
+                        : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${mode === m.id ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"}`}>
+                      <m.Icon size={18} />
+                    </div>
+                    <span className="text-xs font-medium text-center leading-tight">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {mode === "local" && (
+                <div className="mt-5">
+                  <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2.5">Joueurs</p>
+                  <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                    {playerNames.map((name, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input
+                          value={name}
+                          onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
+                          placeholder={`Joueur ${i + 1}`}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-gold/50"
+                        />
+                        {playerNames.length > 2 && (
+                          <button
+                            onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="text-ink-faint hover:text-ink px-2"
+                            aria-label="Retirer ce joueur"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {playerNames.length < 8 && (
                       <button
-                        onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="text-ink-faint hover:text-ink px-2"
-                        aria-label="Retirer ce joueur"
+                        onClick={() => setPlayerNames((prev) => [...prev, `Joueur ${prev.length + 1}`])}
+                        className="text-xs font-mono text-gold hover:text-glow transition-colors"
                       >
-                        ×
+                        + Ajouter un joueur
                       </button>
                     )}
                   </div>
-                ))}
-                {playerNames.length < 8 && (
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Étape 1 — Thème, onglets par catégorie pour éviter le scroll */}
+          {wizardStep === 1 && (
+            <div className="flex-1 flex flex-col">
+              <div className="flex gap-1.5 mb-4">
+                {THEME_CATEGORIES.map((cat) => (
                   <button
-                    onClick={() => setPlayerNames((prev) => [...prev, `Joueur ${prev.length + 1}`])}
-                    className="text-xs font-mono text-gold hover:text-glow transition-colors"
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`flex-1 rounded-lg py-2 text-xs font-mono uppercase tracking-wide transition-colors ${
+                      activeCategory === cat ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+                    }`}
                   >
-                    + Ajouter un joueur
+                    {cat}
                   </button>
-                )}
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2.5">
+                {THEME_OPTIONS.filter((t) => t.category === activeCategory).map((t, i) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      sfx.click();
+                      setThemeId(t.id);
+                    }}
+                    className="group text-left"
+                  >
+                    <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} />
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          <div className="space-y-6">
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em]">Thème</p>
-            {THEME_CATEGORIES.map((cat) => (
-              <div key={cat}>
-                <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2.5">{cat}</p>
-                <div className="grid sm:grid-cols-2 gap-2.5">
-                  {THEME_OPTIONS.filter((t) => t.category === cat).map((t) => {
-                    const active = themeId === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => {
-                          sfx.click();
-                          setThemeId(t.id);
-                        }}
-                        className={`group rounded-xl border px-4 py-3 text-left transition-all duration-200 flex items-center gap-3 ${
-                          active
-                            ? "border-gold bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.2)]"
-                            : "border-white/10 hover:border-white/25 hover:-translate-y-0.5"
-                        }`}
-                      >
-                        <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                            active ? "bg-gold text-white" : "bg-white/5 text-ink-faint group-hover:text-ink"
-                          }`}
-                        >
-                          <t.Icon size={16} />
-                        </div>
-                        <span className="min-w-0">
-                          <span className={`block text-sm font-medium truncate ${active ? "text-ink" : "text-ink-muted"}`}>
-                            {t.label}
-                          </span>
-                          <span className="block text-xs text-ink-faint mt-0.5 truncate">{t.text}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* Étape 2 — Réglages + barème + lancer */}
+          {wizardStep === 2 && (
+            <div className="flex-1">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Nombre de manches</p>
+              <div className="flex gap-2 mb-6">
+                {[10, 15, 20, 30].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => {
+                      sfx.click();
+                      setRoundCount(n);
+                    }}
+                    className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
+                      roundCount === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div>
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Nombre de manches</p>
-            <div className="flex gap-2">
-              {[10, 15, 20, 30].map((n) => (
+              <div className="glass rounded-xl p-4 text-xs text-ink-faint leading-relaxed mb-6">
+                <span className="text-gold font-mono uppercase tracking-wide">Barème</span> — titre :{" "}
+                <span className="text-ink">1 pt</span> · artiste : <span className="text-ink">1 pt</span> · featuring :{" "}
+                <span className="text-gold">+2 pts</span>. Un <span className="text-ink">joker</span> par partie et
+                par joueur pour réécouter un autre passage.
+              </div>
+
+              {setupError && <p className="text-sm text-riseNeg mb-4">{setupError}</p>}
+
+              <Magnetic strength={0.15} className="block w-full">
                 <button
-                  key={n}
-                  onClick={() => {
-                    sfx.click();
-                    setRoundCount(n);
-                  }}
-                  className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
-                    roundCount === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
-                  }`}
+                  onClick={startGame}
+                  disabled={phase === "loading"}
+                  className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full py-4 font-semibold text-base transition-colors flex items-center justify-center gap-2"
                 >
-                  {n}
+                  {phase === "loading" ? "Chargement..." : "Lancer la partie"}
+                  {phase !== "loading" && <Play size={18} />}
                 </button>
-              ))}
+              </Magnetic>
             </div>
-          </div>
+          )}
 
-          <div className="glass rounded-xl p-4 text-xs text-ink-faint leading-relaxed">
-            <span className="text-gold font-mono uppercase tracking-wide">Barème</span> — titre :{" "}
-            <span className="text-ink">1 pt</span> · artiste : <span className="text-ink">1 pt</span> · trouver un
-            featuring : <span className="text-gold">+2 pts</span>. Chaque joueur a un{" "}
-            <span className="text-ink">joker</span> par partie pour écouter un autre passage du son s'il bloque.
-          </div>
-
-          {setupError && <p className="text-sm text-riseNeg">{setupError}</p>}
-
-          <Magnetic strength={0.15} className="block w-full">
-            <button
-              onClick={startGame}
-              disabled={phase === "loading"}
-              className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full py-4 font-semibold text-base transition-colors flex items-center justify-center gap-2"
-            >
-              {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-              {phase !== "loading" && <Play size={18} />}
-            </button>
-          </Magnetic>
+          {/* Navigation entre étapes */}
+          {mode !== "online" && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/8">
+              <button
+                onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
+                disabled={wizardStep === 0}
+                className="flex items-center gap-1 text-xs font-mono uppercase text-ink-faint hover:text-ink disabled:opacity-0 transition-colors"
+              >
+                <ChevronLeft size={14} /> Précédent
+              </button>
+              {wizardStep < 2 && (
+                <button
+                  onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
+                  className="flex items-center gap-1 text-xs font-mono uppercase text-gold hover:text-glow transition-colors"
+                >
+                  Suivant <ChevronRight size={14} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -829,5 +877,34 @@ function ResultPill({ ok, label, points }: { ok: boolean; label: string; points:
       {ok && <Check size={11} />}
       {label} {ok ? `+${points}` : ""}
     </span>
+  );
+}
+
+// Verrou de connexion — il faut un compte pour jouer (scores, salons privés).
+function SignInGate() {
+  async function signIn() {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/blindtest` },
+    });
+  }
+
+  return (
+    <div className="max-w-sm mx-auto card p-8 text-center">
+      <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4">
+        <LogIn size={20} />
+      </div>
+      <p className="font-display text-xl font-medium mb-2">Connecte-toi pour jouer</p>
+      <p className="text-sm text-ink-muted mb-6">
+        Ton compte sert à sauvegarder tes scores et à créer des salons privés entre potes.
+      </p>
+      <button
+        onClick={signIn}
+        className="w-full bg-gold hover:bg-glow text-white rounded-full py-3 text-sm font-medium transition-colors"
+      >
+        Continuer avec Google
+      </button>
+    </div>
   );
 }

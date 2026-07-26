@@ -1,13 +1,13 @@
 # DailyRapFrance
 
 Site du média DailyRapFrance — **À propos**, **Blind Test** (solo ou multijoueur local),
-avec comptes joueurs (Google / Apple) et classement persistant.
+avec comptes joueurs (Google) et classement persistant.
 
 ## Stack
 
 - **Next.js 15** (App Router) + **React 19** + **TypeScript**
 - **Tailwind CSS** pour le style, **Lenis** pour le scroll fluide
-- **Supabase** — Auth (Google/Apple) + Postgres, uniquement pour les comptes et les scores
+- **Supabase** — Auth (Google) + Postgres, uniquement pour les comptes et les scores
   du blind test. Rien d'autre sur le site n'a besoin de base de données : le blind test lui
   même continue d'interroger Deezer en direct, sans catalogue à maintenir.
 
@@ -82,21 +82,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="votre_clé_anon"
 4. Supabase → Authentication → Providers → **Google** → activez, collez Client ID/Secret →
    Save
 
-### 6. Activer la connexion Apple (payant — nécessite un compte Apple Developer, 99$/an)
-
-Contrairement à Google, "Sign in with Apple" demande :
-1. Un compte [Apple Developer Program](https://developer.apple.com/programs/) actif
-2. Un **Services ID** avec "Sign in with Apple" activé
-3. Une **clé privée** générée dans Certificates, Identifiers & Profiles, téléchargée une
-   seule fois
-4. Ces éléments (Client ID, Team ID, Key ID, clé privée) se renseignent dans Supabase →
-   Authentication → Providers → **Apple**
-
-Si vous n'avez pas de compte Apple Developer, laissez ce provider désactivé — le bouton
-"Continuer avec Apple" ne fonctionnera simplement pas tant qu'il n'est pas configuré côté
-Supabase, sans casser le reste du site.
-
-### 7. Callback
+### 6. Callback
 
 Le code gère déjà la redirection : `app/auth/callback/route.ts` échange le code OAuth contre
 une session. Rien à modifier de ce côté.

@@ -22,9 +22,9 @@ export default function AuthButton() {
     return () => sub.subscription.unsubscribe();
   }, [supabase]);
 
-  async function signIn(provider: "google" | "apple") {
+  async function signIn() {
     await supabase.auth.signInWithOAuth({
-      provider,
+      provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
@@ -38,30 +38,12 @@ export default function AuthButton() {
 
   if (!user) {
     return (
-      <div className="relative">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="bg-gold text-white rounded-full px-4 py-1.5 text-xs font-medium hover:bg-glow transition-colors"
-        >
-          Se connecter
-        </button>
-        {open && (
-          <div className="absolute right-0 top-full mt-2 glass rounded-xl p-2 w-48 z-50">
-            <button
-              onClick={() => signIn("google")}
-              className="w-full text-left text-sm px-3 py-2 rounded-lg hover:bg-white/8 transition-colors"
-            >
-              Continuer avec Google
-            </button>
-            <button
-              onClick={() => signIn("apple")}
-              className="w-full text-left text-sm px-3 py-2 rounded-lg hover:bg-white/8 transition-colors"
-            >
-              Continuer avec Apple
-            </button>
-          </div>
-        )}
-      </div>
+      <button
+        onClick={signIn}
+        className="bg-gold text-white rounded-full px-4 py-1.5 text-xs font-medium hover:bg-glow transition-colors"
+      >
+        Se connecter
+      </button>
     );
   }
 
