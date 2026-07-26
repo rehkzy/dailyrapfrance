@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Menu, X as CloseIcon, Info, Gamepad2, Trophy } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
@@ -66,16 +67,115 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
   );
 }
 
+// Tiroir mobile — rendu via un portail DIRECTEMENT dans <body>, en dehors du <header>.
+// C'est le point important : le header est en `position: sticky`, et le verrouillage du
+// scroll d'arrière-plan met `<body>` en `position: fixed` pendant que le tiroir est ouvert.
+// Ces deux `position` en interaction cassaient l'affichage du tiroir (visible seulement en
+// partie, mal positionné) quand il était imbriqué dans le header. En le sortant via un
+// portail, il n'hérite plus d'aucun contexte de positionnement parasite : son
+// `position: fixed` est toujours relatif au vrai viewport.
+function MobileMenu({
+  open,
+  onClose,
+  pathname,
+}: {
+  open: boolean;
+  onClose: () => void;
+  pathname: string | null;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      className={`lg:hidden fixed inset-0 z-[200] transition-opacity duration-300 ${
+        open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}
+    >
+      {/* Fond — tap pour fermer */}
+      <button
+        type="button"
+        aria-label="Fermer le menu"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+      />
+
+      {/* Tiroir */}
+      <div
+        className={`absolute left-0 right-0 bottom-0 max-h-[85vh] rounded-t-3xl glass-strong overflow-hidden transition-transform duration-[350ms] ease-out ${
+          open ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="grain" aria-hidden="true" />
+        <div className="relative px-6 pt-3 pb-8 overflow-y-auto max-h-[85vh]">
+          {/* Poignée */}
+          <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-6" />
+
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2.5">
+              <img src="/icon.svg" alt="" aria-hidden="true" className="h-7 w-auto opacity-90" />
+              <span className="font-display text-lg font-medium">DailyRapFrance</span>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer le menu"
+              className="w-9 h-9 flex items-center justify-center rounded-full glass text-ink-muted hover:text-ink"
+            >
+              <CloseIcon size={18} />
+            </button>
+          </div>
+
+          <nav className="space-y-1.5 mb-6">
+            {nav.map((item) => {
+              const active = pathname === item.href || pathname?.startsWith(item.href + "/");
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors ${
+                    active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"
+                  }`}
+                >
+                  <item.Icon size={18} className={active ? "text-gold" : "text-ink-faint"} />
+                  <span className="text-base font-medium">{item.label}</span>
+                </a>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/8">
+            <AuthButton />
+            <div className="flex items-center gap-2">
+              {socials.map(({ label, href, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="glass w-9 h-9 rounded-full flex items-center justify-center text-ink-muted hover:text-gold transition-colors"
+                >
+                  <Icon />
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function Header() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const scrollYRef = useRef(0);
 
   // Verrouillage du scroll en arrière-plan — la technique fiable sur iOS Safari.
-  // `overflow: hidden` sur body seul ne suffit pas sur iOS : Safari continue de scroller
-  // le body sous certaines conditions (rebond, clavier, etc.). On fixe le body à sa position
-  // de scroll actuelle, puis on la restaure à la fermeture.
   useEffect(() => {
     if (open) {
       scrollYRef.current = window.scrollY;
@@ -85,12 +185,13 @@ export default function Header() {
       document.body.style.right = "0";
       document.body.style.width = "100%";
     } else {
+      const y = scrollYRef.current;
       document.body.style.position = "";
       document.body.style.top = "";
       document.body.style.left = "";
       document.body.style.right = "";
       document.body.style.width = "";
-      if (scrollYRef.current) window.scrollTo(0, scrollYRef.current);
+      if (y) window.scrollTo(0, y);
     }
     return () => {
       document.body.style.position = "";
@@ -101,12 +202,10 @@ export default function Header() {
     };
   }, [open]);
 
-  // Ferme le tiroir automatiquement si on navigue autrement (bouton retour, etc.)
+  // Ferme le tiroir automatiquement si on navigue autrement
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
-
-  useEffect(() => setMounted(true), []);
 
   return (
     <header className="glass sticky top-0 z-50 rounded-none">
@@ -142,7 +241,7 @@ export default function Header() {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="lg:hidden p-2 -mr-2 text-ink relative z-[70] active:scale-90 transition-transform"
+          className="lg:hidden p-2 -mr-2 text-ink relative active:scale-90 transition-transform"
           aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
           aria-expanded={open}
         >
@@ -152,78 +251,7 @@ export default function Header() {
 
       <ScrollProgress />
 
-      {/* Menu mobile — tiroir qui remonte du bas, façon app native (plus naturel au pouce
-          qu'un menu plein écran classique) */}
-      {mounted && (
-        <div
-          className={`lg:hidden fixed inset-0 z-[65] transition-opacity duration-300 ${
-            open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-          }`}
-        >
-          {/* Fond — tap pour fermer */}
-          <button
-            type="button"
-            aria-label="Fermer le menu"
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          />
-
-          {/* Tiroir */}
-          <div
-            className={`absolute left-0 right-0 bottom-0 max-h-[85vh] rounded-t-3xl glass-strong overflow-hidden transition-transform duration-[350ms] ease-out ${
-              open ? "translate-y-0" : "translate-y-full"
-            }`}
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-          >
-            <div className="grain" aria-hidden="true" />
-            <div className="relative px-6 pt-3 pb-8 overflow-y-auto max-h-[85vh]">
-              {/* Poignée */}
-              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-6" />
-
-              <div className="flex items-center gap-2.5 mb-6">
-                <img src="/icon.svg" alt="" aria-hidden="true" className="h-7 w-auto opacity-90" />
-                <span className="font-display text-lg font-medium">DailyRapFrance</span>
-              </div>
-
-              <nav className="space-y-1.5 mb-6">
-                {nav.map((item) => {
-                  const active = pathname === item.href || pathname?.startsWith(item.href + "/");
-                  return (
-                    <a
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors ${
-                        active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"
-                      }`}
-                    >
-                      <item.Icon size={18} className={active ? "text-gold" : "text-ink-faint"} />
-                      <span className="text-base font-medium">{item.label}</span>
-                    </a>
-                  );
-                })}
-              </nav>
-
-              <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/8">
-                <AuthButton />
-                <div className="flex items-center gap-2">
-                  {socials.map(({ label, href, Icon }) => (
-                    <a
-                      key={label}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={label}
-                      className="glass w-9 h-9 rounded-full flex items-center justify-center text-ink-muted hover:text-gold transition-colors"
-                    >
-                      <Icon />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <MobileMenu open={open} onClose={() => setOpen(false)} pathname={pathname} />
     </header>
   );
 }

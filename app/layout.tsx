@@ -6,8 +6,13 @@ import Footer from "@/components/Footer";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 export const metadata: Metadata = {
-  title: "DailyRapFrance — le média du rap français",
-  description: "Le rap français raconté depuis 2020, avec passion — et le Blind Test qui va avec.",
+  metadataBase: new URL("https://dailyrapfrance.best"),
+  title: {
+    default: "DailyRapFrance — Le média du rap français",
+    template: "%s",
+  },
+  description:
+    "DailyRapFrance, le média indépendant du rap français depuis 2020. Blind test rap français en ligne gratuit, solo ou multijoueur.",
   icons: {
     icon: "/icon.svg",
   },

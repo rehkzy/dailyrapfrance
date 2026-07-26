@@ -354,7 +354,7 @@ export default function BlindTestRoom({ user, onExit }: { user: User; onExit?: (
 
   return (
     <div className="max-w-lg mx-auto">
-      <audio ref={audioRef} src={track.previewUrl} preload="auto" />
+      <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" />
       <div className="flex items-center justify-between mb-4">
         <span className="font-mono text-xs text-ink-faint uppercase">
           Manche {room.current_round + 1} / {room.tracks.length}

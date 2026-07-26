@@ -82,13 +82,25 @@ export default function Home() {
       </section>
       </Reveal>
 
-      {/* Ce que tu trouveras ici — infos statiques, aucune base de données requise */}
+      {/* Ce que tu trouveras ici — grille bento, la fonctionnalité phare mise en avant */}
       <Reveal>
       <section className="max-w-5xl mx-auto px-6 py-16 sm:py-20">
-        <div className="grid sm:grid-cols-3 gap-4">
-          {features.map((f) => (
+        <div className="grid sm:grid-cols-2 gap-4">
+          <a href={features[0].href} className="group card card-lift p-7 sm:p-8 flex flex-col justify-between sm:row-span-2 min-h-[220px] sm:min-h-[360px] relative overflow-hidden">
+            <div className="brand-pulse absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-gold/10 blur-2xl" aria-hidden="true" />
+            <features[0].Icon className="text-gold mb-5 relative" size={28} strokeWidth={1.6} />
+            <div className="relative">
+              <h3 className="font-display text-2xl sm:text-3xl font-medium mb-3">{features[0].title}</h3>
+              <p className="text-sm sm:text-base text-ink-muted leading-relaxed mb-5">{features[0].text}</p>
+              <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-gold group-hover:text-glow transition-colors">
+                {features[0].cta} <ArrowRight size={13} />
+              </span>
+            </div>
+          </a>
+
+          {features.slice(1).map((f) => (
             <a key={f.title} href={f.href} className="group card card-lift p-6 flex flex-col">
-              <f.Icon className="text-gold mb-5" size={22} strokeWidth={1.6} />
+              <f.Icon className="text-gold mb-4" size={20} strokeWidth={1.6} />
               <h3 className="font-display text-lg font-medium mb-2">{f.title}</h3>
               <p className="text-sm text-ink-muted leading-relaxed mb-4 flex-1">{f.text}</p>
               <span className="text-xs font-mono uppercase tracking-wide text-gold group-hover:text-glow transition-colors">

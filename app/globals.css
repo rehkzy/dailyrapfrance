@@ -231,8 +231,8 @@ body {
 /* Emblème du hero — balayage de lumière en boucle sur le verre dépoli */
 @keyframes logo-sweep {
   0% { transform: translateX(-130%) translateY(-130%) rotate(35deg); opacity: 0; }
-  8% { opacity: 0.9; }
-  35% { opacity: 0; }
+  6% { opacity: 1; }
+  28% { opacity: 0; }
   100% { transform: translateX(130%) translateY(130%) rotate(35deg); opacity: 0; }
 }
 
@@ -240,35 +240,58 @@ body {
   background: linear-gradient(
     75deg,
     transparent 40%,
-    rgba(255, 255, 255, 0.35) 48%,
-    rgba(255, 255, 255, 0.55) 50%,
-    rgba(255, 255, 255, 0.35) 52%,
+    rgba(255, 255, 255, 0.4) 48%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0.4) 52%,
     transparent 60%
   );
   width: 250%;
   height: 250%;
   left: -75%;
   top: -75%;
-  animation: logo-sweep 4.5s ease-in-out infinite;
-  animation-delay: 1.2s;
+  animation: logo-sweep 2.8s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+/* Anneau lumineux qui tourne en continu derrière la carte du logo */
+@keyframes logo-ring-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.logo-ring {
+  background: conic-gradient(from 0deg, transparent, #F0001C, transparent 35%);
+  animation: logo-ring-spin 6s linear infinite;
+}
+
+/* Flottement doux de l'icône dans sa carte */
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.logo-float {
+  animation: logo-float 3.4s ease-in-out infinite;
 }
 
 /* Respiration 3D légère quand il n'y a pas de souris (mobile/tactile) */
 @keyframes logo-idle-tilt {
   0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
-  25% { transform: rotateX(3deg) rotateY(-5deg); }
-  75% { transform: rotateX(-2deg) rotateY(5deg); }
+  25% { transform: rotateX(4deg) rotateY(-7deg); }
+  75% { transform: rotateX(-3deg) rotateY(7deg); }
 }
 
 @media (hover: none) {
   .logo-tilt {
-    animation: logo-idle-tilt 7s ease-in-out infinite;
+    animation: logo-idle-tilt 5s ease-in-out infinite;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logo-sweep { animation: none; opacity: 0; }
-  .logo-tilt { animation: none !important; transform: none !important; }
+  .logo-sweep, .logo-ring, .logo-float, .logo-tilt {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 ::selection {

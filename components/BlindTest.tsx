@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import Magnetic from "@/components/Magnetic";
 import Confetti from "@/components/Confetti";
 import ThemeCover from "@/components/ThemeCover";
+import Row from "@/components/Row";
 import BlindTestRoom from "@/components/BlindTestRoom";
 
 type Track = {
@@ -24,7 +25,7 @@ type Track = {
 };
 type Mode = "solo" | "local" | "online";
 type Phase = "setup" | "loading" | "playing" | "final";
-type Player = { id: string; name: string; score: number; jokerUsed: boolean };
+type Player = { id: string; name: string; score: number; jokerUsed: boolean; timeJokerUsed: boolean };
 type FieldKey = "title" | "artist" | "feat";
 
 const ROUND_SECONDS = 25;
@@ -61,7 +62,6 @@ export default function BlindTest() {
 
   // Setup — assistant en 3 étapes pour limiter le scroll
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(0);
-  const [activeCategory, setActiveCategory] = useState<(typeof THEME_CATEGORIES)[number]>("Époques");
   // Setup
   const [mode, setMode] = useState<Mode>("solo");
   const [themeId, setThemeId] = useState<string>("mix");
@@ -90,6 +90,10 @@ export default function BlindTest() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deadlineRef = useRef<number | null>(null); // horodatage de fin de manche — le décompte
+  // se recalcule à chaque tick à partir de l'heure réelle, plutôt que de décrémenter un
+  // compteur : ça évite qu'il se désynchronise ou paraisse "bloqué" si le navigateur retarde
+  // une frame (ouverture du clavier virtuel, re-rendu lourd, etc.)
 
   const track = tracks[roundIndex];
   const applicableFields: FieldKey[] = track?.feats?.length ? ["title", "artist", "feat"] : ["title", "artist"];
@@ -118,20 +122,21 @@ export default function BlindTest() {
   }, [clearTimers, tracks.length]);
 
   const tick = useCallback(() => {
-    setTimeLeft((t) => {
-      if (t <= 1) {
-        sfx.wrong();
-        revealRound();
-        return 0;
-      }
-      if (t <= 6) sfx.tick();
-      return t - 1;
-    });
+    if (deadlineRef.current == null) return;
+    const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+    setTimeLeft(remaining);
+    if (remaining <= 0) {
+      sfx.wrong();
+      revealRound();
+      return;
+    }
+    if (remaining <= 6) sfx.tick();
   }, [revealRound]);
 
   function resetRoundState() {
     setStarted(false);
     setTimeLeft(ROUND_SECONDS);
+    deadlineRef.current = null;
     setBuzzedBy(null);
     setLocked(new Set());
     setSolved({});
@@ -166,8 +171,8 @@ export default function BlindTest() {
       setTracks(pool);
       setPlayers(
         mode === "solo"
-          ? [{ id: "solo", name: "Toi", score: 0, jokerUsed: false }]
-          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokerUsed: false }))
+          ? [{ id: "solo", name: "Toi", score: 0, jokerUsed: false, timeJokerUsed: false }]
+          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokerUsed: false, timeJokerUsed: false }))
       );
       setRoundIndex(0);
       setPhase("playing");
@@ -182,6 +187,7 @@ export default function BlindTest() {
     sfx.click();
     setStarted(true);
     audioRef.current?.play().catch(() => {});
+    deadlineRef.current = Date.now() + ROUND_SECONDS * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
 
@@ -195,6 +201,19 @@ export default function BlindTest() {
     audio.currentTime = Math.max(0, jump);
     audio.play().catch(() => {});
     setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, jokerUsed: true } : p)));
+  }
+
+  const TIME_JOKER_SECONDS = 15;
+
+  // 2e joker — prolonge le temps de la manche pour finir de répondre. Une fois par joueur
+  // et par partie, comme le premier.
+  function useTimeJoker(playerId: string) {
+    const player = players.find((p) => p.id === playerId);
+    if (!player || player.timeJokerUsed || !started || revealed) return;
+    sfx.joker();
+    deadlineRef.current = (deadlineRef.current ?? Date.now()) + TIME_JOKER_SECONDS * 1000;
+    setTimeLeft((t) => t + TIME_JOKER_SECONDS);
+    setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, timeJokerUsed: true } : p)));
   }
 
   function awardPoints(playerId: string, points: number) {
@@ -246,6 +265,7 @@ export default function BlindTest() {
     sfx.buzz();
     setBuzzedBy(playerId);
     if (intervalRef.current) clearInterval(intervalRef.current);
+    deadlineRef.current = null; // en pause — timeLeft garde sa dernière valeur affichée
   }
 
   function submitLocalGuess() {
@@ -262,6 +282,7 @@ export default function BlindTest() {
         revealRound();
         return;
       }
+      deadlineRef.current = Date.now() + timeLeft * 1000;
       intervalRef.current = setInterval(tick, 1000);
       return;
     }
@@ -269,6 +290,7 @@ export default function BlindTest() {
     // c'était le dernier champ manquant — sinon on relance le chrono pour la suite.
     setBuzzedBy(null);
     setGuess({ title: "", artist: "", feat: "" });
+    deadlineRef.current = Date.now() + timeLeft * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
 
@@ -358,7 +380,7 @@ export default function BlindTest() {
             <button
               key={label}
               onClick={() => setWizardStep(i as 0 | 1 | 2)}
-              className={`flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide transition-colors ${
+              className={`flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide py-2 px-1.5 -mx-1.5 transition-colors ${
                 i === wizardStep ? "text-gold" : "text-ink-faint hover:text-ink-muted"
               }`}
             >
@@ -416,7 +438,7 @@ export default function BlindTest() {
                         {playerNames.length > 2 && (
                           <button
                             onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
-                            className="text-ink-faint hover:text-ink px-2"
+                            className="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg text-ink-faint hover:text-riseNeg hover:bg-riseNeg/10 transition-colors text-lg"
                             aria-label="Retirer ce joueur"
                           >
                             ×
@@ -438,36 +460,28 @@ export default function BlindTest() {
             </div>
           )}
 
-          {/* Étape 1 — Thème, onglets par catégorie pour éviter le scroll */}
+          {/* Étape 1 — Thème, en rangées horizontales façon Netflix (une rangée par catégorie) */}
           {wizardStep === 1 && (
-            <div className="flex-1 flex flex-col">
-              <div className="flex gap-1.5 mb-4">
-                {THEME_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`flex-1 rounded-lg py-2 text-xs font-mono uppercase tracking-wide transition-colors ${
-                      activeCategory === cat ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-2.5">
-                {THEME_OPTIONS.filter((t) => t.category === activeCategory).map((t, i) => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      sfx.click();
-                      setThemeId(t.id);
-                    }}
-                    className="group text-left"
-                  >
-                    <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} />
-                  </button>
-                ))}
-              </div>
+            <div className="flex-1 flex flex-col gap-5 -mt-1">
+              {THEME_CATEGORIES.map((cat) => (
+                <div key={cat}>
+                  <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2 px-0.5">{cat}</p>
+                  <Row>
+                    {THEME_OPTIONS.filter((t) => t.category === cat).map((t, i) => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          sfx.click();
+                          setThemeId(t.id);
+                        }}
+                        className="w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
+                      >
+                        <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} />
+                      </button>
+                    ))}
+                  </Row>
+                </div>
+              ))}
             </div>
           )}
 
@@ -514,21 +528,24 @@ export default function BlindTest() {
             </div>
           )}
 
-          {/* Navigation entre étapes (mode "online" a déjà sa propre UI, retournée plus haut) */}
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/8">
+          {/* Navigation entre étapes (mode "online" a déjà sa propre UI, retournée plus haut) —
+              vrais boutons visibles et accessibles, pas de simples liens texte discrets. */}
+          <div className="flex items-center gap-3 mt-6 pt-4 border-t border-white/8">
             <button
               onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
               disabled={wizardStep === 0}
-              className="flex items-center gap-1 text-xs font-mono uppercase text-ink-faint hover:text-ink disabled:opacity-0 transition-colors"
+              aria-label="Étape précédente"
+              className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full glass text-sm font-medium text-ink-muted hover:text-ink hover:border-gold/30 disabled:opacity-30 disabled:pointer-events-none transition-colors"
             >
-              <ChevronLeft size={14} /> Précédent
+              <ChevronLeft size={16} /> Précédent
             </button>
             {wizardStep < 2 && (
               <button
                 onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
-                className="flex items-center gap-1 text-xs font-mono uppercase text-gold hover:text-glow transition-colors"
+                aria-label="Étape suivante"
+                className="flex-1 flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors"
               >
-                Suivant <ChevronRight size={14} />
+                Suivant <ChevronRight size={16} />
               </button>
             )}
           </div>
@@ -617,7 +634,7 @@ export default function BlindTest() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <audio ref={audioRef} src={track.previewUrl} preload="auto" />
+      <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" />
 
       <div className="flex items-center justify-between mb-6">
         <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
@@ -781,15 +798,29 @@ export default function BlindTest() {
                     gold
                   />
                 )}
+                {timeLeft <= 8 && !soloPlayer?.timeJokerUsed && (
+                  <button
+                    type="button"
+                    onClick={() => useTimeJoker("solo")}
+                    className="solved-pop w-full flex items-center justify-center gap-2 bg-gold/15 border border-gold/40 text-gold rounded-lg py-3 text-sm font-medium hover:bg-gold/25 transition-colors"
+                  >
+                    <Clock size={16} />
+                    Joker temps — encore {TIME_JOKER_SECONDS}s pour répondre
+                  </button>
+                )}
                 <div className="flex gap-2">
-                  <button type="submit" className="flex-1 bg-gold hover:bg-glow text-white rounded-lg py-2.5 text-sm font-medium">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gold hover:bg-glow text-white rounded-lg py-3 text-sm font-medium min-h-[44px]"
+                  >
                     Valider
                   </button>
                   <button
                     type="button"
                     onClick={() => useJoker("solo")}
                     disabled={soloPlayer?.jokerUsed}
-                    className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-lg px-3 disabled:opacity-30"
+                    aria-label="Joker : écouter un autre passage de l'extrait"
+                    className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-lg px-4 min-h-[44px] disabled:opacity-30"
                   >
                     <Headphones size={14} />
                     Joker
