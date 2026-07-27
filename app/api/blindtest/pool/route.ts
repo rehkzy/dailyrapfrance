@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveArtist } from "@/lib/deezerArtist";
 
 // Pool de titres du blind test — 100% en direct depuis l'API Deezer, aucune base de données.
 // Volontairement sans persistance : rien à peupler, rien qui puisse être "pas encore prêt".
@@ -71,10 +72,7 @@ async function fetchPlaylistTracks(id: number): Promise<DeezerTrackSummary[]> {
 
 async function fetchArtistTopTracks(name: string): Promise<DeezerTrackSummary[]> {
   try {
-    const search = await deezerFetch<{ data?: { id: number }[] }>(
-      `/search/artist?q=${encodeURIComponent(name)}&limit=1`
-    );
-    const artist = search.data?.[0];
+    const artist = await resolveArtist(name);
     if (!artist) return [];
     const top = await deezerFetch(`/artist/${artist.id}/top?limit=30`);
     let tracks = top.data ?? [];

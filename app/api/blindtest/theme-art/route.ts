@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveArtist } from "@/lib/deezerArtist";
 
 // Renvoie une photo d'artiste par thème (le premier artiste de chaque liste curée), pour
 // habiller les pochettes de thème avec de vrais visages plutôt qu'un dégradé générique.
@@ -24,20 +25,9 @@ const THEME_LEAD_ARTISTS: Record<string, string[]> = {
   "artist-nekfeu": ["nekfeu"],
 };
 
-async function deezerFetch(path: string) {
-  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 86400 } });
-  if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
-  return res.json();
-}
-
 async function fetchArtistPhoto(name: string): Promise<string | null> {
-  try {
-    const search = await deezerFetch(`/search/artist?q=${encodeURIComponent(name)}&limit=1`);
-    const artist = search.data?.[0];
-    return artist?.picture_medium || artist?.picture || null;
-  } catch {
-    return null;
-  }
+  const artist = await resolveArtist(name);
+  return artist?.picture_medium || artist?.picture || null;
 }
 
 export async function GET(req: NextRequest) {
