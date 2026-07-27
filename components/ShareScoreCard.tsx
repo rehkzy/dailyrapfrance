@@ -27,7 +27,7 @@ export default function ShareScoreCard({
 
     let cancelled = false;
 
-    async function draw() {
+    async function draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
       canvas.width = W;
       canvas.height = H;
 
@@ -94,7 +94,7 @@ export default function ShareScoreCard({
       if (!cancelled) setReady(true);
     }
 
-    draw();
+    draw(canvas, ctx);
     return () => {
       cancelled = true;
     };
