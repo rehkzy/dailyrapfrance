@@ -505,7 +505,7 @@ export default function BlindTest() {
             <div className="flex-1 flex flex-col gap-5 -mt-1">
               {THEME_CATEGORIES.map((cat) => (
                 <div key={cat}>
-                  <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2 px-0.5">{cat}</p>
+                  <p className="font-display text-base font-semibold mb-2.5 px-0.5">{cat}</p>
                   <Row>
                     {THEME_OPTIONS.filter((t) => t.category === cat).map((t, i) => (
                       <button
