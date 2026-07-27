@@ -511,7 +511,7 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto pb-28 blindtest-shell">
+      <div className="max-w-2xl mx-auto pb-40 blindtest-shell">
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
             Masqué sur mobile : l'espace vertical y est plus précieux, la page a déjà l'emblème
             de marque ailleurs sur le site. */}
@@ -816,70 +816,77 @@ export default function BlindTest() {
           )}
         </div>
 
-        {/* Accès aux à-côtés du jeu (amis, classement, compte, plein écran) — features du jeu,
-            pas du site : elles vivent ici plutôt que dans la nav globale. Placées en bas de
-            page, sous le menu de navigation Précédent/Suivant (qui reste au-dessus, flottant). */}
-        <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
-          <a href="/amis" className="filter-pill">
-            <Users size={13} strokeWidth={2.3} />
-            Amis
-          </a>
-          <a href="/blindtest/classement" className="filter-pill">
-            <Trophy size={13} strokeWidth={2.3} />
-            Classement
-          </a>
-          <a href="/parametres" className="filter-pill">
-            <Settings size={13} strokeWidth={2.3} />
-            Mon compte
-          </a>
-          <button
-            onClick={toggleFullscreen}
-            aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
-            title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
-            className={`filter-pill ${manualImmersive ? "is-active" : ""}`}
-          >
-            {manualImmersive ? <Minimize size={13} strokeWidth={2.3} /> : <Maximize size={13} strokeWidth={2.3} />}
-            {manualImmersive ? "Réduire" : "Plein écran"}
-          </button>
-        </div>
-
-        {/* Barre d'action — fixe en bas du viewport, toujours accessible même sur un écran
-            court ou une carte de réglages qui pousse le contenu vers le bas (avant, ces
-            boutons finissaient hors champ, à faire défiler pour les atteindre). */}
-        <div
-          className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-          <div className="max-w-2xl mx-auto flex items-center gap-3 glass-strong rounded-2xl p-2 pointer-events-auto">
-            <button
-              onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
-              disabled={wizardStep === 0}
-              aria-label="Étape précédente"
-              className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-            >
-              <ChevronLeft size={16} /> Précédent
-            </button>
-            {wizardStep < 2 ? (
-              <button
-                onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
-                aria-label="Étape suivante"
-                className="flex-1 flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors"
-              >
-                Suivant <ChevronRight size={16} />
-              </button>
-            ) : (
-              <Magnetic strength={0.15} className="flex-1 block">
+        {/* Bloc fixe en bas du viewport — deux niveaux empilés :
+            — Précédent/Suivant/Lancer, toujours accessible sans scroller.
+            — En dessous, une barre d'onglets façon app mobile (Amis, Classement, Mon
+              compte, Plein écran) — sticky elle aussi, jamais reléguée en bas de page. */}
+        <div className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/95 to-transparent -z-10" aria-hidden="true" />
+          <div className="max-w-2xl mx-auto pointer-events-auto">
+            <div className="px-4 pt-4">
+              <div className="flex items-center gap-3 glass-strong rounded-2xl p-2">
                 <button
-                  onClick={startGame}
-                  disabled={phase === "loading"}
-                  className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[44px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
+                  disabled={wizardStep === 0}
+                  aria-label="Étape précédente"
+                  className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                 >
-                  {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-                  {phase !== "loading" && <Play size={18} />}
+                  <ChevronLeft size={16} /> Précédent
                 </button>
-              </Magnetic>
-            )}
+                {wizardStep < 2 ? (
+                  <button
+                    onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
+                    aria-label="Étape suivante"
+                    className="flex-1 flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors"
+                  >
+                    Suivant <ChevronRight size={16} />
+                  </button>
+                ) : (
+                  <Magnetic strength={0.15} className="flex-1 block">
+                    <button
+                      onClick={startGame}
+                      disabled={phase === "loading"}
+                      className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[44px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                      {phase === "loading" ? "Chargement..." : "Lancer la partie"}
+                      {phase !== "loading" && <Play size={18} />}
+                    </button>
+                  </Magnetic>
+                )}
+              </div>
+            </div>
+
+            <div
+              className="mt-2 glass-strong border-t border-white/10 px-2 pt-1.5"
+              style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 6px)" }}
+            >
+              <div className="grid grid-cols-4 gap-1">
+                <a href="/amis" className="tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl text-ink-faint hover:text-gold hover:bg-white/5 transition-colors">
+                  <Users size={18} strokeWidth={2} />
+                  <span className="text-[10px] font-mono uppercase tracking-wide">Amis</span>
+                </a>
+                <a href="/blindtest/classement" className="tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl text-ink-faint hover:text-gold hover:bg-white/5 transition-colors">
+                  <Trophy size={18} strokeWidth={2} />
+                  <span className="text-[10px] font-mono uppercase tracking-wide">Classement</span>
+                </a>
+                <a href="/parametres" className="tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl text-ink-faint hover:text-gold hover:bg-white/5 transition-colors">
+                  <Settings size={18} strokeWidth={2} />
+                  <span className="text-[10px] font-mono uppercase tracking-wide">Compte</span>
+                </a>
+                <button
+                  onClick={toggleFullscreen}
+                  aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
+                  className={`tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl transition-colors ${
+                    manualImmersive ? "text-gold bg-gold/10" : "text-ink-faint hover:text-gold hover:bg-white/5"
+                  }`}
+                >
+                  {manualImmersive ? <Minimize size={18} strokeWidth={2} /> : <Maximize size={18} strokeWidth={2} />}
+                  <span className="text-[10px] font-mono uppercase tracking-wide">
+                    {manualImmersive ? "Réduire" : "Écran"}
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
