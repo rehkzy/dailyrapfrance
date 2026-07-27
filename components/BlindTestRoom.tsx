@@ -7,6 +7,9 @@ import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
 import Magnetic from "@/components/Magnetic";
+import ThemeCover from "@/components/ThemeCover";
+import Row from "@/components/Row";
+import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS } from "@/lib/themes";
 import type { User } from "@supabase/supabase-js";
 
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
@@ -625,31 +628,6 @@ export default function BlindTestRoom({
   );
 }
 
-const ROOM_THEMES = [
-  { id: "mix", label: "Mix" },
-  { id: "90s", label: "Les 90s" },
-  { id: "2000s", label: "Les 2000s" },
-  { id: "2010s", label: "Années 2010" },
-  { id: "recent", label: "2020s / Récent" },
-  { id: "pop", label: "Pop" },
-  { id: "cloud", label: "Cloud rap" },
-  { id: "lagui-sadek", label: "Lagui & Sadek" },
-  { id: "artist-ninho", label: "Blind Test Ninho" },
-  { id: "artist-booba", label: "Blind Test Booba" },
-  { id: "artist-pnl", label: "Blind Test PNL" },
-  { id: "artist-sch", label: "Blind Test SCH" },
-  { id: "artist-jul", label: "Blind Test JUL" },
-  { id: "artist-nekfeu", label: "Blind Test Nekfeu" },
-  { id: "93", label: "93" },
-  { id: "91", label: "91" },
-  { id: "92", label: "92" },
-  { id: "77", label: "77" },
-  { id: "78", label: "78" },
-  { id: "13", label: "Marseille" },
-  { id: "59", label: "59" },
-  { id: "idf", label: "Île-de-France" },
-];
-
 function RoomMenu({
   busy,
   error,
@@ -669,6 +647,14 @@ function RoomMenu({
 }) {
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
+  const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
+
+  useEffect(() => {
+    fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
+      .then((r) => r.json())
+      .then((data) => setThemePhotos(data.photos ?? {}))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
@@ -680,18 +666,26 @@ function RoomMenu({
       <div className="card p-6">
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Créer un salon</p>
 
-        <p className="text-xs text-ink-faint mb-2">Thème</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {ROOM_THEMES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                theme === t.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
-              }`}
-            >
-              {t.label}
-            </button>
+        <p className="text-xs text-ink-faint mb-2.5">Thème</p>
+        <div className="flex flex-col gap-5 mb-6 -mx-1 px-1">
+          {THEME_CATEGORIES.map((cat) => (
+            <div key={cat}>
+              <p className="font-display text-sm font-semibold mb-2 px-0.5">{cat}</p>
+              <Row>
+                {THEME_OPTIONS.filter((t) => t.category === cat).map((t, i) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      sfx.click();
+                      setTheme(t.id);
+                    }}
+                    className="w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
+                  >
+                    <ThemeCover Icon={t.Icon} label={t.label} index={i} active={theme === t.id} photoUrl={themePhotos[t.id]} />
+                  </button>
+                ))}
+              </Row>
+            </div>
           ))}
         </div>
 

@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Play, Zap, RotateCcw, Users, User, Disc, MapPin, Cloud, Flame,
-  Clock, Shuffle, Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward, Mic2,
-  Sliders, Gamepad2,
+  Play, Zap, RotateCcw, Users, User, Disc, Clock,
+  Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
+  Sliders, Gamepad2, Maximize, Minimize,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -16,6 +16,7 @@ import Confetti from "@/components/Confetti";
 import ThemeCover from "@/components/ThemeCover";
 import Row from "@/components/Row";
 import BlindTestRoom from "@/components/BlindTestRoom";
+import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS } from "@/lib/themes";
 
 type Track = {
   id: string;
@@ -33,33 +34,6 @@ type FieldKey = "title" | "artist" | "feat";
 const DEFAULT_ROUND_SECONDS = 25;
 const ROUND_TIME_OPTIONS = [15, 20, 25, 35, 45];
 const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
-
-const THEME_OPTIONS = [
-  { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle, category: "Époques" },
-  { id: "90s", label: "Les 90s", text: "Racines, âge d'or du rap FR", Icon: Clock, category: "Époques" },
-  { id: "2000s", label: "Les 2000s", text: "Le rap FR grand public", Icon: Clock, category: "Époques" },
-  { id: "2010s", label: "Les 2010s", text: "L'âge d'or du son cloud", Icon: Clock, category: "Époques" },
-  { id: "recent", label: "2020s / Récent", text: "Ce qui tourne en ce moment", Icon: Clock, category: "Époques" },
-  { id: "pop", label: "Pop / mainstream", text: "Les plus gros sons du moment", Icon: Flame, category: "Styles" },
-  { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud, category: "Styles" },
-  { id: "lagui-sadek", label: "Lagui & Sadek", text: "Que des sons de ces deux-là", Icon: Mic2, category: "Styles" },
-  { id: "93", label: "Rappeurs du 93", text: "Kaaris, Vald, Maes, Kalash Criminel...", Icon: MapPin, category: "Régions" },
-  { id: "91", label: "Rappeurs du 91", text: "PNL, Niska, Koba LaD...", Icon: MapPin, category: "Régions" },
-  { id: "92", label: "Rappeurs du 92", text: "Booba, SDM, Benash...", Icon: MapPin, category: "Régions" },
-  { id: "77", label: "Rappeurs du 77", text: "Djadja & Dinaz, RK, Timal...", Icon: MapPin, category: "Régions" },
-  { id: "78", label: "Rappeurs du 78", text: "La Fouine...", Icon: MapPin, category: "Régions" },
-  { id: "13", label: "Marseille (13)", text: "JUL, SCH, Soprano, Alonzo...", Icon: MapPin, category: "Régions" },
-  { id: "59", label: "Rappeurs du 59", text: "Gradur...", Icon: MapPin, category: "Régions" },
-  { id: "idf", label: "Île-de-France", text: "Tout le rap francilien mélangé", Icon: MapPin, category: "Régions" },
-  { id: "artist-ninho", label: "Blind Test Ninho", text: "Que des sons de Ninho", Icon: Mic2, category: "Artistes" },
-  { id: "artist-booba", label: "Blind Test Booba", text: "Que des sons de Booba", Icon: Mic2, category: "Artistes" },
-  { id: "artist-pnl", label: "Blind Test PNL", text: "Que des sons de PNL", Icon: Mic2, category: "Artistes" },
-  { id: "artist-sch", label: "Blind Test SCH", text: "Que des sons de SCH", Icon: Mic2, category: "Artistes" },
-  { id: "artist-jul", label: "Blind Test JUL", text: "Que des sons de JUL", Icon: Mic2, category: "Artistes" },
-  { id: "artist-nekfeu", label: "Blind Test Nekfeu", text: "Que des sons de Nekfeu", Icon: Mic2, category: "Artistes" },
-] as const;
-
-const THEME_CATEGORIES = ["Époques", "Styles", "Régions", "Artistes"] as const;
 
 function buildQuery(themeId: string, count: number) {
   const params = new URLSearchParams();
@@ -82,8 +56,7 @@ export default function BlindTest() {
 
   // Photos d'artistes pour les pochettes de thème — un seul appel groupé au montage.
   useEffect(() => {
-    const artistThemeIds = THEME_OPTIONS.filter((t) => t.category !== "Époques" && t.id !== "pop").map((t) => t.id);
-    fetch(`/api/blindtest/theme-art?themes=${artistThemeIds.join(",")}`)
+    fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
       .then((r) => r.json())
       .then((data) => setThemePhotos(data.photos ?? {}))
       .catch(() => {});
@@ -385,6 +358,31 @@ export default function BlindTest() {
     resetRoundState();
   }
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    function onChange() {
+      setIsFullscreen(!!document.fullscreenElement);
+    }
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    sfx.click();
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch {
+      // Certains navigateurs (Safari iOS notamment) refusent le plein écran hors d'un geste
+      // très strict, ou ne le supportent pas — on échoue silencieusement plutôt que de casser
+      // le jeu, le bouton reste simplement sans effet.
+    }
+  }
+
   // ── Rendu ──────────────────────────────────────────────────────────────
 
   if (userLoading) {
@@ -414,22 +412,32 @@ export default function BlindTest() {
         </div>
 
         {/* Barre de filtres façon Spotify — pilules pleines, pas un simple fil d'ariane texte */}
-        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 overflow-x-auto scrollbar-hide px-1">
-          {[
-            { label: "Mode", Icon: Gamepad2 },
-            { label: "Thème", Icon: Disc },
-            { label: "Réglages", Icon: Sliders },
-          ].map(({ label, Icon }, i) => (
-            <button
-              key={label}
-              onClick={() => setWizardStep(i as 0 | 1 | 2)}
-              className={`filter-pill ${i === wizardStep ? "is-active" : ""}`}
-            >
-              <Icon size={13} strokeWidth={2.3} />
-              {label}
-              {i < wizardStep && <Check size={12} strokeWidth={3} className="ml-0.5 opacity-70" />}
-            </button>
-          ))}
+        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {[
+              { label: "Mode", Icon: Gamepad2 },
+              { label: "Thème", Icon: Disc },
+              { label: "Réglages", Icon: Sliders },
+            ].map(({ label, Icon }, i) => (
+              <button
+                key={label}
+                onClick={() => setWizardStep(i as 0 | 1 | 2)}
+                className={`filter-pill ${i === wizardStep ? "is-active" : ""}`}
+              >
+                <Icon size={13} strokeWidth={2.3} />
+                {label}
+                {i < wizardStep && <Check size={12} strokeWidth={3} className="ml-0.5 opacity-70" />}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Quitter le plein écran" : "Passer en plein écran"}
+            title={isFullscreen ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
+            className="tap-press shrink-0 w-9 h-9 flex items-center justify-center rounded-full glass text-ink-muted hover:text-gold transition-colors"
+          >
+            {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
+          </button>
         </div>
 
         <div className="card p-5 sm:p-6 md:p-7 flex flex-col">
@@ -823,11 +831,11 @@ export default function BlindTest() {
   const soloPlayer = players[0];
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto pb-24">
       <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" />
 
-      <div className="flex items-center justify-between mb-6">
-        <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
+      <div className="flex items-center justify-between mb-6 gap-3">
+        <span className="font-mono text-xs text-ink-faint uppercase tracking-wide shrink-0">
           Manche {roundIndex + 1} / {tracks.length}
         </span>
         {mode === "local" && (
@@ -839,6 +847,14 @@ export default function BlindTest() {
             ))}
           </div>
         )}
+        <button
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? "Quitter le plein écran" : "Passer en plein écran"}
+          title={isFullscreen ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
+          className="tap-press shrink-0 w-8 h-8 flex items-center justify-center rounded-full glass text-ink-muted hover:text-gold transition-colors"
+        >
+          {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+        </button>
       </div>
 
       <div className="card p-8 text-center relative overflow-hidden min-h-[400px] flex flex-col justify-center transition-[height] duration-300">
@@ -854,15 +870,26 @@ export default function BlindTest() {
         )}
 
         {!started ? (
-          <Magnetic strength={0.2}>
-            <button
-              onClick={launchExtract}
-              className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors"
-            >
-              <Play size={20} />
-              Lancer l'extrait
-            </button>
-          </Magnetic>
+          <div className="flex flex-col items-center">
+            <div className="vinyl-spin w-16 h-16 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 shadow-lg flex items-center justify-center mb-5">
+              <div className="w-6 h-6 rounded-full bg-gold flex items-center justify-center">
+                <Disc size={11} className="text-white" />
+              </div>
+            </div>
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.2em] mb-1">
+              Manche {roundIndex + 1}
+            </p>
+            <p className="text-sm text-ink-faint mb-7">Prêt à reconnaître ce son ?</p>
+            <Magnetic strength={0.25}>
+              <button
+                onClick={launchExtract}
+                className="cta-glow tap-press mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-10 py-5 font-semibold text-lg transition-colors"
+              >
+                <Play size={22} fill="currentColor" />
+                Lancer l'extrait
+              </button>
+            </Magnetic>
+          </div>
         ) : !revealed ? (
           <>
             {/* Disque mystère qui tourne pendant l'écoute */}
@@ -900,6 +927,7 @@ export default function BlindTest() {
             {mode === "local" ? (
               buzzedBy ? (
                 <form
+                  id="local-guess-form"
                   onSubmit={(e) => {
                     e.preventDefault();
                     submitLocalGuess();
@@ -933,9 +961,6 @@ export default function BlindTest() {
                       className="w-full bg-white/5 border border-gold/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/60 disabled:opacity-40"
                     />
                   )}
-                  <button type="submit" className="w-full bg-gold hover:bg-glow text-white rounded-lg py-2.5 text-sm font-medium">
-                    Valider
-                  </button>
                 </form>
               ) : (
                 <div className="space-y-4">
@@ -971,6 +996,7 @@ export default function BlindTest() {
               )
             ) : (
               <form
+                id="solo-guess-form"
                 onSubmit={(e) => {
                   e.preventDefault();
                   submitSoloGuess();
@@ -1011,26 +1037,6 @@ export default function BlindTest() {
                     Joker temps — encore {TIME_JOKER_SECONDS}s pour répondre
                   </button>
                 )}
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-gold hover:bg-glow text-white rounded-lg py-3 text-sm font-medium min-h-[44px]"
-                  >
-                    Valider
-                  </button>
-                  {jokersEnabled && (
-                    <button
-                      type="button"
-                      onClick={() => useJoker("solo")}
-                      disabled={soloPlayer?.jokerUsed}
-                      aria-label="Joker : écouter un autre passage de l'extrait"
-                      className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-lg px-4 min-h-[44px] disabled:opacity-30"
-                    >
-                      <Headphones size={14} />
-                      Joker
-                    </button>
-                  )}
-                </div>
               </form>
             )}
           </>
@@ -1062,6 +1068,53 @@ export default function BlindTest() {
           </div>
         )}
       </div>
+
+      {/* Barre de jeu — fixe en bas, Valider + Joker toujours à portée de pouce, jamais
+          enterrés en bas d'un formulaire qu'il faudrait faire défiler pour atteindre. */}
+      {started && !revealed && (mode === "solo" || (mode === "local" && buzzedBy)) && (
+        <div
+          className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
+          <div className="max-w-2xl mx-auto flex items-center gap-3 glass-strong rounded-2xl p-2 pointer-events-auto">
+            {mode === "solo" && (
+              <>
+                {jokersEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => useJoker("solo")}
+                    disabled={soloPlayer?.jokerUsed}
+                    aria-label="Joker : écouter un autre passage de l'extrait"
+                    className="tap-press shrink-0 flex items-center gap-1.5 text-xs font-mono rounded-full px-4 min-h-[48px] text-ink-muted hover:text-gold hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  >
+                    <Headphones size={15} />
+                    Joker
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  form="solo-guess-form"
+                  className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <Check size={17} strokeWidth={3} />
+                  Valider
+                </button>
+              </>
+            )}
+            {mode === "local" && buzzedBy && (
+              <button
+                type="submit"
+                form="local-guess-form"
+                className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <Check size={17} strokeWidth={3} />
+                Valider — {activePlayer?.name}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
