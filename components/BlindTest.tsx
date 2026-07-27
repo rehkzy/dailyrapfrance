@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, MapPin, Cloud, Flame,
   Clock, Shuffle, Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward, Mic2,
+  Sliders, Gamepad2,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -34,9 +35,10 @@ const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
 
 const THEME_OPTIONS = [
   { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle, category: "Époques" },
-  { id: "old", label: "À l'ancienne", text: "90s et 2000s", Icon: Clock, category: "Époques" },
-  { id: "2010s", label: "Années 2010", text: "L'âge d'or du son cloud", Icon: Clock, category: "Époques" },
-  { id: "recent", label: "Sons récents", text: "Ce qui tourne en ce moment", Icon: Clock, category: "Époques" },
+  { id: "90s", label: "Les 90s", text: "Racines, âge d'or du rap FR", Icon: Clock, category: "Époques" },
+  { id: "2000s", label: "Les 2000s", text: "Le rap FR grand public", Icon: Clock, category: "Époques" },
+  { id: "2010s", label: "Les 2010s", text: "L'âge d'or du son cloud", Icon: Clock, category: "Époques" },
+  { id: "recent", label: "2020s / Récent", text: "Ce qui tourne en ce moment", Icon: Clock, category: "Époques" },
   { id: "pop", label: "Pop / mainstream", text: "Les plus gros sons du moment", Icon: Flame, category: "Styles" },
   { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud, category: "Styles" },
   { id: "lagui-sadek", label: "Lagui & Sadek", text: "Que des sons de ces deux-là", Icon: Mic2, category: "Styles" },
@@ -75,7 +77,7 @@ export default function BlindTest() {
   // Setup
   const [mode, setMode] = useState<Mode>(joinRoomCode ? "online" : "solo");
   const [themeId, setThemeId] = useState<string>("mix");
-  const [themePhotos, setThemePhotos] = useState<Record<string, string>>({});
+  const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
 
   // Photos d'artistes pour les pochettes de thème — un seul appel groupé au montage.
   useEffect(() => {
@@ -395,7 +397,6 @@ export default function BlindTest() {
   }
 
   if (phase === "setup" || phase === "loading") {
-    const steps = ["Mode", "Thème", "Réglages"];
     return (
       <div className="max-w-2xl mx-auto">
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
@@ -409,19 +410,21 @@ export default function BlindTest() {
           </div>
         </div>
 
-        {/* Fil d'ariane des étapes */}
-        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5">
-          {steps.map((label, i) => (
+        {/* Barre de filtres façon Spotify — pilules pleines, pas un simple fil d'ariane texte */}
+        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 overflow-x-auto scrollbar-hide px-1">
+          {[
+            { label: "Mode", Icon: Gamepad2 },
+            { label: "Thème", Icon: Disc },
+            { label: "Réglages", Icon: Sliders },
+          ].map(({ label, Icon }, i) => (
             <button
               key={label}
               onClick={() => setWizardStep(i as 0 | 1 | 2)}
-              className={`flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide py-2 px-1.5 -mx-1.5 transition-colors ${
-                i === wizardStep ? "text-gold" : "text-ink-faint hover:text-ink-muted"
-              }`}
+              className={`filter-pill ${i === wizardStep ? "is-active" : ""}`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${i === wizardStep ? "bg-gold" : "bg-ink-faint/40"}`} />
+              <Icon size={13} strokeWidth={2.3} />
               {label}
-              {i < steps.length - 1 && <span className="text-ink-faint/30 ml-1">—</span>}
+              {i < wizardStep && <Check size={12} strokeWidth={3} className="ml-0.5 opacity-70" />}
             </button>
           ))}
         </div>
@@ -429,39 +432,80 @@ export default function BlindTest() {
         <div className="card p-5 sm:p-6 md:p-7 flex flex-col">
           {/* Étape 0 — Mode */}
           {wizardStep === 0 && (
-            <div className="flex-1 space-y-2.5">
+            <div className="flex-1 space-y-3">
               {[
-                { id: "solo" as Mode, label: "Solo", Icon: User, desc: "Teste tes connaissances à ton rythme." },
-                { id: "local" as Mode, label: "Local", Icon: Users, desc: "Entre potes, sur le même écran, avec un buzzer." },
-                { id: "online" as Mode, label: "Salon en ligne", Icon: Globe, desc: "Un code à partager, chacun sur son téléphone." },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    sfx.click();
-                    setMode(m.id);
-                    if (m.id === "online") return;
-                    setWizardStep(1);
-                  }}
-                  className={`group w-full flex items-center gap-4 rounded-xl border p-4 text-left transition-all duration-200 ${
-                    mode === m.id
-                      ? "border-gold bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.22)]"
-                      : "border-white/10 hover:border-white/25"
-                  }`}
-                >
-                  <div
-                    className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center transition-colors ${
-                      mode === m.id ? "bg-gold text-white" : "bg-white/5 text-ink-muted group-hover:text-ink"
+                {
+                  id: "solo" as Mode,
+                  label: "Solo",
+                  Icon: User,
+                  desc: "Teste tes connaissances à ton rythme.",
+                  tag: "1 joueur",
+                  gradient: "from-[#7a0f0f] to-[#F0001C]",
+                },
+                {
+                  id: "local" as Mode,
+                  label: "Local",
+                  Icon: Users,
+                  desc: "Entre potes, sur le même écran, avec un buzzer.",
+                  tag: "2-8 joueurs",
+                  gradient: "from-[#5c0f5c] to-[#F0001C]",
+                },
+                {
+                  id: "online" as Mode,
+                  label: "Salon en ligne",
+                  Icon: Globe,
+                  desc: "Un code à partager, chacun sur son téléphone.",
+                  tag: "Multi à distance",
+                  gradient: "from-[#0f3a5c] to-[#F0001C]",
+                },
+              ].map((m) => {
+                const isActive = mode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      sfx.click();
+                      setMode(m.id);
+                      if (m.id === "online") return;
+                      setWizardStep(1);
+                    }}
+                    className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
+                      isActive
+                        ? "border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.4),0_10px_28px_-8px_rgba(240,0,28,0.55)]"
+                        : "border-white/10 hover:border-white/25"
                     }`}
                   >
-                    <m.Icon size={20} />
-                  </div>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">{m.label}</span>
-                    <span className="block text-xs text-ink-faint mt-0.5">{m.desc}</span>
-                  </span>
-                </button>
-              ))}
+                    {/* Fond dégradé façon carte de match Tinder — discret au repos, plus présent sélectionné */}
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${m.gradient} transition-opacity duration-200 ${
+                        isActive ? "opacity-25" : "opacity-0 group-hover:opacity-10"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <div
+                      className={`icon-tile relative w-14 h-14 shrink-0 bg-gradient-to-br ${m.gradient} text-white transition-transform duration-200`}
+                    >
+                      <m.Icon size={24} strokeWidth={2} />
+                    </div>
+                    <span className="relative min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="block text-sm font-semibold">{m.label}</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wide text-ink-faint bg-white/5 rounded-full px-2 py-0.5">
+                          {m.tag}
+                        </span>
+                      </span>
+                      <span className="block text-xs text-ink-faint mt-1">{m.desc}</span>
+                    </span>
+                    <div
+                      className={`relative w-7 h-7 shrink-0 rounded-full flex items-center justify-center transition-colors ${
+                        isActive ? "bg-gold text-white" : "bg-white/5 text-ink-faint"
+                      }`}
+                    >
+                      {isActive ? <Check size={14} strokeWidth={3} /> : <ChevronRight size={14} />}
+                    </div>
+                  </button>
+                );
+              })}
 
               {mode === "local" && (
                 <div className="pt-2">

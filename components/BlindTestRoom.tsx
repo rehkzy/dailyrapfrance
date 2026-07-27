@@ -627,9 +627,10 @@ export default function BlindTestRoom({
 
 const ROOM_THEMES = [
   { id: "mix", label: "Mix" },
-  { id: "old", label: "À l'ancienne" },
+  { id: "90s", label: "Les 90s" },
+  { id: "2000s", label: "Les 2000s" },
   { id: "2010s", label: "Années 2010" },
-  { id: "recent", label: "Sons récents" },
+  { id: "recent", label: "2020s / Récent" },
   { id: "pop", label: "Pop" },
   { id: "cloud", label: "Cloud rap" },
   { id: "lagui-sadek", label: "Lagui & Sadek" },

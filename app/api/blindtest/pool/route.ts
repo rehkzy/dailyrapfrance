@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 // Sources par thème — playlists éditoriales par décennie pour les thèmes généraux, recherche
 // d'artiste pour les thèmes ciblés (curation manuelle, voir listes ci-dessous).
 const DECADE_PLAYLISTS: Record<string, number[]> = {
-  old: [1182010551, 4676814864], // Rapstars 90s + 2000
+  "90s": [1182010551],           // Rapstars 90s
+  "2000s": [4676814864],         // Rapstars 2000
   "2010s": [5175061384],          // Rapstars 2010
   recent: [9563400362],           // Rapstars 2020
 };
@@ -134,7 +135,7 @@ function toGameTrack(t: DeezerTrackFull) {
   };
 }
 
-// GET /api/blindtest/pool?theme=mix|old|2010s|recent|pop|cloud|93|91|92|77|78|13|59|idf&count=15
+// GET /api/blindtest/pool?theme=mix|90s|2000s|2010s|recent|pop|cloud|93|91|92|77|78|13|59|idf&count=15
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const themeId = searchParams.get("theme") ?? "mix";

@@ -106,6 +106,13 @@ body {
   transform: translateY(-3px);
 }
 
+/* Anti-zoom tactile — sans ça, iOS Safari interprète deux taps rapprochés sur une tuile de
+   sélection (thème, mode) comme un double-tap-to-zoom natif et zoome la page. Ça touche tout
+   élément interactif, pas juste les tuiles, pour ne jamais réintroduire le bug ailleurs. */
+button, a, [role="button"], input, select, .tap-target {
+  touch-action: manipulation;
+}
+
 /* Trait de séparation qui porte la marque plutôt qu'un simple hairline blanc */
 .glow-line {
   height: 1px;
@@ -212,6 +219,58 @@ body {
   .confetti-piece, .shake-wrong, .float-points, .urgent-pulse, .solved-pop {
     animation: none !important;
   }
+}
+
+/* Pilules de filtre façon Spotify (barre "Tout / Musique / Podcasts...") — pleines et
+   très contrastées quand actives, jamais de simple soulignement discret. */
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #9ba1a8;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.filter-pill:hover {
+  color: #f5e8e8;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.filter-pill.is-active {
+  background: #f0001c;
+  border-color: #f0001c;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(240, 0, 28, 0.35);
+}
+
+/* Tuile d'icône façon Apple — carré à coins arrondis, dégradé propre, pas un simple rond plat */
+.icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 16px -6px rgba(0, 0, 0, 0.5);
+}
+
+/* Retour tactile façon Tinder — pression franche mais sans jamais bouger la mise en page
+   (pas de scale sur un élément inséré dans un flux/scroll, seulement sur son contenu interne
+   au repos) */
+.tap-press {
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+.tap-press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-press:active { transform: none; }
 }
 
 /* Bouton CTA principal du blind test — anneau lumineux qui respire pour inviter au clic */

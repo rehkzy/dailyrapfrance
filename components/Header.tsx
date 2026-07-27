@@ -146,8 +146,8 @@ function MobileMenu({
             })}
           </nav>
 
-          <div className="flex items-center justify-between gap-4 pt-4 border-t border-white/8">
-            <AuthButton />
+          <div className="flex flex-col gap-4 pt-4 border-t border-white/8">
+            <AuthButton variant="mobile" />
             <div className="flex items-center gap-2">
               {socials.map(({ label, href, Icon }) => (
                 <a

@@ -22,22 +22,28 @@ export default function ThemeCover({
   label: string;
   index?: number;
   active?: boolean;
-  photoUrl?: string | null;
+  photoUrl?: string | string[] | null;
 }) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
+  const photos = Array.isArray(photoUrl) ? photoUrl.filter(Boolean) : photoUrl ? [photoUrl] : [];
 
   return (
-    // Bordure de sélection en "ring-inset" — dessinée À L'INTÉRIEUR de la boîte, jamais
-    // coupée par le défilement horizontal ou le fondu de bord du parent, quelle que soit la
-    // situation (contrairement à un ring classique ou un ring-offset, qui débordent la boîte
-    // et se font rogner par n'importe quel overflow ancêtre).
+    // Sélection à la Spotify/Apple : jamais de scale sur la tuile elle-même (ça vit dans un
+    // rang qui défile — un scale y ressemble à un bug de "zoom au clic" et bouscule ses
+    // voisines). Le retour visuel tient uniquement à la bordure, au glow et au badge.
     <div
-      className={`relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br ${gradient} transition-transform duration-200 ${
-        active ? "ring-2 ring-inset ring-gold scale-[1.04]" : "group-hover:scale-[1.02]"
+      className={`tap-press relative aspect-square rounded-xl overflow-hidden bg-gradient-to-br ${gradient} ring-2 ring-inset transition-[box-shadow,ring-color] duration-200 ${
+        active ? "ring-gold shadow-[0_0_0_1px_rgba(240,0,28,0.4),0_8px_24px_-6px_rgba(240,0,28,0.5)]" : "ring-transparent"
       }`}
     >
-      {photoUrl ? (
-        <img src={photoUrl} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      {photos.length === 2 ? (
+        <div className="absolute inset-0 flex">
+          <img src={photos[0]} alt="" aria-hidden="true" className="w-1/2 h-full object-cover" loading="lazy" />
+          <img src={photos[1]} alt="" aria-hidden="true" className="w-1/2 h-full object-cover" loading="lazy" />
+          <div className="absolute inset-y-0 left-1/2 w-px bg-black/40" />
+        </div>
+      ) : photos.length === 1 ? (
+        <img src={photos[0]} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
       ) : (
         <Icon
           size={72}
@@ -52,9 +58,9 @@ export default function ThemeCover({
           <Icon size={14} className="text-white" />
         </div>
       </div>
-      {/* Pastille de sélection façon Spotify — coche pleine en haut à droite */}
+      {/* Pastille de sélection façon Spotify — coche pleine en haut à droite, seule à "pop" */}
       {active && (
-        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gold flex items-center justify-center shadow-lg">
+        <div className="solved-pop absolute top-2 right-2 w-6 h-6 rounded-full bg-gold flex items-center justify-center shadow-lg">
           <Check size={14} className="text-white" strokeWidth={3} />
         </div>
       )}
