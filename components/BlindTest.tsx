@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Sliders, Gamepad2, Maximize, Minimize, Flame, X,
+  Sliders, Gamepad2, Maximize, Minimize, Flame, X, Trophy, Settings,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -498,6 +498,23 @@ export default function BlindTest() {
   if (phase === "setup" || phase === "loading") {
     return (
       <div className="max-w-2xl mx-auto pb-24">
+        {/* Accès aux à-côtés du jeu (amis, classement, compte) — features du jeu, pas du site :
+            elles vivent ici plutôt que dans la nav globale. */}
+        <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
+          <a href="/amis" className="filter-pill">
+            <Users size={13} strokeWidth={2.3} />
+            Amis
+          </a>
+          <a href="/blindtest/classement" className="filter-pill">
+            <Trophy size={13} strokeWidth={2.3} />
+            Classement
+          </a>
+          <a href="/parametres" className="filter-pill">
+            <Settings size={13} strokeWidth={2.3} />
+            Mon compte
+          </a>
+        </div>
+
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
             Masqué sur mobile : l'espace vertical y est plus précieux, la page a déjà l'emblème
             de marque ailleurs sur le site. */}

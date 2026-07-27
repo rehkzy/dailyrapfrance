@@ -263,3 +263,33 @@ begin
   exception when duplicate_object then null;
   end;
 end $$;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Stockage — photos de profil personnalisées (page Paramètres du compte).
+-- Bucket public en lecture (les avatars s'affichent partout sans authentification :
+-- classement, amis, salons...) mais chacun ne peut écrire/modifier/supprimer que ses
+-- propres fichiers, rangés sous un dossier nommé par son propre user id.
+-- ─────────────────────────────────────────────────────────────────────────
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "Avatars publics en lecture" on storage.objects;
+create policy "Avatars publics en lecture"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+
+drop policy if exists "Chacun envoie son propre avatar" on storage.objects;
+create policy "Chacun envoie son propre avatar"
+  on storage.objects for insert
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Chacun remplace son propre avatar" on storage.objects;
+create policy "Chacun remplace son propre avatar"
+  on storage.objects for update
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Chacun supprime son propre avatar" on storage.objects;
+create policy "Chacun supprime son propre avatar"
+  on storage.objects for delete
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);

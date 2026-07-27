@@ -3,15 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu, X as CloseIcon, Info, Gamepad2, Trophy, Users } from "lucide-react";
+import { Menu, X as CloseIcon, Info, Gamepad2 } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 
 const nav = [
   { href: "/a-propos", label: "À propos", Icon: Info },
   { href: "/blindtest", label: "Blind Test", Icon: Gamepad2 },
-  { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
-  { href: "/amis", label: "Amis", Icon: Users },
 ];
 
 const socials = [
