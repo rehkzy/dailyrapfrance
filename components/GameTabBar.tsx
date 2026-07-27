@@ -1,11 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gamepad2, Users, Trophy, Settings, Maximize, Minimize } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Gamepad2, Users, Trophy, Settings, Maximize, Minimize, type LucideIcon } from "lucide-react";
+
+const TABS: { href: string; label: string; Icon: LucideIcon; match: (path: string) => boolean }[] = [
+  { href: "/jouer", label: "Jouer", Icon: Gamepad2, match: (p) => p === "/jouer" },
+  { href: "/amis", label: "Amis", Icon: Users, match: (p) => p === "/amis" },
+  {
+    href: "/blindtest/classement",
+    label: "Classement",
+    Icon: Trophy,
+    match: (p) => p === "/blindtest/classement",
+  },
+  { href: "/parametres", label: "Compte", Icon: Settings, match: (p) => p === "/parametres" },
+];
 
 // Contenu de la barre — sans positionnement fixe, pour pouvoir l'empiler à l'intérieur d'un
 // bloc fixe existant (BlindTest.tsx l'empile sous Précédent/Suivant ou Valider/Joker).
 export function GameTabBarContent() {
+  const pathname = usePathname();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [manualImmersive, setManualImmersive] = useState(false);
 
@@ -28,7 +42,7 @@ export function GameTabBarContent() {
     };
   }, [manualImmersive]);
 
-  const active = isFullscreen || manualImmersive;
+  const fullscreenActive = isFullscreen || manualImmersive;
 
   async function toggleFullscreen() {
     const goingFullscreen = !manualImmersive;
@@ -53,57 +67,48 @@ export function GameTabBarContent() {
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
     >
       <div className="grid grid-cols-5 gap-0.5">
-        <a
-          href="/jouer"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Gamepad2 size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Jouer</span>
-        </a>
-        <a
-          href="/amis"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Users size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Amis</span>
-        </a>
-        <a
-          href="/blindtest/classement"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Trophy size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Classement</span>
-        </a>
-        <a
-          href="/parametres"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Settings size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Compte</span>
-        </a>
+        {TABS.map(({ href, label, Icon, match }) => {
+          const isActive = match(pathname ?? "");
+          return (
+            <a
+              key={href}
+              href={href}
+              aria-current={isActive ? "page" : undefined}
+              className={`tap-press group flex flex-col items-center gap-1 py-2 rounded-xl transition-colors ${
+                isActive ? "text-gold" : "text-ink-faint hover:text-gold"
+              }`}
+            >
+              <span
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  isActive ? "bg-gold/15" : "group-hover:bg-white/8"
+                }`}
+              >
+                <Icon size={17} strokeWidth={2} />
+              </span>
+              <span className="text-[10px] font-mono uppercase tracking-wide flex items-center gap-1">
+                {label}
+                {isActive && <span className="w-1 h-1 rounded-full bg-gold" aria-hidden="true" />}
+              </span>
+            </a>
+          );
+        })}
         <button
           onClick={toggleFullscreen}
-          aria-label={active ? "Quitter le plein écran" : "Passer en plein écran"}
+          aria-label={fullscreenActive ? "Quitter le plein écran" : "Passer en plein écran"}
           className={`tap-press group flex flex-col items-center gap-1 py-2 rounded-xl transition-colors ${
-            active ? "text-gold" : "text-ink-faint hover:text-gold"
+            fullscreenActive ? "text-gold" : "text-ink-faint hover:text-gold"
           }`}
         >
           <span
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-              active ? "bg-gold text-white" : "group-hover:bg-white/8"
+              fullscreenActive ? "bg-gold text-white" : "group-hover:bg-white/8"
             }`}
           >
-            {active ? <Minimize size={16} strokeWidth={2} /> : <Maximize size={16} strokeWidth={2} />}
+            {fullscreenActive ? <Minimize size={16} strokeWidth={2} /> : <Maximize size={16} strokeWidth={2} />}
           </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">{active ? "Réduire" : "Écran"}</span>
+          <span className="text-[10px] font-mono uppercase tracking-wide">
+            {fullscreenActive ? "Réduire" : "Écran"}
+          </span>
         </button>
       </div>
     </div>
