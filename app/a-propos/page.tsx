@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Calendar, Disc3, Share2, Ban } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import Magnetic from "@/components/Magnetic";
 import ParallaxGlow from "@/components/ParallaxGlow";
@@ -10,37 +10,46 @@ export const metadata = {
     "Plus qu'un média, une passion. L'histoire de DailyRapFrance et de son fondateur, Florian B.",
 };
 
+const STATS = [
+  { value: 2020, suffix: "", label: "Naissance, en plein confinement", Icon: Calendar },
+  { value: 15, suffix: "+", label: "Thèmes dans le blind test", Icon: Disc3 },
+  { value: 3, suffix: "", label: "Réseaux où nous suivre", Icon: Share2 },
+  { value: 0, suffix: "", label: "Algorithme entre vous et la scène", Icon: Ban },
+];
+
 export default function AProposPage() {
   return (
     <>
-      {/* Hero — typographie kinétique : trois lignes de poids et de tailles différents plutôt
-          qu'un bloc de titre uniforme. */}
+      {/* Hero — typographie kinétique : deux lignes de poids différents, mais toutes deux
+          pleinement lisibles (un gris franc, pas une opacité qui se noie dans le fond rouge). */}
       <section className="relative overflow-hidden">
         <ParallaxGlow />
         <div className="max-w-4xl mx-auto px-6 pt-28 pb-16 md:pt-40 md:pb-20">
           <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-8">À propos</p>
           <h1 className="font-display font-semibold tracking-tight leading-[0.98]">
-            <span className="block text-[11vw] md:text-[5vw] lg:text-6xl text-ink-faint/50">Plus qu'un média,</span>
-            <span className="block text-[13vw] md:text-[6.5vw] lg:text-7xl">une passion.</span>
+            <span className="block text-[11vw] md:text-[5vw] lg:text-6xl text-ink-muted">Plus qu'un média,</span>
+            <span className="block text-[13vw] md:text-[6.5vw] lg:text-7xl text-ink">une passion.</span>
           </h1>
         </div>
       </section>
 
-      {/* Chiffres clés — l'essentiel en un coup d'œil, avant même le premier paragraphe */}
+      {/* Chiffres clés — de vraies cartes avec de l'air entre elles, une icône et un accent
+          doré, pas un tableau de cases noires collées les unes aux autres. */}
       <Reveal>
         <section className="max-w-4xl mx-auto px-6 pb-16 md:pb-24">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/8 rounded-2xl overflow-hidden">
-            {[
-              { value: 2020, suffix: "", label: "Naissance, en plein confinement" },
-              { value: 15, suffix: "+", label: "Thèmes dans le blind test" },
-              { value: 3, suffix: "", label: "Réseaux où nous suivre" },
-              { value: 0, suffix: "", label: "Algorithme entre vous et la scène" },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-bg p-6 md:p-7">
-                <p className="font-display text-4xl md:text-5xl font-semibold text-gold tabular-nums">
-                  <CountUp to={stat.value} suffix={stat.suffix} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {STATS.map(({ value, suffix, label, Icon }) => (
+              <div
+                key={label}
+                className="card card-lift relative overflow-hidden p-5 md:p-6 bg-gradient-to-b from-white/[0.04] to-transparent"
+              >
+                <div className="icon-tile w-9 h-9 mb-4 bg-gradient-to-br from-gold/25 to-gold/5 text-gold">
+                  <Icon size={16} strokeWidth={2} />
+                </div>
+                <p className="font-display text-4xl md:text-5xl font-semibold text-gold tabular-nums leading-none">
+                  <CountUp to={value} suffix={suffix} />
                 </p>
-                <p className="text-xs text-ink-faint mt-2 leading-snug">{stat.label}</p>
+                <p className="text-xs text-ink-muted mt-3 leading-snug">{label}</p>
               </div>
             ))}
           </div>
