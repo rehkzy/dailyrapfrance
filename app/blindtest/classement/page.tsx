@@ -1,6 +1,7 @@
 import { Medal } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import BackToGame from "@/components/BackToGame";
+import GameTabBar from "@/components/GameTabBar";
 
 export const metadata = {
   title: "Classement — Blind Test DailyRapFrance",
@@ -17,7 +18,8 @@ export default async function ClassementPage() {
     .limit(50);
 
   return (
-    <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+    <>
+    <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
       <BackToGame />
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Classement</h1>
@@ -69,5 +71,7 @@ export default async function ClassementPage() {
         </div>
       )}
     </section>
+    <GameTabBar />
+    </>
   );
 }

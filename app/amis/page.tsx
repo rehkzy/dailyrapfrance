@@ -7,6 +7,7 @@ import { useUser } from "@/lib/useUser";
 import AddFriendButton from "@/components/AddFriendButton";
 import BrandLoader from "@/components/BrandLoader";
 import BackToGame from "@/components/BackToGame";
+import GameTabBar from "@/components/GameTabBar";
 
 type ProfileLite = {
   id: string;
@@ -102,14 +103,18 @@ export default function AmisPage() {
 
   if (userLoading) {
     return (
+      <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24 flex justify-center">
         <BrandLoader size="md" />
       </section>
+      <GameTabBar />
+      </>
     );
   }
 
   if (!user) {
     return (
+      <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
         <BackToGame />
         <div className="max-w-sm mx-auto card p-8 text-center">
@@ -122,6 +127,8 @@ export default function AmisPage() {
           </p>
         </div>
       </section>
+      <GameTabBar />
+      </>
     );
   }
 
@@ -136,7 +143,8 @@ export default function AmisPage() {
   }
 
   return (
-    <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+    <>
+    <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
       <BackToGame />
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Amis</h1>
@@ -230,5 +238,7 @@ export default function AmisPage() {
         </div>
       )}
     </section>
+    <GameTabBar />
+    </>
   );
 }

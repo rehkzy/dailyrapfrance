@@ -2,6 +2,7 @@ import { Play, Flame, Users, Trophy, Settings, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDailyTheme } from "@/lib/themes";
 import ShareGame from "@/components/ShareGame";
+import GameTabBar from "@/components/GameTabBar";
 
 export const metadata = {
   title: "Jouer — Blind Test Rap Français | DailyRapFrance",
@@ -23,7 +24,8 @@ export default async function JouerPage() {
   const dailyTheme = getDailyTheme();
 
   return (
-    <section className="max-w-2xl mx-auto px-6 pt-14 sm:pt-20 pb-24">
+    <>
+    <section className="max-w-2xl mx-auto px-6 pt-14 sm:pt-20 pb-32">
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">
         {displayName ? `Prêt, ${displayName} ?` : "Jouer"}
@@ -106,5 +108,7 @@ export default async function JouerPage() {
         <ShareGame />
       </div>
     </section>
+    <GameTabBar />
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import AccountSettingsForm from "@/components/AccountSettingsForm";
 import StatsBlock from "@/components/StatsBlock";
 import BackToGame from "@/components/BackToGame";
+import GameTabBar from "@/components/GameTabBar";
 
 export const metadata = { title: "Mon compte — DailyRapFrance" };
 
@@ -14,6 +15,7 @@ export default async function ParametresPage() {
 
   if (!user) {
     return (
+      <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
         <BackToGame />
         <div className="max-w-sm mx-auto card p-8 text-center">
@@ -26,6 +28,8 @@ export default async function ParametresPage() {
           </p>
         </div>
       </section>
+      <GameTabBar />
+      </>
     );
   }
 
@@ -44,7 +48,8 @@ export default async function ParametresPage() {
   const displayName = profile?.display_name ?? user.user_metadata?.full_name ?? user.user_metadata?.name ?? "Joueur";
 
   return (
-    <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+    <>
+    <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
       <BackToGame />
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Mon compte</h1>
@@ -68,5 +73,7 @@ export default async function ParametresPage() {
 
       <StatsBlock games={scores ?? []} />
     </section>
+    <GameTabBar />
+    </>
   );
 }

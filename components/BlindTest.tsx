@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Sliders, Gamepad2, Maximize, Minimize, Flame, X, Trophy, Settings, VolumeX,
+  Sliders, Gamepad2, Maximize, Minimize, Flame, X, VolumeX,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -19,6 +19,7 @@ import BlindTestRoom from "@/components/BlindTestRoom";
 import BrandLoader from "@/components/BrandLoader";
 import ShareScoreCard from "@/components/ShareScoreCard";
 import ShareGame from "@/components/ShareGame";
+import { GameTabBarContent } from "@/components/GameTabBar";
 import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, getDailyTheme } from "@/lib/themes";
 
 type Track = {
@@ -875,7 +876,7 @@ export default function BlindTest() {
               </div>
             </div>
 
-            <GameTabBar manualImmersive={manualImmersive} onToggleFullscreen={toggleFullscreen} />
+            <GameTabBarContent />
           </div>
         </div>
       </div>
@@ -1038,7 +1039,7 @@ export default function BlindTest() {
       >
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
         <div className="max-w-2xl mx-auto pointer-events-auto">
-          <GameTabBar manualImmersive={manualImmersive} onToggleFullscreen={toggleFullscreen} />
+          <GameTabBarContent />
         </div>
       </div>
       </>
@@ -1395,83 +1396,8 @@ export default function BlindTest() {
               </div>
             </>
           )}
-          <GameTabBar manualImmersive={manualImmersive} onToggleFullscreen={toggleFullscreen} />
+          <GameTabBarContent />
         </div>
-      </div>
-    </div>
-  );
-}
-
-// Barre d'onglets façon app mobile — Jouer/Amis/Classement/Compte/Écran. Toujours visible sur
-// la page blind test, quelle que soit la phase (configuration, partie en cours, récap) : plus
-// pratique que de la faire disparaître pendant le jeu.
-function GameTabBar({
-  manualImmersive,
-  onToggleFullscreen,
-}: {
-  manualImmersive: boolean;
-  onToggleFullscreen: () => void;
-}) {
-  return (
-    <div
-      className="mt-2 mx-4 mb-1 glass-strong rounded-2xl px-1.5 pt-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
-      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
-    >
-      <div className="grid grid-cols-5 gap-0.5">
-        <a
-          href="/jouer"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Gamepad2 size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Jouer</span>
-        </a>
-        <a
-          href="/amis"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Users size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Amis</span>
-        </a>
-        <a
-          href="/blindtest/classement"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Trophy size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Classement</span>
-        </a>
-        <a
-          href="/parametres"
-          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-        >
-          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-            <Settings size={17} strokeWidth={2} />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">Compte</span>
-        </a>
-        <button
-          onClick={onToggleFullscreen}
-          aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
-          className={`tap-press group flex flex-col items-center gap-1 py-2 rounded-xl transition-colors ${
-            manualImmersive ? "text-gold" : "text-ink-faint hover:text-gold"
-          }`}
-        >
-          <span
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-              manualImmersive ? "bg-gold text-white" : "group-hover:bg-white/8"
-            }`}
-          >
-            {manualImmersive ? <Minimize size={16} strokeWidth={2} /> : <Maximize size={16} strokeWidth={2} />}
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-wide">
-            {manualImmersive ? "Réduire" : "Écran"}
-          </span>
-        </button>
       </div>
     </div>
   );

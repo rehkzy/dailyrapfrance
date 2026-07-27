@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import AddFriendButton from "@/components/AddFriendButton";
 import StatsBlock from "@/components/StatsBlock";
 import BackToGame from "@/components/BackToGame";
+import GameTabBar from "@/components/GameTabBar";
 
 export const revalidate = 60;
 
@@ -33,7 +34,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const memberSince = new Date(profile.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
   return (
-    <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+    <>
+    <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
       <BackToGame />
       <div className="flex items-center gap-5 mb-10">
         {profile.avatar_url ? (
@@ -56,5 +58,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
       <StatsBlock games={scores ?? []} />
     </section>
+    <GameTabBar />
+    </>
   );
 }
