@@ -12,6 +12,7 @@ import type { User } from "@supabase/supabase-js";
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
 type FieldKey = "title" | "artist" | "feat";
 const ROUND_SECONDS = 25;
+const REVEAL_SECONDS = 3.2;
 const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
 
 type RoomRow = {
@@ -51,11 +52,12 @@ export default function BlindTestRoom({
 
   const [started, setStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  const [revealed, setRevealed] = useState(false);
+  const revealedRef = useRef(false);
   const [guess, setGuess] = useState({ title: "", artist: "", feat: "" });
   const [flash, setFlash] = useState<"ok" | "taken" | null>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const roomRef = useRef<RoomRow | null>(null);
   roomRef.current = room;
 
@@ -123,10 +125,8 @@ export default function BlindTestRoom({
       setStarted(false);
       setGuess({ title: "", artist: "", feat: "" });
       setFlash(null);
-      if (room.round_started_at) {
-        const elapsed = (Date.now() - new Date(room.round_started_at).getTime()) / 1000;
-        setTimeLeft(Math.max(0, Math.round(ROUND_SECONDS - elapsed)));
-      }
+      setRevealed(false);
+      revealedRef.current = false;
     } else if (room.status === "finished") {
       sfx.victory();
       setScreen("final");
@@ -134,41 +134,62 @@ export default function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status, room?.current_round]);
 
-  // Chrono local, aligné sur round_started_at (même échéance pour tout le monde)
+  // Chrono unique, basé sur le temps réel écoulé depuis round_started_at — tourne pour tout
+  // le monde en continu, que chacun ait déjà cliqué "Lancer l'extrait" ou non. C'est ce qui
+  // garantit que la révélation arrive au même moment pour tous, y compris les retardataires.
   useEffect(() => {
-    if (screen !== "playing" || !started) return;
-    tickRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          if (tickRef.current) clearInterval(tickRef.current);
-          if (isHost) advanceRound();
-          return 0;
-        }
-        if (t <= 6) sfx.tick();
-        return t - 1;
-      });
-    }, 1000);
-    return () => {
-      if (tickRef.current) clearInterval(tickRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, started]);
+    if (screen !== "playing" || !room?.round_started_at) return;
+    const startedAt = new Date(room.round_started_at).getTime();
 
-  // L'hôte fait avancer la manche quand tous les champs applicables sont trouvés
+    function check() {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      if (elapsed < ROUND_SECONDS) {
+        setTimeLeft(Math.max(0, Math.round(ROUND_SECONDS - elapsed)));
+        if (ROUND_SECONDS - elapsed <= 6) sfx.tick();
+      } else if (elapsed < ROUND_SECONDS + REVEAL_SECONDS) {
+        setTimeLeft(0);
+        if (!revealedRef.current) {
+          revealedRef.current = true;
+          setRevealed(true);
+          sfx.reveal();
+          audioRef.current?.pause();
+        }
+      } else if (isHost) {
+        advanceRound();
+      }
+    }
+    check();
+    const id = setInterval(check, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, room?.round_started_at, room?.current_round]);
+
+  // Fait terminer la manche avant l'heure — utilisé à la fois par le bouton "Passer" et par
+  // "tout le monde a trouvé". On recule juste l'horodatage de départ plutôt que d'avancer la
+  // manche directement : ça fait entrer tout le monde en phase de révélation au même instant,
+  // même ceux qui n'ont pas encore cliqué "Lancer l'extrait".
+  const endRoundEarly = useCallback(async () => {
+    const r = roomRef.current;
+    if (!r) return;
+    const past = new Date(Date.now() - ROUND_SECONDS * 1000).toISOString();
+    await supabase.from("rooms").update({ round_started_at: past }).eq("id", r.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // L'hôte fait terminer la manche plus tôt quand tous les champs applicables sont trouvés
   useEffect(() => {
-    if (!isHost || !room || screen !== "playing" || !track) return;
+    if (!isHost || !room || screen !== "playing" || !track || revealed) return;
     const roundSolves = solves.filter((s) => s.round_index === room.current_round);
     const applicable: FieldKey[] = track.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
     if (applicable.every((f) => roundSolves.some((s) => s.field === f))) {
-      advanceRound();
+      endRoundEarly();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solves, isHost]);
+  }, [solves, isHost, revealed]);
 
   const advanceRound = useCallback(async () => {
     const r = roomRef.current;
     if (!r) return;
-    if (tickRef.current) clearInterval(tickRef.current);
     const next = r.current_round + 1;
     if (next >= r.tracks.length) {
       await supabase.from("rooms").update({ status: "finished" }).eq("id", r.id);
@@ -269,12 +290,13 @@ export default function BlindTestRoom({
   }
 
   function launchExtract() {
+    if (revealed) return;
     setStarted(true);
     audioRef.current?.play().catch(() => {});
   }
 
   async function submitGuess() {
-    if (!room || !track) return;
+    if (!room || !track || revealed) return;
     const applicable: FieldKey[] = track.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
     const alreadySolved = new Set(solves.filter((s) => s.round_index === room.current_round).map((s) => s.field));
     let anyOk = false;
@@ -429,6 +451,39 @@ export default function BlindTestRoom({
             </div>
           ))}
         </div>
+
+        {/* Récap façon Wrapped — tous les morceaux de la partie et qui a trouvé quoi */}
+        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 text-left">Récap de la partie</p>
+        <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left max-h-96 overflow-y-auto">
+          {room.tracks.map((t, i) => {
+            const rSolves = solves.filter((s) => s.round_index === i);
+            return (
+              <div key={t.id} className="flex items-center gap-3 py-3 px-4">
+                {t.coverUrl ? (
+                  <img src={t.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{t.title}</p>
+                  <p className="text-xs text-ink-faint truncate">{t.artistName}</p>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                  {rSolves.length === 0 ? (
+                    <span className="text-[11px] font-mono text-ink-faint">personne</span>
+                  ) : (
+                    [...new Set(rSolves.map((s) => s.user_id))].map((uid) => (
+                      <span key={uid} className="text-[11px] font-mono text-gold">
+                        {players.find((p) => p.user_id === uid)?.display_name}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <button onClick={leaveToMenu} className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-6 py-3 font-medium transition-colors">
           Nouveau salon
         </button>
@@ -480,19 +535,43 @@ export default function BlindTestRoom({
       </div>
 
       <div className="card p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
-        {!started ? (
+        {!started && !revealed ? (
           <Magnetic strength={0.2}>
             <button onClick={launchExtract} className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors">
               <Play size={20} /> Lancer l'extrait
             </button>
           </Magnetic>
+        ) : revealed ? (
+          <div>
+            {track.coverUrl && (
+              <img src={track.coverUrl} alt={track.title} className="w-24 h-24 rounded-lg object-cover mx-auto mb-4" />
+            )}
+            <p className="font-display text-2xl font-medium">{track.title}</p>
+            <p className="text-ink-muted mt-1">{track.artistName}</p>
+            {track.feats.length > 0 && <p className="text-xs text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>}
+            <div className="flex items-center justify-center gap-2 mt-5 flex-wrap">
+              {applicable.map((f) => (
+                <span
+                  key={f}
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-mono ${
+                    isSolved(f) ? "bg-gold/15 text-gold" : "bg-white/5 text-ink-faint"
+                  }`}
+                >
+                  {isSolved(f) && <Check size={11} />}
+                  {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Featuring"}
+                  {isSolved(f) && ` — ${players.find((p) => p.user_id === roundSolves.find((s) => s.field === f)?.user_id)?.display_name}`}
+                </span>
+              ))}
+            </div>
+            {roundSolves.length === 0 && <p className="mt-4 font-mono text-sm text-ink-faint">Personne n'a trouvé.</p>}
+          </div>
         ) : (
           <>
             <span className={`font-display text-2xl text-gold block mb-4 ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>{timeLeft}</span>
             {isHost && (
               <button
                 type="button"
-                onClick={advanceRound}
+                onClick={endRoundEarly}
                 className="mb-4 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
               >
                 <SkipForward size={13} />

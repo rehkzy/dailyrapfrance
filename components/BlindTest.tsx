@@ -102,6 +102,14 @@ export default function BlindTest() {
   const track = tracks[roundIndex];
   const applicableFields: FieldKey[] = track?.feats?.length ? ["title", "artist", "feat"] : ["title", "artist"];
 
+  // Historique de la partie — un récap façon "Wrapped" à la fin. Refs à jour à chaque rendu
+  // pour éviter que revealRound() (mémoïsé, dépendances limitées) capture une valeur périmée.
+  const [roundHistory, setRoundHistory] = useState<{ track: Track; solved: Partial<Record<FieldKey, string>> }[]>([]);
+  const trackRef = useRef<Track | undefined>(undefined);
+  trackRef.current = track;
+  const solvedRef = useRef<Partial<Record<FieldKey, string>>>({});
+  solvedRef.current = solved;
+
   const clearTimers = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
@@ -116,6 +124,9 @@ export default function BlindTest() {
     sfx.reveal();
     clearTimers();
     audioRef.current?.pause();
+    if (trackRef.current) {
+      setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current }]);
+    }
     advanceTimeoutRef.current = setTimeout(() => {
       setRoundIndex((i) => {
         const next = i + 1;
@@ -173,6 +184,7 @@ export default function BlindTest() {
         return;
       }
       setTracks(pool);
+      setRoundHistory([]);
       setPlayers(
         mode === "solo"
           ? [{ id: "solo", name: "Toi", score: 0, jokerUsed: false, timeJokerUsed: false }]
@@ -346,6 +358,7 @@ export default function BlindTest() {
     setTracks([]);
     setPlayers([]);
     setRoundIndex(0);
+    setRoundHistory([]);
     setScoreSaveStatus("idle");
     setShowConfetti(false);
     resetRoundState();
@@ -612,6 +625,43 @@ export default function BlindTest() {
             {scoreSaveStatus === "saved" && "Score enregistré dans ton classement."}
             {scoreSaveStatus === "guest" && "Connecte-toi pour sauvegarder ce score."}
           </p>
+        )}
+
+        {roundHistory.length > 0 && (
+          <div className="mb-8 text-left">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Récap de la partie</p>
+            <div className="card divide-y divide-white/8 overflow-hidden max-h-96 overflow-y-auto">
+              {roundHistory.map((r, i) => {
+                const foundBy = [...new Set(Object.values(r.solved))];
+                return (
+                  <div key={r.track.id + i} className="flex items-center gap-3 py-3 px-4">
+                    {r.track.coverUrl ? (
+                      <img src={r.track.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{r.track.title}</p>
+                      <p className="text-xs text-ink-faint truncate">{r.track.artistName}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                      {foundBy.length === 0 ? (
+                        <span className="text-[11px] font-mono text-ink-faint">personne</span>
+                      ) : mode === "solo" ? (
+                        <Check size={14} className="text-gold" />
+                      ) : (
+                        foundBy.map((pid) => (
+                          <span key={pid} className="text-[11px] font-mono text-gold">
+                            {players.find((p) => p.id === pid)?.name}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-3">

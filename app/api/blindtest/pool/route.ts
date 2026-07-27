@@ -65,8 +65,34 @@ async function fetchArtistTopTracks(name: string): Promise<DeezerTrackSummary[]>
     );
     const artist = search.data?.[0];
     if (!artist) return [];
-    const top = await deezerFetch(`/artist/${artist.id}/top?limit=10`);
-    return top.data ?? [];
+    const top = await deezerFetch(`/artist/${artist.id}/top?limit=30`);
+    let tracks = top.data ?? [];
+
+    // Filet de sécurité pour les thèmes à peu d'artistes (ex. un duo, ou un département
+    // curé avec un seul nom) : si le top de l'artiste ne suffit pas à lui seul, on complète
+    // avec les titres de ses albums plutôt que de laisser le pool trop maigre.
+    if (tracks.filter((t) => t.preview).length < 8) {
+      try {
+        const albums = await deezerFetch<{ data?: { id: number }[] }>(`/artist/${artist.id}/albums?limit=6`);
+        const albumTracks = await Promise.all(
+          (albums.data ?? []).map((a) =>
+            deezerFetch(`/album/${a.id}/tracks?limit=15`).then((r) => r.data ?? []).catch(() => [])
+          )
+        );
+        const seen = new Set(tracks.map((t) => t.id));
+        for (const list of albumTracks) {
+          for (const t of list) {
+            if (!seen.has(t.id)) {
+              seen.add(t.id);
+              tracks.push(t);
+            }
+          }
+        }
+      } catch {
+        // le top seul suffira, ou le thème restera limité — pas bloquant
+      }
+    }
+    return tracks;
   } catch {
     return [];
   }
