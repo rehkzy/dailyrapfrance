@@ -30,7 +30,8 @@ type Phase = "setup" | "loading" | "playing" | "final";
 type Player = { id: string; name: string; score: number; jokerUsed: boolean; timeJokerUsed: boolean };
 type FieldKey = "title" | "artist" | "feat";
 
-const ROUND_SECONDS = 25;
+const DEFAULT_ROUND_SECONDS = 25;
+const ROUND_TIME_OPTIONS = [15, 20, 25, 35, 45];
 const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
 
 const THEME_OPTIONS = [
@@ -88,6 +89,8 @@ export default function BlindTest() {
       .catch(() => {});
   }, []);
   const [roundCount, setRoundCount] = useState(10);
+  const [roundSeconds, setRoundSeconds] = useState(DEFAULT_ROUND_SECONDS);
+  const [jokersEnabled, setJokersEnabled] = useState(true);
   const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -99,7 +102,7 @@ export default function BlindTest() {
 
   // Round courant
   const [started, setStarted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_ROUND_SECONDS);
   const [buzzedBy, setBuzzedBy] = useState<string | null>(null);
   const [locked, setLocked] = useState<Set<string>>(new Set());
   const [solved, setSolved] = useState<Partial<Record<FieldKey, string>>>({}); // field -> playerId
@@ -168,7 +171,7 @@ export default function BlindTest() {
 
   function resetRoundState() {
     setStarted(false);
-    setTimeLeft(ROUND_SECONDS);
+    setTimeLeft(roundSeconds);
     deadlineRef.current = null;
     setBuzzedBy(null);
     setLocked(new Set());
@@ -221,14 +224,14 @@ export default function BlindTest() {
     sfx.click();
     setStarted(true);
     audioRef.current?.play().catch(() => {});
-    deadlineRef.current = Date.now() + ROUND_SECONDS * 1000;
+    deadlineRef.current = Date.now() + roundSeconds * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
 
   function useJoker(playerId: string) {
     const player = players.find((p) => p.id === playerId);
     const audio = audioRef.current;
-    if (!player || player.jokerUsed || !audio || !started || revealed || buzzedBy) return;
+    if (!jokersEnabled || !player || player.jokerUsed || !audio || !started || revealed || buzzedBy) return;
     sfx.joker();
     const dur = audio.duration;
     const jump = Number.isFinite(dur) ? Math.min(dur - 3, audio.currentTime + 9) : audio.currentTime + 9;
@@ -243,7 +246,7 @@ export default function BlindTest() {
   // et par partie, comme le premier.
   function useTimeJoker(playerId: string) {
     const player = players.find((p) => p.id === playerId);
-    if (!player || player.timeJokerUsed || !started || revealed) return;
+    if (!jokersEnabled || !player || player.timeJokerUsed || !started || revealed) return;
     sfx.joker();
     deadlineRef.current = (deadlineRef.current ?? Date.now()) + TIME_JOKER_SECONDS * 1000;
     setTimeLeft((t) => t + TIME_JOKER_SECONDS);
@@ -398,7 +401,7 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto pb-24">
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
             Masqué sur mobile : l'espace vertical y est plus précieux, la page a déjà l'emblème
             de marque ailleurs sur le site. */}
@@ -461,86 +464,94 @@ export default function BlindTest() {
               ].map((m) => {
                 const isActive = mode === m.id;
                 return (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      sfx.click();
-                      setMode(m.id);
-                      if (m.id === "online") return;
-                      setWizardStep(1);
-                    }}
-                    className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
-                      isActive
-                        ? "border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.4),0_10px_28px_-8px_rgba(240,0,28,0.55)]"
-                        : "border-white/10 hover:border-white/25"
-                    }`}
-                  >
-                    {/* Fond dégradé façon carte de match Tinder — discret au repos, plus présent sélectionné */}
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${m.gradient} transition-opacity duration-200 ${
-                        isActive ? "opacity-25" : "opacity-0 group-hover:opacity-10"
-                      }`}
-                      aria-hidden="true"
-                    />
-                    <div
-                      className={`icon-tile relative w-14 h-14 shrink-0 bg-gradient-to-br ${m.gradient} text-white transition-transform duration-200`}
-                    >
-                      <m.Icon size={24} strokeWidth={2} />
-                    </div>
-                    <span className="relative min-w-0 flex-1">
-                      <span className="flex items-center gap-2">
-                        <span className="block text-sm font-semibold">{m.label}</span>
-                        <span className="font-mono text-[10px] uppercase tracking-wide text-ink-faint bg-white/5 rounded-full px-2 py-0.5">
-                          {m.tag}
-                        </span>
-                      </span>
-                      <span className="block text-xs text-ink-faint mt-1">{m.desc}</span>
-                    </span>
-                    <div
-                      className={`relative w-7 h-7 shrink-0 rounded-full flex items-center justify-center transition-colors ${
-                        isActive ? "bg-gold text-white" : "bg-white/5 text-ink-faint"
+                  <div key={m.id}>
+                    <button
+                      onClick={() => {
+                        sfx.click();
+                        setMode(m.id);
+                        // On ne saute plus automatiquement à l'étape suivante : un tap sur
+                        // une carte ne fait que la sélectionner (comme choisir un thème),
+                        // c'est "Suivant" qui fait avancer — sinon impossible de voir/remplir
+                        // les pseudos avant de quitter l'écran en mode Local. "Salon en ligne"
+                        // reste à part : ce n'est pas une étape du wizard mais un tout autre
+                        // écran (code à partager), donc il continue de s'ouvrir directement.
+                      }}
+                      className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
+                        isActive
+                          ? "border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.4),0_10px_28px_-8px_rgba(240,0,28,0.55)]"
+                          : "border-white/10 hover:border-white/25"
                       }`}
                     >
-                      {isActive ? <Check size={14} strokeWidth={3} /> : <ChevronRight size={14} />}
-                    </div>
-                  </button>
-                );
-              })}
-
-              {mode === "local" && (
-                <div className="pt-2">
-                  <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2.5">Joueurs</p>
-                  <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                    {playerNames.map((name, i) => (
-                      <div key={i} className="flex gap-2">
-                        <input
-                          value={name}
-                          onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
-                          placeholder={`Joueur ${i + 1}`}
-                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-gold/50"
-                        />
-                        {playerNames.length > 2 && (
-                          <button
-                            onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
-                            className="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg text-ink-faint hover:text-riseNeg hover:bg-riseNeg/10 transition-colors text-lg"
-                            aria-label="Retirer ce joueur"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    {playerNames.length < 8 && (
-                      <button
-                        onClick={() => setPlayerNames((prev) => [...prev, `Joueur ${prev.length + 1}`])}
-                        className="text-xs font-mono text-gold hover:text-glow transition-colors"
+                      {/* Fond dégradé façon carte de match Tinder — discret au repos, plus présent sélectionné */}
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${m.gradient} transition-opacity duration-200 ${
+                          isActive ? "opacity-25" : "opacity-0 group-hover:opacity-10"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <div
+                        className={`icon-tile relative w-14 h-14 shrink-0 bg-gradient-to-br ${m.gradient} text-white transition-transform duration-200`}
                       >
-                        + Ajouter un joueur
-                      </button>
+                        <m.Icon size={24} strokeWidth={2} />
+                      </div>
+                      <span className="relative min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="block text-sm font-semibold">{m.label}</span>
+                          <span className="font-mono text-[10px] uppercase tracking-wide text-ink-faint bg-white/5 rounded-full px-2 py-0.5">
+                            {m.tag}
+                          </span>
+                        </span>
+                        <span className="block text-xs text-ink-faint mt-1">{m.desc}</span>
+                      </span>
+                      <div
+                        className={`relative w-7 h-7 shrink-0 rounded-full flex items-center justify-center transition-colors ${
+                          isActive ? "bg-gold text-white" : "bg-white/5 text-ink-faint"
+                        }`}
+                      >
+                        {isActive ? <Check size={14} strokeWidth={3} /> : <ChevronRight size={14} />}
+                      </div>
+                    </button>
+
+                    {/* Éditeur de pseudos — replié directement sous la carte "Local" dès
+                        qu'elle est sélectionnée, plutôt que relégué tout en bas de l'écran
+                        après les 3 cartes (trop loin, sans lien visuel avec le choix fait). */}
+                    {m.id === "local" && isActive && (
+                      <div className="mt-2 rounded-xl border border-gold/20 bg-gold/[0.04] p-3.5 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
+                        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2.5">Pseudos</p>
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                          {playerNames.map((name, i) => (
+                            <div key={i} className="flex gap-2">
+                              <input
+                                value={name}
+                                onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
+                                placeholder={`Joueur ${i + 1}`}
+                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 min-h-[40px]"
+                              />
+                              {playerNames.length > 2 && (
+                                <button
+                                  onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
+                                  className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg text-ink-faint hover:text-riseNeg hover:bg-riseNeg/10 transition-colors text-lg"
+                                  aria-label="Retirer ce joueur"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          {playerNames.length < 8 && (
+                            <button
+                              onClick={() => setPlayerNames((prev) => [...prev, `Joueur ${prev.length + 1}`])}
+                              className="text-xs font-mono text-gold hover:text-glow transition-colors py-1"
+                            >
+                              + Ajouter un joueur
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
           )}
 
@@ -573,7 +584,7 @@ export default function BlindTest() {
           {wizardStep === 2 && (
             <div className="flex-1">
               <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Nombre de manches</p>
-              <div className="flex gap-2 mb-6">
+              <div className="flex gap-2 mb-6 flex-wrap">
                 {[10, 15, 20, 30].map((n) => (
                   <button
                     key={n}
@@ -590,40 +601,87 @@ export default function BlindTest() {
                 ))}
               </div>
 
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Temps par manche</p>
+              <div className="flex gap-2 mb-6 flex-wrap">
+                {ROUND_TIME_OPTIONS.map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => {
+                      sfx.click();
+                      setRoundSeconds(n);
+                    }}
+                    className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
+                      roundSeconds === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
+                    }`}
+                  >
+                    {n}s
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between gap-4 glass rounded-xl p-4 mb-6">
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <Headphones size={14} className="text-gold shrink-0" />
+                    Jokers
+                  </span>
+                  <span className="block text-xs text-ink-faint mt-0.5">
+                    Réécouter un extrait, ou gagner du temps sur la fin du chrono.
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={jokersEnabled}
+                  aria-label="Activer les jokers"
+                  onClick={() => {
+                    sfx.click();
+                    setJokersEnabled((v) => !v);
+                  }}
+                  className={`tap-press relative shrink-0 w-12 h-7 rounded-full transition-colors duration-200 ${
+                    jokersEnabled ? "bg-gold" : "bg-white/10"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                      jokersEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
               <div className="glass rounded-xl p-4 text-xs text-ink-faint leading-relaxed mb-6">
                 <span className="text-gold font-mono uppercase tracking-wide">Barème</span> — titre :{" "}
                 <span className="text-ink">1 pt</span> · artiste : <span className="text-ink">1 pt</span> · featuring :{" "}
-                <span className="text-gold">+2 pts</span>. Un <span className="text-ink">joker</span> par partie et
-                par joueur pour réécouter un autre passage.
+                <span className="text-gold">+2 pts</span>.{" "}
+                {jokersEnabled
+                  ? "Un joker par partie et par joueur pour réécouter un autre passage, plus un joker temps en fin de chrono."
+                  : "Jokers désactivés pour cette partie."}
               </div>
 
               {setupError && <p className="text-sm text-riseNeg mb-4">{setupError}</p>}
-
-              <Magnetic strength={0.15} className="block w-full">
-                <button
-                  onClick={startGame}
-                  disabled={phase === "loading"}
-                  className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full py-4 font-semibold text-base transition-colors flex items-center justify-center gap-2"
-                >
-                  {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-                  {phase !== "loading" && <Play size={18} />}
-                </button>
-              </Magnetic>
             </div>
           )}
+        </div>
 
-          {/* Navigation entre étapes (mode "online" a déjà sa propre UI, retournée plus haut) —
-              vrais boutons visibles et accessibles, pas de simples liens texte discrets. */}
-          <div className="flex items-center gap-3 mt-6 pt-4 border-t border-white/8">
+        {/* Barre d'action — fixe en bas du viewport, toujours accessible même sur un écran
+            court ou une carte de réglages qui pousse le contenu vers le bas (avant, ces
+            boutons finissaient hors champ, à faire défiler pour les atteindre). */}
+        <div
+          className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
+          <div className="max-w-2xl mx-auto flex items-center gap-3 glass-strong rounded-2xl p-2 pointer-events-auto">
             <button
               onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
               disabled={wizardStep === 0}
               aria-label="Étape précédente"
-              className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full glass text-sm font-medium text-ink-muted hover:text-ink hover:border-gold/30 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
             >
               <ChevronLeft size={16} /> Précédent
             </button>
-            {wizardStep < 2 && (
+            {wizardStep < 2 ? (
               <button
                 onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
                 aria-label="Étape suivante"
@@ -631,6 +689,17 @@ export default function BlindTest() {
               >
                 Suivant <ChevronRight size={16} />
               </button>
+            ) : (
+              <Magnetic strength={0.15} className="flex-1 block">
+                <button
+                  onClick={startGame}
+                  disabled={phase === "loading"}
+                  className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[44px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  {phase === "loading" ? "Chargement..." : "Lancer la partie"}
+                  {phase !== "loading" && <Play size={18} />}
+                </button>
+              </Magnetic>
             )}
           </div>
         </div>
@@ -813,7 +882,7 @@ export default function BlindTest() {
             <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-4 max-w-xs mx-auto">
               <div
                 className="h-full bg-gold transition-all duration-1000 ease-linear"
-                style={{ width: `${(timeLeft / ROUND_SECONDS) * 100}%` }}
+                style={{ width: `${(timeLeft / roundSeconds) * 100}%` }}
               />
             </div>
 
@@ -883,19 +952,21 @@ export default function BlindTest() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {players.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => useJoker(p.id)}
-                        disabled={p.jokerUsed}
-                        className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-full px-3 py-1.5 text-ink-faint hover:text-gold disabled:opacity-30 disabled:hover:text-ink-faint transition-colors"
-                      >
-                        <Headphones size={13} />
-                        Joker {p.name}
-                      </button>
-                    ))}
-                  </div>
+                  {jokersEnabled && (
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {players.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => useJoker(p.id)}
+                          disabled={p.jokerUsed}
+                          className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-full px-3 py-1.5 text-ink-faint hover:text-gold disabled:opacity-30 disabled:hover:text-ink-faint transition-colors"
+                        >
+                          <Headphones size={13} />
+                          Joker {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             ) : (
@@ -930,7 +1001,7 @@ export default function BlindTest() {
                     gold
                   />
                 )}
-                {timeLeft <= 8 && !soloPlayer?.timeJokerUsed && (
+                {jokersEnabled && timeLeft <= 8 && !soloPlayer?.timeJokerUsed && (
                   <button
                     type="button"
                     onClick={() => useTimeJoker("solo")}
@@ -947,16 +1018,18 @@ export default function BlindTest() {
                   >
                     Valider
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => useJoker("solo")}
-                    disabled={soloPlayer?.jokerUsed}
-                    aria-label="Joker : écouter un autre passage de l'extrait"
-                    className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-lg px-4 min-h-[44px] disabled:opacity-30"
-                  >
-                    <Headphones size={14} />
-                    Joker
-                  </button>
+                  {jokersEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => useJoker("solo")}
+                      disabled={soloPlayer?.jokerUsed}
+                      aria-label="Joker : écouter un autre passage de l'extrait"
+                      className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-lg px-4 min-h-[44px] disabled:opacity-30"
+                    >
+                      <Headphones size={14} />
+                      Joker
+                    </button>
+                  )}
                 </div>
               </form>
             )}
