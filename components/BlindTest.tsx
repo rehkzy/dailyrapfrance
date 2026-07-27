@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Sliders, Gamepad2, Maximize, Minimize, Flame, X, VolumeX,
+  Sliders, Gamepad2, Maximize, Minimize, Flame, X, VolumeX, Volume2, Lightbulb, Target,
+  type LucideIcon,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -32,7 +33,7 @@ type Track = {
 };
 type Mode = "solo" | "local" | "online";
 type Phase = "setup" | "loading" | "playing" | "final";
-type Player = { id: string; name: string; score: number; jokerUsed: boolean; timeJokerUsed: boolean };
+type Player = { id: string; name: string; score: number; jokersLeft: number; timeJokerUsed: boolean };
 type FieldKey = "title" | "artist" | "feat";
 
 const DEFAULT_ROUND_SECONDS = 25;
@@ -81,7 +82,13 @@ export default function BlindTest() {
   }, []);
   const [roundCount, setRoundCount] = useState(10);
   const [roundSeconds, setRoundSeconds] = useState(DEFAULT_ROUND_SECONDS);
-  const [jokersEnabled, setJokersEnabled] = useState(true);
+  // Jokers d'écoute — un compte plutôt qu'un simple on/off, pour un vrai curseur de difficulté.
+  const [jokerCount, setJokerCount] = useState(1);
+  const jokersEnabled = jokerCount > 0;
+  const [strictMode, setStrictMode] = useState(false);
+  const [hintsEnabled, setHintsEnabled] = useState(false);
+  const [trackVolume, setTrackVolume] = useState(1);
+  const [sfxEnabled, setSfxEnabled] = useState(true);
   const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -229,8 +236,8 @@ export default function BlindTest() {
       setRoundHistory([]);
       setPlayers(
         mode === "solo"
-          ? [{ id: "solo", name: "Toi", score: 0, jokerUsed: false, timeJokerUsed: false }]
-          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokerUsed: false, timeJokerUsed: false }))
+          ? [{ id: "solo", name: "Toi", score: 0, jokersLeft: jokerCount, timeJokerUsed: false }]
+          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokersLeft: jokerCount, timeJokerUsed: false }))
       );
       setRoundIndex(0);
       setPhase("playing");
@@ -264,13 +271,13 @@ export default function BlindTest() {
   function useJoker(playerId: string) {
     const player = players.find((p) => p.id === playerId);
     const audio = audioRef.current;
-    if (!jokersEnabled || !player || player.jokerUsed || !audio || !started || revealed || buzzedBy) return;
+    if (!jokersEnabled || !player || player.jokersLeft <= 0 || !audio || !started || revealed || buzzedBy) return;
     sfx.joker();
     const dur = audio.duration;
     const jump = Number.isFinite(dur) ? Math.min(dur - 3, audio.currentTime + 9) : audio.currentTime + 9;
     audio.currentTime = Math.max(0, jump);
     audio.play().catch(() => {});
-    setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, jokerUsed: true } : p)));
+    setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, jokersLeft: p.jokersLeft - 1 } : p)));
   }
 
   const TIME_JOKER_SECONDS = 15;
@@ -323,10 +330,10 @@ export default function BlindTest() {
   }
 
   function isTitleMatch(guessVal: string, title: string) {
-    return checkGuess(guessVal, "", title);
+    return checkGuess(guessVal, "", title, strictMode);
   }
   function isArtistMatch(guessVal: string, name: string) {
-    return checkGuess(guessVal, name, "");
+    return checkGuess(guessVal, name, "", strictMode);
   }
 
   // Local : buzz
@@ -510,6 +517,12 @@ export default function BlindTest() {
       window.__lenis?.start();
     };
   }, [phase]);
+
+  // Volume des extraits — réappliqué à chaque nouvelle manche puisque <audio> est remonté
+  // (key={track.id}) et perd donc tout état impératif précédent.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = trackVolume;
+  }, [trackVolume, track?.id]);
 
   // ── Rendu ──────────────────────────────────────────────────────────────
 
@@ -752,84 +765,150 @@ export default function BlindTest() {
 
           {/* Étape 2 — Réglages + barème + lancer */}
           {wizardStep === 2 && (
-            <div className="flex-1">
-              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Nombre de manches</p>
-              <div className="flex gap-2 mb-6 flex-wrap">
-                {[10, 15, 20, 30].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => {
-                      sfx.click();
-                      setRoundCount(n);
-                    }}
-                    className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
-                      roundCount === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
+            <div className="flex-1 space-y-7">
+              {/* Partie */}
+              <div>
+                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                  <Disc size={13} />
+                  Partie
+                </p>
+                <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  {[10, 15, 20, 30].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => {
+                        sfx.click();
+                        setRoundCount(n);
+                      }}
+                      className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
+                        roundCount === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-ink-faint mb-2">Temps par manche</p>
+                <div className="flex gap-2 flex-wrap">
+                  {ROUND_TIME_OPTIONS.map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => {
+                        sfx.click();
+                        setRoundSeconds(n);
+                      }}
+                      className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
+                        roundSeconds === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
+                      }`}
+                    >
+                      {n}s
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Temps par manche</p>
-              <div className="flex gap-2 mb-6 flex-wrap">
-                {ROUND_TIME_OPTIONS.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => {
-                      sfx.click();
-                      setRoundSeconds(n);
-                    }}
-                    className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
-                      roundSeconds === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
-                    }`}
-                  >
-                    {n}s
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between gap-4 glass rounded-xl p-4 mb-6">
-                <span className="min-w-0">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <Headphones size={14} className="text-gold shrink-0" />
-                    Jokers
+              {/* Difficulté */}
+              <div>
+                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                  <Target size={13} />
+                  Difficulté
+                </p>
+                <div className="flex items-center justify-between gap-4 glass rounded-xl p-4 mb-2.5">
+                  <span className="min-w-0 flex items-start gap-2.5">
+                    <Headphones size={15} className="text-gold shrink-0 mt-0.5" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">Jokers d'écoute</span>
+                      <span className="block text-xs text-ink-faint mt-0.5 leading-snug">
+                        Réécouter un autre passage de l'extrait, par joueur et par partie.
+                      </span>
+                    </span>
                   </span>
-                  <span className="block text-xs text-ink-faint mt-0.5">
-                    Réécouter un extrait, ou gagner du temps sur la fin du chrono.
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={jokersEnabled}
-                  aria-label="Activer les jokers"
-                  onClick={() => {
-                    sfx.click();
-                    setJokersEnabled((v) => !v);
-                  }}
-                  className={`tap-press relative shrink-0 w-12 h-7 rounded-full transition-colors duration-200 ${
-                    jokersEnabled ? "bg-gold" : "bg-white/10"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
-                      jokersEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
+                  <div className="flex gap-1 shrink-0">
+                    {[0, 1, 2].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => {
+                          sfx.click();
+                          setJokerCount(n);
+                        }}
+                        aria-label={`${n} joker${n > 1 ? "s" : ""}`}
+                        className={`w-8 h-8 rounded-full text-sm font-mono transition-colors ${
+                          jokerCount === n ? "bg-gold text-white" : "bg-white/5 text-ink-muted hover:text-ink"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <SettingToggle
+                  Icon={Target}
+                  label="Mode difficile"
+                  description="Réponses exactes seulement — aucune tolérance aux fautes de frappe."
+                  checked={strictMode}
+                  onChange={setStrictMode}
+                />
+                <div className="mt-2.5">
+                  <SettingToggle
+                    Icon={Lightbulb}
+                    label="Indice en fin de chrono"
+                    description="La première lettre du titre s'affiche dans les dernières secondes."
+                    checked={hintsEnabled}
+                    onChange={setHintsEnabled}
                   />
-                </button>
+                </div>
               </div>
 
-              <div className="glass rounded-xl p-4 text-xs text-ink-faint leading-relaxed mb-6">
+              {/* Confort */}
+              <div>
+                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                  <Volume2 size={13} />
+                  Confort
+                </p>
+                <div className="glass rounded-xl p-4 mb-2.5">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    {trackVolume === 0 ? (
+                      <VolumeX size={15} className="text-gold shrink-0" />
+                    ) : (
+                      <Volume2 size={15} className="text-gold shrink-0" />
+                    )}
+                    <span className="text-sm font-medium flex-1">Volume des extraits</span>
+                    <span className="font-mono text-xs text-ink-faint w-9 text-right">{Math.round(trackVolume * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={trackVolume * 100}
+                    onChange={(e) => setTrackVolume(Number(e.target.value) / 100)}
+                    className="brand-slider"
+                    style={{ "--fill": `${trackVolume * 100}%` } as CSSProperties}
+                    aria-label="Volume des extraits"
+                  />
+                </div>
+                <SettingToggle
+                  Icon={sfxEnabled ? Volume2 : VolumeX}
+                  label="Effets sonores"
+                  description="Clics, buzzer, révélations — les bruitages de l'interface."
+                  checked={sfxEnabled}
+                  onChange={(v) => {
+                    setSfxEnabled(v);
+                    sfx.setMuted(!v);
+                  }}
+                />
+              </div>
+
+              <div className="glass rounded-xl p-4 text-xs text-ink-faint leading-relaxed">
                 <span className="text-gold font-mono uppercase tracking-wide">Barème</span> — titre :{" "}
                 <span className="text-ink">1 pt</span> · artiste : <span className="text-ink">1 pt</span> · featuring :{" "}
                 <span className="text-gold">+2 pts</span>.{" "}
                 {jokersEnabled
-                  ? "Un joker par partie et par joueur pour réécouter un autre passage, plus un joker temps en fin de chrono."
+                  ? `${jokerCount} joker${jokerCount > 1 ? "s" : ""} d'écoute par joueur et par partie, plus un joker temps en fin de chrono.`
                   : "Jokers désactivés pour cette partie."}
               </div>
 
-              {setupError && <p className="text-sm text-riseNeg mb-4">{setupError}</p>}
+              {setupError && <p className="text-sm text-riseNeg">{setupError}</p>}
             </div>
           )}
           </>
@@ -1188,6 +1267,13 @@ export default function BlindTest() {
               />
             </div>
 
+            {hintsEnabled && timeLeft <= 6 && timeLeft > 0 && !solved.title && (
+              <p className="solved-pop inline-flex items-center gap-1.5 font-mono text-xs text-gold bg-gold/10 border border-gold/25 rounded-full px-3 py-1.5 mb-4">
+                <Lightbulb size={12} />
+                Le titre commence par « {track.title.charAt(0).toUpperCase()} »
+              </p>
+            )}
+
             {!buzzedBy && (
               <button
                 type="button"
@@ -1258,11 +1344,11 @@ export default function BlindTest() {
                         <button
                           key={p.id}
                           onClick={() => useJoker(p.id)}
-                          disabled={p.jokerUsed}
+                          disabled={p.jokersLeft <= 0}
                           className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-full px-3 py-1.5 text-ink-faint hover:text-gold disabled:opacity-30 disabled:hover:text-ink-faint transition-colors"
                         >
                           <Headphones size={13} />
-                          Joker {p.name}
+                          Joker {p.name} {jokerCount > 1 && `(${p.jokersLeft})`}
                         </button>
                       ))}
                     </div>
@@ -1365,12 +1451,12 @@ export default function BlindTest() {
                       <button
                         type="button"
                         onClick={() => useJoker("solo")}
-                        disabled={soloPlayer?.jokerUsed}
+                        disabled={(soloPlayer?.jokersLeft ?? 0) <= 0}
                         aria-label="Joker : écouter un autre passage de l'extrait"
                         className="tap-press shrink-0 flex items-center gap-1.5 text-xs font-mono rounded-full px-4 min-h-[48px] text-ink-muted hover:text-gold hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                       >
                         <Headphones size={15} />
-                        Joker
+                        Joker {jokerCount > 1 && `(${soloPlayer?.jokersLeft ?? 0})`}
                       </button>
                     )}
                     <button
@@ -1399,6 +1485,54 @@ export default function BlindTest() {
           <GameTabBarContent />
         </div>
       </div>
+    </div>
+  );
+}
+
+// Ligne de réglage à interrupteur — icône, libellé, description courte, switch façon iOS.
+// Un seul composant pour les 3 toggles de l'étape Réglages, plutôt que le markup dupliqué
+// trois fois avec des risques de divergence visuelle.
+function SettingToggle({
+  Icon,
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  Icon: LucideIcon;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 glass rounded-xl p-4">
+      <span className="min-w-0 flex items-start gap-2.5">
+        <Icon size={15} className="text-gold shrink-0 mt-0.5" />
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">{label}</span>
+          <span className="block text-xs text-ink-faint mt-0.5 leading-snug">{description}</span>
+        </span>
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => {
+          sfx.click();
+          onChange(!checked);
+        }}
+        className={`tap-press relative shrink-0 w-12 h-7 rounded-full transition-colors duration-200 ${
+          checked ? "bg-gold" : "bg-white/10"
+        }`}
+      >
+        <span
+          className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
+            checked ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </button>
     </div>
   );
 }

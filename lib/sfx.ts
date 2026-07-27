@@ -3,8 +3,10 @@
 // requis par les navigateurs) et réutilisé ensuite.
 
 let ctx: AudioContext | null = null;
+let muted = false;
 
 function getCtx(): AudioContext | null {
+  if (muted) return null;
   if (typeof window === "undefined") return null;
   if (!ctx) {
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -32,6 +34,12 @@ function tone(freq: number, start: number, duration: number, type: OscillatorTyp
 }
 
 export const sfx = {
+  setMuted(v: boolean) {
+    muted = v;
+  },
+  isMuted() {
+    return muted;
+  },
   // Petit clic sec — boutons, sélection de thème
   click() {
     tone(700, 0, 0.05, "square", 0.05);

@@ -53,10 +53,13 @@ export default function BlindTestPage() {
         </Suspense>
       </section>
 
-      {/* Contenu éditorial pour le référencement — pas dans la vue de jeu elle-même, mais
-          bien réel et indexable (pas de texte caché artificiellement, juste hors du parcours
-          de jeu principal). */}
-      <section id="seo-editorial" className="max-w-3xl mx-auto px-6 pb-24 text-sm text-ink-muted leading-relaxed space-y-4 border-t border-white/8 pt-10">
+      {/* Contenu éditorial pour le référencement — présent dans le DOM et indexable par les
+          moteurs de recherche (et lisible par les lecteurs d'écran), mais visuellement masqué :
+          ce n'est plus un bloc de texte que les visiteurs voient sur la page. `sr-only` est la
+          technique standard pour ça (contrairement à display:none, ce n'est pas du texte caché
+          artificiellement aux yeux d'un moteur de recherche — le contenu reste identique à ce
+          qu'un humain peut lire, juste présenté hors champ visuel). */}
+      <section id="seo-editorial" className="sr-only">
         <h2 className="font-display text-xl text-ink font-medium mb-2">
           Le blind test rap français en ligne, gratuit et sans inscription payante
         </h2>

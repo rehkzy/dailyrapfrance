@@ -135,6 +135,51 @@ body.game-scroll-lock {
   overflow: hidden;
 }
 
+/* Curseur de volume — remplace l'apparence système par défaut par quelque chose aux couleurs
+   de la marque, cohérent avec le reste des contrôles (pilules, interrupteurs). */
+input[type="range"].brand-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #f0001c var(--fill, 50%), rgba(255, 255, 255, 0.1) var(--fill, 50%));
+  outline: none;
+}
+
+input[type="range"].brand-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #f0001c;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].brand-slider::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+}
+
+input[type="range"].brand-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #f0001c;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+input[type="range"].brand-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
+}
+
 /* Trait de séparation qui porte la marque plutôt qu'un simple hairline blanc */
 .glow-line {
   height: 1px;
