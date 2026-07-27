@@ -17,6 +17,8 @@ import ThemeCover from "@/components/ThemeCover";
 import Row from "@/components/Row";
 import BlindTestRoom from "@/components/BlindTestRoom";
 import BrandLoader from "@/components/BrandLoader";
+import ShareScoreCard from "@/components/ShareScoreCard";
+import ShareGame from "@/components/ShareGame";
 import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, getDailyTheme } from "@/lib/themes";
 
 type Track = {
@@ -971,6 +973,12 @@ export default function BlindTest() {
                 ))}
               </div>
             )}
+            <div className="mb-8">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Rejouez avec d'autres potes</p>
+              <div className="flex justify-center">
+                <ShareGame text="On vient de jouer au blind test rap français de DailyRapFrance, viens tester ton niveau la prochaine fois 🔥" />
+              </div>
+            </div>
           </>
         )}
 
@@ -1015,6 +1023,17 @@ export default function BlindTest() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {mode === "solo" && (
+          <div className="mb-8">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Partage ton score</p>
+            <ShareScoreCard
+              points={ranked[0]?.score ?? 0}
+              themeLabel={THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId}
+              rounds={tracks.length}
+            />
           </div>
         )}
 

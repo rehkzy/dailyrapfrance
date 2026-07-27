@@ -1,6 +1,7 @@
 import { Play, Flame, Users, Trophy, Settings, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDailyTheme } from "@/lib/themes";
+import ShareGame from "@/components/ShareGame";
 
 export const metadata = {
   title: "Jouer — Blind Test Rap Français | DailyRapFrance",
@@ -83,7 +84,7 @@ export default async function JouerPage() {
       </div>
 
       {!user && (
-        <div className="card p-5 flex items-center gap-4">
+        <div className="card p-5 flex items-center gap-4 mb-10">
           <div className="w-9 h-9 shrink-0 rounded-full bg-gold/15 text-gold flex items-center justify-center">
             <LogIn size={16} />
           </div>
@@ -93,6 +94,17 @@ export default async function JouerPage() {
           </div>
         </div>
       )}
+
+      {/* Section partage — le jeu se joue à plusieurs, et le meilleur moment pour recruter des
+          potes, c'est maintenant, avant même de lancer une partie. */}
+      <div className="card p-6">
+        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2">Fais-le connaître</p>
+        <p className="text-sm text-ink-muted mb-4">
+          Un blind test se joue mieux à plusieurs — envoie le lien à tes potes ou partage-le en
+          story avant votre prochaine soirée.
+        </p>
+        <ShareGame />
+      </div>
     </section>
   );
 }
