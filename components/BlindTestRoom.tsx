@@ -667,7 +667,7 @@ function RoomMenu({
   }, []);
 
   return (
-    <div className="max-w-lg mx-auto space-y-4">
+    <div className="max-w-lg mx-auto space-y-4 pb-24">
       {onExit && (
         <button onClick={onExit} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
           <ArrowLeft size={14} /> Solo / local
@@ -713,15 +713,6 @@ function RoomMenu({
             </button>
           ))}
         </div>
-        <Magnetic strength={0.15} className="block w-full">
-          <button
-            onClick={() => onCreate(theme, rounds)}
-            disabled={busy}
-            className="w-full bg-gold hover:bg-glow disabled:opacity-60 text-white rounded-full py-3 font-medium transition-colors"
-          >
-            Créer une partie privée
-          </button>
-        </Magnetic>
       </div>
 
       <div className="card p-6">
@@ -749,6 +740,26 @@ function RoomMenu({
       </div>
 
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
+
+      {/* Bouton "Créer une partie" — fixe en bas, sinon la grille de thèmes (longue) le
+          repoussait hors champ, à faire défiler pour l'atteindre. */}
+      <div
+        className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
+        <div className="max-w-lg mx-auto pointer-events-auto">
+          <Magnetic strength={0.15} className="block w-full">
+            <button
+              onClick={() => onCreate(theme, rounds)}
+              disabled={busy}
+              className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors"
+            >
+              Créer une partie privée
+            </button>
+          </Magnetic>
+        </div>
+      </div>
     </div>
   );
 }
