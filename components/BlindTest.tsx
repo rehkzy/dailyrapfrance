@@ -511,35 +511,7 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto pb-24 blindtest-shell">
-        {/* Accès aux à-côtés du jeu (amis, classement, compte, plein écran) — features du jeu,
-            pas du site : elles vivent ici plutôt que dans la nav globale. Rangée à part entière
-            (flex-wrap), jamais en concurrence d'espace avec les pilules Mode/Thème/Réglages :
-            c'est cette concurrence qui les faisait se couper sur mobile. */}
-        <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
-          <a href="/amis" className="filter-pill">
-            <Users size={13} strokeWidth={2.3} />
-            Amis
-          </a>
-          <a href="/blindtest/classement" className="filter-pill">
-            <Trophy size={13} strokeWidth={2.3} />
-            Classement
-          </a>
-          <a href="/parametres" className="filter-pill">
-            <Settings size={13} strokeWidth={2.3} />
-            Mon compte
-          </a>
-          <button
-            onClick={toggleFullscreen}
-            aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
-            title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
-            className={`filter-pill ${manualImmersive ? "is-active" : ""}`}
-          >
-            {manualImmersive ? <Minimize size={13} strokeWidth={2.3} /> : <Maximize size={13} strokeWidth={2.3} />}
-            {manualImmersive ? "Réduire" : "Plein écran"}
-          </button>
-        </div>
-
+      <div className="max-w-2xl mx-auto pb-28 blindtest-shell">
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
             Masqué sur mobile : l'espace vertical y est plus précieux, la page a déjà l'emblème
             de marque ailleurs sur le site. */}
@@ -842,6 +814,33 @@ export default function BlindTest() {
           )}
           </>
           )}
+        </div>
+
+        {/* Accès aux à-côtés du jeu (amis, classement, compte, plein écran) — features du jeu,
+            pas du site : elles vivent ici plutôt que dans la nav globale. Placées en bas de
+            page, sous le menu de navigation Précédent/Suivant (qui reste au-dessus, flottant). */}
+        <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
+          <a href="/amis" className="filter-pill">
+            <Users size={13} strokeWidth={2.3} />
+            Amis
+          </a>
+          <a href="/blindtest/classement" className="filter-pill">
+            <Trophy size={13} strokeWidth={2.3} />
+            Classement
+          </a>
+          <a href="/parametres" className="filter-pill">
+            <Settings size={13} strokeWidth={2.3} />
+            Mon compte
+          </a>
+          <button
+            onClick={toggleFullscreen}
+            aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
+            title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
+            className={`filter-pill ${manualImmersive ? "is-active" : ""}`}
+          >
+            {manualImmersive ? <Minimize size={13} strokeWidth={2.3} /> : <Maximize size={13} strokeWidth={2.3} />}
+            {manualImmersive ? "Réduire" : "Plein écran"}
+          </button>
         </div>
 
         {/* Barre d'action — fixe en bas du viewport, toujours accessible même sur un écran

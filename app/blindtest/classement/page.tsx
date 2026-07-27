@@ -1,5 +1,6 @@
 import { Medal } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import BackToGame from "@/components/BackToGame";
 
 export const metadata = {
   title: "Classement — Blind Test DailyRapFrance",
@@ -11,12 +12,13 @@ export default async function ClassementPage() {
   const supabase = await createClient();
   const { data: scores } = await supabase
     .from("blindtest_scores")
-    .select("id, points, rounds, theme, created_at, profiles(display_name, avatar_url)")
+    .select("id, points, rounds, theme, created_at, profiles(username, display_name, avatar_url)")
     .order("points", { ascending: false })
     .limit(50);
 
   return (
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+      <BackToGame />
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Classement</h1>
       <p className="text-ink-muted mb-10">
@@ -33,7 +35,13 @@ export default async function ClassementPage() {
           {scores.map((s, i) => {
             const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
             return (
-              <div key={s.id} className="flex items-center gap-4 py-4 px-5">
+              <a
+                key={s.id}
+                href={profile?.username ? `/profil/${profile.username}` : "#"}
+                className={`flex items-center gap-4 py-4 px-5 transition-colors ${
+                  profile?.username ? "hover:bg-white/5" : "pointer-events-none"
+                }`}
+              >
                 <span className="font-display text-lg w-7 text-center shrink-0">
                   {i < 3 ? (
                     <Medal size={18} className={i === 0 ? "text-gold" : "text-ink-faint"} />
@@ -55,7 +63,7 @@ export default async function ClassementPage() {
                   </p>
                 </div>
                 <span className="font-mono text-gold shrink-0">{s.points} pts</span>
-              </div>
+              </a>
             );
           })}
         </div>

@@ -2,6 +2,7 @@ import { LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import AccountSettingsForm from "@/components/AccountSettingsForm";
 import StatsBlock from "@/components/StatsBlock";
+import BackToGame from "@/components/BackToGame";
 
 export const metadata = { title: "Mon compte — DailyRapFrance" };
 
@@ -14,6 +15,7 @@ export default async function ParametresPage() {
   if (!user) {
     return (
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+        <BackToGame />
         <div className="max-w-sm mx-auto card p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4">
             <LogIn size={20} />
@@ -43,6 +45,7 @@ export default async function ParametresPage() {
 
   return (
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+      <BackToGame />
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Mon compte</h1>
       <p className="text-ink-muted mb-10">Ton pseudo, ta photo, et tes statistiques de jeu.</p>

@@ -3,6 +3,7 @@ import { Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import AddFriendButton from "@/components/AddFriendButton";
 import StatsBlock from "@/components/StatsBlock";
+import BackToGame from "@/components/BackToGame";
 
 export const revalidate = 60;
 
@@ -33,6 +34,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   return (
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+      <BackToGame />
       <div className="flex items-center gap-5 mb-10">
         {profile.avatar_url ? (
           <img src={profile.avatar_url} alt="" className="w-20 h-20 rounded-full object-cover border border-white/10 shrink-0" />

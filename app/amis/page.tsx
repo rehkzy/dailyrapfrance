@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/useUser";
 import AddFriendButton from "@/components/AddFriendButton";
 import BrandLoader from "@/components/BrandLoader";
+import BackToGame from "@/components/BackToGame";
 
 type ProfileLite = {
   id: string;
@@ -110,6 +111,7 @@ export default function AmisPage() {
   if (!user) {
     return (
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+        <BackToGame />
         <div className="max-w-sm mx-auto card p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4">
             <LogIn size={20} />
@@ -135,6 +137,7 @@ export default function AmisPage() {
 
   return (
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
+      <BackToGame />
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Amis</h1>
       <p className="text-ink-muted mb-10">
