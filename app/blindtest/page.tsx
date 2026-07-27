@@ -37,7 +37,7 @@ export default function BlindTestPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <section className="max-w-6xl mx-auto px-6 pt-6 sm:pt-16 pb-16">
-        <div className="text-center mb-5 sm:mb-10">
+        <div id="game-intro" className="text-center mb-5 sm:mb-10">
           <p className="hidden sm:block font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Jeu</p>
           <h1 className="font-display text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tight mb-2 sm:mb-4">
             Blind Test Rap Français
@@ -56,7 +56,7 @@ export default function BlindTestPage() {
       {/* Contenu éditorial pour le référencement — pas dans la vue de jeu elle-même, mais
           bien réel et indexable (pas de texte caché artificiellement, juste hors du parcours
           de jeu principal). */}
-      <section className="max-w-3xl mx-auto px-6 pb-24 text-sm text-ink-muted leading-relaxed space-y-4 border-t border-white/8 pt-10">
+      <section id="seo-editorial" className="max-w-3xl mx-auto px-6 pb-24 text-sm text-ink-muted leading-relaxed space-y-4 border-t border-white/8 pt-10">
         <h2 className="font-display text-xl text-ink font-medium mb-2">
           Le blind test rap français en ligne, gratuit et sans inscription payante
         </h2>
@@ -72,6 +72,14 @@ export default function BlindTestPage() {
           affronter tes potes à distance, chacun sur son téléphone. Titre et artiste rapportent
           chacun un point ; retrouver un featuring rapporte deux points bonus. Un joker par
           partie permet de réécouter un autre passage de l'extrait en cas de blocage.
+        </p>
+        <p>
+          Parmi les blind tests dédiés à un seul artiste : Ninho, Booba, PNL, SCH, JUL, Nekfeu,
+          et désormais{" "}
+          <a href="/blindtest?theme=artist-badara" className="text-gold hover:text-glow transition-colors">
+            Badara
+          </a>
+          , à l'affiche de Nouvelle École.
         </p>
         <p>
           Connecte-toi avec ton compte Google pour sauvegarder tes scores et apparaître dans le{" "}

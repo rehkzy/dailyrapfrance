@@ -23,6 +23,7 @@ const THEME_LEAD_ARTISTS: Record<string, string[]> = {
   "artist-sch": ["sch"],
   "artist-jul": ["jul"],
   "artist-nekfeu": ["nekfeu"],
+  "artist-badara": ["badara"],
 };
 
 async function fetchArtistPhoto(name: string): Promise<string | null> {

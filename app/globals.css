@@ -113,6 +113,22 @@ button, a, [role="button"], input, select, .tap-target {
   touch-action: manipulation;
 }
 
+/* Mode immersif — activé par le blind test le temps d'une manche (classe posée sur <body>).
+   On masque tout ce qui n'est pas le jeu (nav, pied de page, texte éditorial) plutôt que de
+   les faire défiler hors champ : impression d'app plein écran, pas de site web autour. */
+body.game-immersive > header,
+body.game-immersive > footer,
+body.game-immersive #seo-editorial,
+body.game-immersive #game-intro {
+  display: none !important;
+}
+
+/* Le verrou de scroll pose overflow:hidden + position:fixed sur <body> (même technique que
+   le tiroir mobile du header) — évite tout rebond ou défilement résiduel derrière le jeu. */
+body.game-scroll-lock {
+  overflow: hidden;
+}
+
 /* Trait de séparation qui porte la marque plutôt qu'un simple hairline blanc */
 .glow-line {
   height: 1px;
@@ -284,6 +300,21 @@ button, a, [role="button"], input, select, .tap-target {
 
 @media (prefers-reduced-motion: reduce) {
   .tap-press:active { transform: none; }
+}
+
+/* Joker temps — pulse d'urgence sur l'ombre plutôt que sur l'échelle (le bouton est pleine
+   largeur dans la barre sticky ; un scale y créerait un à-coup de mise en page). */
+@keyframes urgent-pulse-soft {
+  0%, 100% { box-shadow: 0 4px 20px rgba(240, 0, 28, 0.45); }
+  50% { box-shadow: 0 4px 32px rgba(240, 0, 28, 0.85); }
+}
+
+.urgent-pulse-soft {
+  animation: urgent-pulse-soft 0.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .urgent-pulse-soft { animation: none; }
 }
 
 /* Bouton CTA principal du blind test — anneau lumineux qui respire pour inviter au clic */
