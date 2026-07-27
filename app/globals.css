@@ -116,8 +116,8 @@ button, a, [role="button"], input, select, .tap-target {
 /* Mode immersif — activé par le blind test le temps d'une manche (classe posée sur <body>).
    On masque tout ce qui n'est pas le jeu (nav, pied de page, texte éditorial) plutôt que de
    les faire défiler hors champ : impression d'app plein écran, pas de site web autour. */
-body.game-immersive > header,
-body.game-immersive > footer,
+body.game-immersive header,
+body.game-immersive footer,
 body.game-immersive #seo-editorial,
 body.game-immersive #game-intro {
   display: none !important;

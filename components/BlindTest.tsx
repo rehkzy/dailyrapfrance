@@ -401,41 +401,52 @@ export default function BlindTest() {
   }
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Le plein écran natif ne se déclenche pas de la même façon (voire pas du tout, sur iOS
+  // Safari) d'un navigateur à l'autre. Ce bouton ne peut donc pas dépendre uniquement de l'API
+  // Fullscreen pour donner un résultat visible : il force en plus, toujours, le mode immersif
+  // maison (masquage du site autour + verrou de scroll) — qui, lui, marche partout.
+  const [manualImmersive, setManualImmersive] = useState(false);
+  const immersive = phase === "playing" || manualImmersive;
 
   useEffect(() => {
     function onChange() {
       setIsFullscreen(!!document.fullscreenElement);
     }
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
   }, []);
 
   async function toggleFullscreen() {
     sfx.click();
+    const goingFullscreen = !manualImmersive;
+    setManualImmersive(goingFullscreen);
     try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
+      if (!goingFullscreen) {
+        if (document.fullscreenElement) await document.exitFullscreen();
       } else {
-        await document.documentElement.requestFullscreen();
+        const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
       }
     } catch {
-      // Certains navigateurs (Safari iOS notamment) refusent le plein écran hors d'un geste
-      // très strict, ou ne le supportent pas du tout pour un élément quelconque (seulement pour
-      // <video>) — on échoue silencieusement. Le mode immersif ci-dessous (masquage du site
-      // autour + verrou de scroll) prend le relais indépendamment de l'API Fullscreen : c'est
-      // lui qui porte l'essentiel de l'immersion, la vraie mise en plein écran n'est qu'un bonus
-      // quand le navigateur veut bien la donner.
+      // iOS Safari en particulier refuse le plein écran natif pour un élément quelconque (seul
+      // <video> y a droit). On échoue silencieusement — le mode immersif maison ci-dessus a de
+      // toute façon déjà pris effet, le bouton n'est donc jamais un bouton mort à l'usage.
     }
   }
 
-  // Mode immersif pendant une manche — masque header/pied de page/texte éditorial (classe CSS
-  // sur <body>, voir globals.css) et verrouille le scroll d'arrière-plan avec la même technique
-  // que le tiroir de menu mobile (position fixed + restauration du scrollY à la sortie). Cesse
-  // dès qu'on quitte l'écran de jeu (récap, configuration...), jamais un verrou permanent.
+  // Mode immersif — masque header/pied de page/texte éditorial (classe CSS sur <body>, voir
+  // globals.css), verrouille le scroll d'arrière-plan (même technique que le tiroir de menu
+  // mobile : position fixed + restauration du scrollY à la sortie) ET met en pause le scroll
+  // fluide Lenis, qui sinon continue d'intercepter molette/tactile et de calculer son propre
+  // défilement par-dessus un <body> figé — verrouiller le body seul ne suffisait pas.
   const scrollYRef = useRef(0);
   useEffect(() => {
-    const active = phase === "playing";
-    if (active) {
+    if (immersive) {
       scrollYRef.current = window.scrollY;
       document.body.classList.add("game-immersive", "game-scroll-lock");
       document.body.style.position = "fixed";
@@ -443,6 +454,7 @@ export default function BlindTest() {
       document.body.style.left = "0";
       document.body.style.right = "0";
       document.body.style.width = "100%";
+      window.__lenis?.stop();
     } else {
       document.body.classList.remove("game-immersive", "game-scroll-lock");
       const y = scrollYRef.current;
@@ -452,6 +464,7 @@ export default function BlindTest() {
       document.body.style.right = "";
       document.body.style.width = "";
       if (y) window.scrollTo(0, y);
+      window.__lenis?.start();
     }
     return () => {
       document.body.classList.remove("game-immersive", "game-scroll-lock");
@@ -460,8 +473,9 @@ export default function BlindTest() {
       document.body.style.left = "";
       document.body.style.right = "";
       document.body.style.width = "";
+      window.__lenis?.start();
     };
-  }, [phase]);
+  }, [immersive]);
 
   // ── Rendu ──────────────────────────────────────────────────────────────
 
@@ -516,13 +530,13 @@ export default function BlindTest() {
           </div>
           <button
             onClick={toggleFullscreen}
-            aria-label={isFullscreen ? "Quitter le plein écran" : "Passer en plein écran"}
-            title={isFullscreen ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
+            aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
+            title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
             className="tap-press shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full glass text-ink-muted hover:text-gold transition-colors"
           >
-            {isFullscreen ? <Minimize size={14} className="shrink-0" /> : <Maximize size={14} className="shrink-0" />}
+            {manualImmersive ? <Minimize size={14} className="shrink-0" /> : <Maximize size={14} className="shrink-0" />}
             <span className="text-[11px] font-mono uppercase tracking-wide">
-              {isFullscreen ? "Réduire" : "Plein écran"}
+              {manualImmersive ? "Réduire" : "Plein écran"}
             </span>
           </button>
         </div>
@@ -1021,13 +1035,13 @@ export default function BlindTest() {
 
         <button
           onClick={toggleFullscreen}
-          aria-label={isFullscreen ? "Quitter le plein écran" : "Passer en plein écran"}
-          title={isFullscreen ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
+          aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
+          title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
           className="tap-press shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full glass text-ink-muted hover:text-gold transition-colors"
         >
-          {isFullscreen ? <Minimize size={13} className="shrink-0" /> : <Maximize size={13} className="shrink-0" />}
+          {manualImmersive ? <Minimize size={13} className="shrink-0" /> : <Maximize size={13} className="shrink-0" />}
           <span className="text-[11px] font-mono uppercase tracking-wide">
-            {isFullscreen ? "Réduire" : "Plein écran"}
+            {manualImmersive ? "Réduire" : "Plein écran"}
           </span>
         </button>
       </div>
