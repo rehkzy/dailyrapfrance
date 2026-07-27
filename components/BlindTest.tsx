@@ -150,9 +150,35 @@ export default function BlindTest() {
     advanceTimeoutRef.current = null;
   }, []);
 
+  // Retire explicitement le focus du champ actif et réaligne la fenêtre. Indispensable aux
+  // transitions de manche : quand les inputs titre/artiste sont démontés alors qu'ils ont
+  // encore le focus (reveal, passage à la manche suivante), iOS Safari ne déclenche PAS
+  // "focusout" — le correctif "scroll fantôme" branché sur cet événement (voir l'effet de
+  // verrou de scroll plus bas) ne s'exécutait donc jamais dans ce chemin, et la couche de
+  // hit-testing restait décalée : "Lancer l'extrait" visible mais intouchable. On blur
+  // nous-mêmes AVANT le démontage, puis on remet fenêtre + racine de scroll à zéro une
+  // fois le clavier replié.
+  const blurAndRealign = useCallback(() => {
+    const ae = document.activeElement as HTMLElement | null;
+    if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) {
+      ae.blur();
+    }
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    });
+    // Deuxième passe après l'animation de repli du clavier iOS (~250ms) — la première
+    // s'exécute parfois pendant que le viewport visuel bouge encore et se fait annuler.
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    }, 350);
+  }, []);
+
   useEffect(() => clearTimers, [clearTimers]);
 
   const revealRound = useCallback(() => {
+    blurAndRealign();
     setRevealed(true);
     sfx.reveal();
     clearTimers();
@@ -182,7 +208,7 @@ export default function BlindTest() {
         return next;
       });
     }, 3200);
-  }, [clearTimers, tracks.length]);
+  }, [blurAndRealign, clearTimers, tracks.length]);
 
   const tick = useCallback(() => {
     if (deadlineRef.current == null) return;
@@ -197,6 +223,7 @@ export default function BlindTest() {
   }, [revealRound]);
 
   function resetRoundState() {
+    blurAndRealign();
     setStarted(false);
     setTimeLeft(roundSeconds);
     deadlineRef.current = null;
@@ -487,6 +514,30 @@ export default function BlindTest() {
   const scrollYRef = useRef(0);
   useEffect(() => {
     const locked = phase === "playing";
+
+    // Avec le body en position:fixed, focus sur un champ = le navigateur (iOS Safari surtout)
+    // scrolle quand même la *fenêtre* pour dégager l'input au-dessus du clavier. À la fermeture
+    // du clavier, ce scroll fantôme persiste : la couche visuelle et la couche de hit-testing
+    // sont décalées, et plus aucun tap n'atteint sa cible ("Lancer l'extrait" mort après avoir
+    // renseigné titre/artiste). On remet la fenêtre à zéro dès qu'un champ perd le focus ou que
+    // le viewport visuel reprend sa taille (clavier replié) — jamais pendant la saisie, pour ne
+    // pas cacher l'input sous le clavier.
+    const resetGhostScroll = () => {
+      const ae = document.activeElement as HTMLElement | null;
+      const typing = !!ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
+      if (!typing) {
+        requestAnimationFrame(() => {
+          window.scrollTo(0, 0);
+          if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+        });
+      }
+    };
+    const onFocusOut = () => {
+      // Laisse le temps au focus de passer sur l'élément suivant (tap sur un bouton) avant de
+      // décider — sinon on lirait encore l'input comme élément actif.
+      setTimeout(resetGhostScroll, 60);
+    };
+
     if (locked) {
       scrollYRef.current = window.scrollY;
       document.body.classList.add("game-scroll-lock");
@@ -496,6 +547,8 @@ export default function BlindTest() {
       document.body.style.right = "0";
       document.body.style.width = "100%";
       window.__lenis?.stop();
+      window.addEventListener("focusout", onFocusOut);
+      window.visualViewport?.addEventListener("resize", resetGhostScroll);
     } else {
       document.body.classList.remove("game-scroll-lock");
       const y = scrollYRef.current;
@@ -506,8 +559,12 @@ export default function BlindTest() {
       document.body.style.width = "";
       if (y) window.scrollTo(0, y);
       window.__lenis?.start();
+      window.removeEventListener("focusout", onFocusOut);
+      window.visualViewport?.removeEventListener("resize", resetGhostScroll);
     }
     return () => {
+      window.removeEventListener("focusout", onFocusOut);
+      window.visualViewport?.removeEventListener("resize", resetGhostScroll);
       document.body.classList.remove("game-scroll-lock");
       document.body.style.position = "";
       document.body.style.top = "";

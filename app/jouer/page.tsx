@@ -1,13 +1,26 @@
-import { Play, Flame, Users, Trophy, Settings, LogIn } from "lucide-react";
+import { Play, Flame, Users, Trophy, ArrowRight, Cast, Wifi, Disc3, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getDailyTheme } from "@/lib/themes";
+import { getDailyTheme, THEME_OPTIONS } from "@/lib/themes";
 import ShareGame from "@/components/ShareGame";
 import GameTabBar from "@/components/GameTabBar";
+import JoinRoomInput from "@/components/JoinRoomInput";
 
 export const metadata = {
   title: "Jouer — Blind Test Rap Français | DailyRapFrance",
   description: "Lance une partie de blind test rap français, solo, entre potes ou en salon privé en ligne.",
 };
+
+// Compte à rebours jusqu'à minuit — rendu côté serveur en cellules de verre statiques,
+// hydraté côté client par DailyCountdown (composant léger, pas de dépendance).
+import DailyCountdown from "@/components/DailyCountdown";
+
+// Quatre thèmes mis en avant en Quick Play, avec chacun sa teinte
+const QUICK = [
+  { id: "2000s", from: "#F0001C", to: "#FF3B7A" },
+  { id: "recent", from: "#7C2CFF", to: "#FF3B7A" },
+  { id: "90s", from: "#FF6A00", to: "#F0001C" },
+  { id: "cloud", from: "#2C7CFF", to: "#7C2CFF" },
+];
 
 export default async function JouerPage() {
   const supabase = await createClient();
@@ -22,93 +35,187 @@ export default async function JouerPage() {
   }
 
   const dailyTheme = getDailyTheme();
+  const initial = (displayName ?? "?").charAt(0).toUpperCase();
+  const quickThemes = QUICK.map((q) => ({ ...q, theme: THEME_OPTIONS.find((t) => t.id === q.id) })).filter((q) => q.theme);
 
   return (
     <>
-    <section className="max-w-2xl mx-auto px-6 pt-14 sm:pt-20 pb-32">
-      <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
-      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">
-        {displayName ? `Prêt, ${displayName} ?` : "Jouer"}
-      </h1>
-      <p className="text-ink-muted mb-10">
-        Un thème, un chrono, et ta connaissance du rap français. Solo, entre potes sur le même
-        écran, ou en salon privé à distance.
-      </p>
-
-      {/* CTA principal — la seule chose qu'on a vraiment besoin de faire ici */}
-      <a
-        href="/blindtest"
-        className="cta-glow group relative block rounded-2xl p-7 sm:p-8 mb-4 overflow-hidden bg-gradient-to-br from-[#7a0f0f] to-gold text-white"
-      >
-        <div className="relative flex items-center gap-5">
-          <div className="w-14 h-14 shrink-0 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Play size={26} fill="currentColor" />
+      <section className="aurora">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-36 lg:pb-16">
+          {/* En-tête d'app — salut + avatar */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <a
+                href={user ? "/parametres" : "/blindtest"}
+                aria-label="Mon compte"
+                className="press w-11 h-11 rounded-full bg-gradient-to-br from-[#FF3B7A] to-[#7C2CFF] ring-2 ring-white/20 flex items-center justify-center f-game text-xs text-white"
+              >
+                {user ? initial : <Disc3 size={19} />}
+              </a>
+              <div className="min-w-0 leading-tight">
+                <p className="text-xs text-ink-muted">Prêt à jouer ?</p>
+                <p className="font-semibold truncate">{displayName ? `Salut, ${displayName}` : "Salut"}</p>
+              </div>
+            </div>
+            <a href="/blindtest/classement" className="press glass rounded-full px-4 py-2.5 text-xs font-semibold text-ink flex items-center gap-2">
+              <Trophy size={14} className="text-[#FFC53D]" /> Classement
+            </a>
           </div>
-          <div className="min-w-0">
-            <p className="font-display text-xl sm:text-2xl font-semibold">Lancer une partie</p>
-            <p className="text-sm text-white/80 mt-0.5">Solo, local entre potes, ou salon en ligne</p>
+
+          {/* Titre */}
+          <h1 className="f-game text-3xl sm:text-5xl font-bold leading-[1.08] mb-8">
+            <span className="shimmer-text">Blind Test</span>
+            <br />
+            Rap Français
+          </h1>
+
+          {/* Bento hero — Solo/Défi + Entre potes */}
+          <div className="grid lg:grid-cols-[1.45fr_1fr] gap-4 mb-10">
+            {/* Carte Solo / Défi du jour */}
+            <div className="relative rounded-[28px] overflow-hidden glass p-6 sm:p-8 flex flex-col min-h-[320px]">
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(90% 80% at 85% 0%, rgba(240,0,28,0.4), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(124,44,255,0.2), transparent 60%)",
+                }}
+                aria-hidden="true"
+              />
+              <div className="vinyl-disc float-soft absolute -right-14 -top-14 w-56 h-56 sm:w-72 sm:h-72 opacity-90" aria-hidden="true" />
+              <div className="relative">
+                <span className="tag-pill" style={{ background: "#ff3b7a1f", color: "#FF3B7A", border: "1px solid #ff3b7a40" }}>
+                  <Flame size={11} /> Défi du jour · {dailyTheme.label}
+                </span>
+                <h2 className="f-game text-xl sm:text-2xl mt-4 mb-1">Mode Solo</h2>
+                <p className="text-sm text-ink-muted max-w-[280px]">Même thème pour tout le monde aujourd'hui. Il expire dans :</p>
+                <div className="mt-4">
+                  <DailyCountdown />
+                </div>
+              </div>
+              <div className="relative mt-auto pt-6 flex flex-col sm:flex-row gap-3">
+                <a href="/blindtest" className="press btn-primary flex-1 flex items-center justify-center gap-2.5 rounded-2xl py-4 font-bold text-[15px] text-white">
+                  <Play size={18} fill="currentColor" /> Lancer une partie
+                  <ArrowRight size={17} className="opacity-80" />
+                </a>
+                <a
+                  href={`/blindtest?theme=${dailyTheme.id}`}
+                  className="press glass flex items-center justify-center gap-2 rounded-2xl px-5 py-4 font-semibold text-sm text-ink hover:bg-white/10"
+                >
+                  <Flame size={16} className="text-[#FF3B7A]" /> Relever le défi
+                </a>
+              </div>
+            </div>
+
+            {/* Colonne Entre potes */}
+            <div className="flex flex-col gap-4">
+              <a href="/blindtest?mode=local" className="press lift relative glass rounded-[28px] p-6 flex-1 overflow-hidden block">
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: "radial-gradient(80% 70% at 100% 100%, rgba(124,44,255,0.3), transparent 60%)" }}
+                  aria-hidden="true"
+                />
+                <div className="relative flex items-start justify-between gap-3">
+                  <div>
+                    <span className="tag-pill" style={{ background: "#b08cff1f", color: "#B08CFF", border: "1px solid #b08cff40" }}>
+                      <Cast size={11} /> Entre potes
+                    </span>
+                    <h3 className="f-game text-lg mt-3 mb-1">Même écran</h3>
+                    <p className="text-xs text-ink-muted">Un seul appareil, on se le passe.</p>
+                  </div>
+                  <span className="w-11 h-11 shrink-0 rounded-full glass flex items-center justify-center text-ink">
+                    <ArrowRight size={17} />
+                  </span>
+                </div>
+              </a>
+
+              <div className="glass rounded-[28px] p-6 flex-1">
+                <span className="tag-pill" style={{ background: "#b08cff1f", color: "#B08CFF", border: "1px solid #b08cff40" }}>
+                  <Wifi size={11} /> Salon privé
+                </span>
+                <p className="text-xs text-ink-muted mt-3 mb-3">Entre un code pour rejoindre — ou crée ton salon.</p>
+                <JoinRoomInput />
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Play */}
+          <div className="mb-10">
+            <div className="flex items-end justify-between mb-4">
+              <h3 className="f-game text-base">Quick Play</h3>
+              <a href="/blindtest" className="text-xs text-ink-muted hover:text-ink flex items-center gap-1">
+                Tous les thèmes <ArrowRight size={12} />
+              </a>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {quickThemes.map(({ id, from, to, theme }) => {
+                const Icon = theme!.Icon;
+                return (
+                  <a
+                    key={id}
+                    href={`/blindtest?theme=${id}`}
+                    className="press lift group relative text-left rounded-3xl p-5 h-40 flex flex-col justify-end overflow-hidden border border-white/10"
+                    style={{ background: `linear-gradient(155deg, ${from}33, #140a0e 65%)` }}
+                  >
+                    <span
+                      className="absolute -top-5 -right-5 w-24 h-24 rounded-full opacity-50 group-hover:opacity-80 transition-opacity blur-2xl"
+                      style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+                      aria-hidden="true"
+                    />
+                    <span className="absolute top-4 right-4 w-10 h-10 rounded-2xl glass flex items-center justify-center text-ink">
+                      <Icon size={17} />
+                    </span>
+                    <p className="relative font-bold text-[15px] leading-tight">{theme!.label}</p>
+                    <p className="relative text-[11px] text-ink-muted mt-0.5 line-clamp-1">{theme!.text}</p>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Social + connexion + partage */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <a href="/amis" className="press lift glass rounded-[28px] p-6 block">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="f-game text-sm">Amis</h3>
+                <span className="w-9 h-9 rounded-full bg-gold/12 text-gold flex items-center justify-center">
+                  <Users size={15} />
+                </span>
+              </div>
+              <p className="text-xs text-ink-muted">Retrouve tes potes, défie-les sur ton meilleur thème.</p>
+            </a>
+
+            {user ? (
+              <a href="/blindtest/classement" className="press lift glass rounded-[28px] p-6 block">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="f-game text-sm">Top du jour</h3>
+                  <Trophy size={15} className="text-[#FFC53D]" />
+                </div>
+                <p className="text-xs text-ink-muted">Vois qui domine le défi du jour — et prends ta place.</p>
+              </a>
+            ) : (
+              <a href="/blindtest" className="press lift glass rounded-[28px] p-6 block">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="f-game text-sm">Pas encore connecté</h3>
+                  <span className="w-9 h-9 rounded-full bg-gold/12 text-gold flex items-center justify-center">
+                    <LogIn size={15} />
+                  </span>
+                </div>
+                <p className="text-xs text-ink-muted">Connecte-toi pour sauvegarder tes scores et jouer avec tes amis.</p>
+              </a>
+            )}
+          </div>
+
+          {/* Partage */}
+          <div className="glass rounded-[28px] p-6 mt-4">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2">Fais-le connaître</p>
+            <p className="text-sm text-ink-muted mb-4">
+              Un blind test se joue mieux à plusieurs — envoie le lien à tes potes avant votre prochaine soirée.
+            </p>
+            <ShareGame />
           </div>
         </div>
-      </a>
-
-      {/* Défi du jour — même thème pour tout le monde aujourd'hui, change à minuit */}
-      <a
-        href={`/blindtest?theme=${dailyTheme.id}`}
-        className="group relative block rounded-2xl p-5 mb-8 overflow-hidden border border-gold/25 hover:border-gold/50 transition-colors"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-[#3a0a0a] via-[#780101]/60 to-transparent opacity-80" aria-hidden="true" />
-        <div className="relative flex items-center gap-4">
-          <div className="icon-tile w-11 h-11 shrink-0 bg-gradient-to-br from-gold to-glow text-white">
-            <Flame size={18} strokeWidth={2} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold">Défi du jour</p>
-            <p className="text-sm font-semibold mt-0.5">{dailyTheme.label}</p>
-            <p className="text-xs text-ink-faint mt-0.5">{dailyTheme.text}</p>
-          </div>
-        </div>
-      </a>
-
-      {/* Accès rapide aux à-côtés du jeu */}
-      <div className="grid grid-cols-3 gap-3 mb-10">
-        <a href="/amis" className="card card-lift p-4 flex flex-col items-center gap-2 text-center">
-          <Users size={18} className="text-gold" />
-          <span className="text-xs font-medium">Amis</span>
-        </a>
-        <a href="/blindtest/classement" className="card card-lift p-4 flex flex-col items-center gap-2 text-center">
-          <Trophy size={18} className="text-gold" />
-          <span className="text-xs font-medium">Classement</span>
-        </a>
-        <a href="/parametres" className="card card-lift p-4 flex flex-col items-center gap-2 text-center">
-          <Settings size={18} className="text-gold" />
-          <span className="text-xs font-medium">Mon compte</span>
-        </a>
-      </div>
-
-      {!user && (
-        <div className="card p-5 flex items-center gap-4 mb-10">
-          <div className="w-9 h-9 shrink-0 rounded-full bg-gold/15 text-gold flex items-center justify-center">
-            <LogIn size={16} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Pas encore connecté</p>
-            <p className="text-xs text-ink-faint mt-0.5">Connecte-toi pour sauvegarder tes scores et jouer avec tes amis.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Section partage — le jeu se joue à plusieurs, et le meilleur moment pour recruter des
-          potes, c'est maintenant, avant même de lancer une partie. */}
-      <div className="card p-6">
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2">Fais-le connaître</p>
-        <p className="text-sm text-ink-muted mb-4">
-          Un blind test se joue mieux à plusieurs — envoie le lien à tes potes ou partage-le en
-          story avant votre prochaine soirée.
-        </p>
-        <ShareGame />
-      </div>
-    </section>
-    <GameTabBar />
+      </section>
+      <GameTabBar />
     </>
   );
 }

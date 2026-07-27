@@ -537,3 +537,311 @@ input[type="range"].brand-slider::-moz-range-track {
     animation: none;
   }
 }
+
+/* ============================================================
+   Refonte 2026 — vocabulaire "app" (hero card, chips, pill nav)
+   Inspiration structurelle : cartes de jeu immersives + pills,
+   mais exécutée dans la charte DRF (rouge Daily sur noir chaud).
+   ============================================================ */
+
+/* Chips de filtre — la pastille active est pleine, avec un point, comme un état
+   sélectionné d'app native. Les inactives restent en verre discret. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #9ba1a8;
+  transition: color 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+}
+.chip:active { transform: scale(0.96); }
+.chip[data-active="true"] {
+  background: linear-gradient(135deg, #f0001c, #a80013);
+  border-color: rgba(255, 59, 78, 0.6);
+  color: #fff;
+  box-shadow: 0 6px 22px rgba(240, 0, 28, 0.35);
+}
+.chip[data-active="true"]::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* Hero card — la carte de jeu immersive. Fond travaillé (dégradés croisés + vignette),
+   contenu ancré en bas dans une barre verre avec flèche, comme une carte de store. */
+.hero-card {
+  position: relative;
+  display: block;
+  border-radius: 28px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(120% 90% at 85% 0%, rgba(255, 59, 78, 0.55), transparent 55%),
+    radial-gradient(110% 100% at 0% 100%, rgba(120, 1, 1, 0.9), transparent 60%),
+    linear-gradient(160deg, #2a0509 0%, #12060a 55%, #0a0707 100%);
+  box-shadow: 0 24px 60px rgba(120, 1, 1, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+}
+.hero-card:hover { transform: translateY(-4px); box-shadow: 0 32px 80px rgba(240, 0, 28, 0.3); }
+.hero-card:active { transform: scale(0.985); }
+
+/* Reflet diagonal qui balaie lentement la carte — vie subtile, coût GPU nul au repos */
+.hero-card::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: 1;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.07) 50%, transparent 58%);
+  transform: translateX(-60%);
+  animation: hero-sheen 6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes hero-sheen {
+  0%, 55% { transform: translateX(-60%); }
+  85%, 100% { transform: translateX(60%); }
+}
+@media (prefers-reduced-motion: reduce) { .hero-card::after { animation: none; } }
+
+/* Barre d'action en bas de la hero card — verre sombre, titre + flèche dans un rond plein */
+.hero-card-bar {
+  position: relative;
+  z-index: 2;
+  margin: 14px;
+  border-radius: 20px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 7, 7, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.hero-card-arrow {
+  margin-left: auto;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #ff3b4e, #f0001c);
+  box-shadow: 0 6px 18px rgba(240, 0, 28, 0.45);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hero-card:hover .hero-card-arrow { transform: translateX(4px) scale(1.06); }
+
+/* Vinyle décoratif de la hero card — le sujet du produit (blind test) au centre du visuel */
+.hero-vinyl {
+  position: absolute;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, #f0001c 0 18%, #180b0d 19% 30%, #221114 31% 33%, #180b0d 34% 45%, #221114 46% 48%, #180b0d 49% 60%, #221114 61% 63%, #180b0d 64% 100%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Tab bar façon app — l'onglet actif est une pilule horizontale pleine (icône dans un rond
+   rouge + libellé), les autres sont des ronds icône seuls. */
+.tabbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(16, 10, 10, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.tab-idle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ba1a8;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+.tab-idle:hover { color: #f5e8e8; background: rgba(255, 255, 255, 0.07); }
+.tab-idle:active { transform: scale(0.92); }
+.tab-active {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 18px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 59, 78, 0.35);
+  background: rgba(240, 0, 28, 0.12);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tab-active .tab-active-dot {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #ff3b4e, #f0001c);
+  box-shadow: 0 4px 16px rgba(240, 0, 28, 0.5);
+}
+
+/* Carte de mode secondaire — rangée tactile avec relief léger */
+.mode-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.15s ease;
+}
+.mode-card:hover { border-color: rgba(240, 0, 28, 0.4); background: rgba(255, 255, 255, 0.05); }
+.mode-card:active { transform: scale(0.98); }
+
+/* ============================================================
+   Refonte "Liquid Dark" 2030 — couche additive.
+   Aurora + verre dépoli + gros arrondis + glow maîtrisé.
+   Typo display gaming : Unbounded (chargée ci-dessous).
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=JetBrains+Mono:wght@400;600&display=swap");
+
+:root {
+  --font-game: "Unbounded", sans-serif;
+}
+.f-game { font-family: var(--font-game); }
+
+/* Fond aurora — halos radiaux rouge/rose/violet fondus dans le noir chaud.
+   Posé sur une section (pas le body) pour ne pas toucher le reste du site. */
+.aurora {
+  background:
+    radial-gradient(55% 45% at 80% -5%, rgba(240, 0, 28, 0.35), transparent 60%),
+    radial-gradient(50% 40% at 0% 20%, rgba(124, 44, 255, 0.20), transparent 60%),
+    radial-gradient(60% 50% at 50% 110%, rgba(255, 59, 122, 0.16), transparent 60%);
+}
+
+/* CTA principal — dégradé rouge → rose, glow doux, reflet en haut */
+.btn-primary {
+  background: linear-gradient(135deg, #ff3b4e, #f0001c 70%);
+  box-shadow: 0 10px 34px rgba(240, 0, 28, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.btn-violet {
+  background: linear-gradient(135deg, #b44cff, #7c2cff);
+  box-shadow: 0 8px 24px rgba(124, 44, 255, 0.4);
+}
+
+/* Micro-interactions élastiques */
+.press {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease,
+    background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+.press:active { transform: scale(0.965); }
+.lift:hover { transform: translateY(-3px); }
+
+/* Étiquette pilule colorée (Tag) */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Vinyle décoratif */
+.vinyl-disc {
+  border-radius: 50%;
+  background: radial-gradient(circle, #f0001c 0 15%, #17090c 16% 31%, #241016 32% 34%,
+    #17090c 35% 51%, #241016 52% 54%, #17090c 55% 100%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+/* Flottement lent (vinyle hero) */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-soft { animation: float-soft 6s ease-in-out infinite; }
+
+/* Titre shimmer — balayage lumineux dans le texte */
+@keyframes shimmer-sweep {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.shimmer-text {
+  background: linear-gradient(110deg, #faf4f5 30%, #ff8a94 45%, #faf4f5 60%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-sweep 5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-soft, .shimmer-text { animation: none !important; }
+  .shimmer-text { color: #faf4f5; }
+}
+
+/* Dock flottante — pilule de verre, onglet actif en dégradé plein + libellé */
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(18, 9, 12, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55);
+}
+.dock-idle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(250, 244, 245, 0.55);
+}
+.dock-idle:hover { color: #faf4f5; background: rgba(255, 255, 255, 0.07); }
+.dock-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px 6px 6px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.dock-active .dock-active-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
