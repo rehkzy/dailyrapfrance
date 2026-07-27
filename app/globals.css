@@ -123,6 +123,12 @@ body.game-immersive #game-intro {
   display: none !important;
 }
 
+/* Sans le header (masqué ci-dessus), le contenu du jeu se retrouvait collé au bord supérieur
+   de l'écran (encoche/barre de statut iOS comprise) — on lui redonne une respiration propre. */
+body.game-immersive .blindtest-shell {
+  padding-top: max(env(safe-area-inset-top), 14px);
+}
+
 /* Le verrou de scroll pose overflow:hidden + position:fixed sur <body> (même technique que
    le tiroir mobile du header) — évite tout rebond ou défilement résiduel derrière le jeu. */
 body.game-scroll-lock {

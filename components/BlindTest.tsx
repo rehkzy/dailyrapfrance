@@ -440,15 +440,29 @@ export default function BlindTest() {
   }
 
   // Mode immersif — masque header/pied de page/texte éditorial (classe CSS sur <body>, voir
-  // globals.css), verrouille le scroll d'arrière-plan (même technique que le tiroir de menu
-  // mobile : position fixed + restauration du scrollY à la sortie) ET met en pause le scroll
-  // fluide Lenis, qui sinon continue d'intercepter molette/tactile et de calculer son propre
-  // défilement par-dessus un <body> figé — verrouiller le body seul ne suffisait pas.
+  // globals.css). Peut être actif pendant la configuration (plein écran manuel) sans gêner :
+  // ça ne touche que l'affichage du site autour, jamais le scroll.
+  useEffect(() => {
+    document.body.classList.toggle("game-immersive", immersive);
+    return () => {
+      document.body.classList.remove("game-immersive");
+    };
+  }, [immersive]);
+
+  // Verrou de scroll — séparé du mode immersif ci-dessus à dessein : il ne doit s'activer que
+  // pendant une manche (phase "playing"), jamais pendant la configuration. Sinon, activer le
+  // plein écran manuel depuis l'écran de configuration bloquait le scroll vertical nécessaire
+  // pour parcourir la liste des thèmes — un vrai bug rapporté, pas juste une hypothèse. Même
+  // technique que le tiroir de menu mobile (position fixed + restauration du scrollY), et met
+  // en pause le scroll fluide Lenis, qui sinon continue d'intercepter molette/tactile et de
+  // calculer son propre défilement par-dessus un <body> figé — verrouiller le body seul ne
+  // suffisait pas.
   const scrollYRef = useRef(0);
   useEffect(() => {
-    if (immersive) {
+    const locked = phase === "playing";
+    if (locked) {
       scrollYRef.current = window.scrollY;
-      document.body.classList.add("game-immersive", "game-scroll-lock");
+      document.body.classList.add("game-scroll-lock");
       document.body.style.position = "fixed";
       document.body.style.top = `-${scrollYRef.current}px`;
       document.body.style.left = "0";
@@ -456,7 +470,7 @@ export default function BlindTest() {
       document.body.style.width = "100%";
       window.__lenis?.stop();
     } else {
-      document.body.classList.remove("game-immersive", "game-scroll-lock");
+      document.body.classList.remove("game-scroll-lock");
       const y = scrollYRef.current;
       document.body.style.position = "";
       document.body.style.top = "";
@@ -467,7 +481,7 @@ export default function BlindTest() {
       window.__lenis?.start();
     }
     return () => {
-      document.body.classList.remove("game-immersive", "game-scroll-lock");
+      document.body.classList.remove("game-scroll-lock");
       document.body.style.position = "";
       document.body.style.top = "";
       document.body.style.left = "";
@@ -475,7 +489,7 @@ export default function BlindTest() {
       document.body.style.width = "";
       window.__lenis?.start();
     };
-  }, [immersive]);
+  }, [phase]);
 
   // ── Rendu ──────────────────────────────────────────────────────────────
 
@@ -497,9 +511,11 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto pb-24">
-        {/* Accès aux à-côtés du jeu (amis, classement, compte) — features du jeu, pas du site :
-            elles vivent ici plutôt que dans la nav globale. */}
+      <div className="max-w-2xl mx-auto pb-24 blindtest-shell">
+        {/* Accès aux à-côtés du jeu (amis, classement, compte, plein écran) — features du jeu,
+            pas du site : elles vivent ici plutôt que dans la nav globale. Rangée à part entière
+            (flex-wrap), jamais en concurrence d'espace avec les pilules Mode/Thème/Réglages :
+            c'est cette concurrence qui les faisait se couper sur mobile. */}
         <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
           <a href="/amis" className="filter-pill">
             <Users size={13} strokeWidth={2.3} />
@@ -513,6 +529,15 @@ export default function BlindTest() {
             <Settings size={13} strokeWidth={2.3} />
             Mon compte
           </a>
+          <button
+            onClick={toggleFullscreen}
+            aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
+            title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
+            className={`filter-pill ${manualImmersive ? "is-active" : ""}`}
+          >
+            {manualImmersive ? <Minimize size={13} strokeWidth={2.3} /> : <Maximize size={13} strokeWidth={2.3} />}
+            {manualImmersive ? "Réduire" : "Plein écran"}
+          </button>
         </div>
 
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
@@ -526,36 +551,25 @@ export default function BlindTest() {
           </div>
         </div>
 
-        {/* Barre de filtres façon Spotify — pilules pleines, pas un simple fil d'ariane texte */}
-        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1">
-          <div className="flex-1 min-w-0 flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide">
-            {[
-              { label: "Mode", Icon: Gamepad2 },
-              { label: "Thème", Icon: Disc },
-              { label: "Réglages", Icon: Sliders },
-            ].map(({ label, Icon }, i) => (
-              <button
-                key={label}
-                onClick={() => setWizardStep(i as 0 | 1 | 2)}
-                className={`filter-pill ${i === wizardStep ? "is-active" : ""}`}
-              >
-                <Icon size={13} strokeWidth={2.3} />
-                {label}
-                {i < wizardStep && <Check size={12} strokeWidth={3} className="ml-0.5 opacity-70" />}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={toggleFullscreen}
-            aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
-            title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
-            className="tap-press shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full glass text-ink-muted hover:text-gold transition-colors"
-          >
-            {manualImmersive ? <Minimize size={14} className="shrink-0" /> : <Maximize size={14} className="shrink-0" />}
-            <span className="text-[11px] font-mono uppercase tracking-wide">
-              {manualImmersive ? "Réduire" : "Plein écran"}
-            </span>
-          </button>
+        {/* Barre de filtres façon Spotify — pilules pleines, pas un simple fil d'ariane texte.
+            Seulement 3 items désormais : elle tient sur n'importe quel écran sans jamais avoir
+            besoin de défiler ou de couper un mot. */}
+        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1 flex-wrap">
+          {[
+            { label: "Mode", Icon: Gamepad2 },
+            { label: "Thème", Icon: Disc },
+            { label: "Réglages", Icon: Sliders },
+          ].map(({ label, Icon }, i) => (
+            <button
+              key={label}
+              onClick={() => setWizardStep(i as 0 | 1 | 2)}
+              className={`filter-pill ${i === wizardStep ? "is-active" : ""}`}
+            >
+              <Icon size={13} strokeWidth={2.3} />
+              {label}
+              {i < wizardStep && <Check size={12} strokeWidth={3} className="ml-0.5 opacity-70" />}
+            </button>
+          ))}
         </div>
 
         <div className="card p-5 sm:p-6 md:p-7 flex flex-col">
@@ -1014,10 +1028,10 @@ export default function BlindTest() {
   const soloPlayer = players[0];
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
+    <div className="max-w-2xl mx-auto pb-24 blindtest-shell">
       <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" />
 
-      <div className="flex items-center justify-between mb-6 gap-2">
+      <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={playAgain}
@@ -1054,12 +1068,9 @@ export default function BlindTest() {
           onClick={toggleFullscreen}
           aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
           title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
-          className="tap-press shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full glass text-ink-muted hover:text-gold transition-colors"
+          className="tap-press shrink-0 w-8 h-8 flex items-center justify-center rounded-full glass text-ink-muted hover:text-gold transition-colors"
         >
-          {manualImmersive ? <Minimize size={13} className="shrink-0" /> : <Maximize size={13} className="shrink-0" />}
-          <span className="text-[11px] font-mono uppercase tracking-wide">
-            {manualImmersive ? "Réduire" : "Plein écran"}
-          </span>
+          {manualImmersive ? <Minimize size={14} /> : <Maximize size={14} />}
         </button>
       </div>
 

@@ -8,18 +8,18 @@ export type ThemeOption = {
   category: (typeof THEME_CATEGORIES)[number];
 };
 
-export const THEME_CATEGORIES = ["Époques", "Styles", "Régions", "Artistes"] as const;
+export const THEME_CATEGORIES = ["Top 50", "Époques", "Styles", "Régions", "Artistes"] as const;
 
 // Catalogue unique — utilisé à la fois par le wizard solo/local et par le salon en ligne,
 // pour que le choix de thème soit rigoureusement la même expérience (mêmes pochettes, même
 // tri par catégorie) quel que soit le mode de jeu.
 export const THEME_OPTIONS: ThemeOption[] = [
-  { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle, category: "Époques" },
-  { id: "90s", label: "Les 90s", text: "Racines, âge d'or du rap FR", Icon: Clock, category: "Époques" },
-  { id: "2000s", label: "Les 2000s", text: "Le rap FR grand public", Icon: Clock, category: "Époques" },
-  { id: "2010s", label: "Les 2010s", text: "L'âge d'or du son cloud", Icon: Clock, category: "Époques" },
+  { id: "pop", label: "Top 50", text: "Les sons les plus populaires du moment", Icon: Flame, category: "Top 50" },
   { id: "recent", label: "2020s / Récent", text: "Ce qui tourne en ce moment", Icon: Clock, category: "Époques" },
-  { id: "pop", label: "Pop / mainstream", text: "Les plus gros sons du moment", Icon: Flame, category: "Styles" },
+  { id: "2010s", label: "Les 2010s", text: "L'âge d'or du son cloud", Icon: Clock, category: "Époques" },
+  { id: "2000s", label: "Les 2000s", text: "Le rap FR grand public", Icon: Clock, category: "Époques" },
+  { id: "90s", label: "Les 90s", text: "Racines, âge d'or du rap FR", Icon: Clock, category: "Époques" },
+  { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle, category: "Époques" },
   { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud, category: "Styles" },
   { id: "lagui-sadek", label: "Lagui & Sadek", text: "Que des sons de ces deux-là", Icon: Mic2, category: "Styles" },
   { id: "93", label: "Rappeurs du 93", text: "Kaaris, Vald, Maes, Kalash Criminel...", Icon: MapPin, category: "Régions" },

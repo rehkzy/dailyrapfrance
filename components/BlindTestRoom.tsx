@@ -534,11 +534,17 @@ export default function BlindTestRoom({
   return (
     <div className="max-w-lg mx-auto">
       <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" />
-      <div className="flex items-center justify-between mb-4">
-        <span className="font-mono text-xs text-ink-faint uppercase">
+      <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between glass-strong rounded-xl px-4">
+        <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
           Manche {room.current_round + 1} / {room.tracks.length}
         </span>
-        <span className="font-mono text-xs text-ink-muted">Salon {room.code}</span>
+        <button
+          onClick={copyCode}
+          className="tap-press inline-flex items-center gap-1.5 font-mono text-xs font-semibold tracking-[0.15em] bg-gold/10 border border-gold/30 text-gold rounded-full px-3 py-1.5 hover:bg-gold/20 transition-colors"
+        >
+          {room.code}
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+        </button>
       </div>
 
       <div className="card p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
