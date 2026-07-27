@@ -28,6 +28,16 @@ const DEPT_ARTISTS: Record<string, string[]> = {
 };
 DEPT_ARTISTS["idf"] = Array.from(new Set([...DEPT_ARTISTS["93"], ...DEPT_ARTISTS["91"], ...DEPT_ARTISTS["92"], ...DEPT_ARTISTS["77"], ...DEPT_ARTISTS["78"]]));
 
+// Blind tests dédiés à un seul artiste — que ses propres morceaux.
+const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
+  "artist-ninho": ["ninho"],
+  "artist-booba": ["booba"],
+  "artist-pnl": ["pnl"],
+  "artist-sch": ["sch"],
+  "artist-jul": ["jul"],
+  "artist-nekfeu": ["nekfeu"],
+};
+
 type DeezerTrackSummary = {
   id: number;
   title: string;
@@ -133,8 +143,15 @@ export async function GET(req: NextRequest) {
   try {
     let raw: DeezerTrackSummary[] = [];
 
-    if (themeId === "cloud" || themeId === "lagui-sadek" || DEPT_ARTISTS[themeId]) {
-      const names = themeId === "cloud" ? CLOUD_ARTISTS : themeId === "lagui-sadek" ? LAGUI_SADEK_ARTISTS : DEPT_ARTISTS[themeId];
+    const artistListsById: Record<string, string[]> = {
+      cloud: CLOUD_ARTISTS,
+      "lagui-sadek": LAGUI_SADEK_ARTISTS,
+      ...DEPT_ARTISTS,
+      ...SINGLE_ARTIST_THEMES,
+    };
+
+    if (artistListsById[themeId]) {
+      const names = artistListsById[themeId];
       const lists = await Promise.all(names.map(fetchArtistTopTracks));
       raw = lists.flat();
     } else if (themeId === "pop") {

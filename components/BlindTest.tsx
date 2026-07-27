@@ -48,9 +48,15 @@ const THEME_OPTIONS = [
   { id: "13", label: "Marseille (13)", text: "JUL, SCH, Soprano, Alonzo...", Icon: MapPin, category: "Régions" },
   { id: "59", label: "Rappeurs du 59", text: "Gradur...", Icon: MapPin, category: "Régions" },
   { id: "idf", label: "Île-de-France", text: "Tout le rap francilien mélangé", Icon: MapPin, category: "Régions" },
+  { id: "artist-ninho", label: "Blind Test Ninho", text: "Que des sons de Ninho", Icon: Mic2, category: "Artistes" },
+  { id: "artist-booba", label: "Blind Test Booba", text: "Que des sons de Booba", Icon: Mic2, category: "Artistes" },
+  { id: "artist-pnl", label: "Blind Test PNL", text: "Que des sons de PNL", Icon: Mic2, category: "Artistes" },
+  { id: "artist-sch", label: "Blind Test SCH", text: "Que des sons de SCH", Icon: Mic2, category: "Artistes" },
+  { id: "artist-jul", label: "Blind Test JUL", text: "Que des sons de JUL", Icon: Mic2, category: "Artistes" },
+  { id: "artist-nekfeu", label: "Blind Test Nekfeu", text: "Que des sons de Nekfeu", Icon: Mic2, category: "Artistes" },
 ] as const;
 
-const THEME_CATEGORIES = ["Époques", "Styles", "Régions"] as const;
+const THEME_CATEGORIES = ["Époques", "Styles", "Régions", "Artistes"] as const;
 
 function buildQuery(themeId: string, count: number) {
   const params = new URLSearchParams();
@@ -69,6 +75,16 @@ export default function BlindTest() {
   // Setup
   const [mode, setMode] = useState<Mode>(joinRoomCode ? "online" : "solo");
   const [themeId, setThemeId] = useState<string>("mix");
+  const [themePhotos, setThemePhotos] = useState<Record<string, string>>({});
+
+  // Photos d'artistes pour les pochettes de thème — un seul appel groupé au montage.
+  useEffect(() => {
+    const artistThemeIds = THEME_OPTIONS.filter((t) => t.category !== "Époques" && t.id !== "pop").map((t) => t.id);
+    fetch(`/api/blindtest/theme-art?themes=${artistThemeIds.join(",")}`)
+      .then((r) => r.json())
+      .then((data) => setThemePhotos(data.photos ?? {}))
+      .catch(() => {});
+  }, []);
   const [roundCount, setRoundCount] = useState(10);
   const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -500,7 +516,7 @@ export default function BlindTest() {
                         }}
                         className="w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
                       >
-                        <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} />
+                        <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} photoUrl={themePhotos[t.id]} />
                       </button>
                     ))}
                   </Row>
