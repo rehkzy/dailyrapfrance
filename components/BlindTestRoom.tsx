@@ -667,7 +667,7 @@ function RoomMenu({
   }, []);
 
   return (
-    <div className="max-w-lg mx-auto space-y-4 pb-24">
+    <div className="max-w-lg mx-auto space-y-4 pb-40">
       {onExit && (
         <button onClick={onExit} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
           <ArrowLeft size={14} /> Solo / local
@@ -715,45 +715,41 @@ function RoomMenu({
         </div>
       </div>
 
-      <div className="card p-6">
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Rejoindre un salon</p>
-        <div className="flex gap-2">
-          <input
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="Code à 5 lettres"
-            maxLength={5}
-            autoCapitalize="characters"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-center font-mono tracking-[0.2em] uppercase focus:outline-none focus:border-gold/50"
-          />
-          <button
-            onClick={onJoin}
-            disabled={busy || joinCode.trim().length < 5}
-            className="bg-gold hover:bg-glow disabled:opacity-40 text-white rounded-lg px-5 text-sm font-medium"
-          >
-            Rejoindre
-          </button>
-        </div>
-      </div>
-
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
 
-      {/* Bouton "Créer une partie" — fixe en bas, sinon la grille de thèmes (longue) le
-          repoussait hors champ, à faire défiler pour l'atteindre. */}
+      {/* Créer + Rejoindre — les deux actions qui comptent, fixées en bas et toujours à portée,
+          plutôt que "Rejoindre" perdu dans une carte séparée sous une longue grille de thèmes. */}
       <div
         className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-        <div className="max-w-lg mx-auto pointer-events-auto">
+        <div className="max-w-lg mx-auto pointer-events-auto glass-strong rounded-2xl p-3 space-y-2.5">
+          <div className="flex gap-2">
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="Code à 5 lettres"
+              maxLength={5}
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-center font-mono tracking-[0.2em] uppercase focus:outline-none focus:border-gold/50 min-h-[44px]"
+            />
+            <button
+              onClick={onJoin}
+              disabled={busy || joinCode.trim().length < 5}
+              className="tap-press bg-white/8 hover:bg-white/12 disabled:opacity-40 text-ink rounded-lg px-5 text-sm font-medium min-h-[44px] transition-colors"
+            >
+              Rejoindre
+            </button>
+          </div>
           <Magnetic strength={0.15} className="block w-full">
             <button
               onClick={() => onCreate(theme, rounds)}
               disabled={busy}
-              className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors"
+              className="cta-glow tap-press w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors"
             >
               Créer une partie privée
             </button>

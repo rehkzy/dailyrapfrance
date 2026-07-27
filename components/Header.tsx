@@ -9,7 +9,7 @@ import AuthButton from "./AuthButton";
 
 const nav = [
   { href: "/a-propos", label: "À propos", Icon: Info },
-  { href: "/blindtest", label: "Blind Test", Icon: Gamepad2 },
+  { href: "/jouer", label: "Jouer", Icon: Gamepad2 },
 ];
 
 const socials = [

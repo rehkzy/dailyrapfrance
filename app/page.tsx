@@ -10,14 +10,14 @@ const features = [
     Icon: Gamepad2,
     title: "Blind Test",
     text: "90s, cloud rap, 93, 91, Marseille... des dizaines de thèmes, seul ou entre potes.",
-    href: "/blindtest",
+    href: "/jouer",
     cta: "Jouer",
   },
   {
     Icon: Users2,
     title: "Salons privés",
     text: "Crée une partie, partage le code, jouez en même temps chacun sur votre téléphone.",
-    href: "/blindtest",
+    href: "/jouer",
     cta: "Créer un salon",
   },
   {
@@ -62,7 +62,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Magnetic className="w-full sm:w-auto">
               <a
-                href="/blindtest"
+                href="/jouer"
                 className="flex items-center justify-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3.5 sm:py-3 text-sm font-medium hover:bg-glow transition-colors w-full sm:w-auto"
               >
                 Jouer au Blind Test

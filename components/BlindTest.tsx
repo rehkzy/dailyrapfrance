@@ -511,7 +511,7 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto pb-40 blindtest-shell">
+      <div className="max-w-2xl mx-auto pb-44 blindtest-shell">
         {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
             Masqué sur mobile : l'espace vertical y est plus précieux, la page a déjà l'emblème
             de marque ailleurs sur le site. */}
@@ -857,30 +857,60 @@ export default function BlindTest() {
             </div>
 
             <div
-              className="mt-2 glass-strong border-t border-white/10 px-2 pt-1.5"
-              style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 6px)" }}
+              className="mt-2 mx-4 mb-1 glass-strong rounded-2xl px-1.5 pt-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+              style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
             >
-              <div className="grid grid-cols-4 gap-1">
-                <a href="/amis" className="tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl text-ink-faint hover:text-gold hover:bg-white/5 transition-colors">
-                  <Users size={18} strokeWidth={2} />
+              <div className="grid grid-cols-5 gap-0.5">
+                <a
+                  href="/jouer"
+                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+                    <Gamepad2 size={17} strokeWidth={2} />
+                  </span>
+                  <span className="text-[10px] font-mono uppercase tracking-wide">Jouer</span>
+                </a>
+                <a
+                  href="/amis"
+                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+                    <Users size={17} strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-mono uppercase tracking-wide">Amis</span>
                 </a>
-                <a href="/blindtest/classement" className="tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl text-ink-faint hover:text-gold hover:bg-white/5 transition-colors">
-                  <Trophy size={18} strokeWidth={2} />
+                <a
+                  href="/blindtest/classement"
+                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+                    <Trophy size={17} strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-mono uppercase tracking-wide">Classement</span>
                 </a>
-                <a href="/parametres" className="tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl text-ink-faint hover:text-gold hover:bg-white/5 transition-colors">
-                  <Settings size={18} strokeWidth={2} />
+                <a
+                  href="/parametres"
+                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+                    <Settings size={17} strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-mono uppercase tracking-wide">Compte</span>
                 </a>
                 <button
                   onClick={toggleFullscreen}
                   aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
-                  className={`tap-press flex flex-col items-center gap-1 py-1.5 rounded-xl transition-colors ${
-                    manualImmersive ? "text-gold bg-gold/10" : "text-ink-faint hover:text-gold hover:bg-white/5"
+                  className={`tap-press group flex flex-col items-center gap-1 py-2 rounded-xl transition-colors ${
+                    manualImmersive ? "text-gold" : "text-ink-faint hover:text-gold"
                   }`}
                 >
-                  {manualImmersive ? <Minimize size={18} strokeWidth={2} /> : <Maximize size={18} strokeWidth={2} />}
+                  <span
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                      manualImmersive ? "bg-gold text-white" : "group-hover:bg-white/8"
+                    }`}
+                  >
+                    {manualImmersive ? <Minimize size={16} strokeWidth={2} /> : <Maximize size={16} strokeWidth={2} />}
+                  </span>
                   <span className="text-[10px] font-mono uppercase tracking-wide">
                     {manualImmersive ? "Réduire" : "Écran"}
                   </span>
