@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2 } from "lucide-react";
+import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -60,6 +60,7 @@ export default function BlindTestRoom({
   const revealedRef = useRef(false);
   const [guess, setGuess] = useState({ title: "", artist: "", feat: "" });
   const [flash, setFlash] = useState<"ok" | "taken" | null>(null);
+  const [audioError, setAudioError] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const roomRef = useRef<RoomRow | null>(null);
@@ -131,6 +132,7 @@ export default function BlindTestRoom({
       setFlash(null);
       setRevealed(false);
       revealedRef.current = false;
+      setAudioError(false);
     } else if (room.status === "finished") {
       sfx.victory();
       setScreen("final");
@@ -296,7 +298,16 @@ export default function BlindTestRoom({
   function launchExtract() {
     if (revealed) return;
     setStarted(true);
-    audioRef.current?.play().catch(() => {});
+    setAudioError(false);
+    audioRef.current?.play().catch(() => setAudioError(true));
+  }
+
+  function retryAudio() {
+    setAudioError(false);
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.load();
+    audio.play().catch(() => setAudioError(true));
   }
 
   async function submitGuess() {
@@ -533,7 +544,7 @@ export default function BlindTestRoom({
 
   return (
     <div className="max-w-lg mx-auto">
-      <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" />
+      <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" onError={() => setAudioError(true)} />
       <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between glass-strong rounded-xl px-4">
         <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
           Manche {room.current_round + 1} / {room.tracks.length}
@@ -580,6 +591,20 @@ export default function BlindTestRoom({
           </div>
         ) : (
           <>
+            {audioError && (
+              <div className="solved-pop max-w-xs mx-auto mb-4 flex items-center gap-2.5 bg-riseNeg/10 border border-riseNeg/30 rounded-xl px-3.5 py-2.5 text-left">
+                <VolumeX size={16} className="text-riseNeg shrink-0" />
+                <p className="text-xs text-ink-muted flex-1">Le son n'a pas pu se charger.</p>
+                <button
+                  type="button"
+                  onClick={retryAudio}
+                  className="tap-press shrink-0 inline-flex items-center gap-1 text-xs font-medium text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-lg px-2.5 py-1.5 transition-colors"
+                >
+                  <RotateCcw size={12} />
+                  Réessayer
+                </button>
+              </div>
+            )}
             <span className={`font-display text-2xl text-gold block mb-4 ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>{timeLeft}</span>
             {isHost && (
               <button

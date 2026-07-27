@@ -128,7 +128,11 @@ function toGameTrack(t: DeezerTrackFull) {
     id: String(t.id),
     title: t.title,
     artistName: t.artist?.name ?? "",
-    previewUrl: t.preview ?? "",
+    // Deezer renvoie parfois ses liens d'extrait en http:// plutôt qu'en https:// — sur un
+    // site servi en HTTPS, ce contenu mixte est bloqué silencieusement par le navigateur
+    // (l'audio ne se charge jamais, sans la moindre erreur visible). D'où des extraits muets
+    // de façon aléatoire, sur n'importe quel thème. On force https systématiquement.
+    previewUrl: (t.preview ?? "").replace(/^http:\/\//, "https://"),
     coverUrl: t.album?.cover_medium || t.album?.cover_big || null,
     feats,
   };

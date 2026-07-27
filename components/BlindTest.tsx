@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Sliders, Gamepad2, Maximize, Minimize, Flame, X, Trophy, Settings,
+  Sliders, Gamepad2, Maximize, Minimize, Flame, X, Trophy, Settings, VolumeX,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -101,6 +101,10 @@ export default function BlindTest() {
   const [roundGain, setRoundGain] = useState<{ playerId: string; points: number; nonce: number } | null>(null);
   const gainCounter = useRef(0);
   const [wrongFlash, setWrongFlash] = useState(false);
+  // Un extrait qui ne se charge/joue pas (lien Deezer cassé, souci réseau...) échouait avant en
+  // silence totale — le décompte tournait sans le moindre son, sans que personne ne comprenne
+  // pourquoi. On détecte l'échec et on l'affiche, avec un vrai bouton pour réessayer ou passer.
+  const [audioError, setAudioError] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -195,6 +199,7 @@ export default function BlindTest() {
     setRevealed(false);
     setRoundGain(null);
     setWrongFlash(false);
+    setAudioError(false);
     clearTimers();
   }
 
@@ -238,9 +243,21 @@ export default function BlindTest() {
     if (started || revealed) return;
     sfx.click();
     setStarted(true);
-    audioRef.current?.play().catch(() => {});
+    setAudioError(false);
+    audioRef.current?.play().catch(() => setAudioError(true));
     deadlineRef.current = Date.now() + roundSeconds * 1000;
     intervalRef.current = setInterval(tick, 1000);
+  }
+
+  // Réessaie de charger/jouer l'extrait courant — recharge explicitement la source (utile si
+  // l'échec initial venait d'un souci réseau transitoire) avant de retenter la lecture.
+  function retryAudio() {
+    sfx.click();
+    setAudioError(false);
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.load();
+    audio.play().catch(() => setAudioError(true));
   }
 
   function useJoker(playerId: string) {
@@ -858,67 +875,7 @@ export default function BlindTest() {
               </div>
             </div>
 
-            <div
-              className="mt-2 mx-4 mb-1 glass-strong rounded-2xl px-1.5 pt-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
-              style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
-            >
-              <div className="grid grid-cols-5 gap-0.5">
-                <a
-                  href="/jouer"
-                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-                    <Gamepad2 size={17} strokeWidth={2} />
-                  </span>
-                  <span className="text-[10px] font-mono uppercase tracking-wide">Jouer</span>
-                </a>
-                <a
-                  href="/amis"
-                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-                    <Users size={17} strokeWidth={2} />
-                  </span>
-                  <span className="text-[10px] font-mono uppercase tracking-wide">Amis</span>
-                </a>
-                <a
-                  href="/blindtest/classement"
-                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-                    <Trophy size={17} strokeWidth={2} />
-                  </span>
-                  <span className="text-[10px] font-mono uppercase tracking-wide">Classement</span>
-                </a>
-                <a
-                  href="/parametres"
-                  className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
-                >
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
-                    <Settings size={17} strokeWidth={2} />
-                  </span>
-                  <span className="text-[10px] font-mono uppercase tracking-wide">Compte</span>
-                </a>
-                <button
-                  onClick={toggleFullscreen}
-                  aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
-                  className={`tap-press group flex flex-col items-center gap-1 py-2 rounded-xl transition-colors ${
-                    manualImmersive ? "text-gold" : "text-ink-faint hover:text-gold"
-                  }`}
-                >
-                  <span
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                      manualImmersive ? "bg-gold text-white" : "group-hover:bg-white/8"
-                    }`}
-                  >
-                    {manualImmersive ? <Minimize size={16} strokeWidth={2} /> : <Maximize size={16} strokeWidth={2} />}
-                  </span>
-                  <span className="text-[10px] font-mono uppercase tracking-wide">
-                    {manualImmersive ? "Réduire" : "Écran"}
-                  </span>
-                </button>
-              </div>
-            </div>
+            <GameTabBar manualImmersive={manualImmersive} onToggleFullscreen={toggleFullscreen} />
           </div>
         </div>
       </div>
@@ -928,7 +885,8 @@ export default function BlindTest() {
   if (phase === "final") {
     const ranked = [...players].sort((a, b) => b.score - a.score);
     return (
-      <div className="max-w-xl mx-auto text-center">
+      <>
+      <div className="max-w-xl mx-auto text-center pb-32">
         {showConfetti && <Confetti />}
         <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Terminé</p>
         {mode === "solo" ? (
@@ -1073,6 +1031,17 @@ export default function BlindTest() {
           )}
         </div>
       </div>
+
+      <div
+        className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
+        <div className="max-w-2xl mx-auto pointer-events-auto">
+          <GameTabBar manualImmersive={manualImmersive} onToggleFullscreen={toggleFullscreen} />
+        </div>
+      </div>
+      </>
     );
   }
 
@@ -1083,8 +1052,14 @@ export default function BlindTest() {
   const soloPlayer = players[0];
 
   return (
-    <div className="max-w-2xl mx-auto pb-24 blindtest-shell">
-      <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" />
+    <div className="max-w-2xl mx-auto pb-40 blindtest-shell">
+      <audio
+        key={track.id}
+        ref={audioRef}
+        src={track.previewUrl}
+        preload="auto"
+        onError={() => setAudioError(true)}
+      />
 
       <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <div className="flex items-center gap-2 shrink-0">
@@ -1186,6 +1161,21 @@ export default function BlindTest() {
                 </div>
               </div>
             </div>
+
+            {audioError && (
+              <div className="solved-pop max-w-xs mx-auto mb-4 flex items-center gap-2.5 bg-riseNeg/10 border border-riseNeg/30 rounded-xl px-3.5 py-2.5 text-left">
+                <VolumeX size={16} className="text-riseNeg shrink-0" />
+                <p className="text-xs text-ink-muted flex-1">Le son n'a pas pu se charger.</p>
+                <button
+                  type="button"
+                  onClick={retryAudio}
+                  className="tap-press shrink-0 inline-flex items-center gap-1 text-xs font-medium text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-lg px-2.5 py-1.5 transition-colors"
+                >
+                  <RotateCcw size={12} />
+                  Réessayer
+                </button>
+              </div>
+            )}
 
             <span className={`font-display text-3xl text-gold block mb-4 transition-colors ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>
               {timeLeft}
@@ -1343,67 +1333,146 @@ export default function BlindTest() {
         )}
       </div>
 
-      {/* Barre de jeu — fixe en bas, Valider + Joker toujours à portée de pouce, jamais
-          enterrés en bas d'un formulaire qu'il faudrait faire défiler pour atteindre. */}
-      {started && !revealed && (mode === "solo" || (mode === "local" && buzzedBy)) && (
-        <div
-          className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-          <div className="max-w-2xl mx-auto pointer-events-auto space-y-2">
-            {jokersEnabled && timeLeft <= 8 && timeLeft > 0 && (
-              (mode === "solo" && !soloPlayer?.timeJokerUsed) ||
-              (mode === "local" && buzzedBy && !activePlayer?.timeJokerUsed)
-            ) && (
-              <button
-                type="button"
-                onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)}
-                className="urgent-pulse-soft tap-press w-full flex items-center justify-center gap-2 bg-gold text-white rounded-2xl py-3 text-sm font-semibold shadow-[0_4px_20px_rgba(240,0,28,0.45)] transition-colors"
-              >
-                <Clock size={16} />
-                Joker temps — +{TIME_JOKER_SECONDS}s pour répondre
-              </button>
-            )}
-            <div className="flex items-center gap-3 glass-strong rounded-2xl p-2">
-              {mode === "solo" && (
-                <>
-                  {jokersEnabled && (
+      {/* Barre de jeu — fixe en bas. Valider + Joker apparaissent seulement une fois la manche
+          lancée, mais la barre d'onglets, elle, reste affichée en permanence : plus pratique
+          pour accéder à Amis/Classement/Compte sans quitter la page. */}
+      <div
+        className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
+        <div className="max-w-2xl mx-auto pointer-events-auto space-y-2">
+          {started && !revealed && (mode === "solo" || (mode === "local" && buzzedBy)) && (
+            <>
+              {jokersEnabled && timeLeft <= 8 && timeLeft > 0 && (
+                (mode === "solo" && !soloPlayer?.timeJokerUsed) ||
+                (mode === "local" && buzzedBy && !activePlayer?.timeJokerUsed)
+              ) && (
+                <button
+                  type="button"
+                  onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)}
+                  className="urgent-pulse-soft tap-press w-full flex items-center justify-center gap-2 bg-gold text-white rounded-2xl py-3 text-sm font-semibold shadow-[0_4px_20px_rgba(240,0,28,0.45)] transition-colors"
+                >
+                  <Clock size={16} />
+                  Joker temps — +{TIME_JOKER_SECONDS}s pour répondre
+                </button>
+              )}
+              <div className="flex items-center gap-3 glass-strong rounded-2xl p-2">
+                {mode === "solo" && (
+                  <>
+                    {jokersEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => useJoker("solo")}
+                        disabled={soloPlayer?.jokerUsed}
+                        aria-label="Joker : écouter un autre passage de l'extrait"
+                        className="tap-press shrink-0 flex items-center gap-1.5 text-xs font-mono rounded-full px-4 min-h-[48px] text-ink-muted hover:text-gold hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                      >
+                        <Headphones size={15} />
+                        Joker
+                      </button>
+                    )}
                     <button
-                      type="button"
-                      onClick={() => useJoker("solo")}
-                      disabled={soloPlayer?.jokerUsed}
-                      aria-label="Joker : écouter un autre passage de l'extrait"
-                      className="tap-press shrink-0 flex items-center gap-1.5 text-xs font-mono rounded-full px-4 min-h-[48px] text-ink-muted hover:text-gold hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                      type="submit"
+                      form="solo-guess-form"
+                      className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                     >
-                      <Headphones size={15} />
-                      Joker
+                      <Check size={17} strokeWidth={3} />
+                      Valider
                     </button>
-                  )}
+                  </>
+                )}
+                {mode === "local" && buzzedBy && (
                   <button
                     type="submit"
-                    form="solo-guess-form"
+                    form="local-guess-form"
                     className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                   >
                     <Check size={17} strokeWidth={3} />
-                    Valider
+                    Valider — {activePlayer?.name}
                   </button>
-                </>
-              )}
-              {mode === "local" && buzzedBy && (
-                <button
-                  type="submit"
-                  form="local-guess-form"
-                  className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-                >
-                  <Check size={17} strokeWidth={3} />
-                  Valider — {activePlayer?.name}
-                </button>
-              )}
-            </div>
-          </div>
+                )}
+              </div>
+            </>
+          )}
+          <GameTabBar manualImmersive={manualImmersive} onToggleFullscreen={toggleFullscreen} />
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
+
+// Barre d'onglets façon app mobile — Jouer/Amis/Classement/Compte/Écran. Toujours visible sur
+// la page blind test, quelle que soit la phase (configuration, partie en cours, récap) : plus
+// pratique que de la faire disparaître pendant le jeu.
+function GameTabBar({
+  manualImmersive,
+  onToggleFullscreen,
+}: {
+  manualImmersive: boolean;
+  onToggleFullscreen: () => void;
+}) {
+  return (
+    <div
+      className="mt-2 mx-4 mb-1 glass-strong rounded-2xl px-1.5 pt-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 8px)" }}
+    >
+      <div className="grid grid-cols-5 gap-0.5">
+        <a
+          href="/jouer"
+          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+        >
+          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+            <Gamepad2 size={17} strokeWidth={2} />
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wide">Jouer</span>
+        </a>
+        <a
+          href="/amis"
+          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+        >
+          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+            <Users size={17} strokeWidth={2} />
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wide">Amis</span>
+        </a>
+        <a
+          href="/blindtest/classement"
+          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+        >
+          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+            <Trophy size={17} strokeWidth={2} />
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wide">Classement</span>
+        </a>
+        <a
+          href="/parametres"
+          className="tap-press group flex flex-col items-center gap-1 py-2 rounded-xl text-ink-faint hover:text-gold transition-colors"
+        >
+          <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-white/8 transition-colors">
+            <Settings size={17} strokeWidth={2} />
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wide">Compte</span>
+        </a>
+        <button
+          onClick={onToggleFullscreen}
+          aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
+          className={`tap-press group flex flex-col items-center gap-1 py-2 rounded-xl transition-colors ${
+            manualImmersive ? "text-gold" : "text-ink-faint hover:text-gold"
+          }`}
+        >
+          <span
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+              manualImmersive ? "bg-gold text-white" : "group-hover:bg-white/8"
+            }`}
+          >
+            {manualImmersive ? <Minimize size={16} strokeWidth={2} /> : <Maximize size={16} strokeWidth={2} />}
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-wide">
+            {manualImmersive ? "Réduire" : "Écran"}
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
