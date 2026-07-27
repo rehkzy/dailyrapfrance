@@ -141,6 +141,19 @@ button, a, [role="button"], input, select, .tap-target {
   .brand-pulse { animation: none; }
 }
 
+/* Anneau qui tourne autour du logo — loader de marque, remplace les spinners génériques */
+@keyframes brand-ring-spin {
+  to { transform: rotate(360deg); }
+}
+
+.brand-ring {
+  animation: brand-ring-spin 1.1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-ring { animation: none; }
+}
+
 /* Disque qui tourne pendant l'écoute du blind test */
 @keyframes vinyl-spin {
   from { transform: rotate(0deg); }

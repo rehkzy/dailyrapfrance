@@ -4,14 +4,28 @@
 -- de fois que nécessaire (tables en "if not exists", règles recréées à chaque fois).
 -- ─────────────────────────────────────────────────────────────────────────
 
+create extension if not exists unaccent;
+
+
 -- Profil public (nom affiché, avatar) — séparé de auth.users qui n'est pas
 -- directement lisible côté client pour des raisons de sécurité.
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
+  username text unique,
   avatar_url text,
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists username text;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_username_key'
+  ) then
+    alter table public.profiles add constraint profiles_username_key unique (username);
+  end if;
+end $$;
 
 alter table public.profiles enable row level security;
 
@@ -25,6 +39,31 @@ create policy "Chacun ne modifie que son propre profil"
   on public.profiles for update
   using (auth.uid() = id);
 
+-- Génère un identifiant "@pseudo" unique et propre (minuscules, sans accents ni espaces) à
+-- partir du nom OAuth — avec un suffixe numérique en cas de collision, pour que le pseudo
+-- affiché ne soit jamais garanti unique (deux "Jul" possibles) mais que l'identifiant de
+-- recherche/ajout d'ami, lui, le soit toujours.
+create or replace function public.generate_username(base text)
+returns text
+language plpgsql
+as $$
+declare
+  slug text;
+  candidate text;
+  suffix int := 0;
+begin
+  slug := lower(regexp_replace(unaccent(coalesce(base, 'joueur')), '[^a-z0-9]+', '', 'gi'));
+  if slug = '' then slug := 'joueur'; end if;
+  slug := left(slug, 20);
+  candidate := slug;
+  while exists (select 1 from public.profiles where username = candidate) loop
+    suffix := suffix + 1;
+    candidate := left(slug, 20) || suffix::text;
+  end loop;
+  return candidate;
+end;
+$$;
+
 -- Un profil est créé automatiquement à la première connexion (Google/Apple
 -- fournissent le nom et l'avatar dans les métadonnées OAuth).
 create or replace function public.handle_new_user()
@@ -33,10 +72,11 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, display_name, avatar_url)
+  insert into public.profiles (id, display_name, username, avatar_url)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', 'Joueur'),
+    public.generate_username(coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', 'joueur')),
     new.raw_user_meta_data->>'avatar_url'
   )
   on conflict (id) do nothing;
@@ -48,6 +88,9 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Rattrapage pour les comptes créés avant l'ajout du champ username.
+update public.profiles set username = public.generate_username(display_name) where username is null;
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- Parties privées en ligne — salons avec code, synchronisés via Supabase Realtime.
@@ -174,3 +217,49 @@ drop policy if exists "Chacun n'enregistre que ses propres scores" on public.bli
 create policy "Chacun n'enregistre que ses propres scores"
   on public.blindtest_scores for insert
   with check (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Amis — demande / acceptation, dans les deux sens depuis une seule ligne.
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists public.friendships (
+  id uuid primary key default gen_random_uuid(),
+  requester_id uuid not null references public.profiles(id) on delete cascade,
+  addressee_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null default 'pending', -- pending | accepted
+  created_at timestamptz not null default now(),
+  unique (requester_id, addressee_id),
+  check (requester_id <> addressee_id)
+);
+
+create index if not exists friendships_addressee_idx on public.friendships (addressee_id);
+create index if not exists friendships_requester_idx on public.friendships (requester_id);
+
+alter table public.friendships enable row level security;
+
+drop policy if exists "Chacun voit les demandes qui le concernent" on public.friendships;
+create policy "Chacun voit les demandes qui le concernent"
+  on public.friendships for select
+  using (auth.uid() = requester_id or auth.uid() = addressee_id);
+
+drop policy if exists "On envoie une demande en son propre nom" on public.friendships;
+create policy "On envoie une demande en son propre nom"
+  on public.friendships for insert
+  with check (auth.uid() = requester_id);
+
+drop policy if exists "Seul le destinataire accepte, l'un ou l'autre peut retirer" on public.friendships;
+create policy "Seul le destinataire accepte, l'un ou l'autre peut retirer"
+  on public.friendships for update
+  using (auth.uid() = requester_id or auth.uid() = addressee_id);
+
+drop policy if exists "L'un ou l'autre peut supprimer une relation" on public.friendships;
+create policy "L'un ou l'autre peut supprimer une relation"
+  on public.friendships for delete
+  using (auth.uid() = requester_id or auth.uid() = addressee_id);
+
+do $$
+begin
+  begin
+    alter publication supabase_realtime add table public.friendships;
+  exception when duplicate_object then null;
+  end;
+end $$;

@@ -43,3 +43,14 @@ export const THEME_OPTIONS: ThemeOption[] = [
 export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époques" && t.id !== "pop").map(
   (t) => t.id
 );
+
+// Défi du jour — un thème imposé, identique pour tout le monde, qui change à minuit. Calculé
+// à partir de la date (pas de hasard, pas d'état serveur à synchroniser) : le même jour donne
+// toujours le même thème pour tous les joueurs, et il change tout seul le lendemain. Sert de
+// raison de revenir jouer chaque jour plutôt qu'un "Mix" toujours identique.
+const DAILY_POOL = THEME_OPTIONS.filter((t) => t.id !== "mix");
+
+export function getDailyTheme(): ThemeOption {
+  const dayIndex = Math.floor(Date.now() / 86_400_000);
+  return DAILY_POOL[dayIndex % DAILY_POOL.length];
+}

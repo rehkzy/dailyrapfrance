@@ -10,6 +10,7 @@ import Magnetic from "@/components/Magnetic";
 import ThemeCover from "@/components/ThemeCover";
 import Row from "@/components/Row";
 import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS } from "@/lib/themes";
+import BrandLoader from "@/components/BrandLoader";
 import type { User } from "@supabase/supabase-js";
 
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
@@ -432,7 +433,10 @@ export default function BlindTestRoom({
               </button>
             </Magnetic>
           ) : (
-            <p className="text-sm text-ink-faint font-mono">En attente que l'hôte démarre...</p>
+            <div className="flex items-center justify-center gap-3 py-1">
+              <BrandLoader size="sm" />
+              <p className="text-sm text-ink-faint font-mono">En attente que l'hôte démarre...</p>
+            </div>
           )}
         </div>
       </div>

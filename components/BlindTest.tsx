@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Sliders, Gamepad2, Maximize, Minimize,
+  Sliders, Gamepad2, Maximize, Minimize, Flame,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -16,7 +16,8 @@ import Confetti from "@/components/Confetti";
 import ThemeCover from "@/components/ThemeCover";
 import Row from "@/components/Row";
 import BlindTestRoom from "@/components/BlindTestRoom";
-import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS } from "@/lib/themes";
+import BrandLoader from "@/components/BrandLoader";
+import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, getDailyTheme } from "@/lib/themes";
 
 type Track = {
   id: string;
@@ -44,6 +45,16 @@ function buildQuery(themeId: string, count: number) {
 
 export default function BlindTest() {
   const { user, loading: userLoading } = useUser();
+  const [myUsername, setMyUsername] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    createClient()
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setMyUsername(data?.username ?? null));
+  }, [user]);
   const searchParams = useSearchParams();
   const joinRoomCode = searchParams.get("room");
 
@@ -52,6 +63,7 @@ export default function BlindTest() {
   // Setup
   const [mode, setMode] = useState<Mode>(joinRoomCode ? "online" : "solo");
   const [themeId, setThemeId] = useState<string>("mix");
+  const dailyTheme = useMemo(() => getDailyTheme(), []);
   const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
 
   // Photos d'artistes pour les pochettes de thème — un seul appel groupé au montage.
@@ -104,6 +116,16 @@ export default function BlindTest() {
   const solvedRef = useRef<Partial<Record<FieldKey, string>>>({});
   solvedRef.current = solved;
 
+  // Streak "sans faute" — combo de manches consécutives parfaitement trouvées, en solo
+  // uniquement (le concept est ambigu à plusieurs). Un bonus de points tombe tous les 3 crans,
+  // avec une petite explosion visuelle — le ressort classique qui donne envie d'enchaîner une
+  // manche de plus plutôt que de s'arrêter.
+  const [streak, setStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [streakBurst, setStreakBurst] = useState<number | null>(null);
+  const modeRef = useRef<Mode>(mode);
+  modeRef.current = mode;
+
   const clearTimers = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
@@ -120,6 +142,21 @@ export default function BlindTest() {
     audioRef.current?.pause();
     if (trackRef.current) {
       setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current }]);
+    }
+    if (modeRef.current === "solo" && trackRef.current) {
+      const fields: FieldKey[] = trackRef.current.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
+      const perfect = fields.every((f) => solvedRef.current[f]);
+      setStreak((s) => {
+        const next = perfect ? s + 1 : 0;
+        setBestStreak((b) => Math.max(b, next));
+        if (perfect && next > 0 && next % 3 === 0) {
+          sfx.bonus();
+          awardPoints("solo", 2);
+          setStreakBurst(next);
+          setTimeout(() => setStreakBurst((v) => (v === next ? null : v)), 1700);
+        }
+        return next;
+      });
     }
     advanceTimeoutRef.current = setTimeout(() => {
       setRoundIndex((i) => {
@@ -351,6 +388,8 @@ export default function BlindTest() {
     setWizardStep(0);
     setTracks([]);
     setPlayers([]);
+    setStreak(0);
+    setStreakBurst(null);
     setRoundIndex(0);
     setRoundHistory([]);
     setScoreSaveStatus("idle");
@@ -386,7 +425,11 @@ export default function BlindTest() {
   // ── Rendu ──────────────────────────────────────────────────────────────
 
   if (userLoading) {
-    return <div className="h-64" aria-hidden="true" />;
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <BrandLoader size="md" />
+      </div>
+    );
   }
 
   if (!user) {
@@ -441,6 +484,12 @@ export default function BlindTest() {
         </div>
 
         <div className="card p-5 sm:p-6 md:p-7 flex flex-col">
+          {phase === "loading" ? (
+            <div className="flex-1 flex items-center justify-center py-10">
+              <BrandLoader label="Recherche des titres" size="lg" />
+            </div>
+          ) : (
+            <>
           {/* Étape 0 — Mode */}
           {wizardStep === 0 && (
             <div className="flex-1 space-y-3">
@@ -566,6 +615,38 @@ export default function BlindTest() {
           {/* Étape 1 — Thème, en rangées horizontales façon Netflix (une rangée par catégorie) */}
           {wizardStep === 1 && (
             <div className="flex-1 flex flex-col gap-5 -mt-1">
+              {/* Défi du jour — même thème imposé pour tout le monde aujourd'hui, change à
+                  minuit. Une bonne raison de rouvrir le jeu chaque jour plutôt qu'un Mix
+                  toujours identique. */}
+              <button
+                onClick={() => {
+                  sfx.click();
+                  setThemeId(dailyTheme.id);
+                }}
+                className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
+                  themeId === dailyTheme.id
+                    ? "border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.4),0_10px_28px_-8px_rgba(240,0,28,0.55)]"
+                    : "border-gold/30 hover:border-gold/50"
+                }`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-[#3a0a0a] via-[#780101]/70 to-transparent opacity-70" aria-hidden="true" />
+                <div className="icon-tile relative w-12 h-12 shrink-0 bg-gradient-to-br from-gold to-glow text-white">
+                  <Flame size={20} strokeWidth={2} />
+                </div>
+                <span className="relative min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold">Défi du jour</span>
+                  </span>
+                  <span className="block text-sm font-semibold mt-0.5">{dailyTheme.label}</span>
+                  <span className="block text-xs text-ink-faint mt-0.5">{dailyTheme.text}</span>
+                </span>
+                {themeId === dailyTheme.id && (
+                  <div className="relative w-7 h-7 shrink-0 rounded-full bg-gold text-white flex items-center justify-center">
+                    <Check size={14} strokeWidth={3} />
+                  </div>
+                )}
+              </button>
+
               {THEME_CATEGORIES.map((cat) => (
                 <div key={cat}>
                   <p className="font-display text-base font-semibold mb-2.5 px-0.5">{cat}</p>
@@ -670,6 +751,8 @@ export default function BlindTest() {
               {setupError && <p className="text-sm text-riseNeg mb-4">{setupError}</p>}
             </div>
           )}
+          </>
+          )}
         </div>
 
         {/* Barre d'action — fixe en bas du viewport, toujours accessible même sur un écran
@@ -722,7 +805,16 @@ export default function BlindTest() {
         {showConfetti && <Confetti />}
         <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Terminé</p>
         {mode === "solo" ? (
-          <h2 className="font-display text-4xl md:text-5xl font-semibold mb-10">{ranked[0]?.score ?? 0} pts</h2>
+          <>
+            <h2 className="font-display text-4xl md:text-5xl font-semibold mb-3">{ranked[0]?.score ?? 0} pts</h2>
+            {bestStreak >= 2 && (
+              <p className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold bg-gold/10 border border-gold/30 rounded-full px-3 py-1 mb-10">
+                <Flame size={12} className="fill-current" />
+                Meilleur combo : {bestStreak} manches parfaites d'affilée
+              </p>
+            )}
+            {bestStreak < 2 && <div className="mb-10" />}
+          </>
         ) : (
           <>
             <h2 className="font-display text-3xl md:text-4xl font-semibold mb-10">Résultats</h2>
@@ -812,12 +904,28 @@ export default function BlindTest() {
             </button>
           </Magnetic>
           {mode === "solo" && (
-            <a
-              href="/blindtest/classement"
-              className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
-            >
-              Voir le classement
-            </a>
+            <>
+              <a
+                href="/blindtest/classement"
+                className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
+              >
+                Voir le classement
+              </a>
+              {myUsername && (
+                <a
+                  href={`/profil/${myUsername}`}
+                  className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
+                >
+                  Mon profil
+                </a>
+              )}
+              <a
+                href="/amis"
+                className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
+              >
+                Défier un ami
+              </a>
+            </>
           )}
         </div>
       </div>
@@ -838,6 +946,12 @@ export default function BlindTest() {
         <span className="font-mono text-xs text-ink-faint uppercase tracking-wide shrink-0">
           Manche {roundIndex + 1} / {tracks.length}
         </span>
+        {mode === "solo" && streak >= 2 && (
+          <span className="solved-pop inline-flex items-center gap-1 font-mono text-xs font-semibold text-gold bg-gold/10 border border-gold/30 rounded-full px-2.5 py-1 shrink-0">
+            <Flame size={12} className="fill-current" />
+            {streak}
+          </span>
+        )}
         {mode === "local" && (
           <div className="flex gap-3 font-mono text-xs text-ink-muted flex-wrap justify-end">
             {players.map((p) => (
@@ -867,6 +981,18 @@ export default function BlindTest() {
           >
             +{roundGain.points}
           </span>
+        )}
+
+        {streakBurst && (
+          <div
+            key={streakBurst}
+            className="solved-pop absolute inset-x-0 top-6 z-20 flex items-center justify-center gap-2 pointer-events-none"
+          >
+            <span className="inline-flex items-center gap-1.5 bg-gold text-white font-display font-semibold text-sm rounded-full px-4 py-1.5 shadow-[0_4px_20px_rgba(240,0,28,0.5)]">
+              <Flame size={15} className="fill-current" />
+              Combo x{streakBurst} — +2 bonus
+            </span>
+          </div>
         )}
 
         {!started ? (

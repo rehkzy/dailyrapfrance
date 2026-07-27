@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
-import { LogOut } from "lucide-react";
+import { LogOut, User as UserIcon } from "lucide-react";
 
 export default function AuthButton({ variant = "desktop" }: { variant?: "desktop" | "mobile" }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -21,6 +22,20 @@ export default function AuthButton({ variant = "desktop" }: { variant?: "desktop
     });
     return () => sub.subscription.unsubscribe();
   }, [supabase]);
+
+  useEffect(() => {
+    if (!user) {
+      setUsername(null);
+      return;
+    }
+    supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setUsername(data?.username ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   async function signIn() {
     await supabase.auth.signInWithOAuth({
@@ -68,6 +83,15 @@ export default function AuthButton({ variant = "desktop" }: { variant?: "desktop
           </div>
         )}
         <p className="text-sm text-ink-muted truncate flex-1">{name}</p>
+        {username && (
+          <a
+            href={`/profil/${username}`}
+            className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg glass text-ink-muted hover:text-gold transition-colors"
+          >
+            <UserIcon size={14} />
+            Profil
+          </a>
+        )}
         <button
           onClick={signOut}
           className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-riseNeg/10 text-riseNeg hover:bg-riseNeg/20 transition-colors"
@@ -93,6 +117,16 @@ export default function AuthButton({ variant = "desktop" }: { variant?: "desktop
       {open && (
         <div className="absolute right-0 top-full mt-2 glass rounded-xl p-2 w-48 z-50">
           <p className="text-sm px-3 py-2 text-ink-muted truncate">{name}</p>
+          {username && (
+            <a
+              href={`/profil/${username}`}
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg hover:bg-white/8 transition-colors"
+            >
+              <UserIcon size={14} />
+              Mon profil
+            </a>
+          )}
           <button
             onClick={signOut}
             className="w-full flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg hover:bg-white/8 transition-colors text-riseNeg"
