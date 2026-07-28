@@ -22,7 +22,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle, category: "Époques" },
   { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud, category: "Styles" },
   { id: "hardcore", label: "Rap hardcore", text: "Kaaris, Kalash Criminel, Alkpote...", Icon: Skull, category: "Styles" },
-  { id: "drill", label: "Drill FR", text: "Gazo, Ziak, Ashe 22...", Icon: Swords, category: "Styles" },
+  { id: "drill", label: "Drill FR", text: "Gazo, Ziak, Freeze Corleone...", Icon: Swords, category: "Styles" },
   { id: "trap", label: "Trap FR", text: "Niska, Gradur, Maes, Koba LaD...", Icon: Zap, category: "Styles" },
   { id: "boombap", label: "Boom bap / Old school", text: "IAM, NTM, Oxmo Puccino...", Icon: Music, category: "Styles" },
   { id: "melodique", label: "Rap mélodique", text: "PNL, Hamza, Tiakola...", Icon: Mic2, category: "Styles" },
@@ -43,6 +43,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-jul", label: "Blind Test JUL", text: "Que des sons de JUL", Icon: Mic2, category: "Artistes" },
   { id: "artist-nekfeu", label: "Blind Test Nekfeu", text: "Que des sons de Nekfeu", Icon: Mic2, category: "Artistes" },
   { id: "artist-badara", label: "Blind Test Badara", text: "Que des sons de Badara — Nouvelle École", Icon: Mic2, category: "Artistes" },
+  { id: "artist-werenoi", label: "Blind Test Werenoi", text: "Que des sons de Werenoi", Icon: Mic2, category: "Artistes" },
 ];
 
 // Thèmes pour lesquels on va chercher une vraie photo d'artiste (pas les thèmes par époque,

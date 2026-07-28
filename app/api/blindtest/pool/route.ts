@@ -22,7 +22,7 @@ const CLOUD_ARTISTS = ["suikoden", "josman", "fixpen sill", "le wombat", "lomepa
 // artistes emblématiques du style, à étendre au fil des retours joueurs.
 const STYLE_ARTISTS: Record<string, string[]> = {
   hardcore: ["kaaris", "kalash criminel", "alkpote", "seth gueko", "rohff"],
-  drill: ["gazo", "ziak", "ashe 22"],
+  drill: ["gazo", "ziak", "freeze corleone", "ashe 22", "bolémvn", "guy2bezbar"],
   trap: ["niska", "gradur", "maes", "koba lad"],
   boombap: ["iam", "suprême ntm", "oxmo puccino", "kery james"],
   melodique: ["pnl", "hamza", "tiakola", "so la lune"],
@@ -49,6 +49,7 @@ const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
   "artist-jul": ["jul"],
   "artist-nekfeu": ["nekfeu"],
   "artist-badara": ["badara"],
+  "artist-werenoi": ["werenoi"],
 };
 
 type DeezerTrackSummary = {

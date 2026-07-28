@@ -77,6 +77,14 @@ export default function BlindTest() {
   );
   const dailyTheme = useMemo(() => getDailyTheme(), []);
   const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
+  // Thèmes "tendance" — les plus joués sur 7 jours, d'après les vrais scores enregistrés.
+  const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    fetch("/api/blindtest/trending")
+      .then((r) => r.json())
+      .then((d) => setTrendingThemes(new Set(d.themes ?? [])))
+      .catch(() => {});
+  }, []);
 
   // Photos d'artistes pour les pochettes de thème — un seul appel groupé au montage.
   useEffect(() => {
@@ -128,12 +136,18 @@ export default function BlindTest() {
   // une frame (ouverture du clavier virtuel, re-rendu lourd, etc.)
 
   const track = tracks[roundIndex];
-  const applicableFields: FieldKey[] = track?.feats?.length ? ["title", "artist", "feat"] : ["title", "artist"];
+  // Blind test mono-artiste ("Blind Test Ninho", etc.) : l'artiste est connu d'avance, le
+  // champ Artiste est donc retiré partout — saisie, validation, calcul de manche parfaite.
+  const isSingleArtistTheme = themeId.startsWith("artist-");
+  const baseFields: FieldKey[] = isSingleArtistTheme ? ["title"] : ["title", "artist"];
+  const applicableFields: FieldKey[] = track?.feats?.length ? [...baseFields, "feat"] : baseFields;
 
   // Historique de la partie — un récap façon "Wrapped" à la fin. Refs à jour à chaque rendu
   // pour éviter que revealRound() (mémoïsé, dépendances limitées) capture une valeur périmée.
   const [roundHistory, setRoundHistory] = useState<{ track: Track; solved: Partial<Record<FieldKey, string>> }[]>([]);
   const trackRef = useRef<Track | undefined>(undefined);
+  const singleArtistRef = useRef(false);
+  singleArtistRef.current = themeId.startsWith("artist-");
   trackRef.current = track;
   const solvedRef = useRef<Partial<Record<FieldKey, string>>>({});
   solvedRef.current = solved;
@@ -192,7 +206,8 @@ export default function BlindTest() {
       setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current }]);
     }
     if (modeRef.current === "solo" && trackRef.current) {
-      const fields: FieldKey[] = trackRef.current.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
+      const base: FieldKey[] = singleArtistRef.current ? ["title"] : ["title", "artist"];
+      const fields: FieldKey[] = trackRef.current.feats.length ? [...base, "feat"] : base;
       const perfect = fields.every((f) => solvedRef.current[f]);
       setStreak((s) => {
         const next = perfect ? s + 1 : 0;
@@ -385,7 +400,7 @@ export default function BlindTest() {
       gained += POINTS.title;
       sfx.correct();
     }
-    if (!solved.artist && values.artist.trim() && isArtistMatch(values.artist, track.artistName)) {
+    if (applicableFields.includes("artist") && !solved.artist && values.artist.trim() && isArtistMatch(values.artist, track.artistName)) {
       newlySolved.artist = playerId;
       gained += POINTS.artist;
       sfx.correct();
@@ -649,17 +664,6 @@ export default function BlindTest() {
   if (phase === "setup" || phase === "loading") {
     return (
       <div className="max-w-2xl mx-auto pb-44 blindtest-shell">
-        {/* Petit disque décoratif — signe visuel "c'est un jeu" avant même de lancer une partie.
-            Masqué sur mobile : l'espace vertical y est plus précieux, la page a déjà l'emblème
-            de marque ailleurs sur le site. */}
-        <div className="hidden sm:flex justify-center mb-4">
-          <div className="vinyl-spin w-11 h-11 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 flex items-center justify-center">
-            <div className="w-4 h-4 rounded-full bg-gold flex items-center justify-center">
-              <Disc size={8} className="text-white" />
-            </div>
-          </div>
-        </div>
-
         {/* Barre de filtres façon Spotify — pilules pleines, pas un simple fil d'ariane texte.
             Seulement 3 items désormais : elle tient sur n'importe quel écran sans jamais avoir
             besoin de défiler ou de couper un mot. */}
@@ -856,8 +860,16 @@ export default function BlindTest() {
                           sfx.click();
                           setThemeId(t.id);
                         }}
-                        className="w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
+                        className="relative w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
                       >
+                        {trendingThemes.has(t.id) && (
+                          <span
+                            className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)]"
+                            title="Parmi les thèmes les plus joués cette semaine"
+                          >
+                            <Flame size={12} fill="currentColor" />
+                          </span>
+                        )}
                         <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} photoUrl={themePhotos[t.id]} />
                       </button>
                     ))}
@@ -1418,13 +1430,15 @@ export default function BlindTest() {
                     disabled={!!solved.title}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 disabled:opacity-40"
                   />
-                  <input
-                    value={guess.artist}
-                    onChange={(e) => setGuess((g) => ({ ...g, artist: e.target.value }))}
-                    placeholder="Artiste (1 pt)"
-                    disabled={!!solved.artist}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 disabled:opacity-40"
-                  />
+                  {applicableFields.includes("artist") && (
+                    <input
+                      value={guess.artist}
+                      onChange={(e) => setGuess((g) => ({ ...g, artist: e.target.value }))}
+                      placeholder="Artiste (1 pt)"
+                      disabled={!!solved.artist}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 disabled:opacity-40"
+                    />
+                  )}
                   {applicableFields.includes("feat") && (
                     <input
                       value={guess.feat}
@@ -1483,13 +1497,15 @@ export default function BlindTest() {
                   solved={!!solved.title}
                   wrongFlash={wrongFlash}
                 />
-                <FieldRow
-                  value={guess.artist}
-                  onChange={(v) => setGuess((g) => ({ ...g, artist: v }))}
-                  placeholder="Artiste (1 pt)"
-                  solved={!!solved.artist}
-                  wrongFlash={wrongFlash}
-                />
+                {applicableFields.includes("artist") && (
+                  <FieldRow
+                    value={guess.artist}
+                    onChange={(v) => setGuess((g) => ({ ...g, artist: v }))}
+                    placeholder="Artiste (1 pt)"
+                    solved={!!solved.artist}
+                    wrongFlash={wrongFlash}
+                  />
+                )}
                 {applicableFields.includes("feat") && (
                   <FieldRow
                     value={guess.feat}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw } from "lucide-react";
+import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, Flame } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -15,6 +15,12 @@ import type { User } from "@supabase/supabase-js";
 
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
 type FieldKey = "title" | "artist" | "feat";
+
+function applicableFieldsFor(theme: string | undefined, track: { feats: string[] }): FieldKey[] {
+  // Blind test mono-artiste : l'artiste est dans le nom du thème, on ne le fait pas deviner.
+  const base: FieldKey[] = theme?.startsWith("artist-") ? ["title"] : ["title", "artist"];
+  return track.feats.length ? [...base, "feat"] : base;
+}
 const ROUND_SECONDS = 25;
 const REVEAL_SECONDS = 3.2;
 const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
@@ -186,7 +192,7 @@ export default function BlindTestRoom({
   useEffect(() => {
     if (!isHost || !room || screen !== "playing" || !track || revealed) return;
     const roundSolves = solves.filter((s) => s.round_index === room.current_round);
-    const applicable: FieldKey[] = track.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
+    const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
     if (applicable.every((f) => roundSolves.some((s) => s.field === f))) {
       endRoundEarly();
     }
@@ -312,7 +318,7 @@ export default function BlindTestRoom({
 
   async function submitGuess() {
     if (!room || !track || revealed) return;
-    const applicable: FieldKey[] = track.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
+    const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
     const alreadySolved = new Set(solves.filter((s) => s.round_index === room.current_round).map((s) => s.field));
     let anyOk = false;
 
@@ -538,7 +544,7 @@ export default function BlindTestRoom({
       </div>
     );
   }
-  const applicable: FieldKey[] = track.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
+  const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
   const roundSolves = solves.filter((s) => s.round_index === room.current_round);
   const isSolved = (f: FieldKey) => roundSolves.some((s) => s.field === f);
 
@@ -617,7 +623,7 @@ export default function BlindTestRoom({
               </button>
             )}
             <div className={`space-y-2.5 max-w-sm mx-auto ${flash === "taken" ? "shake-wrong" : ""}`}>
-              {(["title", "artist", "feat"] as FieldKey[])
+              {applicable
                 .filter((f) => applicable.includes(f))
                 .map((f) => (
                   <div key={f}>
@@ -683,6 +689,13 @@ function RoomMenu({
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
   const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
+  const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    fetch("/api/blindtest/trending")
+      .then((r) => r.json())
+      .then((d) => setTrendingThemes(new Set(d.themes ?? [])))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
@@ -714,8 +727,16 @@ function RoomMenu({
                       sfx.click();
                       setTheme(t.id);
                     }}
-                    className="w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
+                    className="relative w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
                   >
+                    {trendingThemes.has(t.id) && (
+                      <span
+                        className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)]"
+                        title="Parmi les thèmes les plus joués cette semaine"
+                      >
+                        <Flame size={12} fill="currentColor" />
+                      </span>
+                    )}
                     <ThemeCover Icon={t.Icon} label={t.label} index={i} active={theme === t.id} photoUrl={themePhotos[t.id]} />
                   </button>
                 ))}

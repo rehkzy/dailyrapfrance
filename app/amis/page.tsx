@@ -8,6 +8,7 @@ import AddFriendButton from "@/components/AddFriendButton";
 import BrandLoader from "@/components/BrandLoader";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
+import SignInCta from "@/components/SignInCta";
 import FriendPlayButtons from "@/components/FriendPlayButtons";
 
 type ProfileLite = {
@@ -123,9 +124,11 @@ export default function AmisPage() {
             <LogIn size={20} />
           </div>
           <p className="font-display text-xl font-medium mb-2">Connecte-toi</p>
-          <p className="text-sm text-ink-muted">
+          <p className="text-sm text-ink-muted mb-6">
             Il te faut un compte pour ajouter des amis et comparer vos scores.
           </p>
+          <SignInCta />
+          <p className="text-[11px] text-ink-faint mt-3">Gratuit, en 10 secondes — tes scores sont sauvegardés.</p>
         </div>
       </section>
       <GameTabBar />

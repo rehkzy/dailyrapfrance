@@ -4,6 +4,7 @@ import AccountSettingsForm from "@/components/AccountSettingsForm";
 import StatsBlock from "@/components/StatsBlock";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
+import SignInCta from "@/components/SignInCta";
 
 export const metadata = { title: "Mon compte — DailyRapFrance" };
 
@@ -23,9 +24,11 @@ export default async function ParametresPage() {
             <LogIn size={20} />
           </div>
           <p className="font-display text-xl font-medium mb-2">Connecte-toi</p>
-          <p className="text-sm text-ink-muted">
+          <p className="text-sm text-ink-muted mb-6">
             Il te faut un compte pour gérer ton profil et voir tes statistiques.
           </p>
+          <SignInCta />
+          <p className="text-[11px] text-ink-faint mt-3">Gratuit, en 10 secondes — tes scores sont sauvegardés.</p>
         </div>
       </section>
       <GameTabBar />
