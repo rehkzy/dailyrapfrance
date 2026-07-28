@@ -15,14 +15,13 @@ import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import Magnetic from "@/components/Magnetic";
 import Confetti from "@/components/Confetti";
-import ThemeCover from "@/components/ThemeCover";
-import Row from "@/components/Row";
+import ThemePicker from "@/components/ThemePicker";
 import BlindTestRoom from "@/components/BlindTestRoom";
 import BrandLoader from "@/components/BrandLoader";
 import ShareScoreCard from "@/components/ShareScoreCard";
 import ShareGame from "@/components/ShareGame";
 import { GameTabBarContent } from "@/components/GameTabBar";
-import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, getDailyTheme, FEATURED_THEME_IDS } from "@/lib/themes";
+import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
 
 type Track = {
   id: string;
@@ -77,23 +76,8 @@ export default function BlindTest() {
     deepLinkTheme && THEME_OPTIONS.some((t) => t.id === deepLinkTheme) ? deepLinkTheme : "mix"
   );
   const dailyTheme = useMemo(() => getDailyTheme(), []);
-  const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
-  // Thèmes "tendance" — les plus joués sur 7 jours, d'après les vrais scores enregistrés.
-  const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    fetch("/api/blindtest/trending")
-      .then((r) => r.json())
-      .then((d) => setTrendingThemes(new Set([...FEATURED_THEME_IDS, ...(d.themes ?? [])])))
-      .catch(() => {});
-  }, []);
-
-  // Photos d'artistes pour les pochettes de thème — un seul appel groupé au montage.
-  useEffect(() => {
-    fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
-      .then((r) => r.json())
-      .then((data) => setThemePhotos(data.photos ?? {}))
-      .catch(() => {});
-  }, []);
+  // Photos et thèmes tendance sont désormais gérés par ThemePicker lui-même (composant
+  // partagé avec le salon en ligne) — plus besoin de les charger ici.
   const [roundCount, setRoundCount] = useState(10);
   const [roundSeconds, setRoundSeconds] = useState(DEFAULT_ROUND_SECONDS);
   // Jokers d'écoute — un compte plutôt qu'un simple on/off, pour un vrai curseur de difficulté.
@@ -877,69 +861,16 @@ export default function BlindTest() {
             </div>
           )}
 
-          {/* Étape 1 — Thème, en rangées horizontales façon Netflix (une rangée par catégorie) */}
+          {/* Étape 1 — Thème */}
           {wizardStep === 1 && (
-            <div className="flex-1 flex flex-col gap-5 -mt-1">
-              {/* Défi du jour — même thème imposé pour tout le monde aujourd'hui, change à
-                  minuit. Une bonne raison de rouvrir le jeu chaque jour plutôt qu'un Mix
-                  toujours identique. */}
-              <button
-                onClick={() => {
-                  sfx.click();
-                  setThemeId(dailyTheme.id);
-                }}
-                className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
-                  themeId === dailyTheme.id
-                    ? "border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.4),0_10px_28px_-8px_rgba(240,0,28,0.55)]"
-                    : "border-gold/30 hover:border-gold/50"
-                }`}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3a0a0a] via-[#780101]/70 to-transparent opacity-70" aria-hidden="true" />
-                <div className="icon-tile relative w-12 h-12 shrink-0 bg-gradient-to-br from-gold to-glow text-white">
-                  <Flame size={20} strokeWidth={2} />
-                </div>
-                <span className="relative min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold">Défi du jour</span>
-                  </span>
-                  <span className="block text-sm font-semibold mt-0.5">{dailyTheme.label}</span>
-                  <span className="block text-xs text-ink-faint mt-0.5">{dailyTheme.text}</span>
-                </span>
-                {themeId === dailyTheme.id && (
-                  <div className="relative w-7 h-7 shrink-0 rounded-full bg-gold text-white flex items-center justify-center">
-                    <Check size={14} strokeWidth={3} />
-                  </div>
-                )}
-              </button>
-
-              {THEME_CATEGORIES.map((cat) => (
-                <div key={cat}>
-                  <p className="font-display text-base font-semibold mb-2.5 px-0.5">{cat}</p>
-                  <Row>
-                    {THEME_OPTIONS.filter((t) => t.category === cat).map((t, i) => (
-                      <button
-                        key={t.id}
-                        onClick={() => {
-                          sfx.click();
-                          setThemeId(t.id);
-                        }}
-                        className="relative w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
-                      >
-                        {trendingThemes.has(t.id) && (
-                          <span
-                            className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)] ring-2 ring-bg/70"
-                            title="En tendance"
-                          >
-                            <Flame size={12} fill="currentColor" />
-                          </span>
-                        )}
-                        <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} photoUrl={themePhotos[t.id]} />
-                      </button>
-                    ))}
-                  </Row>
-                </div>
-              ))}
-            </div>
+            <ThemePicker
+              themeId={themeId}
+              onSelect={(id) => {
+                sfx.click();
+                setThemeId(id);
+              }}
+              dailyTheme={dailyTheme}
+            />
           )}
 
           {/* Étape 2 — Réglages + barème + lancer */}

@@ -1,15 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, Flame, LogOut } from "lucide-react";
+import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
 import Magnetic from "@/components/Magnetic";
-import ThemeCover from "@/components/ThemeCover";
-import Row from "@/components/Row";
-import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, FEATURED_THEME_IDS } from "@/lib/themes";
+import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
 import type { User } from "@supabase/supabase-js";
@@ -900,19 +898,6 @@ function ReplayPanel({
   const [theme, setTheme] = useState(initialTheme);
   const [rounds, setRounds] = useState(initialRounds);
   const [answerMode, setAnswerMode] = useState<"text" | "qcm">(initialAnswerMode);
-  const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
-  const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    fetch("/api/blindtest/trending")
-      .then((r) => r.json())
-      .then((d) => setTrendingThemes(new Set([...FEATURED_THEME_IDS, ...(d.themes ?? [])])))
-      .catch(() => {});
-    fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
-      .then((r) => r.json())
-      .then((data) => setThemePhotos(data.photos ?? {}))
-      .catch(() => {});
-  }, []);
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-32">
@@ -923,35 +908,8 @@ function ReplayPanel({
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-1">Rejouer — même salon</p>
         <p className="text-xs text-ink-faint mb-4">Même code, mêmes joueurs — change juste le thème ou le nombre de manches.</p>
 
-        <p className="text-xs text-ink-faint mb-2.5">Thème</p>
-        <div className="flex flex-col gap-5 mb-6 -mx-1 px-1">
-          {THEME_CATEGORIES.map((cat) => (
-            <div key={cat}>
-              <p className="font-display text-sm font-semibold mb-2 px-0.5">{cat}</p>
-              <Row>
-                {THEME_OPTIONS.filter((t) => t.category === cat).map((t, i) => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      sfx.click();
-                      setTheme(t.id);
-                    }}
-                    className="relative w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
-                  >
-                    {trendingThemes.has(t.id) && (
-                      <span
-                        className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)] ring-2 ring-bg/70"
-                        title="En tendance"
-                      >
-                        <Flame size={12} fill="currentColor" />
-                      </span>
-                    )}
-                    <ThemeCover Icon={t.Icon} label={t.label} index={i} active={theme === t.id} photoUrl={themePhotos[t.id]} />
-                  </button>
-                ))}
-              </Row>
-            </div>
-          ))}
+        <div className="mb-6 -mx-1 px-1">
+          <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); }} />
         </div>
 
         <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
@@ -1024,21 +982,6 @@ function RoomMenu({
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
   const [answerMode, setAnswerMode] = useState<"text" | "qcm">("text");
-  const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
-  const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    fetch("/api/blindtest/trending")
-      .then((r) => r.json())
-      .then((d) => setTrendingThemes(new Set([...FEATURED_THEME_IDS, ...(d.themes ?? [])])))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
-      .then((r) => r.json())
-      .then((data) => setThemePhotos(data.photos ?? {}))
-      .catch(() => {});
-  }, []);
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-40">
@@ -1050,35 +993,8 @@ function RoomMenu({
       <div className="card p-6">
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Créer un salon</p>
 
-        <p className="text-xs text-ink-faint mb-2.5">Thème</p>
-        <div className="flex flex-col gap-5 mb-6 -mx-1 px-1">
-          {THEME_CATEGORIES.map((cat) => (
-            <div key={cat}>
-              <p className="font-display text-sm font-semibold mb-2 px-0.5">{cat}</p>
-              <Row>
-                {THEME_OPTIONS.filter((t) => t.category === cat).map((t, i) => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      sfx.click();
-                      setTheme(t.id);
-                    }}
-                    className="relative w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
-                  >
-                    {trendingThemes.has(t.id) && (
-                      <span
-                        className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)] ring-2 ring-bg/70"
-                        title="En tendance"
-                      >
-                        <Flame size={12} fill="currentColor" />
-                      </span>
-                    )}
-                    <ThemeCover Icon={t.Icon} label={t.label} index={i} active={theme === t.id} photoUrl={themePhotos[t.id]} />
-                  </button>
-                ))}
-              </Row>
-            </div>
-          ))}
+        <div className="mb-6 -mx-1 px-1">
+          <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); }} />
         </div>
 
         <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
