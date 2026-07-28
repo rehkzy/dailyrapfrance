@@ -21,7 +21,7 @@ import BrandLoader from "@/components/BrandLoader";
 import ShareScoreCard from "@/components/ShareScoreCard";
 import ShareGame from "@/components/ShareGame";
 import { GameTabBarContent } from "@/components/GameTabBar";
-import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, getDailyTheme } from "@/lib/themes";
+import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, getDailyTheme, FEATURED_THEME_IDS } from "@/lib/themes";
 
 type Track = {
   id: string;
@@ -82,7 +82,7 @@ export default function BlindTest() {
   useEffect(() => {
     fetch("/api/blindtest/trending")
       .then((r) => r.json())
-      .then((d) => setTrendingThemes(new Set(d.themes ?? [])))
+      .then((d) => setTrendingThemes(new Set([...FEATURED_THEME_IDS, ...(d.themes ?? [])])))
       .catch(() => {});
   }, []);
 
@@ -865,7 +865,7 @@ export default function BlindTest() {
                         {trendingThemes.has(t.id) && (
                           <span
                             className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)]"
-                            title="Parmi les thèmes les plus joués cette semaine"
+                            title="En tendance"
                           >
                             <Flame size={12} fill="currentColor" />
                           </span>

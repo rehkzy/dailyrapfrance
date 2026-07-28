@@ -36,6 +36,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "13", label: "Marseille (13)", text: "JUL, SCH, Soprano, Alonzo...", Icon: MapPin, category: "Régions" },
   { id: "59", label: "Rappeurs du 59", text: "Gradur...", Icon: MapPin, category: "Régions" },
   { id: "idf", label: "Île-de-France", text: "Tout le rap francilien mélangé", Icon: MapPin, category: "Régions" },
+  { id: "artist-werenoi", label: "Blind Test Werenoi", text: "Que des sons de Werenoi", Icon: Mic2, category: "Artistes" },
   { id: "artist-ninho", label: "Blind Test Ninho", text: "Que des sons de Ninho", Icon: Mic2, category: "Artistes" },
   { id: "artist-booba", label: "Blind Test Booba", text: "Que des sons de Booba", Icon: Mic2, category: "Artistes" },
   { id: "artist-pnl", label: "Blind Test PNL", text: "Que des sons de PNL", Icon: Mic2, category: "Artistes" },
@@ -43,8 +44,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-jul", label: "Blind Test JUL", text: "Que des sons de JUL", Icon: Mic2, category: "Artistes" },
   { id: "artist-nekfeu", label: "Blind Test Nekfeu", text: "Que des sons de Nekfeu", Icon: Mic2, category: "Artistes" },
   { id: "artist-badara", label: "Blind Test Badara", text: "Que des sons de Badara — Nouvelle École", Icon: Mic2, category: "Artistes" },
-  { id: "artist-werenoi", label: "Blind Test Werenoi", text: "Que des sons de Werenoi", Icon: Mic2, category: "Artistes" },
 ];
+
+// Mise en avant éditoriale — ces thèmes portent la flamme "tendance" dans les sélecteurs,
+// en plus des thèmes les plus joués calculés depuis les vrais scores (/api/blindtest/trending).
+export const FEATURED_THEME_IDS = ["artist-werenoi"];
 
 // Thèmes pour lesquels on va chercher une vraie photo d'artiste (pas les thèmes par époque,
 // génériques par nature) — utilisé pour construire l'appel groupé à /api/blindtest/theme-art.

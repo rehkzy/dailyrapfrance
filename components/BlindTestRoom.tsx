@@ -9,7 +9,7 @@ import { sfx } from "@/lib/sfx";
 import Magnetic from "@/components/Magnetic";
 import ThemeCover from "@/components/ThemeCover";
 import Row from "@/components/Row";
-import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS } from "@/lib/themes";
+import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, FEATURED_THEME_IDS } from "@/lib/themes";
 import BrandLoader from "@/components/BrandLoader";
 import type { User } from "@supabase/supabase-js";
 
@@ -693,7 +693,7 @@ function RoomMenu({
   useEffect(() => {
     fetch("/api/blindtest/trending")
       .then((r) => r.json())
-      .then((d) => setTrendingThemes(new Set(d.themes ?? [])))
+      .then((d) => setTrendingThemes(new Set([...FEATURED_THEME_IDS, ...(d.themes ?? [])])))
       .catch(() => {});
   }, []);
 
@@ -732,7 +732,7 @@ function RoomMenu({
                     {trendingThemes.has(t.id) && (
                       <span
                         className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)]"
-                        title="Parmi les thèmes les plus joués cette semaine"
+                        title="En tendance"
                       >
                         <Flame size={12} fill="currentColor" />
                       </span>
