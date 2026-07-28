@@ -260,6 +260,8 @@ export default function BlindTest() {
         return;
       }
       setTracks(pool);
+      setPreviewOverride({});
+      autoRecoveredRef.current.clear();
       setRoundHistory([]);
       setPlayers(
         mode === "solo"
@@ -279,20 +281,60 @@ export default function BlindTest() {
     sfx.click();
     setStarted(true);
     setAudioError(false);
-    audioRef.current?.play().catch(() => setAudioError(true));
+    audioRef.current?.play().catch(() => void recoverAudio(true));
     deadlineRef.current = Date.now() + roundSeconds * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
 
-  // Réessaie de charger/jouer l'extrait courant — recharge explicitement la source (utile si
-  // l'échec initial venait d'un souci réseau transitoire) avant de retenter la lecture.
+  // ── Récupération audio ────────────────────────────────────────────────
+  // Les URLs de preview Deezer sont signées et expirent : celles du pool (construit au
+  // lancement de la partie, avec du cache serveur) peuvent être mortes en pleine manche.
+  // À la moindre erreur, on va donc chercher une URL *fraîche* via /api/blindtest/preview
+  // et on relit — silencieusement au premier échec (une seule tentative auto par manche,
+  // pour ne pas boucler), et la bannière d'erreur ne s'affiche que si même l'URL neuve
+  // échoue. Le bouton "Réessayer" refait tout le cycle, URL fraîche comprise.
+  const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
+  const autoRecoveredRef = useRef<Set<string>>(new Set());
+
+  const recoverAudio = useCallback(async (auto: boolean) => {
+    const t = trackRef.current;
+    if (!t) {
+      setAudioError(true);
+      return;
+    }
+    if (auto) {
+      if (autoRecoveredRef.current.has(t.id)) {
+        setAudioError(true);
+        return;
+      }
+      autoRecoveredRef.current.add(t.id);
+    }
+    try {
+      const res = await fetch(`/api/blindtest/preview?id=${encodeURIComponent(t.id)}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("preview refresh failed");
+      const data = (await res.json()) as { previewUrl?: string };
+      if (data.previewUrl) {
+        setPreviewOverride((prev) => ({ ...prev, [t.id]: data.previewUrl! }));
+      }
+    } catch {
+      // On tente quand même une relecture de la source actuelle (panne réseau transitoire).
+    }
+    // Laisse React re-rendre le <audio> avec la nouvelle src avant de relancer la lecture.
+    setTimeout(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.load();
+      audio
+        .play()
+        .then(() => setAudioError(false))
+        .catch(() => setAudioError(true));
+    }, 60);
+  }, []);
+
   function retryAudio() {
     sfx.click();
     setAudioError(false);
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.load();
-    audio.play().catch(() => setAudioError(true));
+    void recoverAudio(false);
   }
 
   function useJoker(playerId: string) {
@@ -1193,9 +1235,9 @@ export default function BlindTest() {
       <audio
         key={track.id}
         ref={audioRef}
-        src={track.previewUrl}
+        src={previewOverride[track.id] ?? track.previewUrl}
         preload="auto"
-        onError={() => setAudioError(true)}
+        onError={() => (started ? void recoverAudio(true) : undefined)}
       />
 
       <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
@@ -1465,14 +1507,17 @@ export default function BlindTest() {
             </div>
             {mode === "local" && Object.keys(solved).length > 0 && (
               <p className="mt-4 font-mono text-sm text-gold">
-                {[...new Set(Object.values(solved))]
-                  .map((id) => players.find((p) => p.id === id)?.name)
-                  .filter(Boolean)
-                  .join(", ")}{" "}
-                marque{Object.values(solved).length > 1 ? "nt" : ""} !
+                {(() => {
+                  const names = [...new Set(Object.values(solved))]
+                    .map((id) => players.find((p) => p.id === id)?.name)
+                    .filter(Boolean) as string[];
+                  const list =
+                    names.length > 1 ? `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}` : names[0];
+                  return `Bien joué ${list} — bonne réponse !`;
+                })()}
               </p>
             )}
-            {Object.keys(solved).length === 0 && <p className="mt-4 font-mono text-sm text-ink-faint">Personne n'a trouvé.</p>}
+            {Object.keys(solved).length === 0 && <p className="mt-4 font-mono text-sm text-ink-faint">Personne ne l'a reconnu — il était dur celui-là.</p>}
           </div>
         )}
       </div>

@@ -6,8 +6,37 @@ import GameTabBar from "@/components/GameTabBar";
 import JoinRoomInput from "@/components/JoinRoomInput";
 
 export const metadata = {
-  title: "Jouer — Blind Test Rap Français | DailyRapFrance",
-  description: "Lance une partie de blind test rap français, solo, entre potes ou en salon privé en ligne.",
+  title: "Jouer au Blind Test Rap Français — Gratuit & Multijoueur | DailyRapFrance",
+  description:
+    "Lance une partie de blind test rap français en 10 secondes : défi du jour, mode solo, entre potes sur le même écran ou en salon privé en ligne. Gratuit, sans téléchargement.",
+  alternates: { canonical: "https://dailyrapfrance.best/jouer" },
+  openGraph: {
+    title: "Jouer au Blind Test Rap Français — DailyRapFrance",
+    description: "Défi du jour, mode solo, entre potes ou salon privé. Gratuit, sans téléchargement.",
+    url: "https://dailyrapfrance.best/jouer",
+    type: "website",
+    locale: "fr_FR",
+  },
+};
+
+// Données structurées — déclare le jeu comme VideoGame/WebApplication auprès de Google :
+// éligible aux résultats enrichis et ancre le site sur "blind test rap français".
+const JSONLD_GAME = {
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  name: "Blind Test Rap Français — DailyRapFrance",
+  url: "https://dailyrapfrance.best/jouer",
+  description:
+    "Blind test rap français en ligne et gratuit : reconnais le titre, l'artiste et le featuring avant la fin du chrono. Défi du jour, mode solo, multijoueur local et salons privés en ligne.",
+  applicationCategory: "GameApplication",
+  operatingSystem: "Web",
+  gamePlatform: ["Web browser", "Mobile"],
+  genre: ["Music", "Quiz", "Trivia"],
+  inLanguage: "fr-FR",
+  playMode: ["SinglePlayer", "MultiPlayer", "CoOp"],
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+  publisher: { "@id": "https://dailyrapfrance.best/#org" },
 };
 
 // Compte à rebours jusqu'à minuit — rendu côté serveur en cellules de verre statiques,
@@ -40,6 +69,7 @@ export default async function JouerPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD_GAME) }} />
       <section className="aurora">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-36 lg:pb-16">
           {/* En-tête d'app — salut + avatar */}
