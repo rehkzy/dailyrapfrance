@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, Flame } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, Flame, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -36,6 +36,7 @@ type RoomRow = {
   status: "lobby" | "playing" | "finished";
   current_round: number;
   round_started_at: string | null;
+  answer_mode: "text" | "qcm";
 };
 type PlayerRow = { room_id: string; user_id: string; display_name: string };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string };
@@ -57,6 +58,9 @@ export default function BlindTestRoom({
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
 
+  const [closedMessage, setClosedMessage] = useState<string | null>(null);
+  const [confirmingQuit, setConfirmingQuit] = useState(false);
+  const [replaying, setReplaying] = useState(false);
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [players, setPlayers] = useState<PlayerRow[]>([]);
   const [solves, setSolves] = useState<SolveRow[]>([]);
@@ -67,6 +71,10 @@ export default function BlindTestRoom({
   const revealedRef = useRef(false);
   const [guess, setGuess] = useState({ title: "", artist: "", feat: "" });
   const [flash, setFlash] = useState<"ok" | "taken" | null>(null);
+  // QCM (mode facile) — verrou local : une fois qu'on a choisi, on ne rejoue pas le round,
+  // mais ça ne bloque pas les autres joueurs du salon.
+  const [qcmChoiceLocked, setQcmChoiceLocked] = useState(false);
+  const [qcmWrongId, setQcmWrongId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -101,6 +109,13 @@ export default function BlindTestRoom({
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_round_solves", filter: `room_id=eq.${room.id}` }, (payload) => {
         setSolves((prev) => [...prev, payload.new as SolveRow]);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` }, () => {
+        setClosedMessage("Un joueur a quitté — le salon a été fermé.");
+        setRoom(null);
+        setPlayers([]);
+        setSolves([]);
+        setScreen("menu");
       })
       .subscribe();
 
@@ -140,9 +155,17 @@ export default function BlindTestRoom({
       setRevealed(false);
       revealedRef.current = false;
       setAudioError(false);
+      setQcmChoiceLocked(false);
+      setQcmWrongId(null);
     } else if (room.status === "finished") {
       sfx.victory();
       setScreen("final");
+    } else if (room.status === "lobby") {
+      // Retour au lobby après un rejeu lancé par l'hôte (nouveau thème/manches, même
+      // salon) — on efface aussi le tableau des réponses de la partie précédente pour
+      // repartir sur un score propre.
+      setScreen("lobby");
+      setSolves([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status, room?.current_round]);
@@ -213,13 +236,13 @@ export default function BlindTestRoom({
   }, []);
 
   // ── Créer / rejoindre ────────────────────────────────────────────────────
-  async function createRoom(theme: string, rounds: number) {
+  async function createRoom(theme: string, rounds: number, answerMode: "text" | "qcm") {
     setBusy(true);
     setError(null);
     const code = generateRoomCode();
     const { data, error: err } = await supabase
       .from("rooms")
-      .insert({ code, host_id: user.id, theme, rounds })
+      .insert({ code, host_id: user.id, theme, rounds, answer_mode: answerMode })
       .select()
       .single();
     if (err || !data) {
@@ -281,6 +304,42 @@ export default function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCode]);
 
+  async function relaunchRoom(theme: string, rounds: number, answerMode: "text" | "qcm") {
+    const r = roomRef.current;
+    if (!r) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/blindtest/pool?theme=${theme}&count=${rounds}`);
+      const data = await res.json();
+      const tracks: Track[] = data.tracks ?? [];
+      if (tracks.length < 3) {
+        setError("Pas assez de titres Deezer pour ce thème.");
+        setBusy(false);
+        return;
+      }
+      // Efface les réponses de la partie précédente — sinon le tableau des scores de la
+      // nouvelle partie repartirait pollué par les manches d'avant sur ce même salon.
+      await supabase.from("room_round_solves").delete().eq("room_id", r.id);
+      await supabase
+        .from("rooms")
+        .update({
+          theme,
+          rounds,
+          tracks,
+          answer_mode: answerMode,
+          status: "playing",
+          current_round: 0,
+          round_started_at: new Date().toISOString(),
+        })
+        .eq("id", r.id);
+      setSolves([]);
+      setReplaying(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function startGame() {
     if (!room) return;
     setBusy(true);
@@ -315,6 +374,49 @@ export default function BlindTestRoom({
     if (!audio) return;
     audio.load();
     audio.play().catch(() => setAudioError(true));
+  }
+
+  // Options QCM de la manche — la bonne réponse + 2 intrus pris ailleurs dans les morceaux
+  // du salon, mélangés une seule fois par manche.
+  const qcmOptions = useMemo(() => {
+    if (!track || room?.answer_mode !== "qcm") return [];
+    const pool = (room?.tracks ?? []).filter((t) => t.id !== track.id);
+    const distractors: Track[] = [];
+    const seenTitles = new Set<string>();
+    for (const t of [...pool].sort(() => Math.random() - 0.5)) {
+      if (distractors.length >= 2) break;
+      if (seenTitles.has(t.title)) continue;
+      seenTitles.add(t.title);
+      distractors.push(t);
+    }
+    return [track, ...distractors].sort(() => Math.random() - 0.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track?.id, room?.answer_mode]);
+
+  async function submitRoomQcmChoice(chosen: Track) {
+    if (!room || !track || revealed || qcmChoiceLocked) return;
+    setQcmChoiceLocked(true);
+    if (chosen.id !== track.id) {
+      sfx.wrong();
+      setQcmWrongId(chosen.id);
+      setTimeout(() => setQcmWrongId(null), 450);
+      return;
+    }
+    const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
+    const alreadySolved = new Set(solves.filter((s) => s.round_index === room.current_round).map((s) => s.field));
+    let anyOk = false;
+    for (const field of applicable) {
+      if (alreadySolved.has(field)) continue;
+      const { error: insertErr } = await supabase
+        .from("room_round_solves")
+        .insert({ room_id: room.id, round_index: room.current_round, field, user_id: user.id });
+      if (!insertErr) anyOk = true;
+    }
+    if (anyOk) {
+      sfx.correct();
+      setFlash("ok");
+      setTimeout(() => setFlash(null), 700);
+    }
   }
 
   async function submitGuess() {
@@ -392,6 +494,26 @@ export default function BlindTestRoom({
     setError(null);
   }
 
+  // Quitter POUR DE VRAI : supprime le salon (cascade → room_players, room_round_solves).
+  // C'est la seule façon dont un salon disparaît — jamais automatiquement à la fin d'une
+  // partie, pour que les mêmes potes puissent relancer avec d'autres réglages sans
+  // recréer un salon et repartager un nouveau code à chaque fois.
+  async function leaveRoom() {
+    const r = roomRef.current;
+    if (!r) {
+      leaveToMenu();
+      return;
+    }
+    setBusy(true);
+    const { error: delErr } = await supabase.from("rooms").delete().eq("id", r.id);
+    setBusy(false);
+    if (delErr) {
+      setError(`Impossible de quitter le salon (${delErr.message}).`);
+      return;
+    }
+    leaveToMenu();
+  }
+
   // ── Rendu ──────────────────────────────────────────────────────────────
 
   if (screen === "menu") {
@@ -401,9 +523,21 @@ export default function BlindTestRoom({
   if (screen === "lobby" && room) {
     return (
       <div className="max-w-lg mx-auto">
-        <button onClick={leaveToMenu} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink mb-6 font-mono uppercase tracking-wide">
-          <ArrowLeft size={14} /> Retour
-        </button>
+        {confirmingQuit ? (
+          <div className="flex items-center gap-2 mb-6 text-xs font-mono uppercase tracking-wide">
+            <span className="text-ink-muted">Fermer le salon pour tout le monde ?</span>
+            <button onClick={leaveRoom} disabled={busy} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1 transition-colors">
+              Confirmer
+            </button>
+            <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1 transition-colors">
+              Annuler
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmingQuit(true)} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink mb-6 font-mono uppercase tracking-wide">
+            <ArrowLeft size={14} /> Quitter le salon
+          </button>
+        )}
         <div className="card p-6 md:p-8 text-center">
           <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Code du salon</p>
           <button onClick={copyCode} className="inline-flex items-center gap-3 mb-4 group">
@@ -464,6 +598,19 @@ export default function BlindTestRoom({
   }
 
   if (screen === "final" && room) {
+    if (replaying) {
+      return (
+        <ReplayPanel
+          initialTheme={room.theme}
+          initialRounds={room.rounds}
+          initialAnswerMode={room.answer_mode}
+          busy={busy}
+          error={error}
+          onCancel={() => setReplaying(false)}
+          onConfirm={(theme, rounds, answerMode) => relaunchRoom(theme, rounds, answerMode)}
+        />
+      );
+    }
     const ranked = [...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id));
     return (
       <div className="max-w-lg mx-auto text-center">
@@ -511,9 +658,42 @@ export default function BlindTestRoom({
           })}
         </div>
 
-        <button onClick={leaveToMenu} className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-6 py-3 font-medium transition-colors">
-          Nouveau salon
-        </button>
+        {closedMessage && <p className="text-sm text-riseNeg mb-4">{closedMessage}</p>}
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {isHost && (
+            <button
+              onClick={() => setReplaying(true)}
+              className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-6 py-3 font-medium transition-colors"
+            >
+              <RotateCcw size={16} />
+              Rejouer — même salon
+            </button>
+          )}
+          {confirmingQuit ? (
+            <span className="inline-flex items-center gap-2 text-xs font-mono uppercase">
+              <span className="text-ink-muted">Fermer le salon ?</span>
+              <button onClick={leaveRoom} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1.5 transition-colors">
+                Confirmer
+              </button>
+              <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1.5 transition-colors">
+                Annuler
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setConfirmingQuit(true)}
+              className="inline-flex items-center gap-2 glass text-ink-muted hover:text-ink rounded-full px-6 py-3 font-medium transition-colors"
+            >
+              <LogOut size={16} />
+              Quitter le salon
+            </button>
+          )}
+        </div>
+        {!isHost && (
+          <p className="text-xs text-ink-faint font-mono mt-4">
+            Seul l'hôte peut relancer une partie dans ce salon.
+          </p>
+        )}
       </div>
     );
   }
@@ -554,7 +734,26 @@ export default function BlindTestRoom({
   return (
     <div className="max-w-lg mx-auto">
       <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" onError={() => setAudioError(true)} />
-      <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between glass-strong rounded-xl px-4">
+      <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between glass-strong rounded-xl px-4 gap-2">
+        {confirmingQuit ? (
+          <div className="flex items-center gap-2 text-[11px] font-mono uppercase">
+            <span className="text-ink-muted">Fermer pour tous ?</span>
+            <button onClick={leaveRoom} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-2 py-1 transition-colors">
+              Oui
+            </button>
+            <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-2 py-1 transition-colors">
+              Non
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmingQuit(true)}
+            title="Quitter le salon (le ferme pour tout le monde)"
+            className="tap-press shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-ink-faint hover:text-riseNeg transition-colors"
+          >
+            <LogOut size={14} />
+          </button>
+        )}
         <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
           Manche {room.current_round + 1} / {room.tracks.length}
         </span>
@@ -625,6 +824,14 @@ export default function BlindTestRoom({
                 Personne ne trouve — passer
               </button>
             )}
+            {room.answer_mode === "qcm" ? (
+              <QcmChoicesRoom
+                options={qcmOptions}
+                onPick={submitRoomQcmChoice}
+                disabled={qcmChoiceLocked}
+                wrongId={qcmWrongId}
+              />
+            ) : (
             <div className={`space-y-2.5 max-w-sm mx-auto ${flash === "taken" ? "shake-wrong" : ""}`}>
               {applicable
                 .filter((f) => applicable.includes(f))
@@ -657,6 +864,7 @@ export default function BlindTestRoom({
                 Valider
               </button>
             </div>
+            )}
           </>
         )}
       </div>
@@ -668,6 +876,130 @@ export default function BlindTestRoom({
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ReplayPanel({
+  initialTheme,
+  initialRounds,
+  initialAnswerMode,
+  busy,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  initialTheme: string;
+  initialRounds: number;
+  initialAnswerMode: "text" | "qcm";
+  busy: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: (theme: string, rounds: number, answerMode: "text" | "qcm") => void;
+}) {
+  const [theme, setTheme] = useState(initialTheme);
+  const [rounds, setRounds] = useState(initialRounds);
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm">(initialAnswerMode);
+  const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
+  const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/api/blindtest/trending")
+      .then((r) => r.json())
+      .then((d) => setTrendingThemes(new Set([...FEATURED_THEME_IDS, ...(d.themes ?? [])])))
+      .catch(() => {});
+    fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
+      .then((r) => r.json())
+      .then((data) => setThemePhotos(data.photos ?? {}))
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="max-w-lg mx-auto space-y-4 pb-32">
+      <button onClick={onCancel} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
+        <ArrowLeft size={14} /> Annuler
+      </button>
+      <div className="card p-6">
+        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-1">Rejouer — même salon</p>
+        <p className="text-xs text-ink-faint mb-4">Même code, mêmes joueurs — change juste le thème ou le nombre de manches.</p>
+
+        <p className="text-xs text-ink-faint mb-2.5">Thème</p>
+        <div className="flex flex-col gap-5 mb-6 -mx-1 px-1">
+          {THEME_CATEGORIES.map((cat) => (
+            <div key={cat}>
+              <p className="font-display text-sm font-semibold mb-2 px-0.5">{cat}</p>
+              <Row>
+                {THEME_OPTIONS.filter((t) => t.category === cat).map((t, i) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      sfx.click();
+                      setTheme(t.id);
+                    }}
+                    className="relative w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
+                  >
+                    {trendingThemes.has(t.id) && (
+                      <span
+                        className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)] ring-2 ring-bg/70"
+                        title="En tendance"
+                      >
+                        <Flame size={12} fill="currentColor" />
+                      </span>
+                    )}
+                    <ThemeCover Icon={t.Icon} label={t.label} index={i} active={theme === t.id} photoUrl={themePhotos[t.id]} />
+                  </button>
+                ))}
+              </Row>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
+        <div className="flex gap-2 mb-6">
+          {[10, 15, 20].map((n) => (
+            <button
+              key={n}
+              onClick={() => setRounds(n)}
+              className={`rounded-full px-4 py-1.5 text-sm font-mono transition-colors ${
+                rounds === n ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-xs text-ink-faint mb-2">Mode de réponse</p>
+        <div className="flex gap-2">
+          {([
+            { id: "qcm" as const, label: "Facile (QCM)" },
+            { id: "text" as const, label: "Difficile (écrire)" },
+          ]).map((o) => (
+            <button
+              key={o.id}
+              onClick={() => setAnswerMode(o.id)}
+              className={`flex-1 rounded-lg py-2 text-xs font-mono transition-colors ${
+                answerMode === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
+
+      <Magnetic strength={0.15} className="block w-full">
+        <button
+          onClick={() => onConfirm(theme, rounds, answerMode)}
+          disabled={busy}
+          className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full py-3.5 font-semibold flex items-center justify-center gap-2"
+        >
+          {busy ? "Lancement..." : "Relancer la partie"}
+          {!busy && <Play size={18} />}
+        </button>
+      </Magnetic>
     </div>
   );
 }
@@ -685,12 +1017,13 @@ function RoomMenu({
   error: string | null;
   joinCode: string;
   setJoinCode: (v: string) => void;
-  onCreate: (theme: string, rounds: number) => void;
+  onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm") => void;
   onJoin: () => void;
   onExit?: () => void;
 }) {
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm">("text");
   const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
   const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -762,6 +1095,24 @@ function RoomMenu({
             </button>
           ))}
         </div>
+
+        <p className="text-xs text-ink-faint mb-2">Mode de réponse</p>
+        <div className="flex gap-2">
+          {([
+            { id: "qcm" as const, label: "Facile (QCM)" },
+            { id: "text" as const, label: "Difficile (écrire)" },
+          ]).map((o) => (
+            <button
+              key={o.id}
+              onClick={() => setAnswerMode(o.id)}
+              className={`flex-1 rounded-lg py-2 text-xs font-mono transition-colors ${
+                answerMode === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
@@ -796,7 +1147,7 @@ function RoomMenu({
           </div>
           <Magnetic strength={0.15} className="block w-full">
             <button
-              onClick={() => onCreate(theme, rounds)}
+              onClick={() => onCreate(theme, rounds, answerMode)}
               disabled={busy}
               className="cta-glow tap-press w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors"
             >
@@ -805,6 +1156,37 @@ function RoomMenu({
           </Magnetic>
         </div>
       </div>
+    </div>
+  );
+}
+
+function QcmChoicesRoom({
+  options,
+  onPick,
+  disabled,
+  wrongId,
+}: {
+  options: Track[];
+  onPick: (t: Track) => void;
+  disabled: boolean;
+  wrongId: string | null;
+}) {
+  return (
+    <div className="space-y-2.5 max-w-sm mx-auto">
+      {options.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onPick(t)}
+          disabled={disabled}
+          className={`w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
+            wrongId === t.id
+              ? "border-riseNeg bg-riseNeg/10 shake-wrong"
+              : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
+          }`}
+        >
+          {t.title} <span className="text-ink-faint font-normal">— {t.artistName}</span>
+        </button>
+      ))}
     </div>
   );
 }

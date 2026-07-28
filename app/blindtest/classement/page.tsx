@@ -14,6 +14,7 @@ export default async function ClassementPage() {
   const { data: scores } = await supabase
     .from("blindtest_scores")
     .select("id, points, rounds, theme, created_at, profiles(username, display_name, avatar_url)")
+    .gt("points", 0) // un 0 pointé n'a rien à faire dans un classement — inutile et décourageant
     .order("points", { ascending: false })
     .limit(50);
 

@@ -55,6 +55,22 @@ DEPT_ARTISTS["idf"] = Array.from(new Set([...DEPT_ARTISTS["93"], ...DEPT_ARTISTS
 // crédits erronés de Deezer à l'affichage ("Cité" est crédité "Bendo" chez eux).
 // IDs vérifiés un par un le 28/07/2026.
 const FIXED_TRACK_THEMES: Record<string, { trackIds: number[]; forcedArtistName?: string }> = {
+  // "Imène elle give" — curation par ambiance (festif / amour) chez Dadju, Jul, Tiakola,
+  // Oboy. Volontairement une liste de titres choisis à la main plutôt qu'un sourçage par
+  // top artiste : leurs catalogues mélangent aussi des morceaux de rue/street qui ne
+  // colleraient pas au thème. Vérifiés avec preview le 28/07/2026.
+  "imene-elle-give": {
+    trackIds: [
+      // Dadju
+      429974992, 869941882, 2570360062, 1718052197, 562148732, 1084245712, 429975052, 1389360732, 1593201331, 2004821007,
+      // Jul
+      3689236742, 378114151, 75867424, 3380338381, 519797762, 3330198511, 994675552,
+      // Tiakola
+      4059400101, 2964716561, 3000573551, 3553677491, 1481109202,
+      // Oboy
+      708702202, 3450361821, 3574259191, 2977780751, 453609952,
+    ],
+  },
   "artist-benef": {
     trackIds: [
       2935905291, // LOCA
@@ -82,6 +98,7 @@ const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
   "artist-badara": ["badara"],
   "artist-werenoi": ["werenoi"],
   "artist-benef": ["benef"],
+  "artist-djadja-dinaz": ["djadja & dinaz"],
 };
 
 type DeezerTrackSummary = {

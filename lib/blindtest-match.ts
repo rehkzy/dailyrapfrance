@@ -33,6 +33,13 @@ export function isCloseMatch(guess: string, answer: string, strict = false): boo
   const a = normalize(answer);
   if (!g || !a) return false;
   if (a === g) return true;
+  // Écarts de ponctuation/espacement pur : "R.A.S" vs "RAS", "Laisse tomber" vs
+  // "laissetomber"... la normalisation ci-dessus transforme la ponctuation en espace, ce
+  // qui peut désaligner deux titres identiques une fois la ponctuation retirée. On compare
+  // aussi les deux formes totalement "aplaties" (sans aucun espace) — accepté même en mode
+  // strict, car ignorer un point ou un espace n'est pas une tolérance à la faute de frappe,
+  // c'est juste ignorer une différence de mise en forme sans incidence sur le sens.
+  if (g.replace(/\s+/g, "") === a.replace(/\s+/g, "")) return true;
   if (strict) return false;
   if (a.includes(g) && g.length >= 3) return true;
   if (g.includes(a) && a.length >= 3) return true;

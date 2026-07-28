@@ -5,6 +5,7 @@ import StatsBlock from "@/components/StatsBlock";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
 import SignInCta from "@/components/SignInCta";
+import ShareProfileCard from "@/components/ShareProfileCard";
 
 export const metadata = { title: "Mon compte — DailyRapFrance" };
 
@@ -57,6 +58,8 @@ export default async function ParametresPage() {
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Mon compte</h1>
       <p className="text-ink-muted mb-10">Ton pseudo, ta photo, et tes statistiques de jeu.</p>
+
+      {profile?.username && <ShareProfileCard username={profile.username} />}
 
       <AccountSettingsForm
         userId={user.id}

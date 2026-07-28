@@ -293,3 +293,32 @@ drop policy if exists "Chacun supprime son propre avatar" on storage.objects;
 create policy "Chacun supprime son propre avatar"
   on storage.objects for delete
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Cycle de vie des salons : rejouable (même code, nouveaux réglages) tant que
+-- personne ne quitte explicitement. Le salon n'est supprimé QUE quand un joueur
+-- clique sur "Quitter" — jamais automatiquement à la fin d'une partie.
+-- ─────────────────────────────────────────────────────────────────────────
+
+drop policy if exists "Un joueur du salon peut le supprimer" on public.rooms;
+create policy "Un joueur du salon peut le supprimer"
+  on public.rooms for delete
+  using (exists (
+    select 1 from public.room_players rp
+    where rp.room_id = rooms.id and rp.user_id = auth.uid()
+  ));
+
+drop policy if exists "L'hote peut reinitialiser les reponses de son salon" on public.room_round_solves;
+create policy "L'hote peut reinitialiser les reponses de son salon"
+  on public.room_round_solves for delete
+  using (exists (
+    select 1 from public.rooms r
+    where r.id = room_round_solves.room_id and r.host_id = auth.uid()
+  ));
+
+-- Mode de réponse du salon (facile = QCM, difficile = texte) — choisi à la création et
+-- modifiable à chaque rejeu, appliqué à tous les joueurs du salon pour une expérience
+-- cohérente entre eux.
+alter table public.rooms add column if not exists answer_mode text not null default 'text';
+alter table public.rooms drop constraint if exists rooms_answer_mode_check;
+alter table public.rooms add constraint rooms_answer_mode_check check (answer_mode in ('text', 'qcm'));

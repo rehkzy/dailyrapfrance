@@ -6,6 +6,7 @@ import {
   Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
   Sliders, Gamepad2, Maximize, Minimize, Flame, X, VolumeX, Volume2, Lightbulb, Target,
+  ListChecks, Keyboard, SpellCheck, Timer, Hash,
   type LucideIcon,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -98,6 +99,10 @@ export default function BlindTest() {
   // Jokers d'écoute — un compte plutôt qu'un simple on/off, pour un vrai curseur de difficulté.
   const [jokerCount, setJokerCount] = useState(1);
   const jokersEnabled = jokerCount > 0;
+  // Mode de réponse : "text" = champs à écrire (comportement historique, tolérance aux
+  // fautes) ; "qcm" = 3 titres proposés, un clic suffit. strictMode ne s'applique qu'au
+  // mode texte (n'a pas de sens pour un QCM).
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm">("text");
   const [strictMode, setStrictMode] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(false);
   const [trackVolume, setTrackVolume] = useState(1);
@@ -122,6 +127,10 @@ export default function BlindTest() {
   const [roundGain, setRoundGain] = useState<{ playerId: string; points: number; nonce: number } | null>(null);
   const gainCounter = useRef(0);
   const [wrongFlash, setWrongFlash] = useState(false);
+  // QCM — options mémorisées par manche (2 intrus + la bonne réponse, ordre mélangé une
+  // seule fois par manche) et verrou une fois qu'un choix a été fait.
+  const [qcmLockedFor, setQcmLockedFor] = useState<string | null>(null); // playerId verrouillé (solo: "solo")
+  const [qcmWrongId, setQcmWrongId] = useState<string | null>(null); // id du morceau cliqué à tort, pour le flash rouge ciblé
   // Un extrait qui ne se charge/joue pas (lien Deezer cassé, souci réseau...) échouait avant en
   // silence totale — le décompte tournait sans le moindre son, sans que personne ne comprenne
   // pourquoi. On détecte l'échec et on l'affiche, avec un vrai bouton pour réessayer ou passer.
@@ -255,6 +264,8 @@ export default function BlindTest() {
     setRoundGain(null);
     setWrongFlash(false);
     setAudioError(false);
+    setQcmLockedFor(null);
+    setQcmWrongId(null);
     clearTimers();
   }
 
@@ -416,6 +427,58 @@ export default function BlindTest() {
       awardPoints(playerId, gained);
     }
     return gained;
+  }
+
+  // Options QCM de la manche — la bonne réponse + 2 intrus pris ailleurs dans le pool
+  // chargé pour cette partie, ordre mélangé une seule fois par manche (useMemo) pour que
+  // les boutons ne sautent pas de place au re-rendu.
+  const qcmOptions = useMemo(() => {
+    if (!track || answerMode !== "qcm") return [];
+    const pool = tracks.filter((t) => t.id !== track.id);
+    const distractors: Track[] = [];
+    const seen = new Set<string>();
+    for (const t of [...pool].sort(() => Math.random() - 0.5)) {
+      if (distractors.length >= 2) break;
+      if (seen.has(t.title)) continue; // évite deux options au titre identique
+      seen.add(t.title);
+      distractors.push(t);
+    }
+    return [track, ...distractors].sort(() => Math.random() - 0.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track?.id, answerMode]);
+
+  // Choix QCM — solo (playerId "solo") et local (playerId = joueur qui a buzzé). Bonne
+  // réponse : tous les champs applicables sont marqués résolus d'un coup (comme si le
+  // joueur avait tout écrit correctement) et checkFields calcule les points normalement.
+  // Mauvaise réponse : verrouille ce joueur pour la manche (solo → révèle directement,
+  // local → passe la main comme un mauvais buzz classique).
+  function submitQcmChoice(playerId: string, chosen: Track) {
+    if (!track || qcmLockedFor) return;
+    if (chosen.id === track.id) {
+      const values = { title: track.title, artist: track.artistName, feat: track.feats[0] ?? "" };
+      checkFields(playerId, values);
+      setQcmLockedFor(playerId);
+      return;
+    }
+    sfx.wrong();
+    setQcmWrongId(chosen.id);
+    setTimeout(() => setQcmWrongId(null), 450);
+    setQcmLockedFor(playerId);
+    if (mode === "solo") {
+      revealRound();
+      return;
+    }
+    // local : même mécanique de verrouillage que le buzz classique
+    const nextLocked = new Set(locked);
+    nextLocked.add(playerId);
+    setLocked(nextLocked);
+    setBuzzedBy(null);
+    if (nextLocked.size >= players.length) {
+      revealRound();
+      return;
+    }
+    deadlineRef.current = Date.now() + timeLeft * 1000;
+    intervalRef.current = setInterval(tick, 1000);
   }
 
   function isTitleMatch(guessVal: string, title: string) {
@@ -924,7 +987,59 @@ export default function BlindTest() {
                 </div>
               </div>
 
-              {/* Difficulté */}
+              {/* Mode de réponse — la décision la plus structurante, mise en avant en
+                  premier sous forme de deux grandes cartes plutôt que des petits boutons :
+                  on choisit un mode de jeu, pas une simple option parmi d'autres. */}
+              <div>
+                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                  <Sliders size={13} />
+                  Mode de réponse
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {([
+                    {
+                      id: "qcm" as const,
+                      Icon: ListChecks,
+                      title: "Facile",
+                      sub: "3 titres au choix",
+                    },
+                    {
+                      id: "text" as const,
+                      Icon: Keyboard,
+                      title: "Difficile",
+                      sub: "Écrire la réponse",
+                    },
+                  ]).map((o) => {
+                    const active = answerMode === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        onClick={() => {
+                          sfx.click();
+                          setAnswerMode(o.id);
+                        }}
+                        aria-pressed={active}
+                        className={`relative text-left rounded-2xl p-4 border transition-all duration-200 ${
+                          active
+                            ? "border-gold/50 bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.18)]"
+                            : "border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        {active && (
+                          <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-gold flex items-center justify-center">
+                            <Check size={11} className="text-white" />
+                          </span>
+                        )}
+                        <o.Icon size={20} className={active ? "text-gold" : "text-ink-faint"} />
+                        <p className="font-display text-base font-semibold mt-2.5">{o.title}</p>
+                        <p className="text-xs text-ink-faint mt-0.5">{o.sub}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Difficulté — réglages fins qui affinent le mode choisi ci-dessus */}
               <div>
                 <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
                   <Target size={13} />
@@ -940,31 +1055,37 @@ export default function BlindTest() {
                       </span>
                     </span>
                   </span>
-                  <div className="flex gap-1 shrink-0">
-                    {[0, 1, 2].map((n) => (
+                  <div className="flex gap-1 shrink-0" role="group" aria-label="Nombre de jokers d'écoute">
+                    {[
+                      { n: 0, label: "Aucun" },
+                      { n: 1, label: "1" },
+                      { n: 2, label: "2" },
+                    ].map(({ n, label }) => (
                       <button
                         key={n}
                         onClick={() => {
                           sfx.click();
                           setJokerCount(n);
                         }}
-                        aria-label={`${n} joker${n > 1 ? "s" : ""}`}
-                        className={`w-8 h-8 rounded-full text-sm font-mono transition-colors ${
+                        aria-pressed={jokerCount === n}
+                        className={`px-3 h-8 rounded-full text-xs font-mono transition-colors ${
                           jokerCount === n ? "bg-gold text-white" : "bg-white/5 text-ink-muted hover:text-ink"
                         }`}
                       >
-                        {n}
+                        {label}
                       </button>
                     ))}
                   </div>
                 </div>
-                <SettingToggle
-                  Icon={Target}
-                  label="Mode difficile"
-                  description="Réponses exactes seulement — aucune tolérance aux fautes de frappe."
-                  checked={strictMode}
-                  onChange={setStrictMode}
-                />
+                {answerMode === "text" && (
+                  <SettingToggle
+                    Icon={SpellCheck}
+                    label="Orthographe stricte"
+                    description="Aucune tolérance aux fautes de frappe. Désactivé, une réponse proche suffit."
+                    checked={strictMode}
+                    onChange={setStrictMode}
+                  />
+                )}
                 <div className="mt-2.5">
                   <SettingToggle
                     Icon={Lightbulb}
@@ -1015,13 +1136,38 @@ export default function BlindTest() {
                 />
               </div>
 
-              <div className="glass rounded-xl p-4 text-xs text-ink-faint leading-relaxed">
-                <span className="text-gold font-mono uppercase tracking-wide">Barème</span> — titre :{" "}
-                <span className="text-ink">1 pt</span> · artiste : <span className="text-ink">1 pt</span> · featuring :{" "}
-                <span className="text-gold">+2 pts</span>.{" "}
-                {jokersEnabled
-                  ? `${jokerCount} joker${jokerCount > 1 ? "s" : ""} d'écoute par joueur et par partie, plus un joker temps en fin de chrono.`
-                  : "Jokers désactivés pour cette partie."}
+              {/* Résumé visuel de la partie — scannable en un coup d'œil plutôt qu'à lire
+                  comme une phrase, juste avant de lancer. */}
+              <div className="glass rounded-xl p-4">
+                <p className="font-mono text-[10px] text-gold uppercase tracking-[0.16em] mb-3">Barème & récap</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {[
+                    { label: "Titre", pts: "1 pt" },
+                    ...(answerMode === "text" ? [{ label: "Artiste", pts: "1 pt" }] : []),
+                    { label: "Featuring", pts: "+2 pts", gold: true },
+                  ].map((b) => (
+                    <span
+                      key={b.label}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-mono ${
+                        b.gold ? "bg-gold/15 text-gold" : "bg-white/5 text-ink-muted"
+                      }`}
+                    >
+                      {b.label} <span className="opacity-70">·</span> {b.pts}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-faint">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Hash size={12} className="text-gold" /> {roundCount} manches
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Timer size={12} className="text-gold" /> {roundSeconds}s / manche
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Headphones size={12} className="text-gold" />
+                    {jokersEnabled ? `${jokerCount} joker${jokerCount > 1 ? "s" : ""} d'écoute` : "Sans joker d'écoute"}
+                  </span>
+                </div>
               </div>
 
               {setupError && <p className="text-sm text-riseNeg">{setupError}</p>}
@@ -1410,7 +1556,19 @@ export default function BlindTest() {
             )}
 
             {mode === "local" ? (
-              buzzedBy ? (
+              buzzedBy && answerMode === "qcm" ? (
+                <div className="max-w-sm mx-auto">
+                  <p className="text-sm text-ink-muted mb-2.5">
+                    <span className="text-gold font-medium">{activePlayer?.name}</span> a buzzé
+                  </p>
+                  <QcmChoices
+                    options={qcmOptions}
+                    onPick={(t) => submitQcmChoice(buzzedBy, t)}
+                    disabled={!!qcmLockedFor}
+                    wrongId={qcmWrongId}
+                  />
+                </div>
+              ) : buzzedBy ? (
                 <form
                   id="local-guess-form"
                   onSubmit={(e) => {
@@ -1481,6 +1639,13 @@ export default function BlindTest() {
                   )}
                 </div>
               )
+            ) : answerMode === "qcm" ? (
+              <QcmChoices
+                options={qcmOptions}
+                onPick={(t) => submitQcmChoice("solo", t)}
+                disabled={!!qcmLockedFor}
+                wrongId={qcmWrongId}
+              />
             ) : (
               <form
                 id="solo-guess-form"
@@ -1664,6 +1829,37 @@ function SettingToggle({
           }`}
         />
       </button>
+    </div>
+  );
+}
+
+function QcmChoices({
+  options,
+  onPick,
+  disabled,
+  wrongId,
+}: {
+  options: Track[];
+  onPick: (t: Track) => void;
+  disabled: boolean;
+  wrongId: string | null;
+}) {
+  return (
+    <div className="max-w-sm mx-auto space-y-2.5">
+      {options.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onPick(t)}
+          disabled={disabled}
+          className={`w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
+            wrongId === t.id
+              ? "border-riseNeg bg-riseNeg/10 shake-wrong"
+              : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
+          }`}
+        >
+          {t.title} <span className="text-ink-faint font-normal">— {t.artistName}</span>
+        </button>
+      ))}
     </div>
   );
 }

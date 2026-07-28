@@ -26,6 +26,8 @@ const THEME_LEAD_ARTISTS: Record<string, string[]> = {
   "artist-badara": ["badara"],
   "artist-werenoi": ["werenoi"],
   "artist-benef": ["benef"],
+  "artist-djadja-dinaz": ["djadja & dinaz"],
+  "imene-elle-give": ["dadju"],
 };
 
 // Overrides manuels — quand la photo Deezer n'est pas la bonne (artiste émergent, visuel
