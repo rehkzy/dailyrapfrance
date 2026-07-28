@@ -20,10 +20,19 @@ const ALL_DECADE_PLAYLISTS = [1182010551, 4676814864, 5175061384, 9563400362];
 const CLOUD_ARTISTS = ["suikoden", "josman", "fixpen sill", "le wombat", "lomepal"];
 // Styles — curation manuelle par sous-genre, mêmes réserves que ci-dessus : listes courtes,
 // artistes emblématiques du style, à étendre au fil des retours joueurs.
+// Drill & trap sont sourcés par PLAYLISTS et non par artistes : le style est une propriété
+// des morceaux, pas des artistes — le top Deezer d'un artiste drill est souvent son hit
+// mélodique grand public, d'où des pools hors-sujet avec l'approche par artistes.
+// Playlists retenues après inspection du contenu (dominantes vérifiées le 28/07/2026) :
+//   drill — éditoriales Digster France (1Pliké140, Ziak, Sokra…) + Filtr France (Kerchak, Gazo, KLM…)
+//   trap  — "Hits de Rue" (éditoriale Deezer : Uzi, SDM, Zkr, Maes…) + "Trap style bangers" (Kaaris, SCH, Niska, Koba…)
+const STYLE_PLAYLISTS: Record<string, number[]> = {
+  drill: [3110361646, 8059169502],
+  trap: [14055911981, 11116884244],
+};
+
 const STYLE_ARTISTS: Record<string, string[]> = {
   hardcore: ["kaaris", "kalash criminel", "alkpote", "seth gueko", "rohff"],
-  drill: ["gazo", "ziak", "freeze corleone", "ashe 22", "bolémvn", "guy2bezbar"],
-  trap: ["niska", "gradur", "maes", "koba lad"],
   boombap: ["iam", "suprême ntm", "oxmo puccino", "kery james"],
   melodique: ["pnl", "hamza", "tiakola", "so la lune"],
   conscient: ["kery james", "médine", "youssoupha"],
@@ -167,7 +176,10 @@ export async function GET(req: NextRequest) {
       ...SINGLE_ARTIST_THEMES,
     };
 
-    if (artistListsById[themeId]) {
+    if (STYLE_PLAYLISTS[themeId]) {
+      const lists = await Promise.all(STYLE_PLAYLISTS[themeId].map(fetchPlaylistTracks));
+      raw = lists.flat();
+    } else if (artistListsById[themeId]) {
       const names = artistListsById[themeId];
       const lists = await Promise.all(names.map(fetchArtistTopTracks));
       raw = lists.flat();
