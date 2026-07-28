@@ -720,12 +720,11 @@ input[type="range"].brand-slider::-moz-range-track {
 /* ============================================================
    Refonte "Liquid Dark" 2030 — couche additive.
    Aurora + verre dépoli + gros arrondis + glow maîtrisé.
-   Typo display gaming : Unbounded (chargée ci-dessous).
+   Typo display : Bricolage Grotesque — la display de la charte, partout.
    ============================================================ */
-@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=JetBrains+Mono:wght@400;600&display=swap");
 
 :root {
-  --font-game: "Unbounded", sans-serif;
+  --font-game: var(--font-display); /* la display du jeu EST la display de la marque */
 }
 .f-game { font-family: var(--font-game); }
 
@@ -734,18 +733,14 @@ input[type="range"].brand-slider::-moz-range-track {
 .aurora {
   background:
     radial-gradient(55% 45% at 80% -5%, rgba(240, 0, 28, 0.35), transparent 60%),
-    radial-gradient(50% 40% at 0% 20%, rgba(124, 44, 255, 0.20), transparent 60%),
-    radial-gradient(60% 50% at 50% 110%, rgba(255, 59, 122, 0.16), transparent 60%);
+    radial-gradient(50% 40% at 0% 20%, rgba(120, 1, 1, 0.45), transparent 60%),
+    radial-gradient(60% 50% at 50% 110%, rgba(255, 59, 78, 0.12), transparent 60%);
 }
 
 /* CTA principal — dégradé rouge → rose, glow doux, reflet en haut */
 .btn-primary {
   background: linear-gradient(135deg, #ff3b4e, #f0001c 70%);
   box-shadow: 0 10px 34px rgba(240, 0, 28, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.btn-violet {
-  background: linear-gradient(135deg, #b44cff, #7c2cff);
-  box-shadow: 0 8px 24px rgba(124, 44, 255, 0.4);
 }
 
 /* Micro-interactions élastiques */

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDailyTheme, THEME_OPTIONS } from "@/lib/themes";
 import ShareGame from "@/components/ShareGame";
 import GameTabBar from "@/components/GameTabBar";
+import BlindTestLogo, { BlindTestMark } from "@/components/BlindTestLogo";
 import JoinRoomInput from "@/components/JoinRoomInput";
 
 export const metadata = {
@@ -45,10 +46,10 @@ import DailyCountdown from "@/components/DailyCountdown";
 
 // Quatre thèmes mis en avant en Quick Play, avec chacun sa teinte
 const QUICK = [
-  { id: "2000s", from: "#F0001C", to: "#FF3B7A", Icon: Radio },
-  { id: "recent", from: "#7C2CFF", to: "#FF3B7A", Icon: Zap },
-  { id: "90s", from: "#FF6A00", to: "#F0001C", Icon: Crown },
-  { id: "cloud", from: "#2C7CFF", to: "#7C2CFF", Icon: Cloud },
+  { id: "2000s", era: "00s", glowOpacity: 0.5, Icon: Radio },
+  { id: "recent", era: "20s", glowOpacity: 0.38, Icon: Zap },
+  { id: "90s", era: "90s", glowOpacity: 0.62, Icon: Crown },
+  { id: "cloud", era: "CLD", glowOpacity: 0.3, Icon: Cloud },
 ];
 
 export default async function JouerPage() {
@@ -78,7 +79,7 @@ export default async function JouerPage() {
               <a
                 href={user ? "/parametres" : "/blindtest"}
                 aria-label="Mon compte"
-                className="press w-11 h-11 rounded-full bg-gradient-to-br from-[#FF3B7A] to-[#7C2CFF] ring-2 ring-white/20 flex items-center justify-center f-game text-xs text-white"
+                className="press w-11 h-11 rounded-full bg-gradient-to-br from-glow to-signal ring-2 ring-white/15 flex items-center justify-center font-display font-bold text-sm text-white"
               >
                 {user ? initial : <Disc3 size={19} />}
               </a>
@@ -93,10 +94,8 @@ export default async function JouerPage() {
           </div>
 
           {/* Titre */}
-          <h1 className="f-game text-3xl sm:text-5xl font-bold leading-[1.08] mb-8">
-            <span className="shimmer-text">Blind Test</span>
-            <br />
-            Rap Français
+          <h1 className="mb-10">
+            <BlindTestLogo markSize={72} spinning />
           </h1>
 
           {/* Bento hero — Solo/Défi + Entre potes */}
@@ -107,17 +106,17 @@ export default async function JouerPage() {
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    "radial-gradient(90% 80% at 85% 0%, rgba(240,0,28,0.4), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(124,44,255,0.2), transparent 60%)",
+                    "radial-gradient(90% 80% at 85% 0%, rgba(240,0,28,0.42), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(120,1,1,0.5), transparent 60%)",
                 }}
                 aria-hidden="true"
               />
               <div className="vinyl-disc float-soft absolute -right-10 top-1/2 -translate-y-1/2 w-64 h-64 sm:w-96 sm:h-96 opacity-95" aria-hidden="true" />
               <div className="vinyl-disc absolute right-52 sm:right-80 -bottom-10 w-28 h-28 opacity-40 hidden sm:block" aria-hidden="true" />
               <div className="relative">
-                <span className="tag-pill" style={{ background: "#ff3b7a1f", color: "#FF3B7A", border: "1px solid #ff3b7a40" }}>
+                <span className="tag-pill" style={{ background: "rgba(255,59,78,0.12)", color: "#FF3B4E", border: "1px solid rgba(255,59,78,0.35)" }}>
                   <Flame size={11} /> Défi du jour · {dailyTheme.label}
                 </span>
-                <h2 className="f-game text-xl sm:text-2xl mt-4 mb-1">Mode Solo</h2>
+                <h2 className="font-display font-extrabold text-xl sm:text-2xl mt-4 mb-1">Mode Solo</h2>
                 <p className="text-sm text-ink-muted max-w-[280px]">Même thème pour tout le monde aujourd'hui. Il expire dans :</p>
                 <div className="mt-4">
                   <DailyCountdown />
@@ -132,7 +131,7 @@ export default async function JouerPage() {
                   href={`/blindtest?theme=${dailyTheme.id}`}
                   className="press glass flex items-center justify-center gap-2 rounded-2xl px-5 py-4 font-semibold text-sm text-ink hover:bg-white/10"
                 >
-                  <Flame size={16} className="text-[#FF3B7A]" /> Relever le défi
+                  <Flame size={16} className="text-glow" /> Relever le défi
                 </a>
               </div>
             </div>
@@ -142,15 +141,15 @@ export default async function JouerPage() {
               <a href="/blindtest?mode=local" className="press lift relative glass rounded-[28px] p-6 flex-1 overflow-hidden block">
                 <div
                   className="absolute inset-0 pointer-events-none"
-                  style={{ background: "radial-gradient(80% 70% at 100% 100%, rgba(124,44,255,0.3), transparent 60%)" }}
+                  style={{ background: "radial-gradient(80% 70% at 100% 100%, rgba(120,1,1,0.55), transparent 60%)" }}
                   aria-hidden="true"
                 />
                 <div className="relative flex items-start justify-between gap-3">
                   <div>
-                    <span className="tag-pill" style={{ background: "#b08cff1f", color: "#B08CFF", border: "1px solid #b08cff40" }}>
-                      <Cast size={11} /> Entre potes
+                    <span className="tag-pill bg-white/[0.06] text-ink border border-white/15">
+                      <Cast size={11} className="text-glow" /> Entre potes
                     </span>
-                    <h3 className="f-game text-lg mt-3 mb-1">Même écran</h3>
+                    <h3 className="font-display font-extrabold text-lg mt-3 mb-1">Même écran</h3>
                     <p className="text-xs text-ink-muted">Un seul appareil, on se le passe.</p>
                   </div>
                   <span className="w-11 h-11 shrink-0 rounded-full glass flex items-center justify-center text-ink">
@@ -160,8 +159,8 @@ export default async function JouerPage() {
               </a>
 
               <div className="glass rounded-[28px] p-6 flex-1">
-                <span className="tag-pill" style={{ background: "#b08cff1f", color: "#B08CFF", border: "1px solid #b08cff40" }}>
-                  <Wifi size={11} /> Salon privé
+                <span className="tag-pill bg-white/[0.06] text-ink border border-white/15">
+                  <Wifi size={11} className="text-glow" /> Salon privé
                 </span>
                 <p className="text-xs text-ink-muted mt-3 mb-3">Entre un code pour rejoindre — ou crée ton salon.</p>
                 <JoinRoomInput />
@@ -172,35 +171,40 @@ export default async function JouerPage() {
           {/* Quick Play */}
           <div className="mb-10">
             <div className="flex items-end justify-between mb-4">
-              <h3 className="f-game text-base">Quick Play</h3>
+              <h3 className="font-display font-extrabold text-base">Quick Play</h3>
               <a href="/blindtest" className="text-xs text-ink-muted hover:text-ink flex items-center gap-1">
                 Tous les thèmes <ArrowRight size={12} />
               </a>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-              {quickThemes.map(({ id, from, to, Icon, theme }) => (
+              {quickThemes.map(({ id, era, glowOpacity, Icon, theme }) => (
                 <a
                   key={id}
                   href={`/blindtest?theme=${id}`}
-                  className="press lift group relative text-left rounded-3xl p-5 h-44 flex flex-col justify-end overflow-hidden border border-white/10 hover:border-white/25 transition-colors"
-                  style={{ background: `linear-gradient(155deg, ${from}59 0%, ${from}1f 40%, #120a0e 78%)` }}
+                  className="press lift group relative text-left rounded-3xl p-5 h-44 flex flex-col justify-end overflow-hidden border border-white/10 hover:border-glow/50 transition-colors bg-bg-deep"
                 >
-                  {/* halo de couleur */}
+                  {/* halo Rouge Daily — l'intensité distingue les cartes, pas la teinte */}
                   <span
-                    className="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-60 group-hover:opacity-100 transition-opacity blur-2xl"
-                    style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+                    className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl transition-opacity group-hover:opacity-100"
+                    style={{ background: "radial-gradient(circle, #F0001C, #780101 70%)", opacity: glowOpacity }}
                     aria-hidden="true"
                   />
-                  {/* mini-vinyle décoratif qui dépasse du coin */}
-                  <span className="vinyl-disc absolute -top-8 -right-8 w-28 h-28 opacity-80 group-hover:rotate-45 transition-transform duration-700" aria-hidden="true" />
-                  <span className="absolute top-4 left-4 w-10 h-10 rounded-2xl glass flex items-center justify-center text-ink">
+                  {/* millésime en filigrane — Bricolage extra-bold, la signature typographique */}
+                  <span
+                    className="absolute -top-3 -right-2 font-display font-extrabold text-[92px] leading-none text-transparent select-none"
+                    style={{ WebkitTextStroke: "1.5px rgba(245,232,232,0.14)" }}
+                    aria-hidden="true"
+                  >
+                    {era}
+                  </span>
+                  <span className="absolute top-4 left-4 w-10 h-10 rounded-2xl glass flex items-center justify-center text-glow">
                     <Icon size={17} />
                   </span>
-                  <p className="relative font-bold text-[15px] leading-tight flex items-center gap-2">
+                  <p className="relative font-display font-bold text-[15px] leading-tight flex items-center gap-2">
                     {theme!.label}
                     <ArrowRight
                       size={14}
-                      className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
+                      className="text-glow opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
                     />
                   </p>
                   <p className="relative text-[11px] text-ink-muted mt-0.5 line-clamp-1">{theme!.text}</p>
@@ -213,7 +217,7 @@ export default async function JouerPage() {
           <div className="grid md:grid-cols-2 gap-4">
             <a href="/amis" className="press lift glass rounded-[28px] p-6 block">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="f-game text-sm">Amis</h3>
+                <h3 className="font-display font-bold text-sm">Amis</h3>
                 <span className="w-9 h-9 rounded-full bg-gold/12 text-gold flex items-center justify-center">
                   <Users size={15} />
                 </span>
@@ -224,7 +228,7 @@ export default async function JouerPage() {
             {user ? (
               <a href="/blindtest/classement" className="press lift glass rounded-[28px] p-6 block">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="f-game text-sm">Top du jour</h3>
+                  <h3 className="font-display font-bold text-sm">Top du jour</h3>
                   <Trophy size={15} className="text-[#FFC53D]" />
                 </div>
                 <p className="text-xs text-ink-muted">Vois qui domine le défi du jour — et prends ta place.</p>
@@ -232,7 +236,7 @@ export default async function JouerPage() {
             ) : (
               <a href="/blindtest" className="press lift glass rounded-[28px] p-6 block">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="f-game text-sm">Pas encore connecté</h3>
+                  <h3 className="font-display font-bold text-sm">Pas encore connecté</h3>
                   <span className="w-9 h-9 rounded-full bg-gold/12 text-gold flex items-center justify-center">
                     <LogIn size={15} />
                   </span>

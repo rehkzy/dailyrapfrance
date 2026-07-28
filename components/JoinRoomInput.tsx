@@ -16,7 +16,7 @@ export default function JoinRoomInput() {
   return (
     <div>
       <div className="flex gap-2">
-        <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 bg-white/[0.035] border border-white/10 focus-within:border-[#B08CFF]/60 transition-colors">
+        <div className="flex-1 flex items-center gap-2 rounded-2xl px-4 bg-white/[0.035] border border-white/10 focus-within:border-glow/60 transition-colors">
           <Hash size={14} className="text-ink-faint shrink-0" />
           <input
             value={code}
@@ -30,7 +30,7 @@ export default function JoinRoomInput() {
         </div>
         <button
           onClick={go}
-          className="press btn-violet w-12 rounded-2xl flex items-center justify-center text-white"
+          className="press btn-primary w-12 rounded-2xl flex items-center justify-center text-white"
           aria-label={code ? "Rejoindre le salon" : "Créer un salon"}
         >
           {code ? <ArrowRight size={17} /> : <Plus size={17} />}
