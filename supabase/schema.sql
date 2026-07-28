@@ -322,3 +322,26 @@ create policy "L'hote peut reinitialiser les reponses de son salon"
 alter table public.rooms add column if not exists answer_mode text not null default 'text';
 alter table public.rooms drop constraint if exists rooms_answer_mode_check;
 alter table public.rooms add constraint rooms_answer_mode_check check (answer_mode in ('text', 'qcm'));
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- RLS sur les tables de CONTENU du média (Security Advisor Supabase, 29/07/2026).
+-- Ces tables sont du contenu public en lecture (news, charts, artistes...) mais sans
+-- RLS, la clé anon permettait aussi d'ÉCRIRE dedans. Correctif : RLS activée + policy
+-- de lecture seule pour tous. Aucune policy d'écriture = écritures possibles uniquement
+-- via la clé service (scripts d'admin), qui contourne RLS par conception.
+-- ─────────────────────────────────────────────────────────────────────────
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'ReleaseArtist', 'Release', 'Label', 'Artist', 'Credit', 'SocialStat',
+    'ChartEntry', 'HypeScore', 'NewsItem', 'Certification', 'Track'
+  ]
+  loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists "Lecture publique" on public.%I', t);
+    execute format('create policy "Lecture publique" on public.%I for select using (true)', t);
+  end loop;
+end $$;
