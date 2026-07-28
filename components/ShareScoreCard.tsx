@@ -31,6 +31,17 @@ export default function ShareScoreCard({
       canvas.width = W;
       canvas.height = H;
 
+      // Charge la display de la marque avant de dessiner — sinon le canvas retombe
+      // silencieusement sur la police système.
+      try {
+        await Promise.all([
+          document.fonts.load('800 340px "Bricolage Grotesque"'),
+          document.fonts.load('600 46px "Bricolage Grotesque"'),
+        ]);
+      } catch {
+        // la carte reste correcte en police système si le chargement échoue
+      }
+
       // Fond — dégradé de marque, plus un halo pour ne pas s'aplatir en dégradé trop propre.
       const bg = ctx.createLinearGradient(0, 0, 0, H);
       bg.addColorStop(0, "#1a0a0a");
@@ -47,7 +58,7 @@ export default function ShareScoreCard({
 
       // Emblème
       try {
-        const logo = await loadImage("/icon.svg");
+        const logo = await loadImage("/blindtest-mark.svg");
         if (cancelled) return;
         const logoW = 160;
         const logoH = (logo.height / logo.width) * logoW;
@@ -61,34 +72,34 @@ export default function ShareScoreCard({
       ctx.textAlign = "center";
 
       ctx.fillStyle = "#F0001C";
-      ctx.font = "600 34px system-ui, sans-serif";
+      ctx.font = '600 34px \"Bricolage Grotesque\", system-ui, sans-serif';
       ctx.save();
       ctx.letterSpacing = "8px";
       ctx.fillText("BLIND TEST RAP FRANÇAIS", W / 2, 470);
       ctx.restore();
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "800 340px system-ui, sans-serif";
+      ctx.font = '800 340px \"Bricolage Grotesque\", system-ui, sans-serif';
       ctx.fillText(String(points), W / 2, 860);
 
       ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = "600 48px system-ui, sans-serif";
+      ctx.font = '600 48px \"Bricolage Grotesque\", system-ui, sans-serif';
       ctx.fillText("POINTS", W / 2, 950);
 
       // Détail thème / manches
       ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.font = "600 46px system-ui, sans-serif";
+      ctx.font = '600 46px \"Bricolage Grotesque\", system-ui, sans-serif';
       ctx.fillText(themeLabel, W / 2, 1160);
       ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "500 36px system-ui, sans-serif";
+      ctx.font = '500 36px \"Bricolage Grotesque\", system-ui, sans-serif';
       ctx.fillText(`${rounds} manches`, W / 2, 1220);
 
       // Pied de carte
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = "700 40px system-ui, sans-serif";
+      ctx.font = '700 40px \"Bricolage Grotesque\", system-ui, sans-serif';
       ctx.fillText("dailyrapfrance.best/jouer", W / 2, H - 140);
       ctx.fillStyle = "rgba(255,255,255,0.4)";
-      ctx.font = "500 30px system-ui, sans-serif";
+      ctx.font = '500 30px \"Bricolage Grotesque\", system-ui, sans-serif';
       ctx.fillText("Toi aussi, teste ton niveau", W / 2, H - 90);
 
       if (!cancelled) setReady(true);

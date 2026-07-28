@@ -4,6 +4,7 @@ import { getDailyTheme, THEME_OPTIONS } from "@/lib/themes";
 import ShareGame from "@/components/ShareGame";
 import GameTabBar from "@/components/GameTabBar";
 import BlindTestLogo, { BlindTestMark } from "@/components/BlindTestLogo";
+import InstallPrompt from "@/components/InstallPrompt";
 import JoinRoomInput from "@/components/JoinRoomInput";
 
 export const metadata = {
@@ -256,6 +257,7 @@ export default async function JouerPage() {
           </div>
         </div>
       </section>
+      <InstallPrompt />
       <GameTabBar />
     </>
   );

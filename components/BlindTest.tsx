@@ -1065,12 +1065,20 @@ export default function BlindTest() {
     const ranked = [...players].sort((a, b) => b.score - a.score);
     return (
       <>
-      <div className="max-w-xl mx-auto text-center pb-32">
+      <div className="max-w-xl mx-auto text-center pb-44">
         {showConfetti && <Confetti />}
-        <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Terminé</p>
+        <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Partie terminée</p>
         {mode === "solo" ? (
           <>
-            <h2 className="font-display text-4xl md:text-5xl font-semibold mb-3">{ranked[0]?.score ?? 0} pts</h2>
+            <h2 className="mb-3">
+              <span
+                className="font-display font-extrabold text-6xl md:text-7xl tracking-tight text-ink"
+                style={{ textShadow: "0 0 40px rgba(240,0,28,0.45)" }}
+              >
+                {ranked[0]?.score ?? 0}
+              </span>
+              <span className="font-display font-bold text-2xl md:text-3xl text-ink-muted ml-2">pts</span>
+            </h2>
             {bestStreak >= 2 && (
               <p className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold bg-gold/10 border border-gold/30 rounded-full px-3 py-1 mb-10">
                 <Flame size={12} className="fill-current" />

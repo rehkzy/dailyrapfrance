@@ -24,6 +24,12 @@ export const metadata: Metadata = {
   ],
   icons: {
     icon: "/icon.svg",
+    apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Blind Test",
   },
   alternates: {
     canonical: "/",
@@ -71,6 +77,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  themeColor: "#0A0707",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
