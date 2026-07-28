@@ -1,4 +1,4 @@
-import { Clock, Cloud, Flame, MapPin, Mic2, Shuffle, type LucideIcon } from "lucide-react";
+import { BookOpen, Clock, Cloud, Flame, MapPin, Mic2, Music, Shuffle, Skull, Swords, Zap, type LucideIcon } from "lucide-react";
 
 export type ThemeOption = {
   id: string;
@@ -21,6 +21,12 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "90s", label: "Les 90s", text: "Racines, âge d'or du rap FR", Icon: Clock, category: "Époques" },
   { id: "mix", label: "Mix", text: "Toutes les époques mélangées", Icon: Shuffle, category: "Époques" },
   { id: "cloud", label: "Cloud rap", text: "Suikoden, Josman, Lomepal...", Icon: Cloud, category: "Styles" },
+  { id: "hardcore", label: "Rap hardcore", text: "Kaaris, Kalash Criminel, Alkpote...", Icon: Skull, category: "Styles" },
+  { id: "drill", label: "Drill FR", text: "Gazo, Ziak, Ashe 22...", Icon: Swords, category: "Styles" },
+  { id: "trap", label: "Trap FR", text: "Niska, Gradur, Maes, Koba LaD...", Icon: Zap, category: "Styles" },
+  { id: "boombap", label: "Boom bap / Old school", text: "IAM, NTM, Oxmo Puccino...", Icon: Music, category: "Styles" },
+  { id: "melodique", label: "Rap mélodique", text: "PNL, Hamza, Tiakola...", Icon: Mic2, category: "Styles" },
+  { id: "conscient", label: "Rap conscient", text: "Kery James, Médine, Youssoupha...", Icon: BookOpen, category: "Styles" },
   { id: "lagui-sadek", label: "Lagui & Sadek", text: "Que des sons de ces deux-là", Icon: Mic2, category: "Styles" },
   { id: "93", label: "Rappeurs du 93", text: "Kaaris, Vald, Maes, Kalash Criminel...", Icon: MapPin, category: "Régions" },
   { id: "91", label: "Rappeurs du 91", text: "PNL, Niska, Koba LaD...", Icon: MapPin, category: "Régions" },

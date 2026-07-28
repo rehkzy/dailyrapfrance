@@ -18,6 +18,16 @@ const ALL_DECADE_PLAYLISTS = [1182010551, 4676814864, 5175061384, 9563400362];
 // officielles). Volontairement courte et à étendre — pas une base de données géographique
 // faisant autorité. Deezer ne fournit ni sous-genre ni ville de naissance.
 const CLOUD_ARTISTS = ["suikoden", "josman", "fixpen sill", "le wombat", "lomepal"];
+// Styles — curation manuelle par sous-genre, mêmes réserves que ci-dessus : listes courtes,
+// artistes emblématiques du style, à étendre au fil des retours joueurs.
+const STYLE_ARTISTS: Record<string, string[]> = {
+  hardcore: ["kaaris", "kalash criminel", "alkpote", "seth gueko", "rohff"],
+  drill: ["gazo", "ziak", "ashe 22"],
+  trap: ["niska", "gradur", "maes", "koba lad"],
+  boombap: ["iam", "suprême ntm", "oxmo puccino", "kery james"],
+  melodique: ["pnl", "hamza", "tiakola", "so la lune"],
+  conscient: ["kery james", "médine", "youssoupha"],
+};
 const LAGUI_SADEK_ARTISTS = ["lagui", "sadek"];
 const DEPT_ARTISTS: Record<string, string[]> = {
   "93": ["kaaris", "mac tyer", "vald", "kalash criminel", "maes", "diddi trix"],
@@ -138,7 +148,7 @@ function toGameTrack(t: DeezerTrackFull) {
   };
 }
 
-// GET /api/blindtest/pool?theme=mix|90s|2000s|2010s|recent|pop|cloud|93|91|92|77|78|13|59|idf&count=15
+// GET /api/blindtest/pool?theme=mix|90s|2000s|2010s|recent|pop|cloud|hardcore|drill|trap|boombap|melodique|conscient|93|91|92|77|78|13|59|idf|artist-*&count=15
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const themeId = searchParams.get("theme") ?? "mix";
@@ -149,6 +159,7 @@ export async function GET(req: NextRequest) {
 
     const artistListsById: Record<string, string[]> = {
       cloud: CLOUD_ARTISTS,
+      ...STYLE_ARTISTS,
       "lagui-sadek": LAGUI_SADEK_ARTISTS,
       ...DEPT_ARTISTS,
       ...SINGLE_ARTIST_THEMES,
