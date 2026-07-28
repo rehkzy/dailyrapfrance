@@ -5,6 +5,7 @@ import ShareGame from "@/components/ShareGame";
 import GameTabBar from "@/components/GameTabBar";
 import BlindTestLogo, { BlindTestMark } from "@/components/BlindTestLogo";
 import InstallPrompt from "@/components/InstallPrompt";
+import LivePlayersBadge from "@/components/LivePlayersBadge";
 import JoinRoomInput from "@/components/JoinRoomInput";
 
 export const metadata = {
@@ -95,6 +96,9 @@ export default async function JouerPage() {
           </div>
 
           {/* Titre */}
+          <div className="mb-4">
+            <LivePlayersBadge />
+          </div>
           <h1 className="mb-10">
             <BlindTestLogo markSize={72} spinning />
           </h1>
