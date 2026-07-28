@@ -864,7 +864,7 @@ export default function BlindTest() {
                       >
                         {trendingThemes.has(t.id) && (
                           <span
-                            className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)]"
+                            className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)] ring-2 ring-bg/70"
                             title="En tendance"
                           >
                             <Flame size={12} fill="currentColor" />
@@ -1154,7 +1154,7 @@ export default function BlindTest() {
         {roundHistory.length > 0 && (
           <div className="mb-8 text-left">
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Récap de la partie</p>
-            <div className="card divide-y divide-white/8 overflow-hidden max-h-96 overflow-y-auto">
+            <div className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain max-h-96">
               {roundHistory.map((r, i) => {
                 const foundBy = [...new Set(Object.values(r.solved))];
                 return (

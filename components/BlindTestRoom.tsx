@@ -478,7 +478,7 @@ export default function BlindTestRoom({
 
         {/* Récap façon Wrapped — tous les morceaux de la partie et qui a trouvé quoi */}
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 text-left">Récap de la partie</p>
-        <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left max-h-96 overflow-y-auto">
+        <div className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">
           {room.tracks.map((t, i) => {
             const rSolves = solves.filter((s) => s.round_index === i);
             return (
@@ -731,7 +731,7 @@ function RoomMenu({
                   >
                     {trendingThemes.has(t.id) && (
                       <span
-                        className="absolute -top-1.5 -right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)]"
+                        className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-gradient-to-br from-glow to-gold text-white flex items-center justify-center shadow-[0_4px_12px_rgba(240,0,28,0.5)] ring-2 ring-bg/70"
                         title="En tendance"
                       >
                         <Flame size={12} fill="currentColor" />

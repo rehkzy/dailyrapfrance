@@ -50,6 +50,7 @@ const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
   "artist-nekfeu": ["nekfeu"],
   "artist-badara": ["badara"],
   "artist-werenoi": ["werenoi"],
+  "artist-benef": ["benef"],
 };
 
 type DeezerTrackSummary = {
