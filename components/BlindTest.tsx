@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import Magnetic from "@/components/Magnetic";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
+import { DRMark3D } from "@/components/BlindTestLogo";
 import BlindTestRoom from "@/components/BlindTestRoom";
 import BrandLoader from "@/components/BrandLoader";
 import ShareScoreCard from "@/components/ShareScoreCard";
@@ -1148,7 +1149,9 @@ export default function BlindTest() {
               </div>
             </div>
 
-            <GameTabBarContent />
+            <div className="pt-2.5">
+              <GameTabBarContent />
+            </div>
           </div>
         </div>
       </div>
@@ -1411,11 +1414,9 @@ export default function BlindTest() {
 
         {!started ? (
           <div className="flex flex-col items-center">
-            <div className="vinyl-spin w-16 h-16 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 shadow-lg flex items-center justify-center mb-5">
-              <div className="w-6 h-6 rounded-full bg-gold flex items-center justify-center">
-                <Disc size={11} className="text-white" />
-              </div>
-            </div>
+            <span className="block w-16 h-16 mb-5">
+              <DRMark3D size="100%" />
+            </span>
             <p className="font-mono text-xs text-gold uppercase tracking-[0.2em] mb-1">
               Manche {roundIndex + 1}
             </p>
@@ -1432,16 +1433,11 @@ export default function BlindTest() {
           </div>
         ) : !revealed ? (
           <>
-            {/* Disque mystère qui tourne pendant l'écoute */}
-            <div className="relative w-28 h-28 mx-auto mb-6">
-              <div className="vinyl-spin absolute inset-0 rounded-full bg-[radial-gradient(circle,_#1a1414_0%,_#1a1414_18%,_#2b2020_19%,_#2b2020_30%,_#1a1414_31%,_#1a1414_42%,_#2b2020_43%,_#2b2020_54%,_#1a1414_55%)] border border-white/10 shadow-lg">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-9 h-9 rounded-full bg-gold flex items-center justify-center">
-                    <Disc size={16} className="text-white" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Marque DR en tuile verre 3D — anime en continu pendant l'écoute, à la
+                place de l'ancien vinyle à cercles concentriques. */}
+            <span className="block w-28 h-28 mx-auto mb-6">
+              <DRMark3D size="100%" />
+            </span>
 
             {audioError && (
               <div className="solved-pop max-w-xs mx-auto mb-4 flex items-center gap-2.5 bg-riseNeg/10 border border-riseNeg/30 rounded-xl px-3.5 py-2.5 text-left">
@@ -1655,7 +1651,7 @@ export default function BlindTest() {
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-        <div className="max-w-2xl mx-auto pointer-events-auto space-y-2">
+        <div className="max-w-2xl mx-auto pointer-events-auto space-y-2.5">
           {started && !revealed && (mode === "solo" || (mode === "local" && buzzedBy)) && (
             <>
               {jokersEnabled && timeLeft <= 8 && timeLeft > 0 && (

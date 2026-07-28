@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
-// Manifest PWA — permet "Ajouter à l'écran d'accueil" avec le logo du jeu, en plein
-// écran (standalone), démarrant directement sur le hub /jouer.
+// Manifest PWA — permet "Ajouter à l'écran d'accueil" avec le logo officiel DailyRapFrance
+// (icônes régénérées depuis public/icon.svg), en plein écran, démarrant sur le hub /jouer.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Blind Test Rap Français — DailyRapFrance",
