@@ -62,16 +62,15 @@ export function GameTabBarContent() {
     <div className="dock" role="navigation" aria-label="Navigation du jeu">
       {TABS.map(({ href, label, Icon, match }) => {
         const isActive = match(pathname ?? "");
-        return isActive ? (
-          <a key={href} href={href} aria-current="page" className="dock-active btn-primary press">
-            <span className="dock-active-dot">
-              <Icon size={17} strokeWidth={2.2} />
-            </span>
+        return (
+          <a
+            key={href}
+            href={href}
+            aria-current={isActive ? "page" : undefined}
+            className={`dock-item press ${isActive ? "dock-item-active" : ""}`}
+          >
+            <Icon size={18} strokeWidth={2.2} />
             {label}
-          </a>
-        ) : (
-          <a key={href} href={href} aria-label={label} title={label} className="dock-idle press">
-            <Icon size={18} strokeWidth={2} />
           </a>
         );
       })}
@@ -79,9 +78,10 @@ export function GameTabBarContent() {
         onClick={toggleFullscreen}
         aria-label={fullscreenActive ? "Quitter le plein écran" : "Passer en plein écran"}
         title={fullscreenActive ? "Quitter le plein écran" : "Plein écran"}
-        className={`dock-idle press ml-auto ${fullscreenActive ? "!text-gold !border-gold/40 !bg-gold/10" : ""}`}
+        className={`dock-item press ml-auto ${fullscreenActive ? "!text-gold" : ""}`}
       >
         {fullscreenActive ? <Minimize size={17} /> : <Maximize size={17} />}
+        {fullscreenActive ? "Réduire" : "Plein écran"}
       </button>
     </div>
   );
