@@ -67,7 +67,7 @@ export default function ThemePicker({
   return (
     <div className="flex-1 flex flex-col gap-4 -mt-1">
       {/* Barre de sélection persistante — toujours visible, même loin dans la liste */}
-      <div className="sticky top-0 z-10 -mx-1 px-1 pb-1 bg-bg/80 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 -mx-1 px-1 pb-1 bg-bg/75 backdrop-blur-md">
         <div className="flex items-center gap-3 glass rounded-2xl px-4 py-3 mb-3">
           <div className="icon-tile w-9 h-9 shrink-0 bg-gradient-to-br from-gold to-glow text-white">
             {selected ? <selected.Icon size={16} /> : <Search size={16} />}

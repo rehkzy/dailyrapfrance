@@ -36,8 +36,11 @@ export default function BlindTestPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* Fond ambiant ancré au viewport — remplace le bg-bg plat qui apparaissait "noir
+          brut" dès qu'on descend un peu dans le wizard (liste de thèmes notamment). */}
+      <div className="aurora-fixed" aria-hidden="true" />
 
-      <section className="max-w-6xl mx-auto px-6 pt-6 sm:pt-16 pb-16">
+      <section className="relative z-10 max-w-6xl mx-auto px-6 pt-6 sm:pt-16 pb-16">
         {/* Identité du jeu — le lockup de marque, pas un titre de page. Le h1 englobe le
             lockup : tout le texte reste dans le DOM, le SEO ne perd rien. */}
         <div id="game-intro" className="flex justify-center mb-6 sm:mb-12">

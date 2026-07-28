@@ -939,3 +939,20 @@ input[type="range"].brand-slider::-moz-range-track {
   box-shadow: 0 8px 24px rgba(240, 0, 28, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 .dock-item-active:hover { color: #fff; background: linear-gradient(135deg, #ff3b4e, #f0001c 70%); }
+
+/* Fond ambiant fixe — remplace un simple bg-bg plat sur les pages longues (le wizard du
+   blind test en particulier) : contrairement à .aurora (positionné en % de son propre
+   conteneur, donc étiré/dilué sur un contenu très haut comme une longue liste de thèmes),
+   celui-ci est ancré au VIEWPORT et reste identique quelle que soit la hauteur de la page
+   ou la position de scroll — plus jamais de zone qui retombe en noir brut plus bas dans
+   la page. */
+.aurora-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 82% 0%, rgba(240, 0, 28, 0.28), transparent 62%),
+    radial-gradient(55% 45% at 0% 30%, rgba(120, 1, 1, 0.4), transparent 62%),
+    radial-gradient(65% 55% at 50% 100%, rgba(255, 59, 78, 0.14), transparent 65%);
+}
