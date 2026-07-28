@@ -15,6 +15,7 @@ const THEME_LEAD_ARTISTS: Record<string, string[]> = {
   "77": ["rk"],
   "78": ["la fouine"],
   "13": ["jul", "sch"], // Marseille — deux visages plutôt qu'un, JUL et SCH sont tous deux emblématiques
+  "69": ["bouss"],
   "59": ["gradur"],
   idf: ["pnl"],
   "artist-ninho": ["ninho"],
@@ -27,6 +28,7 @@ const THEME_LEAD_ARTISTS: Record<string, string[]> = {
   "artist-werenoi": ["werenoi"],
   "artist-benef": ["benef"],
   "artist-djadja-dinaz": ["djadja & dinaz"],
+  "artist-bouss": ["bouss"],
   "imene-elle-give": ["dadju"],
 };
 

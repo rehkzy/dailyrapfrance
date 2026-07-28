@@ -45,6 +45,7 @@ const DEPT_ARTISTS: Record<string, string[]> = {
   "77": ["djadja & dinaz", "rk", "timal", "houdi"],
   "78": ["la fouine"],
   "13": ["jul", "sch", "soprano", "alonzo", "naps", "soso maness", "akhenaton", "shurik'n"],
+  "69": ["bouss", "khali", "zeu", "lyonzon"],
   "59": ["gradur"],
 };
 DEPT_ARTISTS["idf"] = Array.from(new Set([...DEPT_ARTISTS["93"], ...DEPT_ARTISTS["91"], ...DEPT_ARTISTS["92"], ...DEPT_ARTISTS["77"], ...DEPT_ARTISTS["78"]]));
@@ -99,6 +100,7 @@ const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
   "artist-werenoi": ["werenoi"],
   "artist-benef": ["benef"],
   "artist-djadja-dinaz": ["djadja & dinaz"],
+  "artist-bouss": ["bouss"],
 };
 
 type DeezerTrackSummary = {

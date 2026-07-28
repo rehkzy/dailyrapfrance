@@ -261,6 +261,10 @@ export default function BlindTest() {
 
   async function startGame() {
     setSetupError(null);
+    if (!answerMode) {
+      setSetupError("Choisis un mode de réponse — Facile (QCM) ou Difficile (écrire) — pour lancer la partie.");
+      return;
+    }
     if (mode === "local" && playerNames.filter((n) => n.trim()).length < 2) {
       setSetupError("Il faut au moins 2 joueurs en mode local.");
       return;
@@ -750,6 +754,9 @@ export default function BlindTest() {
                   Icon: User,
                   desc: "Teste tes connaissances à ton rythme.",
                   tag: "1 joueur",
+                  // Palette strictement dans la charte : trois variations de rouge (pas de
+                  // violet ni de rose), différenciées par la chaleur/profondeur de la
+                  // teinte plutôt que par une nouvelle couleur à chaque carte.
                   gradient: "from-[#7a0f0f] to-[#F0001C]",
                 },
                 {
@@ -757,8 +764,8 @@ export default function BlindTest() {
                   label: "Local",
                   Icon: Users,
                   desc: "Entre potes, sur le même écran, avec un buzzer.",
-                  tag: "2-8 joueurs",
-                  gradient: "from-[#5c0f5c] to-[#F0001C]",
+                  tag: "2 à 8 joueurs",
+                  gradient: "from-[#8a1216] to-[#FF3B4E]",
                 },
                 {
                   id: "online" as Mode,
@@ -766,7 +773,7 @@ export default function BlindTest() {
                   Icon: Globe,
                   desc: "Un code à partager, chacun sur son téléphone.",
                   tag: "Multi à distance",
-                  gradient: "from-[#0f3a5c] to-[#F0001C]",
+                  gradient: "from-[#3a0505] to-[#7a0f0f]",
                 },
               ].map((m) => {
                 const isActive = mode === m.id;
@@ -802,13 +809,16 @@ export default function BlindTest() {
                         <m.Icon size={24} strokeWidth={2} />
                       </div>
                       <span className="relative min-w-0 flex-1">
-                        <span className="flex items-center gap-2">
-                          <span className="block text-sm font-semibold">{m.label}</span>
-                          <span className="font-mono text-[10px] uppercase tracking-wide text-ink-faint bg-white/5 rounded-full px-2 py-0.5">
-                            {m.tag}
-                          </span>
+                        <span className="block text-base font-semibold">{m.label}</span>
+                        <span
+                          className={`inline-flex items-center gap-1 mt-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-colors ${
+                            isActive ? "bg-gold text-white" : "bg-gold/15 text-gold"
+                          }`}
+                        >
+                          <m.Icon size={11} strokeWidth={2.5} />
+                          {m.tag}
                         </span>
-                        <span className="block text-xs text-ink-faint mt-1">{m.desc}</span>
+                        <span className="block text-xs text-ink-faint mt-1.5 leading-snug">{m.desc}</span>
                       </span>
                       <div
                         className={`relative w-7 h-7 shrink-0 rounded-full flex items-center justify-center transition-colors ${
@@ -877,6 +887,69 @@ export default function BlindTest() {
           {/* Étape 2 — Réglages + barème + lancer */}
           {wizardStep === 2 && (
             <div className="flex-1 space-y-7">
+              {/* Mode de réponse — LA décision obligatoire, en tête. Aucune présélection :
+                  choisir consciemment change tout le ressenti de jeu, on ne subit pas un
+                  défaut. Indicateur "à choisir" tant que rien n'est sélectionné, et
+                  surbrillance si on tente de lancer sans choix. */}
+              <div>
+                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                  <Sliders size={13} />
+                  Mode de réponse
+                  {!answerMode && (
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gold/15 text-gold px-2.5 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+                      À choisir
+                    </span>
+                  )}
+                </p>
+                <div
+                  className={`grid grid-cols-2 gap-2.5 rounded-2xl transition-shadow ${
+                    setupError && !answerMode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""
+                  }`}
+                >
+                  {([
+                    {
+                      id: "qcm" as const,
+                      Icon: ListChecks,
+                      title: "Facile",
+                      sub: "3 titres au choix",
+                    },
+                    {
+                      id: "text" as const,
+                      Icon: Keyboard,
+                      title: "Difficile",
+                      sub: "Écrire la réponse",
+                    },
+                  ]).map((o) => {
+                    const active = answerMode === o.id;
+                    return (
+                      <button
+                        key={o.id}
+                        onClick={() => {
+                          sfx.click();
+                          setAnswerMode(o.id);
+                          setSetupError(null);
+                        }}
+                        aria-pressed={active}
+                        className={`relative text-left rounded-2xl p-4 border transition-all duration-200 ${
+                          active
+                            ? "border-gold/50 bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.18)]"
+                            : "border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        {active && (
+                          <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-gold flex items-center justify-center">
+                            <Check size={11} className="text-white" />
+                          </span>
+                        )}
+                        <o.Icon size={20} className={active ? "text-gold" : "text-ink-faint"} />
+                        <p className="font-display text-base font-semibold mt-2.5">{o.title}</p>
+                        <p className="text-xs text-ink-faint mt-0.5">{o.sub}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Partie */}
               <div>
                 <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
@@ -916,58 +989,6 @@ export default function BlindTest() {
                       {n}s
                     </button>
                   ))}
-                </div>
-              </div>
-
-              {/* Mode de réponse — la décision la plus structurante, mise en avant en
-                  premier sous forme de deux grandes cartes plutôt que des petits boutons :
-                  on choisit un mode de jeu, pas une simple option parmi d'autres. */}
-              <div>
-                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
-                  <Sliders size={13} />
-                  Mode de réponse
-                </p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {([
-                    {
-                      id: "qcm" as const,
-                      Icon: ListChecks,
-                      title: "Facile",
-                      sub: "3 titres au choix",
-                    },
-                    {
-                      id: "text" as const,
-                      Icon: Keyboard,
-                      title: "Difficile",
-                      sub: "Écrire la réponse",
-                    },
-                  ]).map((o) => {
-                    const active = answerMode === o.id;
-                    return (
-                      <button
-                        key={o.id}
-                        onClick={() => {
-                          sfx.click();
-                          setAnswerMode(o.id);
-                        }}
-                        aria-pressed={active}
-                        className={`relative text-left rounded-2xl p-4 border transition-all duration-200 ${
-                          active
-                            ? "border-gold/50 bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.18)]"
-                            : "border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        {active && (
-                          <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-gold flex items-center justify-center">
-                            <Check size={11} className="text-white" />
-                          </span>
-                        )}
-                        <o.Icon size={20} className={active ? "text-gold" : "text-ink-faint"} />
-                        <p className="font-display text-base font-semibold mt-2.5">{o.title}</p>
-                        <p className="text-xs text-ink-faint mt-0.5">{o.sub}</p>
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
 
@@ -1075,7 +1096,7 @@ export default function BlindTest() {
                 <div className="flex flex-wrap gap-2 mb-3">
                   {[
                     { label: "Titre", pts: "1 pt" },
-                    ...(answerMode === "text" ? [{ label: "Artiste", pts: "1 pt" }] : []),
+                    ...(answerMode !== "qcm" ? [{ label: "Artiste", pts: "1 pt" }] : []),
                     { label: "Featuring", pts: "+2 pts", gold: true },
                   ].map((b) => (
                     <span

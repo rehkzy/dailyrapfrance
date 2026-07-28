@@ -927,7 +927,14 @@ function ReplayPanel({
           ))}
         </div>
 
-        <p className="text-xs text-ink-faint mb-2">Mode de réponse</p>
+        <p className="text-xs text-ink-faint mb-2 flex items-center gap-2">
+          Mode de réponse
+          {!answerMode && (
+            <span className="inline-flex items-center rounded-full bg-gold/15 text-gold px-2 py-0.5 text-[10px] font-bold">
+              À choisir
+            </span>
+          )}
+        </p>
         <div className="flex gap-2">
           {([
             { id: "qcm" as const, label: "Facile (QCM)" },
@@ -981,7 +988,8 @@ function RoomMenu({
 }) {
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
-  const [answerMode, setAnswerMode] = useState<"text" | "qcm">("text");
+  // Sans présélection : l'hôte choisit consciemment le mode de réponse du salon.
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-40">
@@ -1063,11 +1071,12 @@ function RoomMenu({
           </div>
           <Magnetic strength={0.15} className="block w-full">
             <button
-              onClick={() => onCreate(theme, rounds, answerMode)}
-              disabled={busy}
+              onClick={() => answerMode && onCreate(theme, rounds, answerMode)}
+              disabled={busy || !answerMode}
+              title={!answerMode ? "Choisis d'abord un mode de réponse (Facile ou Difficile)" : undefined}
               className="cta-glow tap-press w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors"
             >
-              Créer une partie privée
+              {answerMode ? "Créer une partie privée" : "Choisis un mode de réponse"}
             </button>
           </Magnetic>
         </div>
