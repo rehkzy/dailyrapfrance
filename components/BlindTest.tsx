@@ -62,11 +62,16 @@ export default function BlindTest() {
   const searchParams = useSearchParams();
   const joinRoomCode = searchParams.get("room");
   const deepLinkTheme = searchParams.get("theme");
+  // Deep-link de mode : les entrées "Même écran" (?mode=local) et "Salon privé"
+  // (?mode=online) du hub arrivent directement sur le bon écran au lieu de retomber en solo.
+  const deepLinkMode = searchParams.get("mode");
 
   // Setup — assistant en 3 étapes pour limiter le scroll
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(deepLinkTheme ? 1 : 0);
   // Setup
-  const [mode, setMode] = useState<Mode>(joinRoomCode ? "online" : "solo");
+  const [mode, setMode] = useState<Mode>(
+    joinRoomCode ? "online" : deepLinkMode === "online" || deepLinkMode === "local" ? deepLinkMode : "solo"
+  );
   const [themeId, setThemeId] = useState<string>(
     deepLinkTheme && THEME_OPTIONS.some((t) => t.id === deepLinkTheme) ? deepLinkTheme : "mix"
   );

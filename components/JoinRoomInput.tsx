@@ -10,7 +10,7 @@ export default function JoinRoomInput() {
   const router = useRouter();
 
   function go() {
-    router.push(code ? `/blindtest?mode=online&code=${encodeURIComponent(code)}` : "/blindtest?mode=online");
+    router.push(code ? `/blindtest?room=${encodeURIComponent(code)}` : "/blindtest?mode=online");
   }
 
   return (

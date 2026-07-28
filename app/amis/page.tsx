@@ -8,6 +8,7 @@ import AddFriendButton from "@/components/AddFriendButton";
 import BrandLoader from "@/components/BrandLoader";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
+import FriendPlayButtons from "@/components/FriendPlayButtons";
 
 type ProfileLite = {
   id: string;
@@ -149,7 +150,7 @@ export default function AmisPage() {
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Amis</h1>
       <p className="text-ink-muted mb-10">
-        Ajoute tes potes, compare vos scores et vos combos. Idéal avant une soirée blind test.
+        Ajoute tes potes, défie-les sur le défi du jour ou invite-les dans un salon privé.
       </p>
 
       {/* Recherche */}
@@ -230,7 +231,13 @@ export default function AmisPage() {
                 {friends.map((r) => {
                   const p = otherOf(r);
                   if (!p) return null;
-                  return <ProfileRow key={r.id} profile={p} />;
+                  return (
+                    <ProfileRow
+                      key={r.id}
+                      profile={p}
+                      right={<FriendPlayButtons friendName={p.display_name ?? p.username ?? "Toi"} />}
+                    />
+                  );
                 })}
               </div>
             )}
