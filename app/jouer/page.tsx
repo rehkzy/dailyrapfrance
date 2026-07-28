@@ -74,7 +74,8 @@ export default async function JouerPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD_GAME) }} />
-      <section className="aurora">
+      <div className="aurora-fixed" aria-hidden="true" />
+      <section className="relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-36 lg:pb-16">
           {/* En-tête d'app — salut + avatar */}
           <div className="flex items-center justify-between mb-8">

@@ -952,7 +952,9 @@ input[type="range"].brand-slider::-moz-range-track {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(60% 50% at 82% 0%, rgba(240, 0, 28, 0.28), transparent 62%),
-    radial-gradient(55% 45% at 0% 30%, rgba(120, 1, 1, 0.4), transparent 62%),
-    radial-gradient(65% 55% at 50% 100%, rgba(255, 59, 78, 0.14), transparent 65%);
+    radial-gradient(60% 50% at 82% 0%, rgba(240, 0, 28, 0.3), transparent 62%),
+    radial-gradient(55% 45% at 0% 30%, rgba(120, 1, 1, 0.42), transparent 62%),
+    radial-gradient(50% 45% at 95% 60%, rgba(120, 1, 1, 0.3), transparent 65%),
+    radial-gradient(70% 55% at 50% 105%, rgba(255, 59, 78, 0.16), transparent 65%),
+    radial-gradient(120% 90% at 50% 40%, rgba(60, 6, 10, 0.55), transparent 100%);
 }

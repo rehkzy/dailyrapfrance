@@ -737,7 +737,10 @@ export default function BlindTest() {
           ))}
         </div>
 
-        <div className="card p-5 sm:p-6 md:p-7 flex flex-col">
+        {/* Conteneur volontairement SANS fond : la carte pleine formait un grand rectangle
+            sombre par-dessus l'aurora — c'était elle, le "fond noir brut". Chaque bloc
+            interne (cartes de mode, sélecteur, réglages) a déjà son propre verre. */}
+        <div className="px-0.5 sm:px-1 flex flex-col">
           {phase === "loading" ? (
             <div className="flex-1 flex items-center justify-center py-10">
               <BrandLoader label="Recherche des titres" size="lg" />

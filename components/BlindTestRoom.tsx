@@ -904,7 +904,7 @@ function ReplayPanel({
       <button onClick={onCancel} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
         <ArrowLeft size={14} /> Annuler
       </button>
-      <div className="card p-6">
+      <div className="px-0.5">
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-1">Rejouer — même salon</p>
         <p className="text-xs text-ink-faint mb-4">Même code, mêmes joueurs — change juste le thème ou le nombre de manches.</p>
 
@@ -998,7 +998,7 @@ function RoomMenu({
           <ArrowLeft size={14} /> Solo / local
         </button>
       )}
-      <div className="card p-6">
+      <div className="px-0.5">
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Créer un salon</p>
 
         <div className="mb-6 -mx-1 px-1">
