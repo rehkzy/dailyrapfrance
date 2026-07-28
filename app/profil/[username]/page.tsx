@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import AddFriendButton from "@/components/AddFriendButton";
+import FriendPlayButtons from "@/components/FriendPlayButtons";
 import StatsBlock from "@/components/StatsBlock";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
@@ -53,7 +54,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             Membre depuis {memberSince}
           </p>
         </div>
-        <AddFriendButton targetId={profile.id} />
+        <div className="flex flex-col items-end gap-2.5 shrink-0">
+          <AddFriendButton targetId={profile.id} />
+          <FriendPlayButtons friendName={profile.display_name ?? profile.username ?? "Toi"} />
+        </div>
       </div>
 
       <StatsBlock games={scores ?? []} />
