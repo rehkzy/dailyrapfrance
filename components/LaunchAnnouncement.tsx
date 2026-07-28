@@ -13,11 +13,12 @@ import { DRMark3D } from "@/components/BlindTestLogo";
  *   partage du lien, sinon copie du lien.
  * · "Télécharger le visuel" — récupère le PNG story pour le poster manuellement.
  *
- * Affichée une fois par visiteur (localStorage, versionnée : changer la clé pour une
- * future annonce), jamais en plein jeu (montée uniquement sur le hub).
+ * Affichée à CHAQUE visite (sessionStorage : une fois par session de navigation —
+ * fermer la pop-up ne la masque que pour la session en cours, elle revient à la
+ * prochaine visite), jamais en plein jeu (montée uniquement sur le hub).
  */
 
-const SEEN_KEY = "drf-annonce-lancement-v1";
+const SEEN_KEY = "drf-annonce-session";
 const STORY_URL = "/story-blindtest.png";
 const SHARE_TEXT =
   "DailyRapFrance lance LE blind test rap français — 100% gratuit, en ligne, solo ou entre potes. Viens tester ton niveau 🔥";
@@ -27,14 +28,14 @@ export default function LaunchAnnouncement() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(SEEN_KEY)) return;
+    if (sessionStorage.getItem(SEEN_KEY)) return;
     // léger délai : laisser la page se poser avant l'annonce
     const t = setTimeout(() => setOpen(true), 900);
     return () => clearTimeout(t);
   }, []);
 
   function dismiss() {
-    localStorage.setItem(SEEN_KEY, "1");
+    sessionStorage.setItem(SEEN_KEY, "1");
     setOpen(false);
   }
 

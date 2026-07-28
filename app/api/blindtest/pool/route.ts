@@ -49,6 +49,28 @@ const DEPT_ARTISTS: Record<string, string[]> = {
 };
 DEPT_ARTISTS["idf"] = Array.from(new Set([...DEPT_ARTISTS["93"], ...DEPT_ARTISTS["91"], ...DEPT_ARTISTS["92"], ...DEPT_ARTISTS["77"], ...DEPT_ARTISTS["78"]]));
 
+// Thèmes à liste de titres VERROUILLÉE — quand la page Deezer d'un artiste est contaminée
+// (morceaux d'homonymes/tiers rattachés par erreur), on fige la liste exacte des IDs de
+// titres au lieu de faire confiance à ses albums. forcedArtistName corrige au passage les
+// crédits erronés de Deezer à l'affichage ("Cité" est crédité "Bendo" chez eux).
+// IDs vérifiés un par un le 28/07/2026.
+const FIXED_TRACK_THEMES: Record<string, { trackIds: number[]; forcedArtistName?: string }> = {
+  "artist-benef": {
+    trackIds: [
+      2935905291, // LOCA
+      3491145971, // Mafia Italienne
+      3604950312, // IA
+      3316851691, // No Limit
+      3513695591, // Le Temps
+      3129388061, // Tolérance Zéro
+      3339779681, // Tolérance 2.0
+      2131276367, // Cité (crédité "Bendo" chez Deezer — nom d'artiste forcé ci-dessous)
+      3558292351, // Réseaux
+    ],
+    forcedArtistName: "Benef",
+  },
+};
+
 // Blind tests dédiés à un seul artiste — que ses propres morceaux.
 const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
   "artist-ninho": ["ninho"],
@@ -175,6 +197,20 @@ export async function GET(req: NextRequest) {
       ...DEPT_ARTISTS,
       ...SINGLE_ARTIST_THEMES,
     };
+
+    const fixed = FIXED_TRACK_THEMES[themeId];
+    if (fixed) {
+      const detailed = await Promise.all(fixed.trackIds.map((id) => fetchTrackDetail(id)));
+      const tracks = detailed
+        .filter((t): t is NonNullable<typeof t> => !!t && !!t.preview)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, count)
+        .map((full) => {
+          const track = toGameTrack(full);
+          return fixed.forcedArtistName ? { ...track, artistName: fixed.forcedArtistName } : track;
+        });
+      return NextResponse.json({ tracks });
+    }
 
     if (STYLE_PLAYLISTS[themeId]) {
       const lists = await Promise.all(STYLE_PLAYLISTS[themeId].map(fetchPlaylistTracks));
