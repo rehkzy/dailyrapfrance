@@ -772,9 +772,15 @@ input[type="range"].brand-slider::-moz-range-track {
 /* Vinyle décoratif */
 .vinyl-disc {
   border-radius: 50%;
-  background: radial-gradient(circle, #f0001c 0 15%, #17090c 16% 31%, #241016 32% 34%,
-    #17090c 35% 51%, #241016 52% 54%, #17090c 55% 100%);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  background:
+    /* reflet doux */
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.15), transparent 42%),
+    /* sillons fins */
+    repeating-radial-gradient(circle, rgba(255, 255, 255, 0.05) 0 1.5px, transparent 1.5px 7px),
+    /* trou central, label rouge réduit, galette sombre */
+    radial-gradient(circle, #0b0709 0 3%, #ff3b4e 3.5% 11%, #c40017 11% 13%, #12080b 13.5% 100%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 60px rgba(240, 0, 28, 0.18);
 }
 
 /* Flottement lent (vinyle hero) */
@@ -844,4 +850,11 @@ input[type="range"].brand-slider::-moz-range-track {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* CTA principal — feedback au survol : le glow s'intensifie et le bouton se soulève
+   légèrement, retombe au clic (couplé à .press). */
+.btn-primary:hover {
+  box-shadow: 0 14px 44px rgba(240, 0, 28, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }

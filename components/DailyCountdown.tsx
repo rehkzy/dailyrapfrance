@@ -28,12 +28,18 @@ export default function DailyCountdown() {
           String(left % 60).padStart(2, "0"),
         ];
 
+  const units = ["h", "min", "s"];
   return (
-    <div className="flex items-baseline gap-1 font-mono text-ink" aria-label="Temps restant avant le prochain défi">
+    <div className="flex items-start gap-1.5 font-mono text-ink" aria-label="Temps restant avant le prochain défi">
       {cells.map((v, i) => (
-        <span key={i} className="flex items-baseline gap-1">
-          {i > 0 && <span className="text-ink-faint">:</span>}
-          <span className="glass rounded-lg px-2 py-1 text-sm sm:text-base font-semibold tabular-nums">{v}</span>
+        <span key={i} className="flex items-start gap-1.5">
+          {i > 0 && <span className="text-ink-faint pt-1.5">:</span>}
+          <span className="flex flex-col items-center gap-1">
+            <span className="glass rounded-lg px-2.5 py-1 text-sm sm:text-base font-semibold tabular-nums min-w-[2.4em] text-center">
+              {v}
+            </span>
+            <span className="text-[9px] uppercase tracking-widest text-ink-faint">{units[i]}</span>
+          </span>
         </span>
       ))}
     </div>

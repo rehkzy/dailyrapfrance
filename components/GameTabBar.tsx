@@ -93,7 +93,7 @@ export function GameTabBarContent() {
 export default function GameTabBar() {
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-30 px-4 pt-6 pointer-events-none"
+      className="fixed bottom-0 inset-x-0 z-30 px-4 pt-6 pointer-events-none lg:hidden"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
     >
       <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/85 to-transparent -z-10" aria-hidden="true" />

@@ -1,4 +1,4 @@
-import { Play, Flame, Users, Trophy, ArrowRight, Cast, Wifi, Disc3, LogIn } from "lucide-react";
+import { Play, Flame, Users, Trophy, ArrowRight, Cast, Wifi, Disc3, LogIn, Radio, Zap, Crown, Cloud } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDailyTheme, THEME_OPTIONS } from "@/lib/themes";
 import ShareGame from "@/components/ShareGame";
@@ -45,10 +45,10 @@ import DailyCountdown from "@/components/DailyCountdown";
 
 // Quatre thèmes mis en avant en Quick Play, avec chacun sa teinte
 const QUICK = [
-  { id: "2000s", from: "#F0001C", to: "#FF3B7A" },
-  { id: "recent", from: "#7C2CFF", to: "#FF3B7A" },
-  { id: "90s", from: "#FF6A00", to: "#F0001C" },
-  { id: "cloud", from: "#2C7CFF", to: "#7C2CFF" },
+  { id: "2000s", from: "#F0001C", to: "#FF3B7A", Icon: Radio },
+  { id: "recent", from: "#7C2CFF", to: "#FF3B7A", Icon: Zap },
+  { id: "90s", from: "#FF6A00", to: "#F0001C", Icon: Crown },
+  { id: "cloud", from: "#2C7CFF", to: "#7C2CFF", Icon: Cloud },
 ];
 
 export default async function JouerPage() {
@@ -111,7 +111,8 @@ export default async function JouerPage() {
                 }}
                 aria-hidden="true"
               />
-              <div className="vinyl-disc float-soft absolute -right-14 -top-14 w-56 h-56 sm:w-72 sm:h-72 opacity-90" aria-hidden="true" />
+              <div className="vinyl-disc float-soft absolute -right-10 top-1/2 -translate-y-1/2 w-64 h-64 sm:w-96 sm:h-96 opacity-95" aria-hidden="true" />
+              <div className="vinyl-disc absolute right-52 sm:right-80 -bottom-10 w-28 h-28 opacity-40 hidden sm:block" aria-hidden="true" />
               <div className="relative">
                 <span className="tag-pill" style={{ background: "#ff3b7a1f", color: "#FF3B7A", border: "1px solid #ff3b7a40" }}>
                   <Flame size={11} /> Défi du jour · {dailyTheme.label}
@@ -177,28 +178,34 @@ export default async function JouerPage() {
               </a>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-              {quickThemes.map(({ id, from, to, theme }) => {
-                const Icon = theme!.Icon;
-                return (
-                  <a
-                    key={id}
-                    href={`/blindtest?theme=${id}`}
-                    className="press lift group relative text-left rounded-3xl p-5 h-40 flex flex-col justify-end overflow-hidden border border-white/10"
-                    style={{ background: `linear-gradient(155deg, ${from}33, #140a0e 65%)` }}
-                  >
-                    <span
-                      className="absolute -top-5 -right-5 w-24 h-24 rounded-full opacity-50 group-hover:opacity-80 transition-opacity blur-2xl"
-                      style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
-                      aria-hidden="true"
+              {quickThemes.map(({ id, from, to, Icon, theme }) => (
+                <a
+                  key={id}
+                  href={`/blindtest?theme=${id}`}
+                  className="press lift group relative text-left rounded-3xl p-5 h-44 flex flex-col justify-end overflow-hidden border border-white/10 hover:border-white/25 transition-colors"
+                  style={{ background: `linear-gradient(155deg, ${from}59 0%, ${from}1f 40%, #120a0e 78%)` }}
+                >
+                  {/* halo de couleur */}
+                  <span
+                    className="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-60 group-hover:opacity-100 transition-opacity blur-2xl"
+                    style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+                    aria-hidden="true"
+                  />
+                  {/* mini-vinyle décoratif qui dépasse du coin */}
+                  <span className="vinyl-disc absolute -top-8 -right-8 w-28 h-28 opacity-80 group-hover:rotate-45 transition-transform duration-700" aria-hidden="true" />
+                  <span className="absolute top-4 left-4 w-10 h-10 rounded-2xl glass flex items-center justify-center text-ink">
+                    <Icon size={17} />
+                  </span>
+                  <p className="relative font-bold text-[15px] leading-tight flex items-center gap-2">
+                    {theme!.label}
+                    <ArrowRight
+                      size={14}
+                      className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
                     />
-                    <span className="absolute top-4 right-4 w-10 h-10 rounded-2xl glass flex items-center justify-center text-ink">
-                      <Icon size={17} />
-                    </span>
-                    <p className="relative font-bold text-[15px] leading-tight">{theme!.label}</p>
-                    <p className="relative text-[11px] text-ink-muted mt-0.5 line-clamp-1">{theme!.text}</p>
-                  </a>
-                );
-              })}
+                  </p>
+                  <p className="relative text-[11px] text-ink-muted mt-0.5 line-clamp-1">{theme!.text}</p>
+                </a>
+              ))}
             </div>
           </div>
 
