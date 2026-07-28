@@ -11,6 +11,7 @@ import ThemeCover from "@/components/ThemeCover";
 import Row from "@/components/Row";
 import { THEME_OPTIONS, THEME_CATEGORIES, PHOTO_THEME_IDS, FEATURED_THEME_IDS } from "@/lib/themes";
 import BrandLoader from "@/components/BrandLoader";
+import RoomFriendInvites from "@/components/RoomFriendInvites";
 import type { User } from "@supabase/supabase-js";
 
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
@@ -421,6 +422,8 @@ export default function BlindTestRoom({
               </button>
             </Magnetic>
           </div>
+
+          <RoomFriendInvites userId={user.id} roomCode={room.code} />
 
           <div className="glass rounded-xl p-4 mb-6">
             <p className="font-mono text-xs text-ink-faint uppercase tracking-wide mb-3 flex items-center justify-center gap-1.5">

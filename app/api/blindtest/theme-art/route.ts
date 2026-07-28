@@ -28,6 +28,12 @@ const THEME_LEAD_ARTISTS: Record<string, string[]> = {
   "artist-benef": ["benef"],
 };
 
+// Overrides manuels — quand la photo Deezer n'est pas la bonne (artiste émergent, visuel
+// daté...), on force une URL précise. Prioritaire sur la résolution automatique.
+const PHOTO_OVERRIDES: Record<string, string> = {
+  "artist-benef": "https://i.scdn.co/image/ab676161000051748be5cd6646bba914b0d11712",
+};
+
 async function fetchArtistPhoto(name: string): Promise<string | null> {
   const artist = await resolveArtist(name);
   return artist?.picture_medium || artist?.picture || null;
@@ -40,6 +46,9 @@ export async function GET(req: NextRequest) {
 
   const entries = await Promise.all(
     themes.map(async (t) => {
+      if (PHOTO_OVERRIDES[t]) {
+        return [t, PHOTO_OVERRIDES[t]] as const;
+      }
       const names = THEME_LEAD_ARTISTS[t];
       const photos = (await Promise.all(names.map(fetchArtistPhoto))).filter(Boolean);
       // Un thème à un seul artiste renvoie une chaîne (comportement historique) ; un thème

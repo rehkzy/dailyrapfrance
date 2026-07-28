@@ -1,42 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { PRESENCE_CHANNEL } from "@/components/SitePresence";
 
 /*
  * Compteur de joueurs en ligne — RÉEL, via Supabase Presence.
+ * Le suivi est fait au niveau du site par <SitePresence /> (layout) : le compteur
+ * inclut donc aussi les joueurs en pleine partie, pas seulement ceux sur le hub.
+ * Ce composant ne fait que LIRE l'état de présence (pas de track ici, sinon l'onglet
+ * serait compté deux fois).
  *
- * Chaque visiteur du hub s'enregistre sur un canal de présence partagé ; le compteur
- * affiche le nombre d'entrées effectivement connectées, mis à jour en direct quand
- * quelqu'un arrive ou part. Aucun chiffre inventé : la variation vient du trafic réel,
- * ce qui rend la preuve sociale crédible ET vérifiable (deux potes qui ouvrent la page
- * voient le compteur bouger).
- *
- * Affichage progressif pour que ce soit toujours valorisant et jamais mensonger :
- * · 1 seul joueur (le visiteur) → on n'affiche rien (un "1 joueur en ligne" fait vide)
- * · 2+ → pastille verte pulsante + "N joueurs en ligne"
+ * Anti-clignotement : les baisses de compteur ne sont appliquées qu'après 5 s de
+ * confirmation — une reconnexion temps réel passagère ne fait plus disparaître le badge.
+ * Les hausses, elles, s'affichent immédiatement.
  */
 export default function LivePlayersBadge() {
   const [count, setCount] = useState(0);
+  const pendingDrop = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
-    const key = `visitor-${Math.random().toString(36).slice(2)}`;
-    const channel = supabase.channel("presence:hub", {
-      config: { presence: { key } },
-    });
+    const channel = supabase.channel(PRESENCE_CHANNEL);
 
     channel
       .on("presence", { event: "sync" }, () => {
-        setCount(Object.keys(channel.presenceState()).length);
+        const next = Object.keys(channel.presenceState()).length;
+        setCount((prev) => {
+          if (next >= prev) {
+            if (pendingDrop.current) {
+              clearTimeout(pendingDrop.current);
+              pendingDrop.current = null;
+            }
+            return next;
+          }
+          // baisse : on attend 5 s de stabilité avant de l'appliquer
+          if (!pendingDrop.current) {
+            pendingDrop.current = setTimeout(() => {
+              pendingDrop.current = null;
+              setCount(Object.keys(channel.presenceState()).length);
+            }, 5000);
+          }
+          return prev;
+        });
       })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ at: Date.now() });
-        }
-      });
+      .subscribe();
 
     return () => {
+      if (pendingDrop.current) clearTimeout(pendingDrop.current);
       supabase.removeChannel(channel);
     };
   }, []);

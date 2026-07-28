@@ -4,6 +4,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import SitePresence from "@/components/SitePresence";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dailyrapfrance.best"),
@@ -89,6 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD_SITE) }}
         />
         <GoogleAnalytics />
+        <SitePresence />
         <SmoothScroll />
         <div className="bg-orbs" aria-hidden="true" />
         <div className="grain" aria-hidden="true" />
