@@ -47,20 +47,8 @@ type Settings = {
 };
 
 type AnalyticsData = {
-  ga4: {
-    activeUsers28d: number;
-    sessions28d: number;
-    pageViews28d: number;
-    days: { day: string; users: number }[];
-    topPages: { path: string; views: number }[];
-  } | null;
-  search: {
-    clicks28d: number;
-    impressions28d: number;
-    ctr28d: number;
-    avgPosition28d: number;
-    topQueries: { query: string; clicks: number; impressions: number }[];
-  } | null;
+  ga4: import("@/lib/googleReporting").GA4Report | null;
+  search: import("@/lib/googleReporting").SearchConsoleReport | null;
 };
 
 const TABS = [
@@ -249,13 +237,33 @@ function OverviewTab() {
 
 // ── Audience (Google Analytics 4 + Search Console) ─────────────────────────
 
+function BarList({ items, valueSuffix }: { items: { label: string; value: number }[]; valueSuffix?: string }) {
+  const max = Math.max(1, ...items.map((i) => i.value));
+  if (items.length === 0) return <p className="text-xs text-ink-faint">Pas encore de données.</p>;
+  return (
+    <div className="space-y-2">
+      {items.map((i) => (
+        <div key={i.label} className="flex items-center gap-3">
+          <span className="text-xs w-28 truncate shrink-0">{i.label}</span>
+          <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(i.value / max) * 100}%` }} />
+          </div>
+          <span className="text-xs font-mono text-ink-faint w-10 text-right shrink-0">
+            {i.value}
+            {valueSuffix ?? ""}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AudienceTab() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    setLoading(true);
     fetch("/api/admin/analytics")
       .then((r) => r.json())
       .then((d) => (d.error ? setError(d.error) : setData(d)))
@@ -263,6 +271,11 @@ function AudienceTab() {
       .finally(() => setLoading(false));
   }, []);
   useEffect(load, [load]);
+  // Le nombre d'utilisateurs "en ce moment" bouge vite — on le rafraîchit tout seul.
+  useEffect(() => {
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
+  }, [load]);
 
   if (loading) return <Loading />;
   if (error) return <ErrorCard message={error} />;
@@ -270,17 +283,59 @@ function AudienceTab() {
 
   const { ga4, search } = data;
   const maxUsers = Math.max(1, ...(ga4?.days.map((d) => d.users) ?? [1]));
-  const maxPageViews = Math.max(1, ...(ga4?.topPages.map((p) => p.views) ?? [1]));
-  const maxQueryClicks = Math.max(1, ...(search?.topQueries.map((q) => q.clicks) ?? [1]));
+  const maxTrendClicks = Math.max(1, ...(search?.trend.map((d) => d.clicks) ?? [1]));
 
   return (
     <div className="space-y-5">
+      <p className="text-[11px] text-ink-faint leading-relaxed">
+        Note : l&apos;adresse IP des visiteurs n&apos;est jamais exposée par Google (RGPD) — la localisation
+        ci-dessous est une estimation par pays/ville, pas un traçage IP.
+      </p>
+
       {ga4 && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <StatCard Icon={Users} label="Utilisateurs actifs" value={ga4.activeUsers28d} sub="28 derniers jours" />
+          {/* Temps réel */}
+          <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-gold" />
+              </span>
+              En ce moment sur le site
+            </p>
+            <p className="font-display text-4xl font-bold mb-4">{ga4.activeUsersNow}</p>
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div>
+                <p className="text-[11px] text-ink-faint mb-2">Par pays</p>
+                <BarList items={ga4.realtimeByCountry.map((c) => ({ label: c.country, value: c.users }))} />
+              </div>
+              <div>
+                <p className="text-[11px] text-ink-faint mb-2">Par appareil</p>
+                <BarList items={ga4.realtimeByDevice.map((d) => ({ label: d.device, value: d.users }))} />
+              </div>
+            </div>
+          </div>
+
+          {/* Vue d'ensemble 28j */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatCard Icon={Users} label="Utilisateurs" value={ga4.activeUsers28d} sub="28 derniers jours" />
+            <StatCard Icon={UserPlus} label="Nouveaux" value={ga4.newUsers28d} sub="28 derniers jours" />
             <StatCard Icon={Radio} label="Sessions" value={ga4.sessions28d} sub="28 derniers jours" />
             <StatCard Icon={Globe} label="Pages vues" value={ga4.pageViews28d} sub="28 derniers jours" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card p-4">
+              <p className="text-xs text-ink-faint mb-1.5">Durée moyenne / session</p>
+              <p className="font-display text-2xl font-bold">{ga4.avgSessionDuration}</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-xs text-ink-faint mb-1.5">Taux d&apos;engagement</p>
+              <p className="font-display text-2xl font-bold">{ga4.engagementRate}%</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-xs text-ink-faint mb-1.5">Taux de rebond</p>
+              <p className="font-display text-2xl font-bold">{ga4.bounceRate}%</p>
+            </div>
           </div>
 
           <div className="card p-5">
@@ -289,7 +344,7 @@ function AudienceTab() {
             </p>
             <div className="flex items-end gap-1.5 h-32">
               {ga4.days.map((d) => (
-                <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5 min-w-0" title={`${d.day} — ${d.users}`}>
+                <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5 min-w-0" title={`${d.day} — ${d.users} utilisateurs, ${d.sessions} sessions`}>
                   <span className="text-[10px] font-mono text-ink-faint">{d.users || ""}</span>
                   <div
                     className="w-full rounded-t bg-gold/70 hover:bg-gold transition-colors"
@@ -305,15 +360,59 @@ function AudienceTab() {
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Pages les plus vues (28 j)</p>
             <div className="space-y-2.5">
               {ga4.topPages.length === 0 && <p className="text-xs text-ink-faint">Pas encore de données.</p>}
-              {ga4.topPages.map((p) => (
-                <div key={p.path} className="flex items-center gap-3">
-                  <span className="text-xs w-48 truncate shrink-0 font-mono">{p.path}</span>
-                  <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(p.views / maxPageViews) * 100}%` }} />
+              {ga4.topPages.map((p) => {
+                const maxViews = Math.max(1, ...ga4.topPages.map((x) => x.views));
+                return (
+                  <div key={p.path} className="flex items-center gap-3">
+                    <span className="text-xs w-40 truncate shrink-0 font-mono">{p.path}</span>
+                    <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(p.views / maxViews) * 100}%` }} />
+                    </div>
+                    <span className="text-xs font-mono text-ink-faint w-12 text-right shrink-0">{p.views}</span>
+                    <span className="text-[10px] font-mono text-ink-faint w-14 text-right shrink-0">{p.avgDuration}</span>
                   </div>
-                  <span className="text-xs font-mono text-ink-faint w-10 text-right shrink-0">{p.views}</span>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Géographie */}
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Pays (28 j)</p>
+              <BarList items={ga4.topCountries.map((c) => ({ label: c.country, value: c.users }))} />
+            </div>
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Villes (28 j)</p>
+              <BarList items={ga4.topCities.map((c) => ({ label: c.city, value: c.users }))} />
+            </div>
+          </div>
+
+          {/* Appareils */}
+          <div className="grid md:grid-cols-3 gap-5">
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Appareil</p>
+              <BarList items={ga4.byDeviceCategory.map((d) => ({ label: d.device, value: d.users }))} />
+            </div>
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Navigateur</p>
+              <BarList items={ga4.byBrowser.map((b) => ({ label: b.browser, value: b.users }))} />
+            </div>
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Système</p>
+              <BarList items={ga4.byOS.map((o) => ({ label: o.os, value: o.users }))} />
+            </div>
+          </div>
+
+          {/* Acquisition */}
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Sources de trafic</p>
+              <BarList items={ga4.bySource.map((s) => ({ label: s.source, value: s.users }))} />
+            </div>
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Nouveaux vs. récurrents</p>
+              <BarList items={ga4.newVsReturning.map((n) => ({ label: n.type, value: n.users }))} />
             </div>
           </div>
         </>
@@ -329,22 +428,74 @@ function AudienceTab() {
           </div>
 
           <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
+              <TrendingUp size={13} /> Clics Google par jour — 28 derniers jours
+            </p>
+            <div className="flex items-end gap-1 h-28">
+              {search.trend.map((d) => (
+                <div key={d.day} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${d.day} — ${d.clicks} clics, ${d.impressions} impressions`}>
+                  <div
+                    className="w-full rounded-t bg-gold/70 hover:bg-gold transition-colors"
+                    style={{ height: `${Math.max(3, (d.clicks / maxTrendClicks) * 100)}%` }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-5">
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">
               Recherches qui amènent du trafic (28 j)
             </p>
             <div className="space-y-2.5">
               {search.topQueries.length === 0 && <p className="text-xs text-ink-faint">Pas encore de données.</p>}
-              {search.topQueries.map((q) => (
-                <div key={q.query} className="flex items-center gap-3">
-                  <span className="text-xs w-48 truncate shrink-0">{q.query}</span>
-                  <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(q.clicks / maxQueryClicks) * 100}%` }} />
+              {search.topQueries.map((q) => {
+                const maxClicks = Math.max(1, ...search.topQueries.map((x) => x.clicks));
+                return (
+                  <div key={q.query} className="flex items-center gap-3">
+                    <span className="text-xs w-40 truncate shrink-0">{q.query}</span>
+                    <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(q.clicks / maxClicks) * 100}%` }} />
+                    </div>
+                    <span className="text-xs font-mono text-ink-faint w-24 text-right shrink-0">
+                      {q.clicks} clics · {q.impressions} vues
+                    </span>
+                    <span className="text-[10px] font-mono text-ink-faint w-14 text-right shrink-0">pos. {q.position}</span>
                   </div>
-                  <span className="text-xs font-mono text-ink-faint w-24 text-right shrink-0">
-                    {q.clicks} clics · {q.impressions} vues
-                  </span>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Pages les mieux référencées (28 j)</p>
+            <div className="space-y-2.5">
+              {search.topPages.length === 0 && <p className="text-xs text-ink-faint">Pas encore de données.</p>}
+              {search.topPages.map((p) => {
+                const maxClicks = Math.max(1, ...search.topPages.map((x) => x.clicks));
+                return (
+                  <div key={p.page} className="flex items-center gap-3">
+                    <span className="text-xs w-40 truncate shrink-0 font-mono">{p.page}</span>
+                    <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(p.clicks / maxClicks) * 100}%` }} />
+                    </div>
+                    <span className="text-xs font-mono text-ink-faint w-24 text-right shrink-0">
+                      {p.clicks} clics · {p.impressions} vues
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Pays d&apos;origine des recherches</p>
+              <BarList items={search.byCountry.map((c) => ({ label: c.country, value: c.clicks }))} valueSuffix=" clics" />
+            </div>
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Appareil de recherche</p>
+              <BarList items={search.byDevice.map((d) => ({ label: d.device, value: d.clicks }))} valueSuffix=" clics" />
             </div>
           </div>
         </>

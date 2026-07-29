@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 import { googleConfigured, fetchGA4Report, fetchSearchConsoleReport } from "@/lib/googleReporting";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 // GET /api/admin/analytics — trafic (Google Analytics 4) + visibilité (Search Console)
 // en un seul appel, pour l'onglet "Audience" du back-office.
