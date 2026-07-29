@@ -20,7 +20,7 @@ import { THEME_OPTIONS } from "@/lib/themes";
 type Stats = {
   totals: {
     users: number; users7d: number; users30d: number; games: number; games7d: number;
-    roomsActive: number; friendships: number; avgPoints14d: number;
+    roomsActive: number; friendships: number; avgPoints14d: number; onlineNow: number;
   };
   days: { day: string; games: number }[];
   topThemes: { theme: string; games: number }[];
@@ -28,6 +28,10 @@ type Stats = {
   topScores: {
     points: number; theme: string; rounds: number; created_at: string;
     profiles: { display_name: string | null; username: string | null } | null;
+  }[];
+  recentlyOnline: {
+    id: string; display_name: string | null; username: string | null;
+    last_seen_at: string | null; isOnline: boolean;
   }[];
 };
 
@@ -165,82 +169,84 @@ function OverviewTab() {
   const maxTheme = Math.max(1, ...stats.topThemes.map((x) => x.games));
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard Icon={Users} label="Comptes" value={t.users} sub={`+${t.users7d} sur 7 j · +${t.users30d} sur 30 j`} />
-        <StatCard Icon={Gamepad2} label="Parties jouées" value={t.games} sub={`+${t.games7d} sur 7 j`} />
-        <StatCard Icon={Radio} label="Salons en cours" value={t.roomsActive} sub="lobby + en partie" />
-        <StatCard Icon={Heart} label="Amitiés" value={t.friendships} sub={`moy. ${t.avgPoints14d} pts / partie (14 j)`} />
-      </div>
-
-      <div className="card p-5">
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
-          <TrendingUp size={13} /> Parties par jour — 14 derniers jours
-        </p>
-        <div className="flex items-end gap-1.5 h-32">
-          {stats.days.map((d) => (
-            <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5 min-w-0" title={`${d.day} — ${d.games} parties`}>
-              <span className="text-[10px] font-mono text-ink-faint">{d.games || ""}</span>
-              <div
-                className="w-full rounded-t bg-gold/70 hover:bg-gold transition-colors"
-                style={{ height: `${Math.max(3, (d.games / maxGames) * 100)}%` }}
-              />
-              <span className="text-[9px] font-mono text-ink-faint truncate w-full text-center">{d.day.slice(8)}</span>
-            </div>
-          ))}
+    <div className="space-y-7">
+      {/* ── Vue d'ensemble ─────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Vue d&apos;ensemble</p>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <StatCard Icon={Users} label="Comptes" value={t.users} sub={`+${t.users7d} sur 7 j · +${t.users30d} sur 30 j`} />
+          <StatCard Icon={Radio} label="En ligne maintenant" value={t.onlineNow} sub="activité < 1 min" />
+          <StatCard Icon={Gamepad2} label="Parties jouées" value={t.games} sub={`+${t.games7d} sur 7 j`} />
+          <StatCard Icon={Radio} label="Salons en cours" value={t.roomsActive} sub="lobby + en partie" />
+          <StatCard Icon={Heart} label="Amitiés" value={t.friendships} sub={`moy. ${t.avgPoints14d} pts / partie (14 j)`} />
         </div>
-      </div>
+      </section>
 
-      <div className="grid md:grid-cols-2 gap-5">
-        <div className="card p-5">
-          <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Thèmes les plus joués (14 j)</p>
-          <div className="space-y-2.5">
-            {stats.topThemes.length === 0 && <p className="text-xs text-ink-faint">Aucune partie sur la période.</p>}
-            {stats.topThemes.map((x) => (
-              <div key={x.theme} className="flex items-center gap-3">
-                <span className="text-xs w-40 truncate shrink-0">{themeLabel(x.theme)}</span>
-                <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
-                  <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(x.games / maxTheme) * 100}%` }} />
-                </div>
-                <span className="text-xs font-mono text-ink-faint w-8 text-right shrink-0">{x.games}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      {/* ── Activité ───────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Activité</p>
         <div className="card p-5">
           <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
-            <Trophy size={13} /> Meilleurs scores (all-time)
+            <TrendingUp size={13} /> Parties par jour — 14 derniers jours
           </p>
-          <div className="space-y-2">
-            {stats.topScores.map((s, i) => (
-              <div key={i} className="flex items-center gap-2.5 text-sm">
-                <span className="font-mono text-ink-faint w-5">{i + 1}</span>
-                {i === 0 && <Crown size={13} className="text-gold shrink-0" />}
-                <span className="truncate flex-1">
-                  {s.profiles?.display_name ?? s.profiles?.username ?? "Anonyme"}
-                  <span className="text-ink-faint text-xs"> · {themeLabel(s.theme)}</span>
-                </span>
-                <span className="font-mono font-bold text-gold shrink-0">{s.points}</span>
+          <div className="flex items-end gap-1.5 h-32">
+            {stats.days.map((d) => (
+              <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5 min-w-0" title={`${d.day} — ${d.games} parties`}>
+                <span className="text-[10px] font-mono text-ink-faint">{d.games || ""}</span>
+                <div
+                  className="w-full rounded-t bg-gold/70 hover:bg-gold transition-colors"
+                  style={{ height: `${Math.max(3, (d.games / maxGames) * 100)}%` }}
+                />
+                <span className="text-[9px] font-mono text-ink-faint truncate w-full text-center">{d.day.slice(8)}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="card p-5">
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
-          <UserPlus size={13} /> Dernières inscriptions
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {stats.recentUsers.map((u) => (
-            <span key={u.id} className="glass rounded-full px-3 py-1.5 text-xs flex items-center gap-2">
-              {u.display_name ?? u.username ?? "Sans nom"}
-              <span className="text-ink-faint font-mono">{fmtDate(u.created_at).slice(0, 8)}</span>
-            </span>
-          ))}
+      {/* ── Contenu ────────────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Contenu</p>
+        <div className="grid md:grid-cols-2 gap-5">
+          <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Thèmes les plus joués (14 j)</p>
+            <div className="space-y-2.5">
+              {stats.topThemes.length === 0 && <p className="text-xs text-ink-faint">Aucune partie sur la période.</p>}
+              {stats.topThemes.map((x) => (
+                <div key={x.theme} className="flex items-center gap-3">
+                  <span className="text-xs w-40 truncate shrink-0">{themeLabel(x.theme)}</span>
+                  <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(x.games / maxTheme) * 100}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-ink-faint w-8 text-right shrink-0">{x.games}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
+              <Trophy size={13} /> Meilleurs scores (all-time)
+            </p>
+            <div className="space-y-2">
+              {stats.topScores.map((s, i) => (
+                <div key={i} className="flex items-center gap-2.5 text-sm">
+                  <span className="font-mono text-ink-faint w-5">{i + 1}</span>
+                  {i === 0 && <Crown size={13} className="text-gold shrink-0" />}
+                  <span className="truncate flex-1">
+                    {s.profiles?.display_name ?? s.profiles?.username ?? "Anonyme"}
+                    <span className="text-ink-faint text-xs"> · {themeLabel(s.theme)}</span>
+                  </span>
+                  <span className="font-mono font-bold text-gold shrink-0">{s.points}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Dernières inscriptions et joueurs actifs récemment sont désormais dans
+          l'onglet "Utilisateurs" — plus logique puisque ça concerne les comptes. */}
     </div>
   );
 }
@@ -304,7 +310,8 @@ function AudienceTab() {
 
       {ga4 && (
         <>
-          {/* Temps réel */}
+          <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Temps réel</p>
           <div className="card p-5">
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
               <span className="relative flex h-2 w-2">
@@ -325,8 +332,10 @@ function AudienceTab() {
               </div>
             </div>
           </div>
+          </section>
 
-          {/* Vue d'ensemble 28j */}
+          <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Performance (28 derniers jours)</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard Icon={Users} label="Utilisateurs" value={ga4.activeUsers28d} sub="28 derniers jours" />
             <StatCard Icon={UserPlus} label="Nouveaux" value={ga4.newUsers28d} sub="28 derniers jours" />
@@ -385,8 +394,10 @@ function AudienceTab() {
               })}
             </div>
           </div>
+          </section>
 
-          {/* Géographie */}
+          <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Géographie</p>
           <div className="grid md:grid-cols-2 gap-5">
             <div className="card p-5">
               <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Pays (28 j)</p>
@@ -397,8 +408,10 @@ function AudienceTab() {
               <BarList items={ga4.topCities.map((c) => ({ label: c.city, value: c.users }))} />
             </div>
           </div>
+          </section>
 
-          {/* Appareils */}
+          <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Appareils &amp; techno</p>
           <div className="grid md:grid-cols-3 gap-5">
             <div className="card p-5">
               <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Appareil</p>
@@ -413,8 +426,10 @@ function AudienceTab() {
               <BarList items={ga4.byOS.map((o) => ({ label: o.os, value: o.users }))} />
             </div>
           </div>
+          </section>
 
-          {/* Acquisition */}
+          <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Acquisition</p>
           <div className="grid md:grid-cols-2 gap-5">
             <div className="card p-5">
               <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Sources de trafic</p>
@@ -425,11 +440,13 @@ function AudienceTab() {
               <BarList items={ga4.newVsReturning.map((n) => ({ label: n.type, value: n.users }))} />
             </div>
           </div>
+          </section>
         </>
       )}
 
       {search && (
-        <>
+        <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Référencement Google (SEO)</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard Icon={Search} label="Clics Google" value={search.clicks28d} sub="28 derniers jours" />
             <StatCard Icon={TrendingUp} label="Impressions" value={search.impressions28d} sub="28 derniers jours" />
@@ -508,7 +525,7 @@ function AudienceTab() {
               <BarList items={search.byDevice.map((d) => ({ label: d.device, value: d.clicks }))} valueSuffix=" clics" />
             </div>
           </div>
-        </>
+        </section>
       )}
 
       {!ga4 && !search && (
@@ -564,10 +581,13 @@ function VisitsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-[11px] text-ink-faint leading-relaxed">
-        {total} visite{total > 1 ? "s" : ""} journalisée{total > 1 ? "s" : ""} — IP et géolocalisation fournies par
-        Vercel, capturées côté serveur à chaque page vue (hors admin, API et fichiers statiques).
-      </p>
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Journal des visites (anonyme)</p>
+        <p className="text-[11px] text-ink-faint leading-relaxed">
+          {total} visite{total > 1 ? "s" : ""} journalisée{total > 1 ? "s" : ""} — IP et géolocalisation fournies par
+          Vercel, capturées côté serveur à chaque page vue (hors admin, API et fichiers statiques).
+        </p>
+      </section>
 
       {loading ? (
         <Loading />
@@ -729,6 +749,14 @@ function UsersTab({
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [summary, setSummary] = useState<Pick<Stats, "recentUsers" | "recentlyOnline"> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/stats")
+      .then((r) => r.json())
+      .then((d) => !d.error && setSummary({ recentUsers: d.recentUsers, recentlyOnline: d.recentlyOnline }))
+      .catch(() => {});
+  }, []);
 
   const pageEmails = users.map((u) => u.email).filter(Boolean);
   const allPageSelected = pageEmails.length > 0 && pageEmails.every((e) => recipients.includes(e));
@@ -788,18 +816,69 @@ function UsersTab({
         </div>
       )}
 
-      <div className="relative">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" />
-        <input
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Rechercher par e-mail, pseudo ou nom..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gold/50"
-        />
-      </div>
+      {summary && (
+        <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Aperçu des comptes</p>
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
+                <UserPlus size={13} /> Dernières inscriptions
+              </p>
+              {summary.recentUsers.length === 0 ? (
+                <p className="text-xs text-ink-faint">Aucune inscription pour l&apos;instant.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {summary.recentUsers.map((u) => (
+                    <span key={u.id} className="glass rounded-full px-3 py-1.5 text-xs flex items-center gap-2">
+                      {u.display_name ?? u.username ?? "Sans nom"}
+                      <span className="text-ink-faint font-mono">{fmtDate(u.created_at).slice(0, 8)}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="card p-5">
+              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
+                <Radio size={13} /> Actifs récemment
+              </p>
+              {summary.recentlyOnline.length === 0 ? (
+                <p className="text-xs text-ink-faint">
+                  Personne n&apos;a encore été suivi — ça se remplira au fil des visites.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {summary.recentlyOnline.map((u) => (
+                    <div key={u.id} className="flex items-center gap-2.5 text-sm">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${u.isOnline ? "bg-emerald-400" : "bg-white/15"}`} />
+                      <span className="truncate flex-1">{u.display_name ?? u.username ?? "Sans nom"}</span>
+                      <span className="text-ink-faint text-xs font-mono shrink-0">
+                        {u.isOnline ? "en ligne" : fmtDate(u.last_seen_at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Tous les comptes</p>
+        <div className="relative">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" />
+          <input
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Rechercher par e-mail, pseudo ou nom..."
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gold/50"
+          />
+        </div>
+      </section>
 
       {loading ? (
         <Loading />
@@ -955,11 +1034,38 @@ function RoomsTab() {
   if (error) return <ErrorCard message={error} />;
   if (loading) return <Loading />;
 
+  const playing = rooms.filter((r) => r.status === "playing");
+  const lobby = rooms.filter((r) => r.status !== "playing");
+
+  const RoomRow = (r: AdminRoom) => (
+    <div key={r.id} className="card p-4 flex flex-wrap items-center gap-4">
+      <span className="font-display text-xl font-bold tracking-[0.15em] text-gold">{r.code}</span>
+      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-mono ${r.status === "playing" ? "bg-gold/15 text-gold" : "glass text-ink-muted"}`}>
+        {r.status === "playing" ? `manche ${r.current_round + 1}/${r.rounds}` : "lobby"}
+      </span>
+      <span className="text-xs text-ink-muted">{themeLabel(r.theme)}</span>
+      <span className="text-xs text-ink-faint font-mono">{r.answer_mode === "qcm" ? "Facile" : "Difficile"}{r.gages_enabled ? " · gages" : ""}</span>
+      <span className="text-xs text-ink-faint flex-1 min-w-[160px] truncate">
+        {r.players.length ? r.players.join(", ") : "aucun joueur"}
+      </span>
+      {confirming === r.id ? (
+        <span className="inline-flex items-center gap-2 text-xs">
+          <button onClick={() => closeRoom(r.id)} className="text-riseNeg font-semibold hover:underline">Fermer le salon</button>
+          <button onClick={() => setConfirming(null)} className="text-ink-faint hover:text-ink">Annuler</button>
+        </span>
+      ) : (
+        <button onClick={() => setConfirming(r.id)} className="text-ink-faint hover:text-riseNeg transition-colors" aria-label={`Fermer ${r.code}`}>
+          <Trash2 size={15} />
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-ink-muted">
-          {rooms.length} salon{rooms.length > 1 ? "s" : ""} en cours
+          {rooms.length} salon{rooms.length > 1 ? "s" : ""} en cours — {playing.length} en partie, {lobby.length} en attente
         </p>
         <button onClick={load} className="glass rounded-full px-4 py-2 text-xs font-mono inline-flex items-center gap-1.5 hover:text-ink text-ink-muted transition-colors">
           <RefreshCcw size={12} /> Actualiser
@@ -970,29 +1076,19 @@ function RoomsTab() {
         <div className="card p-8 text-center text-sm text-ink-faint">Aucun salon actif en ce moment.</div>
       )}
 
-      {rooms.map((r) => (
-        <div key={r.id} className="card p-4 flex flex-wrap items-center gap-4">
-          <span className="font-display text-xl font-bold tracking-[0.15em] text-gold">{r.code}</span>
-          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-mono ${r.status === "playing" ? "bg-gold/15 text-gold" : "glass text-ink-muted"}`}>
-            {r.status === "playing" ? `manche ${r.current_round + 1}/${r.rounds}` : "lobby"}
-          </span>
-          <span className="text-xs text-ink-muted">{themeLabel(r.theme)}</span>
-          <span className="text-xs text-ink-faint font-mono">{r.answer_mode === "qcm" ? "Facile" : "Difficile"}{r.gages_enabled ? " · gages" : ""}</span>
-          <span className="text-xs text-ink-faint flex-1 min-w-[160px] truncate">
-            {r.players.length ? r.players.join(", ") : "aucun joueur"}
-          </span>
-          {confirming === r.id ? (
-            <span className="inline-flex items-center gap-2 text-xs">
-              <button onClick={() => closeRoom(r.id)} className="text-riseNeg font-semibold hover:underline">Fermer le salon</button>
-              <button onClick={() => setConfirming(null)} className="text-ink-faint hover:text-ink">Annuler</button>
-            </span>
-          ) : (
-            <button onClick={() => setConfirming(r.id)} className="text-ink-faint hover:text-riseNeg transition-colors" aria-label={`Fermer ${r.code}`}>
-              <Trash2 size={15} />
-            </button>
-          )}
-        </div>
-      ))}
+      {playing.length > 0 && (
+        <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">En partie ({playing.length})</p>
+          <div className="space-y-3">{playing.map(RoomRow)}</div>
+        </section>
+      )}
+
+      {lobby.length > 0 && (
+        <section className="space-y-3">
+          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">En attente — lobby ({lobby.length})</p>
+          <div className="space-y-3">{lobby.map(RoomRow)}</div>
+        </section>
+      )}
     </div>
   );
 }
@@ -1168,10 +1264,15 @@ function EmailTab({
   }
 
   return (
-    <div className="space-y-4 max-w-2xl">
-      <QuickSendCard />
+    <div className="space-y-6 max-w-2xl">
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Envoi rapide</p>
+        <QuickSendCard />
+      </section>
 
-      <div className="card p-5">
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Campagne</p>
+        <div className="card p-5">
         <p className="font-semibold text-sm flex items-center gap-2 mb-1">
           <Mail size={15} className="text-gold" /> Campagne e-mail
         </p>
@@ -1312,16 +1413,20 @@ function EmailTab({
         {busy && <p className="text-xs text-ink-faint mt-3">Envoi en cours...</p>}
         {result && <p className="text-xs text-gold mt-3 leading-relaxed">{result}</p>}
         {error && <p className="text-xs text-riseNeg mt-3">{error}</p>}
-      </div>
+        </div>
+      </section>
 
-      <div className="card p-5">
-        <p className="font-semibold text-sm mb-1.5">🤖 Mail automatique de feedback</p>
-        <p className="text-xs text-ink-faint leading-relaxed">
-          Chaque jour à 18h (heure FR), les joueurs inscrits depuis 3 jours reçoivent automatiquement un mail
-          leur demandant leur avis et les incitant à défier un pote — une seule fois par joueur, géré par le
-          cron Vercel. Rien à faire de ton côté une fois configuré.
-        </p>
-      </div>
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Automatisation</p>
+        <div className="card p-5">
+          <p className="font-semibold text-sm mb-1.5">🤖 Mail automatique de feedback</p>
+          <p className="text-xs text-ink-faint leading-relaxed">
+            Chaque jour à 18h (heure FR), les joueurs inscrits depuis 3 jours reçoivent automatiquement un mail
+            leur demandant leur avis et les incitant à défier un pote — une seule fois par joueur, géré par le
+            cron Vercel. Rien à faire de ton côté une fois configuré.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1361,8 +1466,10 @@ function SettingsTab() {
   const maint = settings.maintenance ?? { enabled: false, message: "" };
 
   return (
-    <div className="space-y-5 max-w-2xl">
-      <div className="card p-5">
+    <div className="space-y-6 max-w-2xl">
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Communication</p>
+        <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
           <p className="font-semibold text-sm flex items-center gap-2">
             <Megaphone size={15} className="text-gold" /> Bannière d&apos;annonce
@@ -1387,9 +1494,12 @@ function SettingsTab() {
           placeholder="Ex. 🔥 Nouveau : le Blind Test Aya Nakamura est dispo !"
           className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50 resize-none"
         />
-      </div>
+        </div>
+      </section>
 
-      <div className="card p-5">
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Disponibilité du site</p>
+        <div className="card p-5">
         <div className="flex items-center justify-between mb-3">
           <p className="font-semibold text-sm flex items-center gap-2">
             <Wrench size={15} className="text-gold" /> Mode maintenance
@@ -1413,7 +1523,8 @@ function SettingsTab() {
           placeholder="Le blind test revient dans quelques minutes."
           className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50"
         />
-      </div>
+        </div>
+      </section>
 
       {saved && <p className="text-xs text-gold font-mono">Enregistré ✓</p>}
     </div>

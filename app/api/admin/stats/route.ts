@@ -24,6 +24,8 @@ export async function GET() {
     recentScores,
     recentUsers,
     topScores,
+    recentlyOnline,
+    onlineNow,
   ] = await Promise.all([
     db.from("profiles").select("id", { count: "exact", head: true }),
     db.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", iso(7 * DAY)),
@@ -49,6 +51,15 @@ export async function GET() {
       .select("points, theme, rounds, created_at, user_id, profiles(display_name, username)")
       .order("points", { ascending: false })
       .limit(10),
+    // Joueurs les plus récemment actifs (présence alimentée par ActivityTracker côté site).
+    db
+      .from("profiles")
+      .select("id, display_name, username, last_seen_at")
+      .not("last_seen_at", "is", null)
+      .order("last_seen_at", { ascending: false })
+      .limit(12),
+    // En ligne "maintenant" au sens strict : activité dans la dernière minute.
+    db.from("profiles").select("id", { count: "exact", head: true }).gte("last_seen_at", iso(60_000)),
   ]);
 
   // Agrégats côté serveur sur la fenêtre 14 jours
@@ -82,10 +93,15 @@ export async function GET() {
       roomsActive: roomsActive.count ?? 0,
       friendships: friendshipsAccepted.count ?? 0,
       avgPoints14d: scores.length ? Math.round((pointsSum / scores.length) * 10) / 10 : 0,
+      onlineNow: onlineNow.count ?? 0,
     },
     days,
     topThemes,
     recentUsers: recentUsers.data ?? [],
     topScores: topScores.data ?? [],
+    recentlyOnline: (recentlyOnline.data ?? []).map((u) => ({
+      ...u,
+      isOnline: u.last_seen_at ? now - new Date(u.last_seen_at).getTime() < 60_000 : false,
+    })),
   });
 }
