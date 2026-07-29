@@ -4,7 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/blindtest";
+  // Chemin de retour post-connexion — uniquement un chemin interne ("/..." mais pas "//...")
+  // pour empêcher toute redirection vers un site externe via un lien forgé.
+  const rawNext = searchParams.get("next") ?? "/blindtest";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/blindtest";
 
   if (code) {
     const supabase = await createClient();

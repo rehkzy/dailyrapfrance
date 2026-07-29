@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { oauthCallbackUrl } from "@/lib/authRedirect";
 import type { User } from "@supabase/supabase-js";
 import { LogOut, User as UserIcon } from "lucide-react";
 
@@ -40,7 +41,7 @@ export default function AuthButton({ variant = "desktop" }: { variant?: "desktop
   async function signIn() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: oauthCallbackUrl() },
     });
   }
 
