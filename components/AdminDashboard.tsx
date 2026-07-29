@@ -431,6 +431,85 @@ Merci d'être là depuis le début. Le meilleur arrive.
 
 L'équipe DailyRapFrance`;
 
+function QuickSendCard() {
+  const [to, setTo] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send() {
+    if (!to.trim() || !subject.trim() || !body.trim()) {
+      setError("Destinataire, sujet et message requis.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, subject, body }),
+      });
+      const d = await res.json();
+      if (d.error) setError(d.error);
+      else {
+        setResult(`Envoyé à ${to} ✓`);
+        setTo("");
+      }
+    } catch {
+      setError("Envoi impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <p className="font-semibold text-sm flex items-center gap-2 mb-1">
+        <Send size={15} className="text-gold" /> Envoi rapide
+      </p>
+      <p className="text-xs text-ink-faint mb-4">
+        Un mail ponctuel à une adresse précise (joueur, partenaire...) — même habillage brandé que les campagnes.
+      </p>
+      <input
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+        type="email"
+        placeholder="destinataire@exemple.com"
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50 mb-2.5"
+      />
+      <input
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        placeholder="Sujet"
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50 mb-2.5"
+      />
+      <textarea
+        data-lenis-prevent
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={5}
+        placeholder={"Ton message...\n\n> Libellé du bouton|https://... pour un bouton rouge"}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50 leading-relaxed"
+      />
+      <div className="mt-3.5">
+        <button
+          onClick={() => void send()}
+          disabled={busy}
+          className="bg-gold hover:bg-glow text-white rounded-full px-5 py-2.5 text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+        >
+          <Send size={12} /> {busy ? "Envoi..." : "Envoyer"}
+        </button>
+      </div>
+      {result && <p className="text-xs text-gold mt-3">{result}</p>}
+      {error && <p className="text-xs text-riseNeg mt-3">{error}</p>}
+    </div>
+  );
+}
+
 function EmailTab() {
   const [subject, setSubject] = useState(DEFAULT_SUBJECT);
   const [body, setBody] = useState(DEFAULT_BODY);
@@ -472,6 +551,8 @@ function EmailTab() {
 
   return (
     <div className="space-y-4 max-w-2xl">
+      <QuickSendCard />
+
       <div className="card p-5">
         <p className="font-semibold text-sm flex items-center gap-2 mb-1">
           <Mail size={15} className="text-gold" /> Campagne e-mail

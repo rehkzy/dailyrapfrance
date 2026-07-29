@@ -29,11 +29,22 @@ export async function POST(req: NextRequest) {
   }
 
   const payload = (await req.json().catch(() => null)) as
-    | { subject?: string; body?: string; audience?: "all" | "active30d"; test?: boolean }
+    | { subject?: string; body?: string; audience?: "all" | "active30d"; test?: boolean; to?: string }
     | null;
   const subject = payload?.subject?.trim();
   const body = payload?.body?.trim();
   if (!subject || !body) return NextResponse.json({ error: "Sujet et message requis." }, { status: 400 });
+
+  // Envoi rapide manuel : un seul destinataire, saisi dans le dashboard — pour répondre
+  // à un joueur, contacter un partenaire, tester un rendu sur une autre boîte...
+  if (payload?.to?.trim()) {
+    const to = payload.to.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 });
+    }
+    const r = await sendEmail(to, subject, body);
+    return r.ok ? NextResponse.json({ ok: true, single: true }) : NextResponse.json({ error: r.error }, { status: 500 });
+  }
 
   // Test : uniquement vers l'admin
   if (payload?.test) {
