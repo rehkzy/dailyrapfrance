@@ -65,6 +65,7 @@ function brandedHtml(subject: string, bodyText: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light only"/>
   <meta name="supported-color-schemes" content="light only"/>
+  <meta name="x-apple-disable-message-reformatting"/>
   <title>${subject}</title>
   <style>
     /* Empêche Apple Mail / Outlook.com / Gmail app d'appliquer leur propre mode sombre :
@@ -82,19 +83,17 @@ function brandedHtml(subject: string, bodyText: string): string {
   </style>
   </head><body bgcolor="#0a0707" style="margin:0;padding:0;background:#0a0707;width:100%;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">&#847;&zwnj;&nbsp;</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0707" class="drf-bg" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:56px 16px 44px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0707" class="drf-bg" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:72px 16px 68px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
         <!-- Logo officiel (PNG hébergé sur le site, dimensions verrouillées pour éviter toute déformation) -->
         <tr><td align="center" style="padding-bottom:28px;">
           <img src="https://dailyrapfrance.best/logo-email.png" width="92" height="92" alt="DailyRapFrance" style="display:block;width:92px;height:92px;margin:0 auto;border-radius:20px;box-shadow:0 8px 28px rgba(240,0,28,0.35);"/>
-          <p style="margin:16px 0 0;color:#ffffff;font-weight:800;font-size:19px;letter-spacing:2.5px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">DAILYRAPFRANCE</p>
-          <p style="margin:5px 0 0;color:#F0001C;font-weight:600;font-size:11px;letter-spacing:3px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">BLIND TEST RAP FRANÇAIS</p>
         </td></tr>
 
         <!-- Carte glass contenant le message -->
-        <tr><td class="drf-card" style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.10);padding:36px 32px;">
+        <tr><td class="drf-card" style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.10);padding:40px 34px;">
           ${paragraphs}
         </td></tr>
 
@@ -114,12 +113,12 @@ function brandedHtml(subject: string, bodyText: string): string {
           <p class="drf-text" style="margin:10px 0 0;color:rgba(245,232,232,0.4);font-size:11px;font-family:Arial,Helvetica,sans-serif;">@dailyrapfrance</p>
         </td></tr>
 
-        <tr><td align="center" style="padding-top:24px;">
+        <tr><td align="center" style="padding-top:24px;padding-bottom:8px;">
           <p class="drf-text" style="margin:0;color:rgba(245,232,232,0.4);font-size:12px;font-family:Arial,Helvetica,sans-serif;">
-            DailyRapFrance — média indépendant du rap FR ·
+            DailyRapFrance — média urbain, rap français ·
             <a href="https://dailyrapfrance.best" style="color:#F0001C;text-decoration:none;font-weight:600;">dailyrapfrance.best</a>
           </p>
-          <p class="drf-text" style="margin:8px 0 0;color:rgba(245,232,232,0.28);font-size:11px;font-family:Arial,Helvetica,sans-serif;">
+          <p class="drf-text" style="margin:8px 0 0;color:rgba(245,232,232,0.28);font-size:11px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
             Tu reçois ce mail parce que tu as un compte sur le blind test. Réponds simplement à ce mail pour nous parler.
           </p>
         </td></tr>
@@ -136,7 +135,7 @@ export const CAMPAIGN_TEMPLATE = {
   subject: "On évolue grâce à toi 🔴 — 2 minutes pour nous aider ?",
   body: `Salut !
 
-Petit mot de l'équipe DailyRapFrance. Si tu ne nous connais pas encore bien : on est un média indépendant du rap français depuis 2020 — né sur les réseaux, porté par la passion du rap FR. Le blind test, c'est notre nouveau terrain de jeu, et il grandit vite : mode Soirée sur ta TV, salons entre potes, nouveaux thèmes chaque semaine (Aya Nakamura vient d'arriver 🔥).
+Petit mot de l'équipe DailyRapFrance. Si tu ne nous connais pas encore bien : on est un média urbain dédié au rap français depuis 2020 — né sur les réseaux, porté par la passion du rap FR. Le blind test, c'est notre nouveau terrain de jeu, et il grandit vite : mode Soirée sur ta TV, salons entre potes, nouveaux thèmes chaque semaine (Aya Nakamura vient d'arriver 🔥).
 
 Et justement, on évolue — mais pas sans toi. Ton retour compte énormément : ce que tu kiffes, ce qui te frustre, le thème ou la feature que tu rêves de voir. Réponds simplement à ce mail, on lit tout et on répond.
 
@@ -148,7 +147,9 @@ Merci d'être là depuis le début. Le meilleur arrive.
 
 Florian B.
 CEO — DailyRapFrance
-<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a> · <a href="https://www.instagram.com/florian.b93tsz" style="color:#F0001C;text-decoration:none;font-weight:600;">@florian.b93tsz</a>`,
+<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a>
+
+<a href="https://www.instagram.com/florian.b93tsz/" style="display:inline-block;margin-top:2px;padding:10px 22px;border-radius:999px;background:#F0001C;box-shadow:0 6px 20px rgba(240,0,28,0.3);color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">Me suivre sur Instagram →</a>`,
 };
 
 export const FEEDBACK_TEMPLATE = {
@@ -157,7 +158,7 @@ export const FEEDBACK_TEMPLATE = {
 
 Ça fait quelques jours que tu as rejoint le blind test DailyRapFrance — et on aimerait vraiment savoir ce que tu en penses.
 
-On est un petit média indépendant du rap FR (depuis 2020), et chaque retour nous aide directement à améliorer le jeu : un thème qui manque, un bug qui t'a gêné, une idée de mode... Réponds simplement à ce mail, on lit tout.
+On est un petit média urbain, rap français (depuis 2020), et chaque retour nous aide directement à améliorer le jeu : un thème qui manque, un bug qui t'a gêné, une idée de mode... Réponds simplement à ce mail, on lit tout.
 
 Et si t'as kiffé : défie un pote, c'est encore mieux à plusieurs.
 
@@ -167,5 +168,7 @@ Merci !
 
 Florian B.
 CEO — DailyRapFrance
-<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a> · <a href="https://www.instagram.com/florian.b93tsz" style="color:#F0001C;text-decoration:none;font-weight:600;">@florian.b93tsz</a>`,
+<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a>
+
+<a href="https://www.instagram.com/florian.b93tsz/" style="display:inline-block;margin-top:2px;padding:10px 22px;border-radius:999px;background:#F0001C;box-shadow:0 6px 20px rgba(240,0,28,0.3);color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">Me suivre sur Instagram →</a>`,
 };
