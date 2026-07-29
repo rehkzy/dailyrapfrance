@@ -40,8 +40,10 @@ export async function sendEmail(to: string, subject: string, bodyText: string): 
   return { ok: true };
 }
 
-// Texte brut → HTML brandé : paragraphes séparés par des lignes vides, les lignes
-// commençant par "> " deviennent le bouton CTA (libellé|url).
+// Texte brut → HTML brandé, dans la charte exacte du site (fond #0a0707, halos rouges
+// #F0001C/#780101, police Bricolage Grotesque, logo officiel posé sur une pastille glass
+// sans cadre — le même traitement que la carte de score partagée). Les paragraphes sont
+// séparés par des lignes vides ; une ligne "> Libellé|url" devient un bouton CTA rouge.
 function brandedHtml(subject: string, bodyText: string): string {
   const paragraphs = bodyText
     .split(/\n\s*\n/)
@@ -50,35 +52,45 @@ function brandedHtml(subject: string, bodyText: string): string {
     .map((p) => {
       const cta = p.match(/^>\s*(.+?)\s*\|\s*(https?:\/\/\S+)$/);
       if (cta) {
-        return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px auto;"><tr><td style="background:#F0001C;border-radius:999px;">
-          <a href="${cta[2]}" style="display:inline-block;padding:14px 34px;color:#ffffff;font-weight:700;text-decoration:none;font-size:15px;">${cta[1]}</a>
+        return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:30px auto 6px;"><tr><td style="background:#F0001C;border-radius:999px;box-shadow:0 6px 24px rgba(240,0,28,0.35);">
+          <a href="${cta[2]}" style="display:inline-block;padding:15px 36px;color:#ffffff;font-weight:700;text-decoration:none;font-size:15px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">${cta[1]}</a>
         </td></tr></table>`;
       }
-      return `<p style="margin:0 0 18px;color:rgba(255,255,255,0.86);font-size:15px;line-height:1.65;">${p.replace(/\n/g, "<br/>")}</p>`;
+      return `<p style="margin:0 0 18px;color:rgba(245,232,232,0.88);font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">${p.replace(/\n/g, "<br/>")}</p>`;
     })
     .join("");
 
-  return `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#16090b;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#16090b;padding:32px 16px;">
+  return `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#0a0707;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:40px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
-        <tr><td align="center" style="padding-bottom:26px;">
-          <img src="https://dailyrapfrance.best/icon-512.png" width="72" height="72" alt="DailyRapFrance" style="border-radius:18px;"/>
-          <p style="margin:14px 0 0;color:#ffffff;font-weight:800;font-size:18px;letter-spacing:2px;font-family:Arial,Helvetica,sans-serif;">DAILYRAPFRANCE</p>
-          <p style="margin:4px 0 0;color:#F0001C;font-weight:600;font-size:11px;letter-spacing:3px;font-family:Arial,Helvetica,sans-serif;">BLIND TEST RAP FRANÇAIS</p>
+
+        <!-- Logo officiel sur pastille glass, sans cadre ni fond opaque -->
+        <tr><td align="center" style="padding-bottom:28px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" style="background:linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045));border:1px solid rgba(255,255,255,0.18);border-radius:28px;">
+            <tr><td style="padding:22px 30px;">
+              <img src="https://dailyrapfrance.best/icon.svg" width="46" height="46" alt="DailyRapFrance" style="display:block;margin:0 auto;"/>
+            </td></tr>
+          </table>
+          <p style="margin:16px 0 0;color:#ffffff;font-weight:800;font-size:19px;letter-spacing:2.5px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">DAILYRAPFRANCE</p>
+          <p style="margin:5px 0 0;color:#F0001C;font-weight:600;font-size:11px;letter-spacing:3px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">BLIND TEST RAP FRANÇAIS</p>
         </td></tr>
-        <tr><td style="background:linear-gradient(180deg,#2a0d12,#1d0a0e);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:34px 30px;font-family:Arial,Helvetica,sans-serif;">
+
+        <!-- Carte glass contenant le message -->
+        <tr><td style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.10);border-radius:24px;padding:36px 32px;">
           ${paragraphs}
         </td></tr>
-        <tr><td align="center" style="padding-top:22px;">
-          <p style="margin:0;color:rgba(255,255,255,0.4);font-size:12px;font-family:Arial,Helvetica,sans-serif;">
+
+        <tr><td align="center" style="padding-top:24px;">
+          <p style="margin:0;color:rgba(245,232,232,0.4);font-size:12px;font-family:Arial,Helvetica,sans-serif;">
             DailyRapFrance — média indépendant du rap FR ·
-            <a href="https://dailyrapfrance.best" style="color:rgba(255,255,255,0.6);">dailyrapfrance.best</a>
+            <a href="https://dailyrapfrance.best" style="color:#F0001C;text-decoration:none;font-weight:600;">dailyrapfrance.best</a>
           </p>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,0.3);font-size:11px;font-family:Arial,Helvetica,sans-serif;">
+          <p style="margin:8px 0 0;color:rgba(245,232,232,0.28);font-size:11px;font-family:Arial,Helvetica,sans-serif;">
             Tu reçois ce mail parce que tu as un compte sur le blind test. Réponds simplement à ce mail pour nous parler.
           </p>
         </td></tr>
+
       </table>
     </td></tr>
   </table>
