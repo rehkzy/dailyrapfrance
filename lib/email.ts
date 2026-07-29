@@ -70,18 +70,19 @@ function brandedHtml(subject: string, bodyText: string): string {
     /* Empêche Apple Mail / Outlook.com / Gmail app d'appliquer leur propre mode sombre :
        le design est déjà sombre et fixe, on ne veut aucune ré-interprétation de couleurs. */
     :root { color-scheme: light only; supported-color-schemes: light only; }
+    html, body { margin: 0 !important; padding: 0 !important; background: #0a0707 !important; width: 100% !important; }
     body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
     table { border-collapse: collapse !important; }
     @media (prefers-color-scheme: dark) {
-      body, .drf-bg { background: #0a0707 !important; }
+      html, body, .drf-bg { background: #0a0707 !important; }
       .drf-card { background: rgba(255,255,255,0.05) !important; }
       p, .drf-text { color: rgba(245,232,232,0.88) !important; }
     }
   </style>
-  </head><body style="margin:0;padding:0;background:#0a0707;">
+  </head><body bgcolor="#0a0707" style="margin:0;padding:0;background:#0a0707;width:100%;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">&#847;&zwnj;&nbsp;</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="drf-bg" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:40px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0707" class="drf-bg" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:56px 16px 44px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
@@ -93,7 +94,7 @@ function brandedHtml(subject: string, bodyText: string): string {
         </td></tr>
 
         <!-- Carte glass contenant le message -->
-        <tr><td class="drf-card" style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.10);border-radius:24px;padding:36px 32px;">
+        <tr><td class="drf-card" style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border-radius:24px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.10);padding:36px 32px;">
           ${paragraphs}
         </td></tr>
 
@@ -101,13 +102,13 @@ function brandedHtml(subject: string, bodyText: string): string {
         <tr><td align="center" style="padding-top:26px;">
           <table role="presentation" cellpadding="0" cellspacing="0"><tr>
             <td style="padding:0 6px;">
-              <a href="https://www.tiktok.com/@dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">TikTok</a>
+              <a href="https://www.tiktok.com/@dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">TikTok</a>
             </td>
             <td style="padding:0 6px;">
-              <a href="https://x.com/dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">X</a>
+              <a href="https://x.com/dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">X</a>
             </td>
             <td style="padding:0 6px;">
-              <a href="https://www.instagram.com/dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">Instagram</a>
+              <a href="https://www.instagram.com/dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">Instagram</a>
             </td>
           </tr></table>
           <p class="drf-text" style="margin:10px 0 0;color:rgba(245,232,232,0.4);font-size:11px;font-family:Arial,Helvetica,sans-serif;">@dailyrapfrance</p>
