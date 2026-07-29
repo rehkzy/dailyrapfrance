@@ -56,33 +56,69 @@ function brandedHtml(subject: string, bodyText: string): string {
           <a href="${cta[2]}" style="display:inline-block;padding:15px 36px;color:#ffffff;font-weight:700;text-decoration:none;font-size:15px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">${cta[1]}</a>
         </td></tr></table>`;
       }
-      return `<p style="margin:0 0 18px;color:rgba(245,232,232,0.88);font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">${p.replace(/\n/g, "<br/>")}</p>`;
+      return `<p class="drf-text" style="margin:0 0 18px;color:rgba(245,232,232,0.88);font-size:15px;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">${p.replace(/\n/g, "<br/>")}</p>`;
     })
     .join("");
 
-  return `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#0a0707;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:40px 16px;">
+  return `<!doctype html><html lang="fr"><head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light only"/>
+  <meta name="supported-color-schemes" content="light only"/>
+  <title>${subject}</title>
+  <style>
+    /* Empêche Apple Mail / Outlook.com / Gmail app d'appliquer leur propre mode sombre :
+       le design est déjà sombre et fixe, on ne veut aucune ré-interprétation de couleurs. */
+    :root { color-scheme: light only; supported-color-schemes: light only; }
+    body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+    table { border-collapse: collapse !important; }
+    @media (prefers-color-scheme: dark) {
+      body, .drf-bg { background: #0a0707 !important; }
+      .drf-card { background: rgba(255,255,255,0.05) !important; }
+      p, .drf-text { color: rgba(245,232,232,0.88) !important; }
+    }
+  </style>
+  </head><body style="margin:0;padding:0;background:#0a0707;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">&#847;&zwnj;&nbsp;</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="drf-bg" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:40px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
-        <!-- Logo officiel (PNG hébergé sur le site, affiché 92px, coins arrondis) -->
+        <!-- Logo officiel (PNG hébergé sur le site, dimensions verrouillées pour éviter toute déformation) -->
         <tr><td align="center" style="padding-bottom:28px;">
-          <img src="https://dailyrapfrance.best/logo-email.png" width="92" height="92" alt="DailyRapFrance" style="display:block;margin:0 auto;border-radius:20px;box-shadow:0 8px 28px rgba(240,0,28,0.35);"/>
+          <img src="https://dailyrapfrance.best/logo-email.png" width="92" height="92" alt="DailyRapFrance" style="display:block;width:92px;height:92px;margin:0 auto;border-radius:20px;box-shadow:0 8px 28px rgba(240,0,28,0.35);"/>
           <p style="margin:16px 0 0;color:#ffffff;font-weight:800;font-size:19px;letter-spacing:2.5px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">DAILYRAPFRANCE</p>
           <p style="margin:5px 0 0;color:#F0001C;font-weight:600;font-size:11px;letter-spacing:3px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">BLIND TEST RAP FRANÇAIS</p>
         </td></tr>
 
         <!-- Carte glass contenant le message -->
-        <tr><td style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.10);border-radius:24px;padding:36px 32px;">
+        <tr><td class="drf-card" style="background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.10);border-radius:24px;padding:36px 32px;">
           ${paragraphs}
         </td></tr>
 
+        <!-- Réseaux sociaux -->
+        <tr><td align="center" style="padding-top:26px;">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding:0 6px;">
+              <a href="https://www.tiktok.com/@dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">TikTok</a>
+            </td>
+            <td style="padding:0 6px;">
+              <a href="https://x.com/dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">X</a>
+            </td>
+            <td style="padding:0 6px;">
+              <a href="https://www.instagram.com/dailyrapfrance" style="display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;letter-spacing:0.3px;">Instagram</a>
+            </td>
+          </tr></table>
+          <p class="drf-text" style="margin:10px 0 0;color:rgba(245,232,232,0.4);font-size:11px;font-family:Arial,Helvetica,sans-serif;">@dailyrapfrance</p>
+        </td></tr>
+
         <tr><td align="center" style="padding-top:24px;">
-          <p style="margin:0;color:rgba(245,232,232,0.4);font-size:12px;font-family:Arial,Helvetica,sans-serif;">
+          <p class="drf-text" style="margin:0;color:rgba(245,232,232,0.4);font-size:12px;font-family:Arial,Helvetica,sans-serif;">
             DailyRapFrance — média indépendant du rap FR ·
             <a href="https://dailyrapfrance.best" style="color:#F0001C;text-decoration:none;font-weight:600;">dailyrapfrance.best</a>
           </p>
-          <p style="margin:8px 0 0;color:rgba(245,232,232,0.28);font-size:11px;font-family:Arial,Helvetica,sans-serif;">
+          <p class="drf-text" style="margin:8px 0 0;color:rgba(245,232,232,0.28);font-size:11px;font-family:Arial,Helvetica,sans-serif;">
             Tu reçois ce mail parce que tu as un compte sur le blind test. Réponds simplement à ce mail pour nous parler.
           </p>
         </td></tr>
@@ -109,7 +145,9 @@ Et si le jeu te plaît, le plus beau cadeau que tu puisses nous faire, c'est de 
 
 Merci d'être là depuis le début. Le meilleur arrive.
 
-L'équipe DailyRapFrance`,
+Florian B.
+CEO — DailyRapFrance
+<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a> · <a href="https://www.instagram.com/florian.b93tsz" style="color:#F0001C;text-decoration:none;font-weight:600;">@florian.b93tsz</a>`,
 };
 
 export const FEEDBACK_TEMPLATE = {
@@ -125,5 +163,8 @@ Et si t'as kiffé : défie un pote, c'est encore mieux à plusieurs.
 > Rejouer maintenant|https://dailyrapfrance.best/blindtest
 
 Merci !
-L'équipe DailyRapFrance`,
+
+Florian B.
+CEO — DailyRapFrance
+<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a> · <a href="https://www.instagram.com/florian.b93tsz" style="color:#F0001C;text-decoration:none;font-weight:600;">@florian.b93tsz</a>`,
 };
