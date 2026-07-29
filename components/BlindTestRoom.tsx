@@ -7,6 +7,7 @@ import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
 import { randomGage } from "@/lib/gages";
+import { speedBonus } from "@/lib/scoring";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, QCM_STAGE_PROMPTS, type QcmField } from "@/lib/qcmStages";
 import Magnetic from "@/components/Magnetic";
 import ThemePicker from "@/components/ThemePicker";
@@ -41,7 +42,7 @@ type RoomRow = {
   gages_intensity: "soft" | "hard";
 };
 type PlayerRow = { room_id: string; user_id: string; display_name: string };
-type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string };
+type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string; bonus?: number | null };
 
 export default function BlindTestRoomWrapper(props: {
   user: User;
@@ -482,6 +483,24 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.id, room?.answer_mode, currentQcmField]);
 
+
+  // Insère une réponse trouvée AVEC son bonus de rapidité (calculé sur l'horloge partagée
+  // round_started_at, la même pour tous les joueurs). Si la colonne "bonus" n'existe pas
+  // encore côté base (migration pas appliquée), on réessaie sans — le jeu continue, juste
+  // sans bonus, plutôt que de casser la manche.
+  async function insertSolve(field: FieldKey) {
+    if (!room) return { error: new Error("no room") };
+    const startedAt = room.round_started_at ? new Date(room.round_started_at).getTime() : null;
+    const elapsed = startedAt ? (Date.now() - startedAt) / 1000 : Infinity;
+    const bonus = speedBonus(elapsed);
+    const base = { room_id: room.id, round_index: room.current_round, field, user_id: user.id };
+    const { error } = await supabase.from("room_round_solves").insert({ ...base, bonus });
+    if (error && /bonus/i.test(error.message ?? "")) {
+      return await supabase.from("room_round_solves").insert(base);
+    }
+    return { error };
+  }
+
   async function submitRoomQcmChoice(chosenLabel: string) {
     if (!room || !track || revealed || qcmChoiceLocked || !currentQcmField) return;
     if (!qcmIsCorrect(currentQcmField, track, chosenLabel)) {
@@ -496,9 +515,7 @@ function BlindTestRoom({
     // Bonne réponse : on tente de réclamer le champ de l'étape courante — l'insert échoue
     // proprement si un autre joueur l'a pris une fraction de seconde avant (contrainte
     // d'unicité), auquel cas l'étape suivante s'affiche simplement, sans points ici.
-    const { error: insertErr } = await supabase
-      .from("room_round_solves")
-      .insert({ room_id: room.id, round_index: room.current_round, field: currentQcmField, user_id: user.id });
+    const { error: insertErr } = await insertSolve(currentQcmField);
     if (!insertErr) {
       sfx.correct();
       setFlash("ok");
@@ -524,9 +541,7 @@ function BlindTestRoom({
           : checkGuess(value, track.artistName, "");
       if (!match) continue;
 
-      const { error: insertErr } = await supabase
-        .from("room_round_solves")
-        .insert({ room_id: room.id, round_index: room.current_round, field, user_id: user.id });
+      const { error: insertErr } = await insertSolve(field);
       if (!insertErr) {
         anyOk = true;
         if (field === "feat") sfx.bonus();
@@ -559,7 +574,7 @@ function BlindTestRoom({
   }, [room?.status]);
 
   function scoreFor(userId: string) {
-    return solves.filter((s) => s.user_id === userId).reduce((sum, s) => sum + POINTS[s.field], 0);
+    return solves.filter((s) => s.user_id === userId).reduce((sum, s) => sum + POINTS[s.field] + (s.bonus ?? 0), 0);
   }
 
   function copyCode() {

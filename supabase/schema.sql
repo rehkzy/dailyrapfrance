@@ -377,3 +377,9 @@ alter table public.rooms add column if not exists gages_enabled boolean not null
 alter table public.rooms add column if not exists gages_intensity text not null default 'soft';
 alter table public.rooms drop constraint if exists rooms_gages_intensity_check;
 alter table public.rooms add constraint rooms_gages_intensity_check check (gages_intensity in ('soft', 'hard'));
+
+-- Bonus de rapidité (salons en ligne) — points supplémentaires gagnés selon la vitesse de
+-- réponse (≤5 s → +2, ≤10 s → +1, par champ), stockés avec la réponse pour que le score
+-- reste recalculable par tous les clients (joueurs + écran partagé).
+alter table public.room_round_solves
+  add column if not exists bonus int not null default 0;

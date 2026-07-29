@@ -14,6 +14,7 @@ import { sfx } from "@/lib/sfx";
 import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
+import { speedBonus } from "@/lib/scoring";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel, QCM_STAGE_PROMPTS } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
 import Magnetic from "@/components/Magnetic";
@@ -93,7 +94,10 @@ export default function BlindTest() {
   // Mode de réponse : "text" = champs à écrire (comportement historique, tolérance aux
   // fautes) ; "qcm" = 3 titres proposés, un clic suffit. strictMode ne s'applique qu'au
   // mode texte (n'a pas de sens pour un QCM).
-  const [answerMode, setAnswerMode] = useState<"text" | "qcm">("text");
+  // Aucune présélection : choisir Facile (QCM) ou Difficile (écrire) est une décision du
+  // joueur, tous modes confondus — le badge "À choisir" et la validation au lancement
+  // existent déjà et prennent le relais.
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
   const [strictMode, setStrictMode] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(false);
   const [trackVolume, setTrackVolume] = useState(1);
@@ -121,6 +125,9 @@ export default function BlindTest() {
   // QCM — options mémorisées par manche (2 intrus + la bonne réponse, ordre mélangé une
   // seule fois par manche) et verrou une fois qu'un choix a été fait.
   const [qcmLockedFor, setQcmLockedFor] = useState<string | null>(null); // playerId verrouillé (solo: "solo")
+  // Horloge de rapidité — posée au lancement de l'extrait, sert au bonus vitesse.
+  const extractStartedAtRef = useRef<number | null>(null);
+  const [bonusFlash, setBonusFlash] = useState<number | null>(null);
   const [qcmWrongId, setQcmWrongId] = useState<string | null>(null); // id du morceau cliqué à tort, pour le flash rouge ciblé
   // Un extrait qui ne se charge/joue pas (lien Deezer cassé, souci réseau...) échouait avant en
   // silence totale — le décompte tournait sans le moindre son, sans que personne ne comprenne
@@ -311,6 +318,7 @@ export default function BlindTest() {
     if (started || revealed) return;
     sfx.click();
     setStarted(true);
+    extractStartedAtRef.current = Date.now();
     setAudioError(false);
     audioRef.current?.play().catch(() => void recoverAudio(true));
     deadlineRef.current = Date.now() + roundSeconds * 1000;
@@ -423,6 +431,19 @@ export default function BlindTest() {
     }
 
     if (gained > 0) {
+      // ⚡ Bonus de rapidité — par champ trouvé, selon le temps écoulé depuis le lancement
+      // de l'extrait : ≤5 s → +2, ≤10 s → +1. Récompense les réflexes sans écraser les
+      // points de base.
+      const startedAt = extractStartedAtRef.current;
+      if (startedAt) {
+        const elapsed = (Date.now() - startedAt) / 1000;
+        const bonus = speedBonus(elapsed) * Object.keys(newlySolved).length;
+        if (bonus > 0) {
+          gained += bonus;
+          setBonusFlash(bonus);
+          setTimeout(() => setBonusFlash(null), 1400);
+        }
+      }
       setSolved((prev) => ({ ...prev, ...newlySolved }));
       awardPoints(playerId, gained);
     }
@@ -1565,6 +1586,11 @@ export default function BlindTest() {
               </div>
             )}
 
+            {bonusFlash !== null && (
+              <span className="solved-pop inline-flex items-center gap-1 rounded-full bg-gold/15 text-gold px-3 py-1 text-xs font-bold mb-2">
+                ⚡ +{bonusFlash} rapidité
+              </span>
+            )}
             <span className={`font-display text-3xl text-gold block mb-4 transition-colors ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>
               {timeLeft}
             </span>

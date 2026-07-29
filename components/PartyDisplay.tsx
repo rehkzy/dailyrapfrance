@@ -34,7 +34,7 @@ type RoomRow = {
   gages_intensity: "soft" | "hard";
 };
 type PlayerRow = { room_id: string; user_id: string; display_name: string };
-type SolveRow = { user_id: string; field: "title" | "artist" | "feat" };
+type SolveRow = { user_id: string; field: "title" | "artist" | "feat"; bonus?: number | null };
 
 export default function PartyDisplay({ code }: { code: string }) {
   const [room, setRoom] = useState<RoomRow | null>(null);
@@ -103,7 +103,7 @@ export default function PartyDisplay({ code }: { code: string }) {
       .then(({ data }) => setPlayers((data as PlayerRow[]) ?? []));
     supabase
       .from("room_round_solves")
-      .select("user_id, field")
+      .select("*")
       .eq("room_id", room.id)
       .then(({ data }) => setSolves((data as SolveRow[]) ?? []));
 
@@ -143,7 +143,7 @@ export default function PartyDisplay({ code }: { code: string }) {
   }, [room?.status, room?.round_started_at]);
 
   function scoreFor(userId: string) {
-    return solves.filter((s) => s.user_id === userId).reduce((sum, s) => sum + (POINTS[s.field] ?? 0), 0);
+    return solves.filter((s) => s.user_id === userId).reduce((sum, s) => sum + (POINTS[s.field] ?? 0) + (s.bonus ?? 0), 0);
   }
 
   // ⚠️ Hook déclaré AVANT les retours anticipés (notFound / !room) : un hook appelé après
