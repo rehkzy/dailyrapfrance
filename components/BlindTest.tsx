@@ -70,8 +70,11 @@ export default function BlindTest() {
   // Setup — assistant en 3 étapes pour limiter le scroll
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(deepLinkTheme ? 1 : 0);
   // Setup
-  const [mode, setMode] = useState<Mode>(
-    joinRoomCode ? "online" : deepLinkMode === "online" || deepLinkMode === "local" ? deepLinkMode : "solo"
+  // Aucun mode présélectionné : choisir Solo / Local / Salon est la première vraie
+  // décision du joueur, on ne la prend pas à sa place. Exceptions : arrivée par un lien
+  // de salon (?room=) ou un deep-link ?mode= — là, l'intention est déjà exprimée.
+  const [mode, setMode] = useState<Mode | null>(
+    joinRoomCode ? "online" : deepLinkMode === "online" || deepLinkMode === "local" || deepLinkMode === "solo" ? deepLinkMode : null
   );
   const [themeId, setThemeId] = useState<string>(
     deepLinkTheme && THEME_OPTIONS.some((t) => t.id === deepLinkTheme) ? deepLinkTheme : "mix"
@@ -261,6 +264,11 @@ export default function BlindTest() {
 
   async function startGame() {
     setSetupError(null);
+    if (!mode) {
+      setSetupError("Choisis un mode — Solo, Local ou Salon en ligne.");
+      setWizardStep(0);
+      return;
+    }
     if (!answerMode) {
       setSetupError("Choisis un mode de réponse — Facile (QCM) ou Difficile (écrire) — pour lancer la partie.");
       return;
@@ -749,7 +757,19 @@ export default function BlindTest() {
             <>
           {/* Étape 0 — Mode */}
           {wizardStep === 0 && (
-            <div className="flex-1 space-y-3">
+            <div
+              className={`flex-1 space-y-3 rounded-2xl transition-shadow ${
+                setupError && !mode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""
+              }`}
+            >
+              {!mode && (
+                <p className="font-mono text-xs text-ink-faint uppercase tracking-[0.16em] flex items-center gap-2 px-0.5">
+                  Choisis ton mode de jeu
+                  <span className="inline-flex items-center rounded-full bg-gold/15 text-gold px-2.5 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+                    À choisir
+                  </span>
+                </p>
+              )}
               {[
                 {
                   id: "solo" as Mode,
@@ -786,6 +806,7 @@ export default function BlindTest() {
                       onClick={() => {
                         sfx.click();
                         setMode(m.id);
+                        setSetupError(null);
                         // On ne saute plus automatiquement à l'étape suivante : un tap sur
                         // une carte ne fait que la sélectionner (comme choisir un thème),
                         // c'est "Suivant" qui fait avancer — sinon impossible de voir/remplir
@@ -1152,11 +1173,22 @@ export default function BlindTest() {
                 </button>
                 {wizardStep < 2 ? (
                   <button
-                    onClick={() => setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s))}
+                    onClick={() => {
+                      if (wizardStep === 0 && !mode) {
+                        setSetupError("Choisis un mode — Solo, Local ou Salon en ligne — pour continuer.");
+                        return;
+                      }
+                      setSetupError(null);
+                      setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s));
+                    }}
                     aria-label="Étape suivante"
-                    className="flex-1 flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors"
+                    className={`flex-1 flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full text-sm font-semibold transition-colors ${
+                      wizardStep === 0 && !mode
+                        ? "bg-white/10 text-ink-muted"
+                        : "bg-gold hover:bg-glow text-white"
+                    }`}
                   >
-                    Suivant <ChevronRight size={16} />
+                    {wizardStep === 0 && !mode ? "Choisis un mode" : "Suivant"} <ChevronRight size={16} />
                   </button>
                 ) : (
                   <Magnetic strength={0.15} className="flex-1 block">

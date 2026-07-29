@@ -67,8 +67,8 @@ export default function ThemePicker({
   return (
     <div className="flex-1 flex flex-col gap-4 -mt-1">
       {/* Barre de sélection persistante — toujours visible, même loin dans la liste */}
-      <div className="sticky top-0 z-10 -mx-1 px-1 pb-1 bg-bg/40 backdrop-blur-xl">
-        <div className="flex items-center gap-3 glass rounded-2xl px-4 py-3 mb-3">
+      <div className="sticky top-0 z-10 -mx-1 px-1 pb-1">
+        <div className="flex items-center gap-3 glass rounded-2xl px-4 py-3 mb-3 backdrop-blur-xl">
           <div className="icon-tile w-9 h-9 shrink-0 bg-gradient-to-br from-gold to-glow text-white">
             {selected ? <selected.Icon size={16} /> : <Search size={16} />}
           </div>
@@ -85,7 +85,7 @@ export default function ThemePicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Chercher un thème, un artiste, une époque..."
-            className="w-full bg-white/5 border border-white/10 rounded-full pl-10 pr-9 py-2.5 text-sm focus:outline-none focus:border-gold/50 transition-colors"
+            className="w-full bg-bg/50 backdrop-blur-xl border border-white/10 rounded-full pl-10 pr-9 py-2.5 text-sm focus:outline-none focus:border-gold/50 transition-colors"
           />
           {query && (
             <button
@@ -113,7 +113,7 @@ export default function ThemePicker({
               <button
                 key={cat}
                 onClick={() => jumpTo(cat)}
-                className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-mono uppercase tracking-wide glass text-ink-muted hover:text-ink transition-colors"
+                className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-mono uppercase tracking-wide glass backdrop-blur-xl text-ink-muted hover:text-ink transition-colors"
               >
                 {cat}
               </button>
