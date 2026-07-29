@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Users, Gamepad2, Radio, TrendingUp, Trophy, Search, Trash2, RefreshCcw,
-  Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send,
+  Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send, Globe,
 } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 
@@ -46,8 +46,26 @@ type Settings = {
   maintenance?: { enabled: boolean; message: string };
 };
 
+type AnalyticsData = {
+  ga4: {
+    activeUsers28d: number;
+    sessions28d: number;
+    pageViews28d: number;
+    days: { day: string; users: number }[];
+    topPages: { path: string; views: number }[];
+  } | null;
+  search: {
+    clicks28d: number;
+    impressions28d: number;
+    ctr28d: number;
+    avgPosition28d: number;
+    topQueries: { query: string; clicks: number; impressions: number }[];
+  } | null;
+};
+
 const TABS = [
   { id: "overview", label: "Vue d'ensemble" },
+  { id: "audience", label: "Audience" },
   { id: "users", label: "Utilisateurs" },
   { id: "rooms", label: "Salons" },
   { id: "email", label: "Mails" },
@@ -65,6 +83,23 @@ function fmtDate(iso: string | null) {
 
 export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
+  // Sélection de destinataires partagée entre "Utilisateurs" (cases à cocher) et "Mails"
+  // (ajout manuel + envoi ciblé) — vit ici pour survivre au changement d'onglet.
+  const [recipients, setRecipients] = useState<string[]>([]);
+
+  const addRecipients = useCallback((emails: string[]) => {
+    setRecipients((prev) => Array.from(new Set([...prev, ...emails])));
+  }, []);
+  const removeRecipient = useCallback((email: string) => {
+    setRecipients((prev) => prev.filter((e) => e !== email));
+  }, []);
+  const removeRecipients = useCallback((emails: string[]) => {
+    const drop = new Set(emails);
+    setRecipients((prev) => prev.filter((e) => !drop.has(e)));
+  }, []);
+  const toggleRecipient = useCallback((email: string) => {
+    setRecipients((prev) => (prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]));
+  }, []);
 
   return (
     <div>
@@ -91,9 +126,20 @@ export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
       </div>
 
       {tab === "overview" && <OverviewTab />}
-      {tab === "users" && <UsersTab />}
+      {tab === "audience" && <AudienceTab />}
+      {tab === "users" && (
+        <UsersTab
+          recipients={recipients}
+          onToggle={toggleRecipient}
+          onAddRecipients={addRecipients}
+          onRemoveRecipients={removeRecipients}
+          onGoToEmail={() => setTab("email")}
+        />
+      )}
       {tab === "rooms" && <RoomsTab />}
-      {tab === "email" && <EmailTab />}
+      {tab === "email" && (
+        <EmailTab recipients={recipients} onAdd={addRecipients} onRemove={removeRecipient} onClear={() => setRecipients([])} />
+      )}
       {tab === "settings" && <SettingsTab />}
     </div>
   );
@@ -201,9 +247,134 @@ function OverviewTab() {
   );
 }
 
+// ── Audience (Google Analytics 4 + Search Console) ─────────────────────────
+
+function AudienceTab() {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetch("/api/admin/analytics")
+      .then((r) => r.json())
+      .then((d) => (d.error ? setError(d.error) : setData(d)))
+      .catch(() => setError("Chargement impossible."))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(load, [load]);
+
+  if (loading) return <Loading />;
+  if (error) return <ErrorCard message={error} />;
+  if (!data) return <Loading />;
+
+  const { ga4, search } = data;
+  const maxUsers = Math.max(1, ...(ga4?.days.map((d) => d.users) ?? [1]));
+  const maxPageViews = Math.max(1, ...(ga4?.topPages.map((p) => p.views) ?? [1]));
+  const maxQueryClicks = Math.max(1, ...(search?.topQueries.map((q) => q.clicks) ?? [1]));
+
+  return (
+    <div className="space-y-5">
+      {ga4 && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <StatCard Icon={Users} label="Utilisateurs actifs" value={ga4.activeUsers28d} sub="28 derniers jours" />
+            <StatCard Icon={Radio} label="Sessions" value={ga4.sessions28d} sub="28 derniers jours" />
+            <StatCard Icon={Globe} label="Pages vues" value={ga4.pageViews28d} sub="28 derniers jours" />
+          </div>
+
+          <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
+              <TrendingUp size={13} /> Utilisateurs actifs par jour — 14 derniers jours
+            </p>
+            <div className="flex items-end gap-1.5 h-32">
+              {ga4.days.map((d) => (
+                <div key={d.day} className="flex-1 flex flex-col items-center gap-1.5 min-w-0" title={`${d.day} — ${d.users}`}>
+                  <span className="text-[10px] font-mono text-ink-faint">{d.users || ""}</span>
+                  <div
+                    className="w-full rounded-t bg-gold/70 hover:bg-gold transition-colors"
+                    style={{ height: `${Math.max(3, (d.users / maxUsers) * 100)}%` }}
+                  />
+                  <span className="text-[9px] font-mono text-ink-faint truncate w-full text-center">{d.day.slice(4)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">Pages les plus vues (28 j)</p>
+            <div className="space-y-2.5">
+              {ga4.topPages.length === 0 && <p className="text-xs text-ink-faint">Pas encore de données.</p>}
+              {ga4.topPages.map((p) => (
+                <div key={p.path} className="flex items-center gap-3">
+                  <span className="text-xs w-48 truncate shrink-0 font-mono">{p.path}</span>
+                  <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(p.views / maxPageViews) * 100}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-ink-faint w-10 text-right shrink-0">{p.views}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {search && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatCard Icon={Search} label="Clics Google" value={search.clicks28d} sub="28 derniers jours" />
+            <StatCard Icon={TrendingUp} label="Impressions" value={search.impressions28d} sub="28 derniers jours" />
+            <StatCard Icon={Radio} label="CTR moyen" value={search.ctr28d} sub="% de clics / impressions" />
+            <StatCard Icon={Globe} label="Position moyenne" value={search.avgPosition28d} sub="dans les résultats Google" />
+          </div>
+
+          <div className="card p-5">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4">
+              Recherches qui amènent du trafic (28 j)
+            </p>
+            <div className="space-y-2.5">
+              {search.topQueries.length === 0 && <p className="text-xs text-ink-faint">Pas encore de données.</p>}
+              {search.topQueries.map((q) => (
+                <div key={q.query} className="flex items-center gap-3">
+                  <span className="text-xs w-48 truncate shrink-0">{q.query}</span>
+                  <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full bg-gold/70 rounded-full" style={{ width: `${(q.clicks / maxQueryClicks) * 100}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-ink-faint w-24 text-right shrink-0">
+                    {q.clicks} clics · {q.impressions} vues
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {!ga4 && !search && (
+        <div className="card p-6 text-sm text-ink-faint">
+          Aucune donnée renvoyée par Google — vérifie que le compte de service a bien accès à la propriété GA4 et à
+          Search Console.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Utilisateurs ──────────────────────────────────────────────────────────
 
-function UsersTab() {
+function UsersTab({
+  recipients,
+  onToggle,
+  onAddRecipients,
+  onRemoveRecipients,
+  onGoToEmail,
+}: {
+  recipients: string[];
+  onToggle: (email: string) => void;
+  onAddRecipients: (emails: string[]) => void;
+  onRemoveRecipients: (emails: string[]) => void;
+  onGoToEmail: () => void;
+}) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -211,6 +382,9 @@ function UsersTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+
+  const pageEmails = users.map((u) => u.email).filter(Boolean);
+  const allPageSelected = pageEmails.length > 0 && pageEmails.every((e) => recipients.includes(e));
 
   const load = useCallback((query: string, p: number) => {
     setLoading(true);
@@ -244,6 +418,29 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
+      {recipients.length > 0 && (
+        <div className="card p-3.5 flex flex-wrap items-center justify-between gap-3 border-gold/30">
+          <span className="text-xs text-ink-muted">
+            <span className="font-semibold text-ink">{recipients.length}</span> destinataire
+            {recipients.length > 1 ? "s" : ""} sélectionné{recipients.length > 1 ? "s" : ""}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onRemoveRecipients(recipients)}
+              className="text-xs text-ink-faint hover:text-ink transition-colors"
+            >
+              Tout désélectionner
+            </button>
+            <button
+              onClick={onGoToEmail}
+              className="bg-gold hover:bg-glow text-white rounded-full px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
+            >
+              <Send size={12} /> Envoyer un mail à la sélection
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="relative">
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" />
         <input
@@ -264,6 +461,17 @@ function UsersTab() {
           <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-[11px] font-mono uppercase tracking-wide text-ink-faint border-b border-white/8">
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    onChange={() =>
+                      allPageSelected ? onRemoveRecipients(pageEmails) : onAddRecipients(pageEmails)
+                    }
+                    className="accent-gold w-4 h-4 rounded cursor-pointer"
+                    aria-label="Sélectionner tous les utilisateurs de la page"
+                  />
+                </th>
                 <th className="px-4 py-3">Utilisateur</th>
                 <th className="px-4 py-3">E-mail</th>
                 <th className="px-4 py-3">Via</th>
@@ -275,7 +483,18 @@ function UsersTab() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-white/[0.03]">
+                <tr key={u.id} className={`hover:bg-white/[0.03] ${recipients.includes(u.email) ? "bg-gold/5" : ""}`}>
+                  <td className="px-4 py-3">
+                    {u.email && (
+                      <input
+                        type="checkbox"
+                        checked={recipients.includes(u.email)}
+                        onChange={() => onToggle(u.email)}
+                        className="accent-gold w-4 h-4 rounded cursor-pointer"
+                        aria-label={`Sélectionner ${u.email}`}
+                      />
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="font-medium">{u.displayName ?? "—"}</span>
                     {u.username && <span className="text-ink-faint text-xs"> @{u.username}</span>}
@@ -311,7 +530,7 @@ function UsersTab() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-ink-faint text-sm">
+                  <td colSpan={8} className="px-4 py-8 text-center text-ink-faint text-sm">
                     Aucun utilisateur trouvé.
                   </td>
                 </tr>
@@ -510,16 +729,45 @@ function QuickSendCard() {
   );
 }
 
-function EmailTab() {
+function EmailTab({
+  recipients,
+  onAdd,
+  onRemove,
+  onClear,
+}: {
+  recipients: string[];
+  onAdd: (emails: string[]) => void;
+  onRemove: (email: string) => void;
+  onClear: () => void;
+}) {
   const [subject, setSubject] = useState(DEFAULT_SUBJECT);
   const [body, setBody] = useState(DEFAULT_BODY);
-  const [audience, setAudience] = useState<"all" | "active30d">("all");
+  const [audience, setAudience] = useState<"all" | "active30d" | "manual">(recipients.length > 0 ? "manual" : "all");
+  const [manualInput, setManualInput] = useState("");
+  const [manualError, setManualError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmSend, setConfirmSend] = useState(false);
 
+  function addManualEmail() {
+    const email = manualInput.trim().toLowerCase();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setManualError("Adresse e-mail invalide.");
+      return;
+    }
+    onAdd([email]);
+    setManualInput("");
+    setManualError(null);
+    setAudience("manual");
+  }
+
   async function send(test: boolean) {
+    if (!test && audience === "manual" && recipients.length === 0) {
+      setError("Ajoute au moins un destinataire à la sélection.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setResult(null);
@@ -528,7 +776,11 @@ function EmailTab() {
       const res = await fetch("/api/admin/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, body, audience, test }),
+        body: JSON.stringify(
+          audience === "manual" && !test
+            ? { subject, body, recipients, test }
+            : { subject, body, audience: audience === "manual" ? "all" : audience, test }
+        ),
       });
       const d = await res.json();
       if (d.error && !d.ok) setError(d.error);
@@ -541,6 +793,7 @@ function EmailTab() {
               : " Campagne terminée ✓") +
             (d.error ? ` (dernière erreur : ${d.error})` : "")
         );
+        if (audience === "manual") onClear();
       }
     } catch {
       setError("Envoi impossible.");
@@ -584,11 +837,13 @@ function EmailTab() {
           {([
             { id: "all" as const, label: "Tous les joueurs" },
             { id: "active30d" as const, label: "Actifs 30 derniers jours" },
+            { id: "manual" as const, label: `Sélection (${recipients.length})` },
           ]).map((o) => (
             <button
               key={o.id}
               onClick={() => setAudience(o.id)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              disabled={o.id === "manual" && recipients.length === 0}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                 audience === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
               }`}
             >
@@ -596,6 +851,66 @@ function EmailTab() {
             </button>
           ))}
         </div>
+
+        {audience === "manual" && (
+          <div className="mt-4 p-3.5 rounded-xl bg-white/[0.03] border border-white/8">
+            <div className="flex gap-2">
+              <input
+                value={manualInput}
+                onChange={(e) => {
+                  setManualInput(e.target.value);
+                  setManualError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addManualEmail();
+                  }
+                }}
+                type="email"
+                placeholder="Ajouter une adresse à la main..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-gold/50"
+              />
+              <button
+                onClick={addManualEmail}
+                className="glass rounded-xl px-4 py-2 text-xs font-semibold text-ink-muted hover:text-ink transition-colors"
+              >
+                Ajouter
+              </button>
+            </div>
+            {manualError && <p className="text-xs text-riseNeg mt-2">{manualError}</p>}
+
+            {recipients.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {recipients.map((email) => (
+                  <span
+                    key={email}
+                    className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full pl-3 pr-1.5 py-1 text-xs text-ink-muted"
+                  >
+                    {email}
+                    <button
+                      onClick={() => onRemove(email)}
+                      aria-label={`Retirer ${email}`}
+                      className="text-ink-faint hover:text-riseNeg transition-colors leading-none px-1"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={onClear}
+                  className="text-xs text-ink-faint hover:text-ink transition-colors self-center ml-1"
+                >
+                  Tout retirer
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-ink-faint mt-3">
+                Coche des joueurs dans l&apos;onglet Utilisateurs, ou ajoute des adresses ici.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2.5 mt-5">
           <button
@@ -621,10 +936,10 @@ function EmailTab() {
           ) : (
             <button
               onClick={() => setConfirmSend(true)}
-              disabled={busy}
+              disabled={busy || (audience === "manual" && recipients.length === 0)}
               className="bg-gold hover:bg-glow text-white rounded-full px-5 py-2.5 text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors"
             >
-              <Send size={12} /> Envoyer la campagne
+              <Send size={12} /> {audience === "manual" ? `Envoyer à la sélection (${recipients.length})` : "Envoyer la campagne"}
             </button>
           )}
         </div>
