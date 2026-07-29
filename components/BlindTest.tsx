@@ -14,6 +14,7 @@ import { sfx } from "@/lib/sfx";
 import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
+import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel, QCM_STAGE_PROMPTS } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
 import Magnetic from "@/components/Magnetic";
 import Confetti from "@/components/Confetti";
@@ -428,39 +429,39 @@ export default function BlindTest() {
     return gained;
   }
 
-  // Options QCM de la manche — la bonne réponse + 2 intrus pris ailleurs dans le pool
-  // chargé pour cette partie, ordre mélangé une seule fois par manche (useMemo) pour que
-  // les boutons ne sautent pas de place au re-rendu.
-  const qcmOptions = useMemo(() => {
-    if (!track || answerMode !== "qcm") return [];
-    const pool = tracks.filter((t) => t.id !== track.id);
-    const distractors: Track[] = [];
-    const seen = new Set<string>();
-    for (const t of [...pool].sort(() => Math.random() - 0.5)) {
-      if (distractors.length >= 2) break;
-      if (seen.has(t.title)) continue; // évite deux options au titre identique
-      seen.add(t.title);
-      distractors.push(t);
-    }
-    return [track, ...distractors].sort(() => Math.random() - 0.5);
+  // QCM par étapes — plus de « Titre — Artiste » d'un bloc (trop facile). On fait deviner
+  // dans l'ordre : ARTISTE, puis TITRE, puis FEAT s'il y en a. L'étape courante est déduite
+  // de l'état "solved" (premier champ non résolu dans cet ordre), ce qui marche aussi en
+  // local : si un joueur se trompe en cours de route, le suivant reprend là où ça en était.
+  const qcmStages = useMemo(
+    () => (track && answerMode === "qcm" ? qcmStageOrder(applicableFields) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.id, answerMode]);
+    [track?.id, answerMode, applicableFields.join(",")]
+  );
+  const currentQcmField = qcmStages.find((f) => !solved[f]) ?? null;
+  const qcmOptions = useMemo(() => {
+    if (!track || answerMode !== "qcm" || !currentQcmField) return [];
+    return qcmStageOptions(currentQcmField, track, tracks.filter((t) => t.id !== track.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track?.id, answerMode, currentQcmField]);
 
-  // Choix QCM — solo (playerId "solo") et local (playerId = joueur qui a buzzé). Bonne
-  // réponse : tous les champs applicables sont marqués résolus d'un coup (comme si le
-  // joueur avait tout écrit correctement) et checkFields calcule les points normalement.
-  // Mauvaise réponse : verrouille ce joueur pour la manche (solo → révèle directement,
-  // local → passe la main comme un mauvais buzz classique).
-  function submitQcmChoice(playerId: string, chosen: Track) {
-    if (!track || qcmLockedFor) return;
-    if (chosen.id === track.id) {
-      const values = { title: track.title, artist: track.artistName, feat: track.feats[0] ?? "" };
+  // Choix QCM d'une étape — solo (playerId "solo") et local (playerId = joueur qui a buzzé).
+  // Bonne réponse : seule l'étape courante est créditée (checkFields calcule les points de
+  // ce champ), puis on passe à l'étape suivante ; la dernière étape résolue déclenche la
+  // révélation via l'effet "tout est trouvé" existant. Mauvaise réponse : verrouille ce
+  // joueur pour la manche (solo → révèle ; local → passe la main comme un mauvais buzz),
+  // en GARDANT les points des étapes déjà réussies.
+  function submitQcmChoice(playerId: string, chosenLabel: string) {
+    if (!track || qcmLockedFor || !currentQcmField) return;
+    if (qcmIsCorrect(currentQcmField, track, chosenLabel)) {
+      const values = { title: "", artist: "", feat: "" };
+      values[currentQcmField] = qcmCorrectLabel(currentQcmField, track);
       checkFields(playerId, values);
-      setQcmLockedFor(playerId);
+      // Dernière étape ? La révélation part toute seule (effet "tous les champs trouvés").
       return;
     }
     sfx.wrong();
-    setQcmWrongId(chosen.id);
+    setQcmWrongId(chosenLabel);
     setTimeout(() => setQcmWrongId(null), 450);
     setQcmLockedFor(playerId);
     if (mode === "solo") {
@@ -905,7 +906,7 @@ export default function BlindTest() {
                     {m.id === "local" && isActive && (
                       <div className="mt-2 rounded-xl border border-gold/20 bg-gold/[0.04] p-3.5 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
                         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2.5">Pseudos</p>
-                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        <div data-lenis-prevent className="space-y-2 max-h-40 overflow-y-auto pr-1">
                           {playerNames.map((name, i) => (
                             <div key={i} className="flex gap-2">
                               <input
@@ -1336,7 +1337,7 @@ export default function BlindTest() {
         {roundHistory.length > 0 && (
           <div className="mb-8 text-left">
             <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Récap de la partie</p>
-            <div className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain max-h-96">
+            <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain max-h-96">
               {roundHistory.map((r, i) => {
                 const foundBy = [...new Set(Object.values(r.solved))];
                 return (
@@ -1600,9 +1601,12 @@ export default function BlindTest() {
                   </p>
                   <QcmChoices
                     options={qcmOptions}
-                    onPick={(t) => submitQcmChoice(buzzedBy, t)}
+                    onPick={(label) => submitQcmChoice(buzzedBy, label)}
                     disabled={!!qcmLockedFor}
                     wrongId={qcmWrongId}
+                    prompt={currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
+                    stageIndex={currentQcmField ? qcmStages.indexOf(currentQcmField) : 0}
+                    stageCount={qcmStages.length}
                   />
                 </div>
               ) : buzzedBy ? (
@@ -1679,9 +1683,12 @@ export default function BlindTest() {
             ) : answerMode === "qcm" ? (
               <QcmChoices
                 options={qcmOptions}
-                onPick={(t) => submitQcmChoice("solo", t)}
+                onPick={(label) => submitQcmChoice("solo", label)}
                 disabled={!!qcmLockedFor}
                 wrongId={qcmWrongId}
+                prompt={currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
+                stageIndex={currentQcmField ? qcmStages.indexOf(currentQcmField) : 0}
+                stageCount={qcmStages.length}
               />
             ) : (
               <form
@@ -1875,28 +1882,51 @@ function QcmChoices({
   onPick,
   disabled,
   wrongId,
+  prompt,
+  stageIndex,
+  stageCount,
 }: {
-  options: Track[];
-  onPick: (t: Track) => void;
+  options: string[];
+  onPick: (label: string) => void;
   disabled: boolean;
   wrongId: string | null;
+  prompt: string;
+  stageIndex: number;
+  stageCount: number;
 }) {
   return (
-    <div className="max-w-sm mx-auto space-y-2.5">
-      {options.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onPick(t)}
-          disabled={disabled}
-          className={`w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
-            wrongId === t.id
-              ? "border-riseNeg bg-riseNeg/10 shake-wrong"
-              : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
-          }`}
-        >
-          {t.title} <span className="text-ink-faint font-normal">— {t.artistName}</span>
-        </button>
-      ))}
+    <div className="max-w-sm mx-auto">
+      <div className="flex items-center justify-center gap-2.5 mb-3">
+        <p className="text-sm font-semibold">{prompt}</p>
+        {stageCount > 1 && (
+          <span className="flex items-center gap-1" aria-label={`Étape ${stageIndex + 1} sur ${stageCount}`}>
+            {Array.from({ length: stageCount }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i < stageIndex ? "w-1.5 bg-gold" : i === stageIndex ? "w-4 bg-gold" : "w-1.5 bg-white/15"
+                }`}
+              />
+            ))}
+          </span>
+        )}
+      </div>
+      <div className="space-y-2.5" key={prompt}>
+        {options.map((label) => (
+          <button
+            key={label}
+            onClick={() => onPick(label)}
+            disabled={disabled}
+            className={`solved-pop w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
+              wrongId === label
+                ? "border-riseNeg bg-riseNeg/10 shake-wrong"
+                : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

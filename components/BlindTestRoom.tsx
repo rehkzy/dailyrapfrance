@@ -7,6 +7,7 @@ import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
 import { randomGage } from "@/lib/gages";
+import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, QCM_STAGE_PROMPTS, type QcmField } from "@/lib/qcmStages";
 import Magnetic from "@/components/Magnetic";
 import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
@@ -460,43 +461,45 @@ function BlindTestRoom({
     void recoverAudio(false);
   }
 
-  // Options QCM de la manche — la bonne réponse + 2 intrus pris ailleurs dans les morceaux
-  // du salon, mélangés une seule fois par manche.
-  const qcmOptions = useMemo(() => {
-    if (!track || room?.answer_mode !== "qcm") return [];
-    const pool = (room?.tracks ?? []).filter((t) => t.id !== track.id);
-    const distractors: Track[] = [];
-    const seenTitles = new Set<string>();
-    for (const t of [...pool].sort(() => Math.random() - 0.5)) {
-      if (distractors.length >= 2) break;
-      if (seenTitles.has(t.title)) continue;
-      seenTitles.add(t.title);
-      distractors.push(t);
-    }
-    return [track, ...distractors].sort(() => Math.random() - 0.5);
+  // QCM par étapes — même logique que solo/local : ARTISTE, puis TITRE, puis FEAT.
+  // L'étape courante est déduite des champs déjà résolus DANS LE SALON (premier champ non
+  // trouvé, tous joueurs confondus) : le premier qui répond juste prend les points du
+  // champ, exactement comme en mode "écrire".
+  const roomApplicable: FieldKey[] = track && room ? applicableFieldsFor(room.theme, track) : [];
+  const roomQcmStages = useMemo(
+    () => (track && room?.answer_mode === "qcm" ? qcmStageOrder(roomApplicable as QcmField[]) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.id, room?.answer_mode]);
+    [track?.id, room?.answer_mode, roomApplicable.join(",")]
+  );
+  const roomSolvedFields = useMemo(
+    () => new Set(solves.filter((sv) => sv.round_index === (room?.current_round ?? -1)).map((sv) => sv.field)),
+    [solves, room?.current_round]
+  );
+  const currentQcmField = roomQcmStages.find((f) => !roomSolvedFields.has(f)) ?? null;
+  const qcmOptions = useMemo(() => {
+    if (!track || room?.answer_mode !== "qcm" || !currentQcmField) return [];
+    return qcmStageOptions(currentQcmField, track, (room?.tracks ?? []).filter((t) => t.id !== track.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track?.id, room?.answer_mode, currentQcmField]);
 
-  async function submitRoomQcmChoice(chosen: Track) {
-    if (!room || !track || revealed || qcmChoiceLocked) return;
-    setQcmChoiceLocked(true);
-    if (chosen.id !== track.id) {
+  async function submitRoomQcmChoice(chosenLabel: string) {
+    if (!room || !track || revealed || qcmChoiceLocked || !currentQcmField) return;
+    if (!qcmIsCorrect(currentQcmField, track, chosenLabel)) {
+      // Mauvaise réponse : ce joueur est verrouillé pour la manche, mais garde les points
+      // des étapes qu'il a déjà réussies.
       sfx.wrong();
-      setQcmWrongId(chosen.id);
+      setQcmWrongId(chosenLabel);
       setTimeout(() => setQcmWrongId(null), 450);
+      setQcmChoiceLocked(true);
       return;
     }
-    const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
-    const alreadySolved = new Set(solves.filter((s) => s.round_index === room.current_round).map((s) => s.field));
-    let anyOk = false;
-    for (const field of applicable) {
-      if (alreadySolved.has(field)) continue;
-      const { error: insertErr } = await supabase
-        .from("room_round_solves")
-        .insert({ room_id: room.id, round_index: room.current_round, field, user_id: user.id });
-      if (!insertErr) anyOk = true;
-    }
-    if (anyOk) {
+    // Bonne réponse : on tente de réclamer le champ de l'étape courante — l'insert échoue
+    // proprement si un autre joueur l'a pris une fraction de seconde avant (contrainte
+    // d'unicité), auquel cas l'étape suivante s'affiche simplement, sans points ici.
+    const { error: insertErr } = await supabase
+      .from("room_round_solves")
+      .insert({ room_id: room.id, round_index: room.current_round, field: currentQcmField, user_id: user.id });
+    if (!insertErr) {
       sfx.correct();
       setFlash("ok");
       setTimeout(() => setFlash(null), 700);
@@ -767,7 +770,7 @@ function BlindTestRoom({
 
         {/* Récap façon Wrapped — tous les morceaux de la partie et qui a trouvé quoi */}
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 text-left">Récap de la partie</p>
-        <div className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">
+        <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">
           {room.tracks.map((t, i) => {
             const rSolves = solves.filter((s) => s.round_index === i);
             return (
@@ -1006,9 +1009,12 @@ function BlindTestRoom({
             {room.answer_mode === "qcm" ? (
               <QcmChoicesRoom
                 options={qcmOptions}
-                onPick={submitRoomQcmChoice}
+                onPick={(label) => void submitRoomQcmChoice(label)}
                 disabled={qcmChoiceLocked}
                 wrongId={qcmWrongId}
+                prompt={currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
+                stageIndex={currentQcmField ? roomQcmStages.indexOf(currentQcmField) : 0}
+                stageCount={roomQcmStages.length}
               />
             ) : (
             <div className={`space-y-2.5 max-w-sm mx-auto ${flash === "taken" ? "shake-wrong" : ""}`}>
@@ -1195,26 +1201,34 @@ function RoomMenu({
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-40">
       {onExit && (
-        <button onClick={onExit} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
-          <ArrowLeft size={14} /> Choix du mode
+        <button
+          onClick={onExit}
+          className="tap-press inline-flex items-center gap-2 glass rounded-full pl-3 pr-4 py-2 text-xs font-medium text-ink-muted hover:text-ink hover:border-white/25 border border-white/10 transition-colors"
+        >
+          <ArrowLeft size={14} className="text-gold" /> Choix du mode
         </button>
       )}
       <div className="px-0.5">
         {party ? (
           <div className="mb-4">
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] flex items-center gap-2">
+            <h2 className="font-display text-2xl font-semibold leading-tight flex items-center gap-2.5">
               🎉 Mode Soirée
-              <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+              <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
                 Nouveau
               </span>
-            </p>
+            </h2>
             <p className="text-xs text-ink-faint mt-1.5 leading-relaxed">
               Le blind test version fête : un écran partagé sur la TV avec QR code et classement en
               direct, chacun joue sur son téléphone, et un gage attend le dernier du classement.
             </p>
           </div>
         ) : (
-          <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Créer un salon</p>
+          <div className="mb-4">
+            <h2 className="font-display text-2xl font-semibold leading-tight">Créer un salon</h2>
+            <p className="text-sm text-ink-faint mt-1.5 leading-snug">
+              Choisis un thème et les règles — tes potes rejoignent avec un code à 5 lettres.
+            </p>
+          </div>
         )}
 
         <div className="mb-6 -mx-1 px-1">
@@ -1425,28 +1439,51 @@ function QcmChoicesRoom({
   onPick,
   disabled,
   wrongId,
+  prompt,
+  stageIndex,
+  stageCount,
 }: {
-  options: Track[];
-  onPick: (t: Track) => void;
+  options: string[];
+  onPick: (label: string) => void;
   disabled: boolean;
   wrongId: string | null;
+  prompt: string;
+  stageIndex: number;
+  stageCount: number;
 }) {
   return (
-    <div className="space-y-2.5 max-w-sm mx-auto">
-      {options.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onPick(t)}
-          disabled={disabled}
-          className={`w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
-            wrongId === t.id
-              ? "border-riseNeg bg-riseNeg/10 shake-wrong"
-              : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
-          }`}
-        >
-          {t.title} <span className="text-ink-faint font-normal">— {t.artistName}</span>
-        </button>
-      ))}
+    <div className="max-w-sm mx-auto">
+      <div className="flex items-center justify-center gap-2.5 mb-3">
+        <p className="text-sm font-semibold">{prompt}</p>
+        {stageCount > 1 && (
+          <span className="flex items-center gap-1" aria-label={`Étape ${stageIndex + 1} sur ${stageCount}`}>
+            {Array.from({ length: stageCount }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i < stageIndex ? "w-1.5 bg-gold" : i === stageIndex ? "w-4 bg-gold" : "w-1.5 bg-white/15"
+                }`}
+              />
+            ))}
+          </span>
+        )}
+      </div>
+      <div className="space-y-2.5" key={prompt}>
+        {options.map((label) => (
+          <button
+            key={label}
+            onClick={() => onPick(label)}
+            disabled={disabled}
+            className={`solved-pop w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
+              wrongId === label
+                ? "border-riseNeg bg-riseNeg/10 shake-wrong"
+                : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
