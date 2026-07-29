@@ -56,14 +56,15 @@ export default function ShareScoreCard({
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
 
-      // Emblème
+      // Logo officiel DailyRapFrance — le monogramme DR du manifest (icon-512.png,
+      // raster : chargement canvas fiable partout), plus grand qu'avant : cette image
+      // circule hors du site, c'est la marque qui doit se voir en premier.
       try {
-        const logo = await loadImage("/blindtest-mark.svg");
+        const logo = await loadImage("/icon-512.png");
         if (cancelled) return;
-        const logoW = 160;
-        const logoH = (logo.height / logo.width) * logoW;
-        ctx.globalAlpha = 0.95;
-        ctx.drawImage(logo, (W - logoW) / 2, 210, logoW, logoH);
+        const logoSize = 230;
+        ctx.globalAlpha = 0.97;
+        ctx.drawImage(logo, (W - logoSize) / 2, 150, logoSize, logoSize);
         ctx.globalAlpha = 1;
       } catch {
         // pas bloquant si le logo ne charge pas — le reste de la carte reste correct
@@ -71,36 +72,78 @@ export default function ShareScoreCard({
 
       ctx.textAlign = "center";
 
-      ctx.fillStyle = "#F0001C";
-      ctx.font = '600 34px \"Bricolage Grotesque\", system-ui, sans-serif';
+      ctx.fillStyle = "#ffffff";
+      ctx.font = '800 52px "Bricolage Grotesque", system-ui, sans-serif';
       ctx.save();
-      ctx.letterSpacing = "8px";
-      ctx.fillText("BLIND TEST RAP FRANÇAIS", W / 2, 470);
+      ctx.letterSpacing = "4px";
+      ctx.fillText("DAILYRAPFRANCE", W / 2, 460);
       ctx.restore();
 
+      ctx.fillStyle = "#F0001C";
+      ctx.font = '600 32px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.save();
+      ctx.letterSpacing = "8px";
+      ctx.fillText("BLIND TEST RAP FRANÇAIS", W / 2, 520);
+      ctx.restore();
+
+      // Score — le héros de la carte
       ctx.fillStyle = "#ffffff";
-      ctx.font = '800 340px \"Bricolage Grotesque\", system-ui, sans-serif';
-      ctx.fillText(String(points), W / 2, 860);
+      ctx.font = '800 320px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText(String(points), W / 2, 900);
 
       ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = '600 48px \"Bricolage Grotesque\", system-ui, sans-serif';
-      ctx.fillText("POINTS", W / 2, 950);
+      ctx.font = '600 48px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText("POINTS", W / 2, 985);
 
       // Détail thème / manches
       ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.font = '600 46px \"Bricolage Grotesque\", system-ui, sans-serif';
-      ctx.fillText(themeLabel, W / 2, 1160);
+      ctx.font = '600 46px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText(themeLabel, W / 2, 1140);
       ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = '500 36px \"Bricolage Grotesque\", system-ui, sans-serif';
-      ctx.fillText(`${rounds} manches`, W / 2, 1220);
+      ctx.font = '500 36px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText(`${rounds} manches`, W / 2, 1198);
 
-      // Pied de carte
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = '700 40px \"Bricolage Grotesque\", system-ui, sans-serif';
-      ctx.fillText("dailyrapfrance.best/jouer", W / 2, H - 140);
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
-      ctx.font = '500 30px \"Bricolage Grotesque\", system-ui, sans-serif';
-      ctx.fillText("Toi aussi, teste ton niveau", W / 2, H - 90);
+      // Bloc promo — ce que la personne qui voit l'image doit retenir : c'est jouable
+      // tout de suite, gratuitement, seule ou en groupe. Séparé du score par un trait.
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.2, 1300);
+      ctx.lineTo(W * 0.8, 1300);
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = '700 50px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText("Tu fais mieux ?", W / 2, 1395);
+
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.font = '500 36px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText("+ de 25 thèmes · Ninho, JUL, PNL, 90s, drill...", W / 2, 1465);
+      ctx.fillText("Solo, entre potes ou en mode Soirée sur ta TV", W / 2, 1522);
+      ctx.fillText("Gratuit, sans téléchargement", W / 2, 1579);
+
+      // CTA façon bouton — la marque en rouge, l'URL en gros, lisible même en story compressée.
+      const btnW = 720;
+      const btnH = 110;
+      const btnX = (W - btnW) / 2;
+      const btnY = 1670;
+      const r = btnH / 2;
+      ctx.fillStyle = "#F0001C";
+      ctx.beginPath();
+      ctx.moveTo(btnX + r, btnY);
+      ctx.arcTo(btnX + btnW, btnY, btnX + btnW, btnY + btnH, r);
+      ctx.arcTo(btnX + btnW, btnY + btnH, btnX, btnY + btnH, r);
+      ctx.arcTo(btnX, btnY + btnH, btnX, btnY, r);
+      ctx.arcTo(btnX, btnY, btnX + btnW, btnY, r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = '800 44px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText("dailyrapfrance.best", W / 2, btnY + btnH / 2 + 16);
+
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.font = '500 28px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText("Lance une partie en 10 secondes", W / 2, btnY + btnH + 60);
 
       if (!cancelled) setReady(true);
     }
