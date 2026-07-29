@@ -65,13 +65,9 @@ function brandedHtml(subject: string, bodyText: string): string {
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
-        <!-- Logo officiel sur pastille glass, sans cadre ni fond opaque -->
+        <!-- Logo officiel (PNG hébergé sur le site, affiché 92px, coins arrondis) -->
         <tr><td align="center" style="padding-bottom:28px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" style="background:linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.045));border:1px solid rgba(255,255,255,0.18);border-radius:28px;">
-            <tr><td style="padding:22px 30px;">
-              <img src="https://dailyrapfrance.best/icon.svg" width="46" height="46" alt="DailyRapFrance" style="display:block;margin:0 auto;"/>
-            </td></tr>
-          </table>
+          <img src="https://dailyrapfrance.best/logo-email.png" width="92" height="92" alt="DailyRapFrance" style="display:block;margin:0 auto;border-radius:20px;box-shadow:0 8px 28px rgba(240,0,28,0.35);"/>
           <p style="margin:16px 0 0;color:#ffffff;font-weight:800;font-size:19px;letter-spacing:2.5px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">DAILYRAPFRANCE</p>
           <p style="margin:5px 0 0;color:#F0001C;font-weight:600;font-size:11px;letter-spacing:3px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">BLIND TEST RAP FRANÇAIS</p>
         </td></tr>
