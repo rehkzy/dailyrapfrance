@@ -785,12 +785,18 @@ export default function BlindTest() {
               }`}
             >
               {!mode && (
-                <p className="font-mono text-xs text-ink-faint uppercase tracking-[0.16em] flex items-center gap-2 px-0.5">
-                  Choisis ton mode de jeu
-                  <span className="inline-flex items-center rounded-full bg-gold/15 text-gold px-2.5 py-0.5 text-[10px] font-bold normal-case tracking-normal">
-                    À choisir
-                  </span>
-                </p>
+                <div className="px-0.5 pb-1">
+                  <h2 className="font-display text-2xl font-semibold leading-tight flex items-center gap-2.5">
+                    Choisis ton mode de jeu
+                    <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-60" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold" />
+                    </span>
+                  </h2>
+                  <p className="text-sm text-ink-faint mt-1.5 leading-snug">
+                    Solo, entre potes ou en soirée — tape une carte pour commencer.
+                  </p>
+                </div>
               )}
               {[
                 {

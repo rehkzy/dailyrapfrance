@@ -91,6 +91,7 @@ const FIXED_TRACK_THEMES: Record<string, { trackIds: number[]; forcedArtistName?
 
 // Blind tests dédiés à un seul artiste — que ses propres morceaux.
 const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
+  "artist-aya": ["aya nakamura"],
   "artist-ninho": ["ninho"],
   "artist-booba": ["booba"],
   "artist-pnl": ["pnl"],

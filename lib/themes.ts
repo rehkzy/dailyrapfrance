@@ -39,6 +39,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "59", label: "Rappeurs du 59", text: "Gradur...", Icon: MapPin, category: "Régions" },
   { id: "idf", label: "Île-de-France", text: "Tout le rap francilien mélangé", Icon: MapPin, category: "Régions" },
   { id: "artist-werenoi", label: "Blind Test Werenoi", text: "Que des sons de Werenoi", Icon: Mic2, category: "Artistes" },
+  { id: "artist-aya", label: "Blind Test Aya Nakamura", text: "Que des sons d'Aya Nakamura", Icon: Mic2, category: "Artistes" },
   { id: "artist-benef", label: "Blind Test Benef", text: "Mafia Italienne, Le Temps, IA...", Icon: Mic2, category: "Artistes" },
   { id: "artist-djadja-dinaz", label: "Blind Test Djadja & Dinaz", text: "Que des sons du duo Djadja & Dinaz", Icon: Mic2, category: "Artistes" },
   { id: "artist-bouss", label: "Blind Test Bouss", text: "Que des sons de Bouss", Icon: Mic2, category: "Artistes" },
@@ -53,7 +54,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
 
 // Mise en avant éditoriale — ces thèmes portent la flamme "tendance" dans les sélecteurs,
 // en plus des thèmes les plus joués calculés depuis les vrais scores (/api/blindtest/trending).
-export const FEATURED_THEME_IDS = ["artist-werenoi"];
+export const FEATURED_THEME_IDS = ["artist-werenoi", "artist-aya"];
 
 // Thèmes pour lesquels on va chercher une vraie photo d'artiste (pas les thèmes par époque,
 // génériques par nature) — utilisé pour construire l'appel groupé à /api/blindtest/theme-art.

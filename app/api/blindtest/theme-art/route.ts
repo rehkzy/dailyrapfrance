@@ -18,6 +18,7 @@ const THEME_LEAD_ARTISTS: Record<string, string[]> = {
   "69": ["bouss"],
   "59": ["gradur"],
   idf: ["pnl"],
+  "artist-aya": ["aya nakamura"],
   "artist-ninho": ["ninho"],
   "artist-booba": ["booba"],
   "artist-pnl": ["pnl"],
