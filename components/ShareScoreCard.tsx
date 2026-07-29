@@ -56,16 +56,53 @@ export default function ShareScoreCard({
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
 
-      // Logo officiel DailyRapFrance — le monogramme DR du manifest (icon-512.png,
-      // raster : chargement canvas fiable partout), plus grand qu'avant : cette image
-      // circule hors du site, c'est la marque qui doit se voir en premier.
+      // Logo officiel DailyRapFrance — le monogramme blanc (icon.svg, fond transparent),
+      // posé sur une pastille GLASS dessinée à la main : voile blanc translucide, liseré
+      // clair en haut, fine bordure — le style "glass" du site, sans aucun cadre opaque
+      // ni fond noir derrière le logo.
       try {
-        const logo = await loadImage("/icon-512.png");
+        const logo = await loadSvg("/icon.svg");
         if (cancelled) return;
-        const logoSize = 230;
-        ctx.globalAlpha = 0.97;
-        ctx.drawImage(logo, (W - logoSize) / 2, 150, logoSize, logoSize);
-        ctx.globalAlpha = 1;
+
+        const panelW = 340;
+        const panelH = 300;
+        const panelX = (W - panelW) / 2;
+        const panelY = 130;
+        const pr = 56;
+
+        const roundedPath = () => {
+          ctx.beginPath();
+          ctx.moveTo(panelX + pr, panelY);
+          ctx.arcTo(panelX + panelW, panelY, panelX + panelW, panelY + panelH, pr);
+          ctx.arcTo(panelX + panelW, panelY + panelH, panelX, panelY + panelH, pr);
+          ctx.arcTo(panelX, panelY + panelH, panelX, panelY, pr);
+          ctx.arcTo(panelX, panelY, panelX + panelW, panelY, pr);
+          ctx.closePath();
+        };
+
+        // Voile translucide (dégradé léger pour l'effet verre)
+        const glass = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+        glass.addColorStop(0, "rgba(255,255,255,0.10)");
+        glass.addColorStop(1, "rgba(255,255,255,0.045)");
+        roundedPath();
+        ctx.fillStyle = glass;
+        ctx.fill();
+        // Fine bordure + reflet haut
+        roundedPath();
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(panelX + pr, panelY + 1);
+        ctx.lineTo(panelX + panelW - pr, panelY + 1);
+        ctx.stroke();
+
+        // Le logo blanc, centré dans la pastille
+        const logoW = 240;
+        const logoH = (logo.height / logo.width) * logoW;
+        ctx.drawImage(logo, (W - logoW) / 2, panelY + (panelH - logoH) / 2, logoW, logoH);
       } catch {
         // pas bloquant si le logo ne charge pas — le reste de la carte reste correct
       }
@@ -220,6 +257,25 @@ export default function ShareScoreCard({
       </div>
     </div>
   );
+}
+
+// Charge un SVG pour le canvas en lui injectant width/height explicites — les SVG exportés
+// d'Illustrator n'ont qu'un viewBox, et Safari dessine alors une image 0×0 dans drawImage.
+async function loadSvg(src: string): Promise<HTMLImageElement> {
+  const res = await fetch(src);
+  let text = await res.text();
+  const vb = text.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+  const w = vb ? parseFloat(vb[1]) : 512;
+  const h = vb ? parseFloat(vb[2]) : 512;
+  if (!/<svg[^>]*\swidth=/.test(text)) {
+    text = text.replace(/<svg /, `<svg width="${w}" height="${h}" `);
+  }
+  const url = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
+  try {
+    return await loadImage(url);
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
