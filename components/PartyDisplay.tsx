@@ -146,6 +146,15 @@ export default function PartyDisplay({ code }: { code: string }) {
     return solves.filter((s) => s.user_id === userId).reduce((sum, s) => sum + (POINTS[s.field] ?? 0), 0);
   }
 
+  // ⚠️ Hook déclaré AVANT les retours anticipés (notFound / !room) : un hook appelé après
+  // un return conditionnel change d'ordre entre les rendus → crash React côté client
+  // ("Rendered more hooks than during the previous render") dès que le salon se charge.
+  const gageText = useMemo(() => {
+    if (!room?.gages_enabled) return "";
+    return randomGage(room.gages_intensity);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.status, room?.gages_enabled]);
+
   if (notFound) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center px-6">
@@ -168,11 +177,6 @@ export default function PartyDisplay({ code }: { code: string }) {
 
   const ranked = [...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id));
   const lastPlace = ranked.length > 1 ? ranked[ranked.length - 1] : null;
-  const gageText = useMemo(() => {
-    if (!room?.gages_enabled) return "";
-    return randomGage(room.gages_intensity);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room?.status]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-8 py-10 text-center">
