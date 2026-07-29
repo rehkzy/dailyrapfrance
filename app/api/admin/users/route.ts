@@ -20,23 +20,27 @@ export async function GET(req: NextRequest) {
 
   const ids = authList.users.map((u) => u.id);
   const [{ data: profiles }, { data: counts }] = await Promise.all([
-    db.from("profiles").select("id, display_name, username, created_at").in("id", ids),
+    db.from("profiles").select("id, display_name, username, created_at, last_seen_at").in("id", ids),
     db.from("blindtest_scores").select("user_id").in("user_id", ids),
   ]);
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
   const gamesById = new Map<string, number>();
   for (const c of counts ?? []) gamesById.set(c.user_id, (gamesById.get(c.user_id) ?? 0) + 1);
 
-  let users = authList.users.map((u) => ({
-    id: u.id,
-    email: u.email ?? "",
-    provider: u.app_metadata?.provider ?? "email",
-    createdAt: u.created_at,
-    lastSignInAt: u.last_sign_in_at ?? null,
-    displayName: profileById.get(u.id)?.display_name ?? u.user_metadata?.full_name ?? null,
-    username: profileById.get(u.id)?.username ?? null,
-    games: gamesById.get(u.id) ?? 0,
-  }));
+  let users = authList.users.map((u) => {
+    const lastSeenAt = profileById.get(u.id)?.last_seen_at ?? null;
+    return {
+      id: u.id,
+      email: u.email ?? "",
+      provider: u.app_metadata?.provider ?? "email",
+      createdAt: u.created_at,
+      lastSignInAt: u.last_sign_in_at ?? null,
+      displayName: profileById.get(u.id)?.display_name ?? u.user_metadata?.full_name ?? null,
+      username: profileById.get(u.id)?.username ?? null,
+      games: gamesById.get(u.id) ?? 0,
+      isOnline: lastSeenAt ? Date.now() - new Date(lastSeenAt).getTime() < 60_000 : false,
+    };
+  });
 
   if (q) {
     users = users.filter(

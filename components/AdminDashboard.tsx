@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, Fragment } from "react";
 import {
   Users, Gamepad2, Radio, TrendingUp, Trophy, Search, Trash2, RefreshCcw,
   Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send, Globe,
@@ -33,7 +33,15 @@ type Stats = {
 
 type AdminUser = {
   id: string; email: string; provider: string; createdAt: string; lastSignInAt: string | null;
-  displayName: string | null; username: string | null; games: number;
+  displayName: string | null; username: string | null; games: number; isOnline: boolean;
+};
+
+type UserActivity = {
+  isOnline: boolean;
+  lastSeenAt: string | null;
+  currentRoom: { code: string; theme: string; players: string[] } | null;
+  events: { event_type: string; path: string | null; meta: Record<string, unknown> | null; created_at: string }[];
+  counts: { pageViews: number; instagramClicks: number; shares: number };
 };
 
 type AdminRoom = {
@@ -54,6 +62,7 @@ type AnalyticsData = {
 const TABS = [
   { id: "overview", label: "Vue d'ensemble" },
   { id: "audience", label: "Audience" },
+  { id: "visits", label: "Visites (IP)" },
   { id: "users", label: "Utilisateurs" },
   { id: "rooms", label: "Salons" },
   { id: "email", label: "Mails" },
@@ -115,6 +124,7 @@ export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
 
       {tab === "overview" && <OverviewTab />}
       {tab === "audience" && <AudienceTab />}
+      {tab === "visits" && <VisitsTab />}
       {tab === "users" && (
         <UsersTab
           recipients={recipients}
@@ -511,7 +521,192 @@ function AudienceTab() {
   );
 }
 
+// ── Visites (IP) ─────────────────────────────────────────────────────────
+
+type VisitLog = {
+  id: number;
+  ip: string | null;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  path: string | null;
+  referer: string | null;
+  user_agent: string | null;
+  created_at: string;
+};
+
+function VisitsTab() {
+  const [visits, setVisits] = useState<VisitLog[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback((p: number) => {
+    setLoading(true);
+    fetch(`/api/admin/visits?page=${p}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) setError(d.error);
+        else {
+          setVisits(d.visits);
+          setHasMore(d.hasMore);
+          setTotal(d.total);
+        }
+      })
+      .catch(() => setError("Chargement impossible."))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => load(page), [page, load]);
+
+  if (error) return <ErrorCard message={error} />;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] text-ink-faint leading-relaxed">
+        {total} visite{total > 1 ? "s" : ""} journalisée{total > 1 ? "s" : ""} — IP et géolocalisation fournies par
+        Vercel, capturées côté serveur à chaque page vue (hors admin, API et fichiers statiques).
+      </p>
+
+      {loading ? (
+        <Loading />
+      ) : (
+        <div className="card overflow-x-auto" data-lenis-prevent>
+          <table className="w-full text-sm min-w-[820px]">
+            <thead>
+              <tr className="text-left text-[11px] font-mono uppercase tracking-wide text-ink-faint border-b border-white/8">
+                <th className="px-4 py-3">IP</th>
+                <th className="px-4 py-3">Localisation</th>
+                <th className="px-4 py-3">Page</th>
+                <th className="px-4 py-3">Référent</th>
+                <th className="px-4 py-3">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {visits.map((v) => (
+                <tr key={v.id} className="hover:bg-white/[0.03]">
+                  <td className="px-4 py-3 font-mono text-xs">{v.ip ?? "—"}</td>
+                  <td className="px-4 py-3 text-ink-muted text-xs">
+                    {[v.city, v.region, v.country].filter(Boolean).join(", ") || "—"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs truncate max-w-[220px]">{v.path ?? "—"}</td>
+                  <td className="px-4 py-3 text-ink-faint text-xs truncate max-w-[180px]">{v.referer ?? "direct"}</td>
+                  <td className="px-4 py-3 text-ink-faint text-xs font-mono">{fmtDate(v.created_at)}</td>
+                </tr>
+              ))}
+              {visits.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-ink-faint text-sm">
+                    Aucune visite journalisée pour l&apos;instant.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between text-xs font-mono text-ink-faint">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="glass rounded-full px-4 py-2 disabled:opacity-30 hover:text-ink transition-colors"
+        >
+          Page précédente
+        </button>
+        <span>Page {page}</span>
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={!hasMore}
+          className="glass rounded-full px-4 py-2 disabled:opacity-30 hover:text-ink transition-colors"
+        >
+          Page suivante
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Utilisateurs ──────────────────────────────────────────────────────────
+
+function eventLabel(type: string) {
+  const labels: Record<string, string> = {
+    page_view: "Page vue",
+    click_instagram: "Clic Instagram",
+    click_tiktok: "Clic TikTok",
+    click_x: "Clic X",
+    share: "Partage",
+    heartbeat: "Actif",
+  };
+  return labels[type] ?? type;
+}
+
+function UserActivityPanel({ userId }: { userId: string }) {
+  const [activity, setActivity] = useState<UserActivity | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/admin/users/${userId}/activity`)
+      .then((r) => r.json())
+      .then((d) => (d.error ? setError(d.error) : setActivity(d)))
+      .catch(() => setError("Chargement impossible."));
+  }, [userId]);
+
+  if (error) return <p className="text-xs text-riseNeg">{error}</p>;
+  if (!activity) return <p className="text-xs text-ink-faint">Chargement...</p>;
+
+  return (
+    <div className="grid md:grid-cols-3 gap-5">
+      <div>
+        <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2">Présence</p>
+        <p className="text-sm flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${activity.isOnline ? "bg-emerald-400" : "bg-white/15"}`} />
+          {activity.isOnline ? "En ligne maintenant" : `Vu ${fmtDate(activity.lastSeenAt)}`}
+        </p>
+
+        {activity.currentRoom ? (
+          <div className="mt-3 glass rounded-xl p-3">
+            <p className="text-xs text-gold font-semibold mb-1">
+              En train de jouer — salon {activity.currentRoom.code}
+            </p>
+            <p className="text-xs text-ink-faint">{themeLabel(activity.currentRoom.theme)}</p>
+            <p className="text-xs text-ink-muted mt-1">
+              Avec : {activity.currentRoom.players.filter((p) => p).join(", ") || "seul pour l'instant"}
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-ink-faint mt-3">Ne joue pas en ce moment.</p>
+        )}
+
+        <div className="mt-4 space-y-1.5 text-xs text-ink-muted">
+          <p>{activity.counts.pageViews} pages vues (50 derniers événements)</p>
+          <p>{activity.counts.instagramClicks} clics sur Instagram</p>
+          <p>{activity.counts.shares} partages</p>
+        </div>
+      </div>
+
+      <div className="md:col-span-2">
+        <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2">
+          Parcours récent (derniers événements)
+        </p>
+        {activity.events.length === 0 ? (
+          <p className="text-xs text-ink-faint">Aucune activité enregistrée pour l&apos;instant.</p>
+        ) : (
+          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-2" data-lenis-prevent>
+            {activity.events.map((e, i) => (
+              <div key={i} className="flex items-center gap-2.5 text-xs">
+                <span className="text-ink-faint font-mono w-20 shrink-0">{fmtDate(e.created_at).split(" ")[1] ?? fmtDate(e.created_at)}</span>
+                <span className="glass rounded-full px-2 py-0.5 text-[10px] font-mono shrink-0">{eventLabel(e.event_type)}</span>
+                {e.path && <span className="text-ink-muted font-mono truncate">{e.path}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function UsersTab({
   recipients,
@@ -533,6 +728,7 @@ function UsersTab({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const pageEmails = users.map((u) => u.email).filter(Boolean);
   const allPageSelected = pageEmails.length > 0 && pageEmails.every((e) => recipients.includes(e));
@@ -634,7 +830,8 @@ function UsersTab({
             </thead>
             <tbody className="divide-y divide-white/5">
               {users.map((u) => (
-                <tr key={u.id} className={`hover:bg-white/[0.03] ${recipients.includes(u.email) ? "bg-gold/5" : ""}`}>
+                <Fragment key={u.id}>
+                <tr className={`hover:bg-white/[0.03] ${recipients.includes(u.email) ? "bg-gold/5" : ""}`}>
                   <td className="px-4 py-3">
                     {u.email && (
                       <input
@@ -647,8 +844,17 @@ function UsersTab({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="font-medium">{u.displayName ?? "—"}</span>
-                    {u.username && <span className="text-ink-faint text-xs"> @{u.username}</span>}
+                    <button
+                      onClick={() => setExpanded(expanded === u.id ? null : u.id)}
+                      className="inline-flex items-center gap-2 hover:text-gold transition-colors text-left"
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${u.isOnline ? "bg-emerald-400" : "bg-white/15"}`}
+                        title={u.isOnline ? "En ligne" : "Hors ligne"}
+                      />
+                      <span className="font-medium">{u.displayName ?? "—"}</span>
+                      {u.username && <span className="text-ink-faint text-xs"> @{u.username}</span>}
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-ink-muted">{u.email}</td>
                   <td className="px-4 py-3">
@@ -678,6 +884,14 @@ function UsersTab({
                     )}
                   </td>
                 </tr>
+                {expanded === u.id && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-4 bg-white/[0.02]">
+                      <UserActivityPanel userId={u.id} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
               {users.length === 0 && (
                 <tr>
