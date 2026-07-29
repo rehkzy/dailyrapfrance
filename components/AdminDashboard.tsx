@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Users, Gamepad2, Radio, TrendingUp, Trophy, Search, Trash2, RefreshCcw,
-  Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart,
+  Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send,
 } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 
@@ -50,6 +50,7 @@ const TABS = [
   { id: "overview", label: "Vue d'ensemble" },
   { id: "users", label: "Utilisateurs" },
   { id: "rooms", label: "Salons" },
+  { id: "email", label: "Mails" },
   { id: "settings", label: "Pilotage" },
 ] as const;
 
@@ -92,6 +93,7 @@ export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
       {tab === "overview" && <OverviewTab />}
       {tab === "users" && <UsersTab />}
       {tab === "rooms" && <RoomsTab />}
+      {tab === "email" && <EmailTab />}
       {tab === "settings" && <SettingsTab />}
     </div>
   );
@@ -407,6 +409,158 @@ function RoomsTab() {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+
+// ── Mails ─────────────────────────────────────────────────────────────────
+
+const DEFAULT_SUBJECT = "On évolue grâce à toi 🔴 — 2 minutes pour nous aider ?";
+const DEFAULT_BODY = `Salut !
+
+Petit mot de l'équipe DailyRapFrance. Si tu ne nous connais pas encore bien : on est un média indépendant du rap français depuis 2020 — né sur les réseaux, porté par la passion du rap FR. Le blind test, c'est notre nouveau terrain de jeu, et il grandit vite : mode Soirée sur ta TV, salons entre potes, nouveaux thèmes chaque semaine (Aya Nakamura vient d'arriver 🔥).
+
+Et justement, on évolue — mais pas sans toi. Ton retour compte énormément : ce que tu kiffes, ce qui te frustre, le thème ou la feature que tu rêves de voir. Réponds simplement à ce mail, on lit tout et on répond.
+
+Et si le jeu te plaît, le plus beau cadeau que tu puisses nous faire, c'est de le montrer : lance une partie avec tes potes ce week-end, partage ton score en story, ou envoie juste le lien à la personne qui se croit incollable en rap FR.
+
+> Lancer une partie|https://dailyrapfrance.best/blindtest
+
+Merci d'être là depuis le début. Le meilleur arrive.
+
+L'équipe DailyRapFrance`;
+
+function EmailTab() {
+  const [subject, setSubject] = useState(DEFAULT_SUBJECT);
+  const [body, setBody] = useState(DEFAULT_BODY);
+  const [audience, setAudience] = useState<"all" | "active30d">("all");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmSend, setConfirmSend] = useState(false);
+
+  async function send(test: boolean) {
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    setConfirmSend(false);
+    try {
+      const res = await fetch("/api/admin/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, body, audience, test }),
+      });
+      const d = await res.json();
+      if (d.error && !d.ok) setError(d.error);
+      else if (test) setResult("Mail de test envoyé sur ta boîte — vérifie le rendu.");
+      else {
+        setResult(
+          `${d.sent} mail${d.sent > 1 ? "s" : ""} envoyé${d.sent > 1 ? "s" : ""} sur ${d.total} destinataires.` +
+            (d.remaining > 0
+              ? ` Il en reste ${d.remaining} : limite quotidienne du plan gratuit — reclique "Envoyer" demain, personne ne recevra de doublon.`
+              : " Campagne terminée ✓") +
+            (d.error ? ` (dernière erreur : ${d.error})` : "")
+        );
+      }
+    } catch {
+      setError("Envoi impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="card p-5">
+        <p className="font-semibold text-sm flex items-center gap-2 mb-1">
+          <Mail size={15} className="text-gold" /> Campagne e-mail
+        </p>
+        <p className="text-xs text-ink-faint mb-4 leading-relaxed">
+          Le modèle raconte l&apos;histoire du média, demande un retour (réponse directe au mail) et incite au
+          partage — modifie-le librement. Astuce : une ligne <span className="font-mono">&gt; Libellé|https://...</span>{" "}
+          devient un bouton rouge. Envoie-toi d&apos;abord un test.
+        </p>
+
+        <label className="text-[11px] font-mono uppercase tracking-wide text-ink-faint">Sujet</label>
+        <input
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50 mt-1 mb-4"
+        />
+
+        <label className="text-[11px] font-mono uppercase tracking-wide text-ink-faint">Message</label>
+        <textarea
+          data-lenis-prevent
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={14}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50 mt-1 leading-relaxed"
+        />
+
+        <div className="flex flex-wrap items-center gap-2 mt-4">
+          <span className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mr-1">Destinataires :</span>
+          {([
+            { id: "all" as const, label: "Tous les joueurs" },
+            { id: "active30d" as const, label: "Actifs 30 derniers jours" },
+          ]).map((o) => (
+            <button
+              key={o.id}
+              onClick={() => setAudience(o.id)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                audience === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2.5 mt-5">
+          <button
+            onClick={() => void send(true)}
+            disabled={busy}
+            className="glass rounded-full px-5 py-2.5 text-xs font-semibold hover:text-ink text-ink-muted disabled:opacity-50 transition-colors"
+          >
+            M&apos;envoyer un test
+          </button>
+          {confirmSend ? (
+            <span className="inline-flex items-center gap-2.5">
+              <button
+                onClick={() => void send(false)}
+                disabled={busy}
+                className="bg-gold hover:bg-glow text-white rounded-full px-5 py-2.5 text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+              >
+                <Send size={12} /> Confirmer l&apos;envoi réel
+              </button>
+              <button onClick={() => setConfirmSend(false)} className="text-xs text-ink-faint hover:text-ink">
+                Annuler
+              </button>
+            </span>
+          ) : (
+            <button
+              onClick={() => setConfirmSend(true)}
+              disabled={busy}
+              className="bg-gold hover:bg-glow text-white rounded-full px-5 py-2.5 text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+            >
+              <Send size={12} /> Envoyer la campagne
+            </button>
+          )}
+        </div>
+
+        {busy && <p className="text-xs text-ink-faint mt-3">Envoi en cours...</p>}
+        {result && <p className="text-xs text-gold mt-3 leading-relaxed">{result}</p>}
+        {error && <p className="text-xs text-riseNeg mt-3">{error}</p>}
+      </div>
+
+      <div className="card p-5">
+        <p className="font-semibold text-sm mb-1.5">🤖 Mail automatique de feedback</p>
+        <p className="text-xs text-ink-faint leading-relaxed">
+          Chaque jour à 18h (heure FR), les joueurs inscrits depuis 3 jours reçoivent automatiquement un mail
+          leur demandant leur avis et les incitant à défier un pote — une seule fois par joueur, géré par le
+          cron Vercel. Rien à faire de ton côté une fois configuré.
+        </p>
+      </div>
     </div>
   );
 }
