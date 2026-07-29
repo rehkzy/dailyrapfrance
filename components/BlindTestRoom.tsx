@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut } from "lucide-react";
+import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
+import { randomGage } from "@/lib/gages";
 import Magnetic from "@/components/Magnetic";
 import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
@@ -35,6 +36,8 @@ type RoomRow = {
   current_round: number;
   round_started_at: string | null;
   answer_mode: "text" | "qcm";
+  gages_enabled: boolean;
+  gages_intensity: "soft" | "hard";
 };
 type PlayerRow = { room_id: string; user_id: string; display_name: string };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string };
@@ -58,6 +61,11 @@ export default function BlindTestRoom({
 
   const [closedMessage, setClosedMessage] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
+  // Réactions emoji en direct — éphémères, jamais persistées (canal broadcast, pas de
+  // table). Chaque réaction reçue s'affiche 2s puis disparaît.
+  const [reactions, setReactions] = useState<{ id: number; emoji: string; from: string }[]>([]);
+  const reactionIdRef = useRef(0);
+  const roomChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [replaying, setReplaying] = useState(false);
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [players, setPlayers] = useState<PlayerRow[]>([]);
@@ -89,6 +97,11 @@ export default function BlindTestRoom({
 
     const channel = supabase
       .channel(`room:${room.id}`)
+      .on("broadcast", { event: "reaction" }, ({ payload }) => {
+        const id = reactionIdRef.current++;
+        setReactions((prev) => [...prev, { id, emoji: payload.emoji, from: payload.from }]);
+        setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 2000);
+      })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` }, () => {
         // On relit la ligne complète depuis la base plutôt que de faire confiance au message
         // temps réel tel quel : la liste des morceaux (colonne "tracks") est volumineuse, et
@@ -116,8 +129,10 @@ export default function BlindTestRoom({
         setScreen("menu");
       })
       .subscribe();
+    roomChannelRef.current = channel;
 
     return () => {
+      roomChannelRef.current = null;
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -234,13 +249,27 @@ export default function BlindTestRoom({
   }, []);
 
   // ── Créer / rejoindre ────────────────────────────────────────────────────
-  async function createRoom(theme: string, rounds: number, answerMode: "text" | "qcm") {
+  async function createRoom(
+    theme: string,
+    rounds: number,
+    answerMode: "text" | "qcm",
+    gagesEnabled: boolean,
+    gagesIntensity: "soft" | "hard"
+  ) {
     setBusy(true);
     setError(null);
     const code = generateRoomCode();
     const { data, error: err } = await supabase
       .from("rooms")
-      .insert({ code, host_id: user.id, theme, rounds, answer_mode: answerMode })
+      .insert({
+        code,
+        host_id: user.id,
+        theme,
+        rounds,
+        answer_mode: answerMode,
+        gages_enabled: gagesEnabled,
+        gages_intensity: gagesIntensity,
+      })
       .select()
       .single();
     if (err || !data) {
@@ -455,6 +484,20 @@ export default function BlindTestRoom({
     setTimeout(() => setFlash(null), 700);
   }
 
+  function sendReaction(emoji: string) {
+    roomChannelRef.current?.send({
+      type: "broadcast",
+      event: "reaction",
+      payload: { emoji, from: displayName },
+    });
+  }
+
+  const gageText = useMemo(() => {
+    if (!room?.gages_enabled) return "";
+    return randomGage(room.gages_intensity);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.status]);
+
   function scoreFor(userId: string) {
     return solves.filter((s) => s.user_id === userId).reduce((sum, s) => sum + POINTS[s.field], 0);
   }
@@ -555,6 +598,17 @@ export default function BlindTestRoom({
             </Magnetic>
           </div>
 
+          {/* Mode soirée : un écran (TV, laptop) pour afficher le code en QR et le
+              classement en direct pendant que chacun joue sur son téléphone. */}
+          <a
+            href={`/ecran?code=${room.code}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-xs text-ink-faint hover:text-gold font-mono uppercase tracking-wide mb-6"
+          >
+            <Tv size={13} /> Ouvrir l&apos;écran salon (TV / laptop)
+          </a>
+
           <RoomFriendInvites userId={user.id} roomCode={room.code} />
 
           <div className="glass rounded-xl p-4 mb-6">
@@ -610,10 +664,21 @@ export default function BlindTestRoom({
       );
     }
     const ranked = [...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id));
+    const lastPlace = ranked.length > 1 ? ranked[ranked.length - 1] : null;
     return (
       <div className="max-w-lg mx-auto text-center">
         <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Terminé</p>
         <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">Résultats</h2>
+
+        {room.gages_enabled && lastPlace && (
+          <div className="rounded-2xl p-5 mb-8 border border-gold/40 bg-gold/10 text-left">
+            <p className="font-mono text-[10px] text-gold uppercase tracking-[0.16em] mb-2">
+              🎉 Gage pour {lastPlace.display_name}
+            </p>
+            <p className="text-sm font-medium">{gageText}</p>
+          </div>
+        )}
+
         <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left">
           {ranked.map((p, i) => (
             <div key={p.user_id} className="flex items-center gap-4 py-3.5 px-5">
@@ -732,6 +797,22 @@ export default function BlindTestRoom({
   return (
     <div className="max-w-lg mx-auto">
       <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" onError={() => setAudioError(true)} />
+
+      {/* Réactions emoji flottantes — éphémères, purement décoratives */}
+      <div className="fixed inset-x-0 bottom-24 z-40 pointer-events-none flex justify-center">
+        <div className="relative w-full max-w-lg h-0">
+          {reactions.map((r) => (
+            <span
+              key={r.id}
+              className="reaction-float absolute left-1/2 bottom-0 -translate-x-1/2 text-3xl"
+              title={r.from}
+            >
+              {r.emoji}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between glass-strong rounded-xl px-4 gap-2">
         {confirmingQuit ? (
           <div className="flex items-center gap-2 text-[11px] font-mono uppercase">
@@ -762,6 +843,18 @@ export default function BlindTestRoom({
           {room.code}
           {copied ? <Check size={12} /> : <Copy size={12} />}
         </button>
+      </div>
+
+      <div className="flex justify-center gap-1.5 mb-4">
+        {["🔥", "😭", "💀", "🎯", "👀"].map((e) => (
+          <button
+            key={e}
+            onClick={() => sendReaction(e)}
+            className="tap-press w-9 h-9 rounded-full glass text-lg hover:bg-white/10 transition-colors"
+          >
+            {e}
+          </button>
+        ))}
       </div>
 
       <div className="card p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
@@ -982,7 +1075,7 @@ function RoomMenu({
   error: string | null;
   joinCode: string;
   setJoinCode: (v: string) => void;
-  onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm") => void;
+  onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm", gagesEnabled: boolean, gagesIntensity: "soft" | "hard") => void;
   onJoin: () => void;
   onExit?: () => void;
 }) {
@@ -990,6 +1083,9 @@ function RoomMenu({
   const [theme, setTheme] = useState("mix");
   // Sans présélection : l'hôte choisit consciemment le mode de réponse du salon.
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
+  // Mode gages — désactivé par défaut, jamais d'alcool suggéré par le jeu lui-même.
+  const [gagesEnabled, setGagesEnabled] = useState(false);
+  const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-40">
@@ -1037,6 +1133,45 @@ function RoomMenu({
             </button>
           ))}
         </div>
+
+        <div className="mt-5 pt-5 border-t border-white/8">
+          <button onClick={() => setGagesEnabled((v) => !v)} className="w-full flex items-center justify-between">
+            <span className="text-left">
+              <span className="text-sm font-medium flex items-center gap-1.5">🎉 Mode gages</span>
+              <span className="block text-xs text-ink-faint mt-0.5">
+                Un gage pour le dernier du classement, affiché en fin de partie.
+              </span>
+            </span>
+            <span className={`shrink-0 w-11 h-6 rounded-full transition-colors relative ${gagesEnabled ? "bg-gold" : "bg-white/10"}`}>
+              <span
+                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                  gagesEnabled ? "translate-x-[22px]" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
+          {gagesEnabled && (
+            <div className="flex gap-2 mt-3">
+              {([
+                { id: "soft" as const, label: "Soft" },
+                { id: "hard" as const, label: "Corsé" },
+              ]).map((o) => (
+                <button
+                  key={o.id}
+                  onClick={() => setGagesIntensity(o.id)}
+                  className={`flex-1 rounded-lg py-2 text-xs font-mono transition-colors ${
+                    gagesIntensity === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-[10px] text-ink-faint mt-2">
+            Jamais d&apos;alcool suggéré par le jeu — les gages restent au choix du groupe.
+          </p>
+        </div>
       </div>
 
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
@@ -1071,7 +1206,7 @@ function RoomMenu({
           </div>
           <Magnetic strength={0.15} className="block w-full">
             <button
-              onClick={() => answerMode && onCreate(theme, rounds, answerMode)}
+              onClick={() => answerMode && onCreate(theme, rounds, answerMode, gagesEnabled, gagesIntensity)}
               disabled={busy || !answerMode}
               title={!answerMode ? "Choisis d'abord un mode de réponse (Facile ou Difficile)" : undefined}
               className="cta-glow tap-press w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors"

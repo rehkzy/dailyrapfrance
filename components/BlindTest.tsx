@@ -478,6 +478,21 @@ export default function BlindTest() {
     intervalRef.current = setInterval(tick, 1000);
   }
 
+  // "Rejoue ta pire manche" — relance un mini-round d'un seul titre, en solo, sans repasser
+  // par le wizard ni retélécharger le pool (le morceau est déjà en mémoire depuis le récap).
+  function retrySingleTrack(track: Track) {
+    sfx.click();
+    setMode("solo");
+    setAnswerMode((prev) => prev ?? "text");
+    setTracks([track]);
+    setPreviewOverride({});
+    autoRecoveredRef.current.clear();
+    setRoundHistory([]);
+    setPlayers([{ id: "solo", name: "Toi", score: 0, jokersLeft: jokerCount, timeJokerUsed: false }]);
+    setRoundIndex(0);
+    setPhase("playing");
+  }
+
   function isTitleMatch(guessVal: string, title: string) {
     return checkGuess(guessVal, "", title, strictMode);
   }
@@ -1304,9 +1319,17 @@ export default function BlindTest() {
                       <p className="text-sm font-medium truncate">{r.track.title}</p>
                       <p className="text-xs text-ink-faint truncate">{r.track.artistName}</p>
                     </div>
-                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <div className="flex flex-col items-end gap-1 shrink-0">
                       {foundBy.length === 0 ? (
-                        <span className="text-[11px] font-mono text-ink-faint">personne</span>
+                        <>
+                          <span className="text-[11px] font-mono text-ink-faint">personne</span>
+                          <button
+                            onClick={() => retrySingleTrack(r.track)}
+                            className="press inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide text-gold hover:text-glow"
+                          >
+                            <RotateCcw size={10} /> Réessayer
+                          </button>
+                        </>
                       ) : mode === "solo" ? (
                         <Check size={14} className="text-gold" />
                       ) : (

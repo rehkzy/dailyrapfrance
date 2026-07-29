@@ -345,3 +345,35 @@ begin
     execute format('create policy "Lecture publique" on public.%I for select using (true)', t);
   end loop;
 end $$;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Mode soirée — écran partagé (TV/laptop). Cet écran est volontairement en LECTURE SEULE
+-- et n'a besoin d'aucun compte pour être ouvert (on ne va pas demander à un utilisateur de
+-- se connecter juste pour brancher son laptop sur la TV du salon). On élargit la lecture
+-- des 3 tables de salon à "public" — aucune donnée sensible dedans (juste code, pseudos,
+-- thème, scores), déjà visible de toute façon à n'importe quel compte connecté.
+-- ─────────────────────────────────────────────────────────────────────────
+
+drop policy if exists "Salons visibles par tout utilisateur connecté" on public.rooms;
+create policy "Salons visibles publiquement (ecran de salon)"
+  on public.rooms for select
+  using (true);
+
+drop policy if exists "Joueurs d'un salon visibles par tout utilisateur connecté" on public.room_players;
+create policy "Joueurs de salon visibles publiquement (ecran de salon)"
+  on public.room_players for select
+  using (true);
+
+drop policy if exists "Solutions visibles par tout utilisateur connecté" on public.room_round_solves;
+create policy "Solutions visibles publiquement (ecran de salon)"
+  on public.room_round_solves for select
+  using (true);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Mode "gages" en soirée — désactivé par défaut (opt-in explicite à la création du
+-- salon). Aucune colonne liée à l'alcool : les gages restent au choix du groupe.
+-- ─────────────────────────────────────────────────────────────────────────
+alter table public.rooms add column if not exists gages_enabled boolean not null default false;
+alter table public.rooms add column if not exists gages_intensity text not null default 'soft';
+alter table public.rooms drop constraint if exists rooms_gages_intensity_check;
+alter table public.rooms add constraint rooms_gages_intensity_check check (gages_intensity in ('soft', 'hard'));

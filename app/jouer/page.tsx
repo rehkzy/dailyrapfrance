@@ -7,6 +7,7 @@ import BlindTestLogo, { BlindTestMark } from "@/components/BlindTestLogo";
 import InstallPrompt from "@/components/InstallPrompt";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
 import LaunchAnnouncement from "@/components/LaunchAnnouncement";
+import DailyGuessCard from "@/components/DailyGuessCard";
 import JoinRoomInput from "@/components/JoinRoomInput";
 
 export const metadata = {
@@ -174,6 +175,8 @@ export default async function JouerPage() {
               </div>
             </div>
           </div>
+
+          <DailyGuessCard />
 
           {/* Quick Play */}
           <div className="mb-10">

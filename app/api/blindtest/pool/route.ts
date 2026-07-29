@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveArtist } from "@/lib/deezerArtist";
+import { deezerFetch, fetchTrackDetail, toGameTrack, type DeezerTrackSummary, type DeezerTrackFull } from "@/lib/deezerTrack";
 
 // Pool de titres du blind test — 100% en direct depuis l'API Deezer, aucune base de données.
 // Volontairement sans persistance : rien à peupler, rien qui puisse être "pas encore prêt".
@@ -63,13 +64,13 @@ const FIXED_TRACK_THEMES: Record<string, { trackIds: number[]; forcedArtistName?
   "imene-elle-give": {
     trackIds: [
       // Dadju
-      429974992, 869941882, 2570360062, 1718052197, 562148732, 1084245712, 429975052, 1389360732, 1593201331, 2004821007,
+      429974992, 700948842, 2570360062, 1718052197, 562148732, 1084245712, 429975052, 1389360732, 1593201331, 2004821007,
       // Jul
-      3689236742, 378114151, 75867424, 3380338381, 519797762, 3330198511, 994675552,
+      3689236742, 378114151, 75867424, 701987352, 519797762, 3330198511, 994675552,
       // Tiakola
-      4059400101, 2964716561, 3000573551, 3553677491, 1481109202,
+      4059400101, 2964716561, 3000573551, 1759430967, 1481109202,
       // Oboy
-      708702202, 3450361821, 3574259191, 2977780751, 453609952,
+      708702202, 3450361821, 453609962, 2977780751, 453609952,
     ],
   },
   "artist-benef": {
@@ -102,27 +103,6 @@ const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
   "artist-djadja-dinaz": ["djadja & dinaz"],
   "artist-bouss": ["bouss"],
 };
-
-type DeezerTrackSummary = {
-  id: number;
-  title: string;
-  preview?: string;
-  rank?: number;
-  artist?: { id?: number; name?: string };
-  album?: { cover_medium?: string; cover_big?: string };
-};
-
-type DeezerTrackFull = DeezerTrackSummary & {
-  contributors?: { id: number; name: string }[];
-};
-
-async function deezerFetch<T = { data?: DeezerTrackSummary[] }>(path: string): Promise<T> {
-  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 1800 } });
-  if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
-  const json = await res.json();
-  if (json?.error) throw new Error(`Deezer ${path} → ${json.error.message}`);
-  return json;
-}
 
 async function fetchPlaylistTracks(id: number): Promise<DeezerTrackSummary[]> {
   try {
@@ -172,34 +152,6 @@ async function fetchArtistTopTracks(name: string): Promise<DeezerTrackSummary[]>
 
 // Détail complet — seulement pour le lot final retenu (pas tout le pool candidat), pour
 // récupérer les featurings (`contributors`), absents des objets résumés des playlists.
-async function fetchTrackDetail(id: number): Promise<DeezerTrackFull | null> {
-  try {
-    return await deezerFetch<DeezerTrackFull>(`/track/${id}`);
-  } catch {
-    return null;
-  }
-}
-
-function toGameTrack(t: DeezerTrackFull) {
-  const mainId = t.artist?.id;
-  const feats = (t.contributors ?? [])
-    .filter((c) => c.id !== mainId)
-    .map((c) => c.name)
-    .filter((name, i, arr) => arr.indexOf(name) === i);
-  return {
-    id: String(t.id),
-    title: t.title,
-    artistName: t.artist?.name ?? "",
-    // Deezer renvoie parfois ses liens d'extrait en http:// plutôt qu'en https:// — sur un
-    // site servi en HTTPS, ce contenu mixte est bloqué silencieusement par le navigateur
-    // (l'audio ne se charge jamais, sans la moindre erreur visible). D'où des extraits muets
-    // de façon aléatoire, sur n'importe quel thème. On force https systématiquement.
-    previewUrl: (t.preview ?? "").replace(/^http:\/\//, "https://"),
-    coverUrl: t.album?.cover_medium || t.album?.cover_big || null,
-    feats,
-  };
-}
-
 // GET /api/blindtest/pool?theme=mix|90s|2000s|2010s|recent|pop|cloud|hardcore|drill|trap|boombap|melodique|conscient|93|91|92|77|78|13|59|idf|artist-*&count=15
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

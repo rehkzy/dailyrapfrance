@@ -958,3 +958,13 @@ input[type="range"].brand-slider::-moz-range-track {
     radial-gradient(70% 55% at 50% 105%, rgba(255, 59, 78, 0.16), transparent 65%),
     radial-gradient(120% 90% at 50% 40%, rgba(60, 6, 10, 0.55), transparent 100%);
 }
+
+/* Réactions emoji flottantes — montent, tournent légèrement, s'estompent. */
+.reaction-float {
+  animation: reaction-rise 2s ease-out forwards;
+}
+@keyframes reaction-rise {
+  0%   { transform: translate(-50%, 0) scale(0.6) rotate(0deg); opacity: 0; }
+  15%  { transform: translate(-50%, -20px) scale(1.15) rotate(-6deg); opacity: 1; }
+  100% { transform: translate(-50%, -160px) scale(1) rotate(8deg); opacity: 0; }
+}

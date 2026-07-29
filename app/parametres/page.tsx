@@ -6,6 +6,7 @@ import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
 import SignInCta from "@/components/SignInCta";
 import ShareProfileCard from "@/components/ShareProfileCard";
+import ArtistPassport from "@/components/ArtistPassport";
 
 export const metadata = { title: "Mon compte — DailyRapFrance" };
 
@@ -60,6 +61,10 @@ export default async function ParametresPage() {
       <p className="text-ink-muted mb-10">Ton pseudo, ta photo, et tes statistiques de jeu.</p>
 
       {profile?.username && <ShareProfileCard username={profile.username} />}
+
+      <div className="card p-5 mb-8">
+        <ArtistPassport userId={user.id} />
+      </div>
 
       <AccountSettingsForm
         userId={user.id}
