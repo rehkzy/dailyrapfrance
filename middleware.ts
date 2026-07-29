@@ -1,10 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
+import { logVisit } from "@/lib/visitLogger";
 
 // Rafraîchit la session Supabase à chaque requête. Sans ça, la session expire côté
 // Server Components (qui ne peuvent pas écrire de cookies) et l'utilisateur se retrouve
 // déconnecté au bout d'un moment sans raison apparente.
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,6 +26,9 @@ export async function middleware(request: NextRequest) {
   );
 
   await supabase.auth.getUser();
+
+  // Log de visite (IP + géo, via Vercel) — en tâche de fond, ne ralentit jamais la page.
+  event.waitUntil(logVisit(request));
 
   return response;
 }
