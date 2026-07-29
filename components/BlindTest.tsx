@@ -272,8 +272,25 @@ export default function BlindTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundIndex, phase]);
 
+  // Mode maintenance (piloté depuis /admin) — vérifié au lancement d'une partie : les
+  // parties en cours ne sont pas coupées, mais on n'en démarre pas de nouvelle.
+  async function maintenanceMessage(): Promise<string | null> {
+    try {
+      const { data } = await createClient().from("site_settings").select("value").eq("key", "maintenance").maybeSingle();
+      const v = data?.value as { enabled?: boolean; message?: string } | undefined;
+      return v?.enabled ? (v.message?.trim() || "Le blind test revient dans quelques minutes.") : null;
+    } catch {
+      return null; // en cas de doute, on laisse jouer
+    }
+  }
+
   async function startGame() {
     setSetupError(null);
+    const maint = await maintenanceMessage();
+    if (maint) {
+      setSetupError(`🔧 ${maint}`);
+      return;
+    }
     if (!mode) {
       setSetupError("Choisis un mode — Solo, Local ou Salon en ligne.");
       setWizardStep(0);

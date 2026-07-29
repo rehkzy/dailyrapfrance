@@ -383,3 +383,26 @@ alter table public.rooms add constraint rooms_gages_intensity_check check (gages
 -- reste recalculable par tous les clients (joueurs + écran partagé).
 alter table public.room_round_solves
   add column if not exists bonus int not null default 0;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Réglages du site — pilotés depuis le back-office /admin. Lisibles par tous
+-- (bannière d'annonce, mode maintenance), modifiables UNIQUEMENT via la clé
+-- service_role côté serveur (aucune policy d'écriture pour anon/authenticated).
+-- ─────────────────────────────────────────────────────────────────────────
+create table if not exists public.site_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.site_settings enable row level security;
+
+drop policy if exists "Réglages du site lisibles par tous" on public.site_settings;
+create policy "Réglages du site lisibles par tous"
+  on public.site_settings for select
+  using (true);
+
+insert into public.site_settings (key, value) values
+  ('announcement', '{"enabled": false, "text": ""}'::jsonb),
+  ('maintenance', '{"enabled": false, "message": "Le blind test revient dans quelques minutes."}'::jsonb)
+on conflict (key) do nothing;

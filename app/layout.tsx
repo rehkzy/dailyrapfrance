@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import SitePresence from "@/components/SitePresence";
+import SiteAnnouncement from "@/components/SiteAnnouncement";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dailyrapfrance.best"),
@@ -94,6 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SmoothScroll />
         <div className="bg-orbs" aria-hidden="true" />
         <div className="grain" aria-hidden="true" />
+        <SiteAnnouncement />
         <Header />
         <main>{children}</main>
         <Footer />

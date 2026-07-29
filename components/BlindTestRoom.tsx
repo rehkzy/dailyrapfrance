@@ -272,6 +272,19 @@ function BlindTestRoom({
   ) {
     setBusy(true);
     setError(null);
+    // Mode maintenance (piloté depuis /admin) — on ne crée pas de nouveau salon, les
+    // salons déjà en cours continuent normalement.
+    try {
+      const { data: maint } = await supabase.from("site_settings").select("value").eq("key", "maintenance").maybeSingle();
+      const v = maint?.value as { enabled?: boolean; message?: string } | undefined;
+      if (v?.enabled) {
+        setError(`🔧 ${v.message?.trim() || "Le blind test revient dans quelques minutes."}`);
+        setBusy(false);
+        return;
+      }
+    } catch {
+      // en cas de doute, on laisse jouer
+    }
     const code = generateRoomCode();
     const { data, error: err } = await supabase
       .from("rooms")
