@@ -83,13 +83,13 @@ function brandedHtml(subject: string, bodyText: string): string {
   </style>
   </head><body bgcolor="#0a0707" style="margin:0;padding:0;background:#0a0707;width:100%;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">&#847;&zwnj;&nbsp;</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0707" class="drf-bg" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:72px 16px 68px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0707" class="drf-bg" style="background:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(240,0,28,0.22),transparent 68%),radial-gradient(ellipse 900px 500px at 100% 110%,rgba(120,1,1,0.28),transparent 68%),#0a0707;padding:112px 16px 68px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
         <!-- Logo officiel (PNG hébergé sur le site, dimensions verrouillées pour éviter toute déformation) -->
         <tr><td align="center" style="padding-bottom:28px;">
-          <img src="https://dailyrapfrance.best/logo-email.png" width="92" height="92" alt="DailyRapFrance" style="display:block;width:92px;height:92px;margin:0 auto;border-radius:20px;box-shadow:0 8px 28px rgba(240,0,28,0.35);"/>
+          <img src="https://dailyrapfrance.best/logo-email.png" width="72" height="72" alt="DailyRapFrance" style="display:block;width:72px;height:72px;margin:0 auto;border-radius:16px;box-shadow:0 8px 28px rgba(240,0,28,0.35);"/>
         </td></tr>
 
         <!-- Carte glass contenant le message -->
