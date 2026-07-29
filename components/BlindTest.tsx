@@ -6,7 +6,7 @@ import {
   Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
   Sliders, Gamepad2, Maximize, Minimize, Flame, X, VolumeX, Volume2, Lightbulb, Target,
-  ListChecks, Keyboard, SpellCheck, Timer, Hash,
+  ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper,
   type LucideIcon,
 } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -32,7 +32,7 @@ type Track = {
   coverUrl: string | null;
   feats: string[];
 };
-type Mode = "solo" | "local" | "online";
+type Mode = "solo" | "local" | "online" | "party";
 type Phase = "setup" | "loading" | "playing" | "final";
 type Player = { id: string; name: string; score: number; jokersLeft: number; timeJokerUsed: boolean };
 type FieldKey = "title" | "artist" | "feat";
@@ -74,7 +74,7 @@ export default function BlindTest() {
   // décision du joueur, on ne la prend pas à sa place. Exceptions : arrivée par un lien
   // de salon (?room=) ou un deep-link ?mode= — là, l'intention est déjà exprimée.
   const [mode, setMode] = useState<Mode | null>(
-    joinRoomCode ? "online" : deepLinkMode === "online" || deepLinkMode === "local" || deepLinkMode === "solo" ? deepLinkMode : null
+    joinRoomCode ? "online" : deepLinkMode === "online" || deepLinkMode === "local" || deepLinkMode === "solo" || deepLinkMode === "party" ? deepLinkMode : null
   );
   const [themeId, setThemeId] = useState<string>(
     deepLinkTheme && THEME_OPTIONS.some((t) => t.id === deepLinkTheme) ? deepLinkTheme : "mix"
@@ -732,8 +732,15 @@ export default function BlindTest() {
     return <SignInGate />;
   }
 
-  if (mode === "online") {
-    return <BlindTestRoom user={user} onExit={() => setMode("solo")} initialCode={joinRoomCode ?? undefined} />;
+  if (mode === "online" || mode === "party") {
+    return (
+      <BlindTestRoom
+        user={user}
+        onExit={() => setMode(null)}
+        initialCode={joinRoomCode ?? undefined}
+        party={mode === "party"}
+      />
+    );
   }
 
   if (phase === "setup" || phase === "loading") {
@@ -813,7 +820,16 @@ export default function BlindTest() {
                   tag: "Multi à distance",
                   gradient: "from-[#3a0505] to-[#7a0f0f]",
                 },
-              ].map((m) => {
+                {
+                  id: "party" as Mode,
+                  label: "Soirée",
+                  Icon: PartyPopper,
+                  desc: "Écran partagé sur la TV, gages pour le dernier, chacun joue sur son tel.",
+                  tag: "2 à 8 joueurs + TV",
+                  gradient: "from-[#F0001C] to-[#FF6B3B]",
+                  badge: "Nouveau",
+                },
+              ].map((m: { id: Mode; label: string; Icon: typeof User; desc: string; tag: string; gradient: string; badge?: string }) => {
                 const isActive = mode === m.id;
                 return (
                   <div key={m.id}>
@@ -848,7 +864,14 @@ export default function BlindTest() {
                         <m.Icon size={24} strokeWidth={2} />
                       </div>
                       <span className="relative min-w-0 flex-1">
-                        <span className="block text-base font-semibold">{m.label}</span>
+                        <span className="text-base font-semibold flex items-center gap-2">
+                          {m.label}
+                          {m.badge && (
+                            <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide animate-pulse">
+                              {m.badge}
+                            </span>
+                          )}
+                        </span>
                         <span
                           className={`inline-flex items-center gap-1 mt-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-colors ${
                             isActive ? "bg-gold text-white" : "bg-gold/15 text-gold"

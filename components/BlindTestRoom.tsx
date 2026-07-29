@@ -42,14 +42,26 @@ type RoomRow = {
 type PlayerRow = { room_id: string; user_id: string; display_name: string };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string };
 
-export default function BlindTestRoom({
+export default function BlindTestRoomWrapper(props: {
+  user: User;
+  onExit?: () => void;
+  initialCode?: string;
+  /** Mode Soirée : même moteur de salon, mais création orientée fête (gages actifs par défaut, écran partagé mis en avant). */
+  party?: boolean;
+}) {
+  return <BlindTestRoom {...props} />;
+}
+
+function BlindTestRoom({
   user,
   onExit,
   initialCode,
+  party = false,
 }: {
   user: User;
   onExit?: () => void;
   initialCode?: string;
+  party?: boolean;
 }) {
   const supabase = createClient();
   const [screen, setScreen] = useState<"menu" | "lobby" | "playing" | "final">("menu");
@@ -392,15 +404,60 @@ export default function BlindTestRoom({
     if (revealed) return;
     setStarted(true);
     setAudioError(false);
-    audioRef.current?.play().catch(() => setAudioError(true));
+    audioRef.current?.play().catch(() => void recoverAudio(true));
   }
+
+  // ── Récupération audio ────────────────────────────────────────────────
+  // Les URLs de preview Deezer sont signées et expirent : celles stockées dans la colonne
+  // "tracks" du salon (construites au lancement, avec du cache serveur) peuvent être mortes
+  // en pleine manche → "Le son n'a pas pu se charger", et recharger la même URL ne servait
+  // à rien. À la moindre erreur on va donc chercher une URL *fraîche* via
+  // /api/blindtest/preview et on relit — silencieusement au premier échec (une seule
+  // tentative auto par manche pour ne pas boucler) ; la bannière d'erreur ne s'affiche que
+  // si même l'URL neuve échoue. "Réessayer" refait tout le cycle, URL fraîche comprise.
+  const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
+  const autoRecoveredRef = useRef<Set<string>>(new Set());
+  const trackIdRef = useRef<string | null>(null);
+  trackIdRef.current = track?.id ?? null;
+
+  const recoverAudio = useCallback(async (auto: boolean) => {
+    const id = trackIdRef.current;
+    if (!id) {
+      setAudioError(true);
+      return;
+    }
+    if (auto) {
+      if (autoRecoveredRef.current.has(id)) {
+        setAudioError(true);
+        return;
+      }
+      autoRecoveredRef.current.add(id);
+    }
+    try {
+      const res = await fetch(`/api/blindtest/preview?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("preview refresh failed");
+      const data = (await res.json()) as { previewUrl?: string };
+      if (data.previewUrl) {
+        setPreviewOverride((prev) => ({ ...prev, [id]: data.previewUrl! }));
+      }
+    } catch {
+      // On tente quand même une relecture de la source actuelle (panne réseau transitoire).
+    }
+    // Laisse React re-rendre le <audio> avec la nouvelle src avant de relancer la lecture.
+    setTimeout(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.load();
+      audio
+        .play()
+        .then(() => setAudioError(false))
+        .catch(() => setAudioError(true));
+    }, 60);
+  }, []);
 
   function retryAudio() {
     setAudioError(false);
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.load();
-    audio.play().catch(() => setAudioError(true));
+    void recoverAudio(false);
   }
 
   // Options QCM de la manche — la bonne réponse + 2 intrus pris ailleurs dans les morceaux
@@ -558,7 +615,7 @@ export default function BlindTestRoom({
   // ── Rendu ──────────────────────────────────────────────────────────────
 
   if (screen === "menu") {
-    return <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onExit={onExit} />;
+    return <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onExit={onExit} party={party} />;
   }
 
   if (screen === "lobby" && room) {
@@ -600,14 +657,33 @@ export default function BlindTestRoom({
 
           {/* Mode soirée : un écran (TV, laptop) pour afficher le code en QR et le
               classement en direct pendant que chacun joue sur son téléphone. */}
-          <a
-            href={`/ecran?code=${room.code}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs text-ink-faint hover:text-gold font-mono uppercase tracking-wide mb-6"
-          >
-            <Tv size={13} /> Ouvrir l&apos;écran salon (TV / laptop)
-          </a>
+          {party ? (
+            <a
+              href={`/ecran?code=${room.code}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-6 flex items-center gap-3.5 rounded-2xl border border-gold/40 bg-gold/[0.07] p-4 text-left hover:border-gold transition-colors"
+            >
+              <span className="icon-tile w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#7a0f0f] to-[#F0001C] text-white">
+                <Tv size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Ouvrir l&apos;écran partagé</span>
+                <span className="block text-xs text-ink-faint mt-0.5 leading-snug">
+                  Sur la TV ou un laptop : QR pour rejoindre, décompte et classement en direct.
+                </span>
+              </span>
+            </a>
+          ) : (
+            <a
+              href={`/ecran?code=${room.code}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-xs text-ink-faint hover:text-gold font-mono uppercase tracking-wide mb-6"
+            >
+              <Tv size={13} /> Ouvrir l&apos;écran salon (TV / laptop)
+            </a>
+          )}
 
           <RoomFriendInvites userId={user.id} roomCode={room.code} />
 
@@ -796,7 +872,19 @@ export default function BlindTestRoom({
 
   return (
     <div className="max-w-lg mx-auto">
-      <audio key={track.id} ref={audioRef} src={track.previewUrl} preload="auto" onError={() => setAudioError(true)} />
+      <audio
+        key={previewOverride[track.id] ?? track.id}
+        ref={audioRef}
+        src={previewOverride[track.id] ?? track.previewUrl}
+        preload="auto"
+        onError={() => {
+          // L'erreur de chargement (URL expirée) arrive souvent AVANT le clic "Lancer
+          // l'extrait" : on répare tout de suite en arrière-plan si l'extrait est lancé,
+          // sinon on marque juste l'erreur — launchExtract fera la récupération au clic.
+          if (started && !revealed) void recoverAudio(true);
+          else setAudioError(true);
+        }}
+      />
 
       {/* Réactions emoji flottantes — éphémères, purement décoratives */}
       <div className="fixed inset-x-0 bottom-24 z-40 pointer-events-none flex justify-center">
@@ -1070,6 +1158,7 @@ function RoomMenu({
   onCreate,
   onJoin,
   onExit,
+  party = false,
 }: {
   busy: boolean;
   error: string | null;
@@ -1078,24 +1167,55 @@ function RoomMenu({
   onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm", gagesEnabled: boolean, gagesIntensity: "soft" | "hard") => void;
   onJoin: () => void;
   onExit?: () => void;
+  party?: boolean;
 }) {
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
   // Sans présélection : l'hôte choisit consciemment le mode de réponse du salon.
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
-  // Mode gages — désactivé par défaut, jamais d'alcool suggéré par le jeu lui-même.
-  const [gagesEnabled, setGagesEnabled] = useState(false);
+  // Mode gages — désactivé par défaut en salon classique, activé d'office en mode Soirée
+  // (c'est le cœur du mode) — jamais d'alcool suggéré par le jeu lui-même.
+  const [gagesEnabled, setGagesEnabled] = useState(party);
   const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
+  // Tenter de créer sans mode de réponse → au lieu de dégrader le CTA en message collé,
+  // on garde le bouton tel quel et on met en évidence la section à compléter (ring + shake
+  // + scroll), comme sur l'écran de choix de mode du jeu.
+  const [needAnswerMode, setNeedAnswerMode] = useState(false);
+  const answerModeRef = useRef<HTMLDivElement>(null);
+
+  function handleCreate() {
+    if (!answerMode) {
+      setNeedAnswerMode(true);
+      answerModeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    onCreate(theme, rounds, answerMode, gagesEnabled, gagesIntensity);
+  }
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-40">
       {onExit && (
         <button onClick={onExit} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
-          <ArrowLeft size={14} /> Solo / local
+          <ArrowLeft size={14} /> Choix du mode
         </button>
       )}
       <div className="px-0.5">
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Créer un salon</p>
+        {party ? (
+          <div className="mb-4">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] flex items-center gap-2">
+              🎉 Mode Soirée
+              <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal">
+                Nouveau
+              </span>
+            </p>
+            <p className="text-xs text-ink-faint mt-1.5 leading-relaxed">
+              Le blind test version fête : un écran partagé sur la TV avec QR code et classement en
+              direct, chacun joue sur son téléphone, et un gage attend le dernier du classement.
+            </p>
+          </div>
+        ) : (
+          <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Créer un salon</p>
+        )}
 
         <div className="mb-6 -mx-1 px-1">
           <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); }} />
@@ -1116,59 +1236,138 @@ function RoomMenu({
           ))}
         </div>
 
-        <p className="text-xs text-ink-faint mb-2">Mode de réponse</p>
-        <div className="flex gap-2">
-          {([
-            { id: "qcm" as const, label: "Facile (QCM)" },
-            { id: "text" as const, label: "Difficile (écrire)" },
-          ]).map((o) => (
-            <button
-              key={o.id}
-              onClick={() => setAnswerMode(o.id)}
-              className={`flex-1 rounded-lg py-2 text-xs font-mono transition-colors ${
-                answerMode === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
-              }`}
-            >
-              {o.label}
-            </button>
-          ))}
+        <div
+          ref={answerModeRef}
+          className={`rounded-2xl p-3 -mx-3 transition-shadow ${
+            needAnswerMode && !answerMode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""
+          }`}
+        >
+          <p className="text-xs text-ink-faint mb-2.5 flex items-center gap-2">
+            Mode de réponse
+            {!answerMode && (
+              <span className="inline-flex items-center rounded-full bg-gold/15 text-gold px-2.5 py-0.5 text-[10px] font-bold">
+                À choisir
+              </span>
+            )}
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {([
+              { id: "qcm" as const, label: "Facile", sub: "QCM — 3 choix", emoji: "🎯" },
+              { id: "text" as const, label: "Difficile", sub: "Écrire la réponse", emoji: "✍️" },
+            ]).map((o) => {
+              const active = answerMode === o.id;
+              return (
+                <button
+                  key={o.id}
+                  onClick={() => {
+                    sfx.click();
+                    setAnswerMode(o.id);
+                    setNeedAnswerMode(false);
+                  }}
+                  className={`tap-press rounded-xl border px-3 py-3.5 text-left transition-[border-color,box-shadow,background-color] ${
+                    active
+                      ? "border-gold bg-gold/10 shadow-[0_0_0_1px_rgba(240,0,28,0.35)]"
+                      : "border-white/10 glass hover:border-white/25"
+                  }`}
+                >
+                  <span className="flex items-center justify-between">
+                    <span className="text-lg leading-none">{o.emoji}</span>
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                        active ? "bg-gold text-white" : "bg-white/5 text-transparent"
+                      }`}
+                    >
+                      <Check size={11} strokeWidth={3} />
+                    </span>
+                  </span>
+                  <span className="block text-sm font-semibold mt-2">{o.label}</span>
+                  <span className="block text-[11px] text-ink-faint mt-0.5">{o.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+          {needAnswerMode && !answerMode && (
+            <p className="text-xs text-riseNeg mt-2.5">Choisis Facile ou Difficile pour créer la partie.</p>
+          )}
         </div>
 
-        <div className="mt-5 pt-5 border-t border-white/8">
-          <button onClick={() => setGagesEnabled((v) => !v)} className="w-full flex items-center justify-between">
-            <span className="text-left">
-              <span className="text-sm font-medium flex items-center gap-1.5">🎉 Mode gages</span>
-              <span className="block text-xs text-ink-faint mt-0.5">
-                Un gage pour le dernier du classement, affiché en fin de partie.
+        <div
+          className={`mt-5 rounded-2xl border p-4 transition-[border-color,background-color] ${
+            gagesEnabled ? "border-gold/40 bg-gold/[0.06]" : "border-white/10 glass"
+          }`}
+        >
+          <button
+            type="button"
+            role="switch"
+            aria-checked={gagesEnabled}
+            onClick={() => {
+              sfx.click();
+              setGagesEnabled((v) => !v);
+            }}
+            className="w-full flex items-center gap-3.5 text-left"
+          >
+            <span
+              className={`icon-tile w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-xl transition-colors ${
+                gagesEnabled ? "bg-gradient-to-br from-[#8a1216] to-[#FF3B4E] text-white" : "bg-white/5"
+              }`}
+            >
+              🎉
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="text-sm font-semibold flex items-center gap-2">
+                Mode gages
+                {gagesEnabled && (
+                  <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold">
+                    Activé
+                  </span>
+                )}
+              </span>
+              <span className="block text-xs text-ink-faint mt-0.5 leading-snug">
+                Un gage pour le dernier du classement, révélé en fin de partie.
               </span>
             </span>
-            <span className={`shrink-0 w-11 h-6 rounded-full transition-colors relative ${gagesEnabled ? "bg-gold" : "bg-white/10"}`}>
+            <span
+              className={`shrink-0 w-12 h-7 rounded-full transition-colors relative ${
+                gagesEnabled ? "bg-gold" : "bg-white/10"
+              }`}
+            >
               <span
-                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                  gagesEnabled ? "translate-x-[22px]" : "translate-x-0.5"
+                className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                  gagesEnabled ? "translate-x-[26px]" : "translate-x-1"
                 }`}
               />
             </span>
           </button>
+
           {gagesEnabled && (
-            <div className="flex gap-2 mt-3">
-              {([
-                { id: "soft" as const, label: "Soft" },
-                { id: "hard" as const, label: "Corsé" },
-              ]).map((o) => (
-                <button
-                  key={o.id}
-                  onClick={() => setGagesIntensity(o.id)}
-                  className={`flex-1 rounded-lg py-2 text-xs font-mono transition-colors ${
-                    gagesIntensity === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  {o.label}
-                </button>
-              ))}
+            <div className="mt-3.5 pt-3.5 border-t border-white/8 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
+              <p className="text-[11px] text-ink-faint mb-2">Intensité des gages</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: "soft" as const, label: "Soft", sub: "Défis rap tout public" },
+                  { id: "hard" as const, label: "Corsé", sub: "Plus embarrassant" },
+                ]).map((o) => {
+                  const active = gagesIntensity === o.id;
+                  return (
+                    <button
+                      key={o.id}
+                      onClick={() => {
+                        sfx.click();
+                        setGagesIntensity(o.id);
+                      }}
+                      className={`tap-press rounded-xl border px-3 py-2.5 text-left transition-[border-color,background-color] ${
+                        active ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/25"
+                      }`}
+                    >
+                      <span className={`block text-xs font-semibold ${active ? "text-gold" : ""}`}>{o.label}</span>
+                      <span className="block text-[10px] text-ink-faint mt-0.5">{o.sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
-          <p className="text-[10px] text-ink-faint mt-2">
+          <p className="text-[10px] text-ink-faint mt-3">
             Jamais d&apos;alcool suggéré par le jeu — les gages restent au choix du groupe.
           </p>
         </div>
@@ -1206,12 +1405,13 @@ function RoomMenu({
           </div>
           <Magnetic strength={0.15} className="block w-full">
             <button
-              onClick={() => answerMode && onCreate(theme, rounds, answerMode, gagesEnabled, gagesIntensity)}
-              disabled={busy || !answerMode}
-              title={!answerMode ? "Choisis d'abord un mode de réponse (Facile ou Difficile)" : undefined}
-              className="cta-glow tap-press w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors"
+              onClick={handleCreate}
+              disabled={busy}
+              className={`tap-press w-full text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors ${
+                answerMode ? "cta-glow bg-gold hover:bg-glow" : "bg-gold/50 hover:bg-gold/70"
+              } disabled:opacity-60 disabled:animate-none`}
             >
-              {answerMode ? "Créer une partie privée" : "Choisis un mode de réponse"}
+              {party ? "Lancer la soirée" : "Créer une partie privée"}
             </button>
           </Magnetic>
         </div>
