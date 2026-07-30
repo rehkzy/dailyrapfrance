@@ -19,7 +19,6 @@ type Track = { id: string; title: string; artistName: string; previewUrl: string
 type FieldKey = "title" | "artist" | "feat";
 
 function applicableFieldsFor(theme: string | undefined, track: { feats: string[] }): FieldKey[] {
-  // Blind test mono-artiste : l'artiste est dans le nom du thème, on ne le fait pas deviner.
   const base: FieldKey[] = theme?.startsWith("artist-") ? ["title"] : ["title", "artist"];
   return track.feats.length ? [...base, "feat"] : base;
 }
@@ -48,7 +47,6 @@ export default function BlindTestRoomWrapper(props: {
   user: User;
   onExit?: () => void;
   initialCode?: string;
-  /** Mode Soirée : même moteur de salon, mais création orientée fête (gages actifs par défaut, écran partagé mis en avant). */
   party?: boolean;
 }) {
   return <BlindTestRoom {...props} />;
@@ -75,8 +73,6 @@ function BlindTestRoom({
 
   const [closedMessage, setClosedMessage] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
-  // Réactions emoji en direct — éphémères, jamais persistées (canal broadcast, pas de
-  // table). Chaque réaction reçue s'affiche 2s puis disparaît.
   const [reactions, setReactions] = useState<{ id: number; emoji: string; from: string }[]>([]);
   const reactionIdRef = useRef(0);
   const roomChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -91,8 +87,6 @@ function BlindTestRoom({
   const revealedRef = useRef(false);
   const [guess, setGuess] = useState({ title: "", artist: "", feat: "" });
   const [flash, setFlash] = useState<"ok" | "taken" | null>(null);
-  // QCM (mode facile) — verrou local : une fois qu'on a choisi, on ne rejoue pas le round,
-  // mais ça ne bloque pas les autres joueurs du salon.
   const [qcmChoiceLocked, setQcmChoiceLocked] = useState(false);
   const [qcmWrongId, setQcmWrongId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
@@ -105,7 +99,6 @@ function BlindTestRoom({
   const isHost = room?.host_id === user.id;
   const track: Track | undefined = room?.tracks?.[room.current_round];
 
-  // ── Abonnements Realtime ────────────────────────────────────────────────
   useEffect(() => {
     if (!room?.id) return;
 
@@ -117,9 +110,6 @@ function BlindTestRoom({
         setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 2000);
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` }, () => {
-        // On relit la ligne complète depuis la base plutôt que de faire confiance au message
-        // temps réel tel quel : la liste des morceaux (colonne "tracks") est volumineuse, et
-        // rien ne garantit qu'elle arrive intacte dans le message de diffusion.
         supabase
           .from("rooms")
           .select("*")
@@ -152,10 +142,6 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.id]);
 
-  // Filet de sécurité — tant qu'on est dans le lobby, on relit aussi la liste des joueurs
-  // toutes les 3s, en plus du temps réel. Ça garantit que l'hôte voit toujours les arrivées,
-  // même si un message temps réel est manqué. Effet séparé pour ne pas faire tomber/reprendre
-  // l'abonnement principal à chaque changement d'écran.
   useEffect(() => {
     if (!room?.id || screen !== "lobby") return;
     const poll = setInterval(() => {
@@ -171,7 +157,6 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.id, screen]);
 
-  // Réagit aux changements de statut/manche envoyés par l'hôte
   useEffect(() => {
     if (!room) return;
     if (room.status === "playing") {
@@ -184,22 +169,27 @@ function BlindTestRoom({
       setAudioError(false);
       setQcmChoiceLocked(false);
       setQcmWrongId(null);
+      // Une manche 0 signifie toujours le DÉBUT d'une partie (lancement initial ou "Rejouer
+      // — même salon" par l'hôte), jamais un simple passage de manche en cours de jeu. On y
+      // efface donc le tableau des réponses : sans ça, les scores et champs "déjà trouvés"
+      // de la partie précédente restaient affichés chez les AUTRES joueurs — l'hôte, lui,
+      // les efface bien dans relaunchRoom(), mais uniquement dans son propre état local ;
+      // les autres ne recevaient jamais cette information (la suppression des lignes solves
+      // en base ne déclenche pas d'événement temps réel écouté ici, seul l'INSERT l'est).
+      // Résultat pour eux : la manche 0 semblait déjà entièrement résolue par les réponses
+      // de l'ancienne partie, donc plus aucun champ ni bouton QCM ne s'affichait — juste le
+      // décompte qui tournait dans le vide.
+      if (room.current_round === 0) setSolves([]);
     } else if (room.status === "finished") {
       sfx.victory();
       setScreen("final");
     } else if (room.status === "lobby") {
-      // Retour au lobby après un rejeu lancé par l'hôte (nouveau thème/manches, même
-      // salon) — on efface aussi le tableau des réponses de la partie précédente pour
-      // repartir sur un score propre.
       setScreen("lobby");
       setSolves([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status, room?.current_round]);
 
-  // Chrono unique, basé sur le temps réel écoulé depuis round_started_at — tourne pour tout
-  // le monde en continu, que chacun ait déjà cliqué "Lancer l'extrait" ou non. C'est ce qui
-  // garantit que la révélation arrive au même moment pour tous, y compris les retardataires.
   useEffect(() => {
     if (screen !== "playing" || !room?.round_started_at) return;
     const startedAt = new Date(room.round_started_at).getTime();
@@ -227,10 +217,6 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, room?.round_started_at, room?.current_round]);
 
-  // Fait terminer la manche avant l'heure — utilisé à la fois par le bouton "Passer" et par
-  // "tout le monde a trouvé". On recule juste l'horodatage de départ plutôt que d'avancer la
-  // manche directement : ça fait entrer tout le monde en phase de révélation au même instant,
-  // même ceux qui n'ont pas encore cliqué "Lancer l'extrait".
   const endRoundEarly = useCallback(async () => {
     const r = roomRef.current;
     if (!r) return;
@@ -239,7 +225,6 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // L'hôte fait terminer la manche plus tôt quand tous les champs applicables sont trouvés
   useEffect(() => {
     if (!isHost || !room || screen !== "playing" || !track || revealed) return;
     const roundSolves = solves.filter((s) => s.round_index === room.current_round);
@@ -262,7 +247,6 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Créer / rejoindre ────────────────────────────────────────────────────
   async function createRoom(
     theme: string,
     rounds: number,
@@ -272,8 +256,6 @@ function BlindTestRoom({
   ) {
     setBusy(true);
     setError(null);
-    // Mode maintenance (piloté depuis /admin) — on ne crée pas de nouveau salon, les
-    // salons déjà en cours continuent normalement.
     try {
       const { data: maint } = await supabase.from("site_settings").select("value").eq("key", "maintenance").maybeSingle();
       const v = maint?.value as { enabled?: boolean; message?: string } | undefined;
@@ -348,8 +330,6 @@ function BlindTestRoom({
     setBusy(false);
   }
 
-  // Rejoint automatiquement si on arrive via un lien d'invitation partagé (?room=CODE) —
-  // on ne redemande pas de retaper le code, c'est tout l'intérêt du bouton "Partager".
   const autoJoinedRef = useRef(false);
   useEffect(() => {
     if (!initialCode || autoJoinedRef.current) return;
@@ -372,8 +352,6 @@ function BlindTestRoom({
         setBusy(false);
         return;
       }
-      // Efface les réponses de la partie précédente — sinon le tableau des scores de la
-      // nouvelle partie repartirait pollué par les manches d'avant sur ce même salon.
       await supabase.from("room_round_solves").delete().eq("room_id", r.id);
       await supabase
         .from("rooms")
@@ -422,14 +400,6 @@ function BlindTestRoom({
     audioRef.current?.play().catch(() => void recoverAudio(true));
   }
 
-  // ── Récupération audio ────────────────────────────────────────────────
-  // Les URLs de preview Deezer sont signées et expirent : celles stockées dans la colonne
-  // "tracks" du salon (construites au lancement, avec du cache serveur) peuvent être mortes
-  // en pleine manche → "Le son n'a pas pu se charger", et recharger la même URL ne servait
-  // à rien. À la moindre erreur on va donc chercher une URL *fraîche* via
-  // /api/blindtest/preview et on relit — silencieusement au premier échec (une seule
-  // tentative auto par manche pour ne pas boucler) ; la bannière d'erreur ne s'affiche que
-  // si même l'URL neuve échoue. "Réessayer" refait tout le cycle, URL fraîche comprise.
   const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
   const autoRecoveredRef = useRef<Set<string>>(new Set());
   const trackIdRef = useRef<string | null>(null);
@@ -456,9 +426,8 @@ function BlindTestRoom({
         setPreviewOverride((prev) => ({ ...prev, [id]: data.previewUrl! }));
       }
     } catch {
-      // On tente quand même une relecture de la source actuelle (panne réseau transitoire).
+      // On tente quand même une relecture de la source actuelle.
     }
-    // Laisse React re-rendre le <audio> avec la nouvelle src avant de relancer la lecture.
     setTimeout(() => {
       const audio = audioRef.current;
       if (!audio) return;
@@ -475,10 +444,6 @@ function BlindTestRoom({
     void recoverAudio(false);
   }
 
-  // QCM par étapes — même logique que solo/local : ARTISTE, puis TITRE, puis FEAT.
-  // L'étape courante est déduite des champs déjà résolus DANS LE SALON (premier champ non
-  // trouvé, tous joueurs confondus) : le premier qui répond juste prend les points du
-  // champ, exactement comme en mode "écrire".
   const roomApplicable: FieldKey[] = track && room ? applicableFieldsFor(room.theme, track) : [];
   const roomQcmStages = useMemo(
     () => (track && room?.answer_mode === "qcm" ? qcmStageOrder(roomApplicable as QcmField[]) : []),
@@ -496,11 +461,6 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.id, room?.answer_mode, currentQcmField]);
 
-
-  // Insère une réponse trouvée AVEC son bonus de rapidité (calculé sur l'horloge partagée
-  // round_started_at, la même pour tous les joueurs). Si la colonne "bonus" n'existe pas
-  // encore côté base (migration pas appliquée), on réessaie sans — le jeu continue, juste
-  // sans bonus, plutôt que de casser la manche.
   async function insertSolve(field: FieldKey) {
     if (!room) return { error: new Error("no room") };
     const startedAt = room.round_started_at ? new Date(room.round_started_at).getTime() : null;
@@ -517,17 +477,12 @@ function BlindTestRoom({
   async function submitRoomQcmChoice(chosenLabel: string) {
     if (!room || !track || revealed || qcmChoiceLocked || !currentQcmField) return;
     if (!qcmIsCorrect(currentQcmField, track, chosenLabel)) {
-      // Mauvaise réponse : ce joueur est verrouillé pour la manche, mais garde les points
-      // des étapes qu'il a déjà réussies.
       sfx.wrong();
       setQcmWrongId(chosenLabel);
       setTimeout(() => setQcmWrongId(null), 450);
       setQcmChoiceLocked(true);
       return;
     }
-    // Bonne réponse : on tente de réclamer le champ de l'étape courante — l'insert échoue
-    // proprement si un autre joueur l'a pris une fraction de seconde avant (contrainte
-    // d'unicité), auquel cas l'étape suivante s'affiche simplement, sans points ici.
     const { error: insertErr } = await insertSolve(currentQcmField);
     if (!insertErr) {
       sfx.correct();
@@ -606,7 +561,7 @@ function BlindTestRoom({
       try {
         await navigator.share({ title: "Blind Test DailyRapFrance", text, url });
       } catch {
-        // l'utilisateur a annulé le partage — rien à faire
+        // l'utilisateur a annulé le partage
       }
     } else {
       await navigator.clipboard.writeText(url);
@@ -623,10 +578,6 @@ function BlindTestRoom({
     setError(null);
   }
 
-  // Quitter POUR DE VRAI : supprime le salon (cascade → room_players, room_round_solves).
-  // C'est la seule façon dont un salon disparaît — jamais automatiquement à la fin d'une
-  // partie, pour que les mêmes potes puissent relancer avec d'autres réglages sans
-  // recréer un salon et repartager un nouveau code à chaque fois.
   async function leaveRoom() {
     const r = roomRef.current;
     if (!r) {
@@ -642,8 +593,6 @@ function BlindTestRoom({
     }
     leaveToMenu();
   }
-
-  // ── Rendu ──────────────────────────────────────────────────────────────
 
   if (screen === "menu") {
     return <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onExit={onExit} party={party} />;
@@ -686,8 +635,6 @@ function BlindTestRoom({
             </Magnetic>
           </div>
 
-          {/* Mode soirée : un écran (TV, laptop) pour afficher le code en QR et le
-              classement en direct pendant que chacun joue sur son téléphone. */}
           {party ? (
             <a
               href={`/ecran?code=${room.code}`}
@@ -796,7 +743,6 @@ function BlindTestRoom({
           ))}
         </div>
 
-        {/* Récap façon Wrapped — tous les morceaux de la partie et qui a trouvé quoi */}
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 text-left">Récap de la partie</p>
         <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">
           {room.tracks.map((t, i) => {
@@ -868,12 +814,8 @@ function BlindTestRoom({
     );
   }
 
-  // playing
   if (!room) return null;
   if (!track) {
-    // Ne devrait plus arriver grâce à la relecture forcée ci-dessus, mais si jamais les
-    // données ne sont vraiment pas encore là, on le montre au lieu de faire disparaître le
-    // jeu sans explication — et on retente une lecture.
     return (
       <div className="max-w-lg mx-auto text-center">
         <div className="card p-8">
@@ -909,15 +851,11 @@ function BlindTestRoom({
         src={previewOverride[track.id] ?? track.previewUrl}
         preload="auto"
         onError={() => {
-          // L'erreur de chargement (URL expirée) arrive souvent AVANT le clic "Lancer
-          // l'extrait" : on répare tout de suite en arrière-plan si l'extrait est lancé,
-          // sinon on marque juste l'erreur — launchExtract fera la récupération au clic.
           if (started && !revealed) void recoverAudio(true);
           else setAudioError(true);
         }}
       />
 
-      {/* Réactions emoji flottantes — éphémères, purement décoratives */}
       <div className="fixed inset-x-0 bottom-24 z-40 pointer-events-none flex justify-center">
         <div className="relative w-full max-w-lg h-0">
           {reactions.map((r) => (
@@ -1205,15 +1143,9 @@ function RoomMenu({
 }) {
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
-  // Sans présélection : l'hôte choisit consciemment le mode de réponse du salon.
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
-  // Mode gages — désactivé par défaut en salon classique, activé d'office en mode Soirée
-  // (c'est le cœur du mode) — jamais d'alcool suggéré par le jeu lui-même.
   const [gagesEnabled, setGagesEnabled] = useState(party);
   const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
-  // Tenter de créer sans mode de réponse → au lieu de dégrader le CTA en message collé,
-  // on garde le bouton tel quel et on met en évidence la section à compléter (ring + shake
-  // + scroll), comme sur l'écran de choix de mode du jeu.
   const [needAnswerMode, setNeedAnswerMode] = useState(false);
   const answerModeRef = useRef<HTMLDivElement>(null);
 
@@ -1417,8 +1349,6 @@ function RoomMenu({
 
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
 
-      {/* Créer + Rejoindre — les deux actions qui comptent, fixées en bas et toujours à portée,
-          plutôt que "Rejoindre" perdu dans une carte séparée sous une longue grille de thèmes. */}
       <div
         className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
