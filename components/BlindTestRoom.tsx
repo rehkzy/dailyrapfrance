@@ -190,12 +190,13 @@ function BlindTestRoom({
     if (!room) return;
     if (room.status === "playing") {
       setScreen("playing");
-      // "started" passe direct à true pour tout le monde, synchronisé sur round_started_at,
-      // au lieu d'attendre que chacun clique sur "Lancer l'extrait" à son propre rythme —
-      // avant, le premier à cliquer gagnait de fait plusieurs secondes d'écoute et de temps
-      // de réponse en plus par rapport à celui qui cliquait après lui, sur un chrono pourtant
-      // partagé. L'effet juste en dessous se charge de lancer la lecture audio automatiquement.
-      setStarted(true);
+      // "started" ne concerne plus QUE la lecture audio locale (elle a besoin d'un vrai
+      // clic pour démarrer — c'est une contrainte des navigateurs, surtout Safari iOS, pas
+      // un choix arbitraire). La zone de réponse, elle, s'affiche pour tout le monde dès le
+      // début de la manche indépendamment de ce clic (voir le rendu plus bas) — donc
+      // personne n'est avantagé ou désavantagé selon la rapidité avec laquelle il clique
+      // pour lancer le son.
+      setStarted(false);
       setGuess({ title: "", artist: "", feat: "" });
       setFlash(null);
       setRevealed(false);
@@ -475,21 +476,6 @@ function BlindTestRoom({
     setAudioError(false);
     void recoverAudio(false);
   }
-
-  // Lance la lecture automatiquement dès qu'une nouvelle manche démarre (started est déjà
-  // à true pour tout le monde à ce stade, cf. effet ci-dessus) — personne n'a plus besoin
-  // de cliquer sur "Lancer l'extrait", donc personne ne peut plus prendre d'avance sur les
-  // autres en cliquant plus vite. Si la lecture automatique est bloquée par le navigateur
-  // (rare une fois qu'on a déjà interagi avec la page), la bannière "Le son n'a pas pu se
-  // charger" existante prend le relais avec son bouton Réessayer.
-  useEffect(() => {
-    if (screen !== "playing" || !track || revealed) return;
-    const audio = audioRef.current;
-    if (!audio) return;
-    setAudioError(false);
-    audio.play().catch(() => void recoverAudio(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, track?.id, revealed]);
 
   const roomApplicable: FieldKey[] = track && room ? applicableFieldsFor(room.theme, track) : [];
   const roomQcmStages = useMemo(
@@ -1013,13 +999,7 @@ function BlindTestRoom({
       </div>
 
       <div className="card p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
-        {!started && !revealed ? (
-          <Magnetic strength={0.2}>
-            <button onClick={launchExtract} className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors">
-              <Play size={20} /> Lancer l'extrait
-            </button>
-          </Magnetic>
-        ) : revealed ? (
+        {revealed ? (
           <div>
             {track.coverUrl && (
               <img src={track.coverUrl} alt={track.title} className="w-24 h-24 rounded-lg object-cover mx-auto mb-4" />
@@ -1045,6 +1025,17 @@ function BlindTestRoom({
           </div>
         ) : (
           <>
+            {/* La lecture du son a besoin d'un vrai clic (contrainte des navigateurs,
+                surtout Safari iOS) — mais contrairement à avant, ce clic ne conditionne
+                plus l'accès à la zone de réponse juste en dessous : elle est déjà là pour
+                tout le monde, dès le début de la manche, clic ou pas. */}
+            {!started && (
+              <Magnetic strength={0.2} className="block mb-5">
+                <button onClick={launchExtract} className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors">
+                  <Play size={20} /> Lancer le son
+                </button>
+              </Magnetic>
+            )}
             {audioError && (
               <div className="solved-pop max-w-xs mx-auto mb-4 flex items-center gap-2.5 bg-riseNeg/10 border border-riseNeg/30 rounded-xl px-3.5 py-2.5 text-left">
                 <VolumeX size={16} className="text-riseNeg shrink-0" />
