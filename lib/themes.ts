@@ -50,6 +50,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-jul", label: "Blind Test JUL", text: "Que des sons de JUL", Icon: Mic2, category: "Artistes" },
   { id: "artist-nekfeu", label: "Blind Test Nekfeu", text: "Que des sons de Nekfeu", Icon: Mic2, category: "Artistes" },
   { id: "artist-badara", label: "Blind Test Badara", text: "Que des sons de Badara — Nouvelle École", Icon: Mic2, category: "Artistes" },
+  { id: "artist-maes", label: "Blind Test Maes", text: "Que des sons de Maes", Icon: Mic2, category: "Artistes" },
+  { id: "artist-algerino", label: "Blind Test L'Algérino", text: "Que des sons de L'Algérino", Icon: Mic2, category: "Artistes" },
 ];
 
 // Mise en avant éditoriale — ces thèmes portent la flamme "tendance" dans les sélecteurs,

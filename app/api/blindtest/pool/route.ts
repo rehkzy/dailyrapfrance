@@ -103,6 +103,8 @@ const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
   "artist-benef": ["benef"],
   "artist-djadja-dinaz": ["djadja & dinaz"],
   "artist-bouss": ["bouss"],
+  "artist-maes": ["maes"],
+  "artist-algerino": ["l'algerino"],
 };
 
 async function fetchPlaylistTracks(id: number): Promise<DeezerTrackSummary[]> {
