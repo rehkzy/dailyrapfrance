@@ -58,6 +58,8 @@ type AdminRoom = {
 type Settings = {
   announcement?: { enabled: boolean; text: string };
   maintenance?: { enabled: boolean; message: string };
+  online_rooms?: { enabled: boolean };
+  party_mode?: { enabled: boolean };
 };
 
 type AnalyticsData = {
@@ -1601,7 +1603,7 @@ function SettingsTab() {
       .catch(() => setError("Chargement impossible."));
   }, []);
 
-  async function save(key: "announcement" | "maintenance", value: object) {
+  async function save(key: "announcement" | "maintenance" | "online_rooms" | "party_mode", value: object) {
     const res = await fetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -1620,6 +1622,10 @@ function SettingsTab() {
 
   const ann = settings.announcement ?? { enabled: false, text: "" };
   const maint = settings.maintenance ?? { enabled: false, message: "" };
+  // Activés par défaut (absence de ligne en base = fonctionnalité normalement disponible) —
+  // contrairement à la bannière/maintenance où l'absence signifie "rien à afficher".
+  const onlineRooms = settings.online_rooms ?? { enabled: true };
+  const partyMode = settings.party_mode ?? { enabled: true };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -1650,6 +1656,53 @@ function SettingsTab() {
           placeholder="Ex. 🔥 Nouveau : le Blind Test Aya Nakamura est dispo !"
           className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-gold/50 resize-none"
         />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Fonctionnalités</p>
+        <p className="text-xs text-ink-faint -mt-1">
+          Coupe un mode de jeu spécifique à distance, sans redéploiement — utile en cas de bug isolé
+          sur une fonctionnalité, sans devoir couper tout le site (Mode maintenance ci-dessous).
+        </p>
+
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-sm flex items-center gap-2">
+              <Globe size={15} className="text-gold" /> Salons en ligne
+            </p>
+            <Toggle
+              on={onlineRooms.enabled}
+              onChange={(v) => {
+                const next = { enabled: v };
+                setSettings((s) => ({ ...s, online_rooms: next }));
+                void save("online_rooms", next);
+              }}
+            />
+          </div>
+          <p className="text-xs text-ink-faint mt-2">
+            Si désactivé, personne ne peut créer de nouveau salon multijoueur (solo reste jouable).
+          </p>
+        </div>
+
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-sm flex items-center gap-2">
+              <Crown size={15} className="text-gold" /> Mode Soirée
+            </p>
+            <Toggle
+              on={partyMode.enabled}
+              onChange={(v) => {
+                const next = { enabled: v };
+                setSettings((s) => ({ ...s, party_mode: next }));
+                void save("party_mode", next);
+              }}
+            />
+          </div>
+          <p className="text-xs text-ink-faint mt-2">
+            Si désactivé, la création d'un salon en mode Soirée (écran TV + gages) est bloquée —
+            les salons classiques restent disponibles.
+          </p>
         </div>
       </section>
 
@@ -1708,9 +1761,16 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       role="switch"
       aria-checked={on}
       onClick={() => onChange(!on)}
-      className={`shrink-0 w-12 h-7 rounded-full transition-colors relative ${on ? "bg-gold" : "bg-white/10"}`}
+      className={`shrink-0 w-12 h-7 rounded-full relative transition-colors duration-200 ${on ? "bg-gold" : "bg-white/10"}`}
     >
-      <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[26px]" : "translate-x-1"}`} />
+      {/* Translation en style inline (calcul exact : 48px de large, rond de 20px, 4px de
+          marge de chaque côté → 20px de course exactement) plutôt qu'une classe Tailwind
+          arbitraire — l'ancienne valeur (26px) dépassait du bord droit de la pilule au lieu
+          de s'y arrêter, c'est ce qui donnait cet aspect "cassé". */}
+      <span
+        className="absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+        style={{ transform: on ? "translateX(20px)" : "translateX(0px)" }}
+      />
     </button>
   );
 }

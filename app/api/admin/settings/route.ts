@@ -4,11 +4,13 @@ import { requireAdmin, adminClient } from "@/lib/adminAuth";
 export const dynamic = "force-dynamic";
 
 // Réglages pilotables à distance depuis /admin : bannière d'annonce (texte affiché sur
-// tout le site) et mode maintenance (bloque le lancement de nouvelles parties avec un
-// message). Stockés dans site_settings — lisibles par tous, modifiables uniquement ici
-// (service_role, aucune policy d'écriture publique).
+// tout le site), mode maintenance (bloque le lancement de nouvelles parties avec un
+// message), et deux interrupteurs de fonctionnalités (salons en ligne, mode Soirée) pour
+// couper une fonctionnalité précise sans passer par le mode maintenance global. Stockés
+// dans site_settings — lisibles par tous, modifiables uniquement ici (service_role,
+// aucune policy d'écriture publique).
 
-const ALLOWED_KEYS = new Set(["announcement", "maintenance"]);
+const ALLOWED_KEYS = new Set(["announcement", "maintenance", "online_rooms", "party_mode"]);
 
 export async function GET() {
   const gate = await requireAdmin();

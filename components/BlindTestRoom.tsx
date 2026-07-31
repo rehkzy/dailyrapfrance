@@ -300,6 +300,33 @@ function BlindTestRoom({
     } catch {
       // en cas de doute, on laisse jouer
     }
+    // Interrupteurs de fonctionnalités pilotés depuis le back-office (Pilotage) — plus
+    // ciblés que le mode maintenance global : coupent juste les salons, ou juste le mode
+    // Soirée, sans bloquer le reste du site.
+    try {
+      const { data: rooms } = await supabase.from("site_settings").select("value").eq("key", "online_rooms").maybeSingle();
+      const roomsValue = rooms?.value as { enabled?: boolean } | undefined;
+      if (roomsValue && roomsValue.enabled === false) {
+        setError("Les salons en ligne sont temporairement désactivés.");
+        setBusy(false);
+        return;
+      }
+    } catch {
+      // en cas de doute, on laisse créer
+    }
+    if (party) {
+      try {
+        const { data: pm } = await supabase.from("site_settings").select("value").eq("key", "party_mode").maybeSingle();
+        const partyValue = pm?.value as { enabled?: boolean } | undefined;
+        if (partyValue && partyValue.enabled === false) {
+          setError("🎉 Le mode Soirée est temporairement désactivé.");
+          setBusy(false);
+          return;
+        }
+      } catch {
+        // en cas de doute, on laisse créer
+      }
+    }
     const code = generateRoomCode();
     const { data, error: err } = await supabase
       .from("rooms")
@@ -1416,9 +1443,8 @@ function RoomMenu({
               }`}
             >
               <span
-                className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                  gagesEnabled ? "translate-x-[26px]" : "translate-x-1"
-                }`}
+                className="absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                style={{ transform: gagesEnabled ? "translateX(20px)" : "translateX(0px)" }}
               />
             </span>
           </button>
