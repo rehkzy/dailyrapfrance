@@ -225,15 +225,13 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!isHost || !room || screen !== "playing" || !track || revealed) return;
-    const roundSolves = solves.filter((s) => s.round_index === room.current_round);
-    const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
-    if (applicable.every((f) => roundSolves.some((s) => s.field === f))) {
-      endRoundEarly();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solves, isHost, revealed]);
+  // (Volontairement pas d'arrêt automatique de la manche dès que tous les champs sont
+  // trouvés.) Avant, dès qu'UN joueur trouvait tout, la manche s'arrêtait pour TOUT LE
+  // MONDE — les autres joueurs, encore en train de réfléchir ou de taper leur réponse,
+  // se faisaient couper avant même d'avoir eu leur chance. La manche va maintenant
+  // toujours jusqu'au bout de son temps (ROUND_SECONDS), pour laisser à chacun une vraie
+  // fenêtre pour répondre. Seul l'hôte peut encore écourter une manche manuellement, via
+  // le bouton "Personne ne trouve — passer" (endRoundEarly, toujours utilisé plus bas).
 
   const advanceRound = useCallback(async () => {
     const r = roomRef.current;
