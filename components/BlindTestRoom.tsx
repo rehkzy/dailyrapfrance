@@ -918,6 +918,18 @@ function BlindTestRoom({
   const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
   const roundSolves = solves.filter((s) => s.round_index === room.current_round);
   const isSolved = (f: FieldKey) => roundSolves.some((s) => s.field === f);
+  // Plusieurs joueurs peuvent désormais avoir trouvé le même champ (chacun avec son propre
+  // bonus de rapidité) — on liste tout le monde, pas juste le premier trouvé en base.
+  const finders = (f: FieldKey) =>
+    roundSolves
+      .filter((s) => s.field === f)
+      .map((s) => players.find((p) => p.user_id === s.user_id)?.display_name)
+      .filter((n): n is string => !!n);
+  const otherFinders = (f: FieldKey) =>
+    roundSolves
+      .filter((s) => s.field === f && s.user_id !== user.id)
+      .map((s) => players.find((p) => p.user_id === s.user_id)?.display_name)
+      .filter((n): n is string => !!n);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -1017,7 +1029,7 @@ function BlindTestRoom({
                 >
                   {isSolved(f) && <Check size={11} />}
                   {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Featuring"}
-                  {isSolved(f) && ` — ${players.find((p) => p.user_id === roundSolves.find((s) => s.field === f)?.user_id)?.display_name}`}
+                  {isSolved(f) && ` — ${finders(f).join(", ")}`}
                 </span>
               ))}
             </div>
@@ -1084,9 +1096,7 @@ function BlindTestRoom({
                           {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Featuring"} trouvé
                         </span>
                         <span className="text-xs text-ink-faint">
-                          {isSolved(f)
-                            ? players.find((p) => p.user_id === roundSolves.find((s) => s.field === f)?.user_id)?.display_name
-                            : "toi"}
+                          toi{otherFinders(f).length > 0 ? ` + ${otherFinders(f).join(", ")}` : ""}
                         </span>
                       </div>
                     ) : (
@@ -1104,7 +1114,7 @@ function BlindTestRoom({
                             un petit rappel, pas un blocage : chacun garde sa chance de trouver. */}
                         {isSolved(f) && (
                           <p className="text-[10px] text-ink-faint mt-1 ml-1">
-                            Déjà trouvé par {players.find((p) => p.user_id === roundSolves.find((s) => s.field === f)?.user_id)?.display_name} — tente ta chance quand même !
+                            Déjà trouvé par {otherFinders(f).join(", ")} — tente ta chance quand même !
                           </p>
                         )}
                       </>
