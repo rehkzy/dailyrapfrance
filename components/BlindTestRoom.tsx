@@ -76,6 +76,15 @@ function BlindTestRoom({
   const [reactions, setReactions] = useState<{ id: number; emoji: string; from: string }[]>([]);
   const reactionIdRef = useRef(0);
   const roomChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Petites notifications "X a rejoint / a quitté le salon" — éphémères, comme les
+  // réactions emoji, mais dans leur propre pile en haut de l'écran.
+  const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
+  const noticeIdRef = useRef(0);
+  const pushNotice = useCallback((text: string) => {
+    const id = noticeIdRef.current++;
+    setNotices((prev) => [...prev, { id, text }]);
+    setTimeout(() => setNotices((prev) => prev.filter((n) => n.id !== id)), 3200);
+  }, []);
   const [replaying, setReplaying] = useState(false);
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [players, setPlayers] = useState<PlayerRow[]>([]);
@@ -120,7 +129,27 @@ function BlindTestRoom({
           });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` }, (payload) => {
-        setPlayers((prev) => [...prev, payload.new as PlayerRow]);
+        const joined = payload.new as PlayerRow;
+        setPlayers((prev) => [...prev, joined]);
+        if (joined.user_id !== user.id) pushNotice(`${joined.display_name} a rejoint le salon`);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` }, () => {
+        // On ne fait pas confiance au contenu du payload de suppression (souvent limité à
+        // la clé primaire selon la configuration de la table côté Supabase) — on relit la
+        // liste à jour et on compare avec l'état local pour savoir précisément qui est
+        // parti, plutôt que de deviner depuis un payload potentiellement incomplet.
+        supabase
+          .from("room_players")
+          .select("*")
+          .eq("room_id", room.id)
+          .then(({ data }) => {
+            if (!data) return;
+            setPlayers((prev) => {
+              const stillHere = new Set((data as PlayerRow[]).map((p) => p.user_id));
+              prev.filter((p) => !stillHere.has(p.user_id)).forEach((p) => pushNotice(`${p.display_name} a quitté le salon`));
+              return data as PlayerRow[];
+            });
+          });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_round_solves", filter: `room_id=eq.${room.id}` }, (payload) => {
         setSolves((prev) => [...prev, payload.new as SolveRow]);
@@ -161,7 +190,12 @@ function BlindTestRoom({
     if (!room) return;
     if (room.status === "playing") {
       setScreen("playing");
-      setStarted(false);
+      // "started" passe direct à true pour tout le monde, synchronisé sur round_started_at,
+      // au lieu d'attendre que chacun clique sur "Lancer l'extrait" à son propre rythme —
+      // avant, le premier à cliquer gagnait de fait plusieurs secondes d'écoute et de temps
+      // de réponse en plus par rapport à celui qui cliquait après lui, sur un chrono pourtant
+      // partagé. L'effet juste en dessous se charge de lancer la lecture audio automatiquement.
+      setStarted(true);
       setGuess({ title: "", artist: "", feat: "" });
       setFlash(null);
       setRevealed(false);
@@ -442,17 +476,41 @@ function BlindTestRoom({
     void recoverAudio(false);
   }
 
+  // Lance la lecture automatiquement dès qu'une nouvelle manche démarre (started est déjà
+  // à true pour tout le monde à ce stade, cf. effet ci-dessus) — personne n'a plus besoin
+  // de cliquer sur "Lancer l'extrait", donc personne ne peut plus prendre d'avance sur les
+  // autres en cliquant plus vite. Si la lecture automatique est bloquée par le navigateur
+  // (rare une fois qu'on a déjà interagi avec la page), la bannière "Le son n'a pas pu se
+  // charger" existante prend le relais avec son bouton Réessayer.
+  useEffect(() => {
+    if (screen !== "playing" || !track || revealed) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    setAudioError(false);
+    audio.play().catch(() => void recoverAudio(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, track?.id, revealed]);
+
   const roomApplicable: FieldKey[] = track && room ? applicableFieldsFor(room.theme, track) : [];
   const roomQcmStages = useMemo(
     () => (track && room?.answer_mode === "qcm" ? qcmStageOrder(roomApplicable as QcmField[]) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [track?.id, room?.answer_mode, roomApplicable.join(",")]
   );
-  const roomSolvedFields = useMemo(
-    () => new Set(solves.filter((sv) => sv.round_index === (room?.current_round ?? -1)).map((sv) => sv.field)),
-    [solves, room?.current_round]
-  );
-  const currentQcmField = roomQcmStages.find((f) => !roomSolvedFields.has(f)) ?? null;
+  // Progression PROPRE À CE JOUEUR — avant, l'étape courante du QCM (et l'affichage
+  // "trouvé" en mode texte) se basait sur les réponses de TOUT LE SALON : dès que l'hôte
+  // (ou n'importe qui) trouvait un champ, l'étape suivante s'affichait instantanément chez
+  // tous les autres joueurs, sans même leur laisser le temps de cliquer sur l'étape en
+  // cours — "les autres joueurs ne peuvent plus répondre". Chaque joueur avance maintenant
+  // à son propre rythme, sur ses propres bonnes réponses uniquement ; les points restent
+  // attribués au premier qui valide vraiment en base (insertSolve, contrainte d'unicité),
+  // mais tout le monde peut toujours essayer de trouver, même après que quelqu'un d'autre
+  // a déjà eu le point sur ce champ.
+  const [myCorrectFields, setMyCorrectFields] = useState<Set<FieldKey>>(new Set());
+  useEffect(() => {
+    setMyCorrectFields(new Set());
+  }, [room?.current_round, track?.id]);
+  const currentQcmField = roomQcmStages.find((f) => !myCorrectFields.has(f)) ?? null;
   const qcmOptions = useMemo(() => {
     if (!track || room?.answer_mode !== "qcm" || !currentQcmField) return [];
     return qcmStageOptions(currentQcmField, track, (room?.tracks ?? []).filter((t) => t.id !== track.id));
@@ -481,22 +539,26 @@ function BlindTestRoom({
       setQcmChoiceLocked(true);
       return;
     }
-    const { error: insertErr } = await insertSolve(currentQcmField);
-    if (!insertErr) {
-      sfx.correct();
-      setFlash("ok");
-      setTimeout(() => setFlash(null), 700);
-    }
+    // Bonne réponse : on avance TOUJOURS ce joueur à l'étape suivante, même si le champ a
+    // déjà été réclamé par quelqu'un d'autre entre-temps (l'insert échoue alors seul —
+    // contrainte d'unicité — mais ce joueur a bien répondu juste, il doit continuer).
+    sfx.correct();
+    setFlash("ok");
+    setTimeout(() => setFlash(null), 700);
+    setMyCorrectFields((prev) => new Set(prev).add(currentQcmField));
+    await insertSolve(currentQcmField);
   }
 
   async function submitGuess() {
     if (!room || !track || revealed) return;
     const applicable: FieldKey[] = applicableFieldsFor(room.theme, track);
-    const alreadySolved = new Set(solves.filter((s) => s.round_index === room.current_round).map((s) => s.field));
     let anyOk = false;
 
     for (const field of applicable) {
-      if (alreadySolved.has(field)) continue;
+      // On ignore seulement les champs QUE CE JOUEUR a déjà trouvés — pas ceux trouvés par
+      // quelqu'un d'autre : sinon un champ pris par l'hôte devenait immédiatement impossible
+      // à retenter pour tous les autres, qui perdaient leur chance sans même avoir essayé.
+      if (myCorrectFields.has(field)) continue;
       const value = guess[field];
       if (!value.trim()) continue;
       const match =
@@ -507,12 +569,14 @@ function BlindTestRoom({
           : checkGuess(value, track.artistName, "");
       if (!match) continue;
 
-      const { error: insertErr } = await insertSolve(field);
-      if (!insertErr) {
-        anyOk = true;
-        if (field === "feat") sfx.bonus();
-        else sfx.correct();
-      }
+      // Réponse juste : ce joueur a trouvé, qu'il touche le point ou non (si quelqu'un
+      // d'autre l'a déjà réclamé, insertSolve échoue silencieusement côté base — la
+      // contrainte d'unicité protège juste l'attribution des points, pas le droit d'essayer).
+      anyOk = true;
+      setMyCorrectFields((prev) => new Set(prev).add(field));
+      if (field === "feat") sfx.bonus();
+      else sfx.correct();
+      await insertSolve(field);
     }
 
     if (anyOk) {
@@ -576,6 +640,9 @@ function BlindTestRoom({
     setError(null);
   }
 
+  // Quitter POUR DE VRAI (hôte uniquement) : supprime le salon (cascade → room_players,
+  // room_round_solves). Ferme la partie pour tout le monde — c'est pour ça que seul l'hôte
+  // y a accès désormais (voir isHost plus bas).
   async function leaveRoom() {
     const r = roomRef.current;
     if (!r) {
@@ -592,6 +659,21 @@ function BlindTestRoom({
     leaveToMenu();
   }
 
+  // Quitter SEUL (non-hôte) : se retire juste de la liste des joueurs, le salon continue
+  // de tourner normalement pour les autres — c'est cette suppression qui déclenche la
+  // notification "X a quitté le salon" vue par les joueurs restants.
+  async function leaveIndividually() {
+    const r = roomRef.current;
+    if (!r) {
+      leaveToMenu();
+      return;
+    }
+    setBusy(true);
+    await supabase.from("room_players").delete().eq("room_id", r.id).eq("user_id", user.id);
+    setBusy(false);
+    leaveToMenu();
+  }
+
   if (screen === "menu") {
     return <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onExit={onExit} party={party} />;
   }
@@ -599,6 +681,13 @@ function BlindTestRoom({
   if (screen === "lobby" && room) {
     return (
       <div className="max-w-lg mx-auto">
+        <div className="fixed top-4 inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
+          {notices.map((n) => (
+            <span key={n.id} className="solved-pop glass-strong rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
+              {n.text}
+            </span>
+          ))}
+        </div>
         {confirmingQuit ? (
           <div className="flex items-center gap-2 mb-6 text-xs font-mono uppercase tracking-wide">
             <span className="text-ink-muted">Fermer le salon pour tout le monde ?</span>
@@ -610,7 +699,10 @@ function BlindTestRoom({
             </button>
           </div>
         ) : (
-          <button onClick={() => setConfirmingQuit(true)} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink mb-6 font-mono uppercase tracking-wide">
+          <button
+            onClick={() => (isHost ? setConfirmingQuit(true) : leaveIndividually())}
+            className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink mb-6 font-mono uppercase tracking-wide"
+          >
             <ArrowLeft size={14} /> Quitter le salon
           </button>
         )}
@@ -795,7 +887,7 @@ function BlindTestRoom({
             </span>
           ) : (
             <button
-              onClick={() => setConfirmingQuit(true)}
+              onClick={() => (isHost ? setConfirmingQuit(true) : leaveIndividually())}
               className="inline-flex items-center gap-2 glass text-ink-muted hover:text-ink rounded-full px-6 py-3 font-medium transition-colors"
             >
               <LogOut size={16} />
@@ -854,6 +946,14 @@ function BlindTestRoom({
         }}
       />
 
+      <div className="fixed top-4 inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
+        {notices.map((n) => (
+          <span key={n.id} className="solved-pop glass-strong rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
+            {n.text}
+          </span>
+        ))}
+      </div>
+
       <div className="fixed inset-x-0 bottom-24 z-40 pointer-events-none flex justify-center">
         <div className="relative w-full max-w-lg h-0">
           {reactions.map((r) => (
@@ -881,8 +981,8 @@ function BlindTestRoom({
           </div>
         ) : (
           <button
-            onClick={() => setConfirmingQuit(true)}
-            title="Quitter le salon (le ferme pour tout le monde)"
+            onClick={() => (isHost ? setConfirmingQuit(true) : leaveIndividually())}
+            title={isHost ? "Quitter le salon (le ferme pour tout le monde)" : "Quitter le salon"}
             className="tap-press shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-ink-faint hover:text-riseNeg transition-colors"
           >
             <LogOut size={14} />
@@ -986,26 +1086,37 @@ function BlindTestRoom({
                 .filter((f) => applicable.includes(f))
                 .map((f) => (
                   <div key={f}>
-                    {isSolved(f) ? (
+                    {myCorrectFields.has(f) ? (
                       <div className="solved-pop w-full bg-gold/10 border border-gold/30 rounded-lg px-3 py-2 text-sm text-gold flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <Check size={14} />
                           {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Featuring"} trouvé
                         </span>
                         <span className="text-xs text-ink-faint">
-                          {players.find((p) => p.user_id === roundSolves.find((s) => s.field === f)?.user_id)?.display_name}
+                          {isSolved(f)
+                            ? players.find((p) => p.user_id === roundSolves.find((s) => s.field === f)?.user_id)?.display_name
+                            : "toi"}
                         </span>
                       </div>
                     ) : (
-                      <input
-                        value={guess[f]}
-                        onChange={(e) => setGuess((g) => ({ ...g, [f]: e.target.value }))}
-                        onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                        placeholder={f === "title" ? "Titre (1 pt)" : f === "artist" ? "Artiste (1 pt)" : "Featuring (+2 pts)"}
-                        className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors ${
-                          f === "feat" ? "border-gold/30 focus:border-gold/60" : "border-white/10 focus:border-gold/50"
-                        }`}
-                      />
+                      <>
+                        <input
+                          value={guess[f]}
+                          onChange={(e) => setGuess((g) => ({ ...g, [f]: e.target.value }))}
+                          onKeyDown={(e) => e.key === "Enter" && submitGuess()}
+                          placeholder={f === "title" ? "Titre (1 pt)" : f === "artist" ? "Artiste (1 pt)" : "Featuring (+2 pts)"}
+                          className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors ${
+                            f === "feat" ? "border-gold/30 focus:border-gold/60" : "border-white/10 focus:border-gold/50"
+                          }`}
+                        />
+                        {/* Le champ reste tapable même si quelqu'un d'autre l'a déjà — juste
+                            un petit rappel, pas un blocage : chacun garde sa chance de trouver. */}
+                        {isSolved(f) && (
+                          <p className="text-[10px] text-ink-faint mt-1 ml-1">
+                            Déjà trouvé par {players.find((p) => p.user_id === roundSolves.find((s) => s.field === f)?.user_id)?.display_name} — tente ta chance quand même !
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 ))}
