@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState, Fragment } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Users, Gamepad2, Radio, TrendingUp, Trophy, Search, Trash2, RefreshCcw,
   Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send, Globe,
+  X, Eye, Instagram, Share2, Music2, Twitter, Gamepad, Calendar, Clock,
+  LayoutGrid, Settings as SettingsIcon,
 } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 
@@ -64,13 +66,13 @@ type AnalyticsData = {
 };
 
 const TABS = [
-  { id: "overview", label: "Vue d'ensemble" },
-  { id: "audience", label: "Audience" },
-  { id: "visits", label: "Visites (IP)" },
-  { id: "users", label: "Utilisateurs" },
-  { id: "rooms", label: "Salons" },
-  { id: "email", label: "Mails" },
-  { id: "settings", label: "Pilotage" },
+  { id: "overview", label: "Vue d'ensemble", Icon: LayoutGrid },
+  { id: "audience", label: "Audience", Icon: TrendingUp },
+  { id: "visits", label: "Visites (IP)", Icon: Globe },
+  { id: "users", label: "Utilisateurs", Icon: Users },
+  { id: "rooms", label: "Salons", Icon: Radio },
+  { id: "email", label: "Mails", Icon: Mail },
+  { id: "settings", label: "Pilotage", Icon: SettingsIcon },
 ] as const;
 
 function themeLabel(id: string) {
@@ -102,47 +104,88 @@ export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
     setRecipients((prev) => (prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]));
   }, []);
 
+  const activeTab = TABS.find((t) => t.id === tab)!;
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="font-display text-3xl font-semibold flex items-center gap-2.5">
-            <ShieldCheck size={26} className="text-gold" /> Back-office
-          </h1>
-          <p className="text-xs text-ink-faint mt-1 font-mono">{adminEmail}</p>
+    <div className="lg:flex lg:items-start lg:gap-8">
+      {/* Sidebar — desktop uniquement (façon Resend : liste verticale, icône + libellé,
+          organisation/compte en haut, pas de barre d'onglets horizontale qui déborde). */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0 lg:sticky lg:top-6">
+        <div className="flex items-center gap-2.5 px-2 mb-6">
+          <span className="w-8 h-8 rounded-lg bg-gold/15 text-gold flex items-center justify-center shrink-0">
+            <ShieldCheck size={16} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">Back-office</p>
+            <p className="text-[11px] text-ink-faint font-mono truncate">{adminEmail}</p>
+          </div>
         </div>
-        <div className="flex gap-1 p-1 rounded-full glass">
+
+        <nav className="space-y-0.5">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                tab === t.id ? "bg-gold text-white" : "text-ink-muted hover:text-ink"
+              className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-left transition-colors ${
+                tab === t.id ? "bg-gold/15 text-gold font-medium" : "text-ink-muted hover:text-ink hover:bg-white/5"
               }`}
             >
+              <t.Icon size={16} className="shrink-0" />
               {t.label}
             </button>
           ))}
-        </div>
-      </div>
+        </nav>
+      </aside>
 
-      {tab === "overview" && <OverviewTab />}
-      {tab === "audience" && <AudienceTab />}
-      {tab === "visits" && <VisitsTab />}
-      {tab === "users" && (
-        <UsersTab
-          recipients={recipients}
-          onToggle={toggleRecipient}
-          onAddRecipients={addRecipients}
-          onRemoveRecipients={removeRecipients}
-          onGoToEmail={() => setTab("email")}
-        />
-      )}
-      {tab === "rooms" && <RoomsTab />}
-      {tab === "email" && (
-        <EmailTab recipients={recipients} onAdd={addRecipients} onRemove={removeRecipient} onClear={() => setRecipients([])} />
-      )}
-      {tab === "settings" && <SettingsTab />}
+      {/* Contenu principal */}
+      <div className="min-w-0 flex-1">
+        {/* En-tête mobile + barre d'onglets horizontale — seulement en dessous de lg,
+            pour ne rien casser sur téléphone où une sidebar verticale n'a pas de sens. */}
+        <div className="lg:hidden mb-6">
+          <h1 className="font-display text-3xl font-semibold flex items-center gap-2.5 mb-1">
+            <ShieldCheck size={26} className="text-gold" /> Back-office
+          </h1>
+          <p className="text-xs text-ink-faint font-mono mb-4">{adminEmail}</p>
+          <div className="flex gap-1 p-1 rounded-full glass overflow-x-auto">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                  tab === t.id ? "bg-gold text-white" : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Titre de section — desktop uniquement, la sidebar remplace déjà la navigation
+            mobile ci-dessus donc pas besoin d'y dupliquer un titre. */}
+        <div className="hidden lg:flex items-center gap-2.5 mb-6">
+          <activeTab.Icon size={20} className="text-gold" />
+          <h1 className="font-display text-2xl font-semibold">{activeTab.label}</h1>
+        </div>
+
+        {tab === "overview" && <OverviewTab />}
+        {tab === "audience" && <AudienceTab />}
+        {tab === "visits" && <VisitsTab />}
+        {tab === "users" && (
+          <UsersTab
+            recipients={recipients}
+            onToggle={toggleRecipient}
+            onAddRecipients={addRecipients}
+            onRemoveRecipients={removeRecipients}
+            onGoToEmail={() => setTab("email")}
+          />
+        )}
+        {tab === "rooms" && <RoomsTab />}
+        {tab === "email" && (
+          <EmailTab recipients={recipients} onAdd={addRecipients} onRemove={removeRecipient} onClear={() => setRecipients([])} />
+        )}
+        {tab === "settings" && <SettingsTab />}
+      </div>
     </div>
   );
 }
@@ -653,76 +696,196 @@ function VisitsTab() {
 function eventLabel(type: string) {
   const labels: Record<string, string> = {
     page_view: "Page vue",
-    click_instagram: "Clic Instagram",
-    click_tiktok: "Clic TikTok",
-    click_x: "Clic X",
+    click_instagram: "Instagram",
+    click_tiktok: "TikTok",
+    click_x: "X",
     share: "Partage",
     heartbeat: "Actif",
   };
   return labels[type] ?? type;
 }
 
-function UserActivityPanel({ userId }: { userId: string }) {
+function EventIcon({ type }: { type: string }) {
+  const props = { size: 13, className: "shrink-0" };
+  switch (type) {
+    case "page_view":
+      return <Eye {...props} className="shrink-0 text-ink-faint" />;
+    case "click_instagram":
+      return <Instagram {...props} className="shrink-0 text-pink-400" />;
+    case "click_tiktok":
+      return <Music2 {...props} className="shrink-0 text-ink" />;
+    case "click_x":
+      return <Twitter {...props} className="shrink-0 text-ink" />;
+    case "share":
+      return <Share2 {...props} className="shrink-0 text-gold" />;
+    case "heartbeat":
+      return <Radio {...props} className="shrink-0 text-emerald-400" />;
+    default:
+      return <Clock {...props} className="shrink-0 text-ink-faint" />;
+  }
+}
+
+function dayGroupLabel(iso: string) {
+  const day = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(Date.now() - 86_400_000);
+  const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  if (sameDay(day, today)) return "Aujourd'hui";
+  if (sameDay(day, yesterday)) return "Hier";
+  return day.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" });
+}
+
+function UserActivityModal({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const [activity, setActivity] = useState<UserActivity | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/admin/users/${userId}/activity`)
+    fetch(`/api/admin/users/${user.id}/activity`)
       .then((r) => r.json())
       .then((d) => (d.error ? setError(d.error) : setActivity(d)))
       .catch(() => setError("Chargement impossible."));
-  }, [userId]);
+  }, [user.id]);
 
-  if (error) return <p className="text-xs text-riseNeg">{error}</p>;
-  if (!activity) return <p className="text-xs text-ink-faint">Chargement...</p>;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Regroupe les événements par jour pour une timeline plus lisible.
+  const groups: { label: string; items: UserActivity["events"] }[] = [];
+  if (activity) {
+    for (const e of activity.events) {
+      const label = dayGroupLabel(e.created_at);
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.items.push(e);
+      else groups.push({ label, items: [e] });
+    }
+  }
+
+  const initial = (user.displayName ?? user.username ?? user.email ?? "?").trim().charAt(0).toUpperCase();
 
   return (
-    <div className="grid md:grid-cols-3 gap-5">
-      <div>
-        <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2">Présence</p>
-        <p className="text-sm flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${activity.isOnline ? "bg-emerald-400" : "bg-white/15"}`} />
-          {activity.isOnline ? "En ligne maintenant" : `Vu ${fmtDate(activity.lastSeenAt)}`}
-        </p>
-
-        {activity.currentRoom ? (
-          <div className="mt-3 glass rounded-xl p-3">
-            <p className="text-xs text-gold font-semibold mb-1">
-              En train de jouer — salon {activity.currentRoom.code}
-            </p>
-            <p className="text-xs text-ink-faint">{themeLabel(activity.currentRoom.theme)}</p>
-            <p className="text-xs text-ink-muted mt-1">
-              Avec : {activity.currentRoom.players.filter((p) => p).join(", ") || "seul pour l'instant"}
-            </p>
+    <div
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#150d0d] w-full sm:max-w-2xl sm:rounded-3xl border border-white/10 max-h-full sm:max-h-[85vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* En-tête */}
+        <div className="p-5 sm:p-6 border-b border-white/8 flex items-start gap-4 shrink-0">
+          <div className="relative shrink-0">
+            <div className="w-12 h-12 rounded-full bg-gold/15 text-gold font-display font-bold text-lg flex items-center justify-center">
+              {initial}
+            </div>
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#150d0d] ${
+                user.isOnline ? "bg-emerald-400" : "bg-white/20"
+              }`}
+              title={user.isOnline ? "En ligne" : "Hors ligne"}
+            />
           </div>
-        ) : (
-          <p className="text-xs text-ink-faint mt-3">Ne joue pas en ce moment.</p>
-        )}
-
-        <div className="mt-4 space-y-1.5 text-xs text-ink-muted">
-          <p>{activity.counts.pageViews} pages vues (50 derniers événements)</p>
-          <p>{activity.counts.instagramClicks} clics sur Instagram</p>
-          <p>{activity.counts.shares} partages</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-lg font-bold truncate">{user.displayName ?? "Sans nom"}</p>
+            <p className="text-xs text-ink-faint truncate">
+              {user.username && <span>@{user.username} · </span>}
+              {user.email}
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <span className="glass rounded-full px-2 py-0.5 text-[10px] font-mono">{user.provider}</span>
+              <span className="glass rounded-full px-2 py-0.5 text-[10px] font-mono">
+                Inscrit le {fmtDate(user.createdAt).slice(0, 8)}
+              </span>
+              {user.isOnline && (
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-mono bg-emerald-400/15 text-emerald-400">
+                  En ligne
+                </span>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors shrink-0" aria-label="Fermer">
+            <X size={20} />
+          </button>
         </div>
-      </div>
 
-      <div className="md:col-span-2">
-        <p className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mb-2">
-          Parcours récent (derniers événements)
-        </p>
-        {activity.events.length === 0 ? (
-          <p className="text-xs text-ink-faint">Aucune activité enregistrée pour l&apos;instant.</p>
-        ) : (
-          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-2" data-lenis-prevent>
-            {activity.events.map((e, i) => (
-              <div key={i} className="flex items-center gap-2.5 text-xs">
-                <span className="text-ink-faint font-mono w-20 shrink-0">{fmtDate(e.created_at).split(" ")[1] ?? fmtDate(e.created_at)}</span>
-                <span className="glass rounded-full px-2 py-0.5 text-[10px] font-mono shrink-0">{eventLabel(e.event_type)}</span>
-                {e.path && <span className="text-ink-muted font-mono truncate">{e.path}</span>}
+        {/* Corps scrollable */}
+        <div className="overflow-y-auto p-5 sm:p-6 space-y-6" data-lenis-prevent>
+          {error && <p className="text-xs text-riseNeg">{error}</p>}
+          {!activity && !error && <p className="text-xs text-ink-faint">Chargement...</p>}
+
+          {activity && (
+            <>
+              {/* Compteurs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="card p-3">
+                  <p className="text-[10px] text-ink-faint flex items-center gap-1 mb-1"><Gamepad size={11} /> Parties</p>
+                  <p className="font-display text-xl font-bold">{user.games}</p>
+                </div>
+                <div className="card p-3">
+                  <p className="text-[10px] text-ink-faint flex items-center gap-1 mb-1"><Eye size={11} /> Pages vues</p>
+                  <p className="font-display text-xl font-bold">{activity.counts.pageViews}</p>
+                </div>
+                <div className="card p-3">
+                  <p className="text-[10px] text-ink-faint flex items-center gap-1 mb-1"><Instagram size={11} /> Instagram</p>
+                  <p className="font-display text-xl font-bold">{activity.counts.instagramClicks}</p>
+                </div>
+                <div className="card p-3">
+                  <p className="text-[10px] text-ink-faint flex items-center gap-1 mb-1"><Share2 size={11} /> Partages</p>
+                  <p className="font-display text-xl font-bold">{activity.counts.shares}</p>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Salon en cours */}
+              {activity.currentRoom ? (
+                <div className="glass rounded-2xl p-4 border border-gold/20">
+                  <p className="text-xs text-gold font-semibold mb-1 flex items-center gap-1.5">
+                    <Radio size={13} /> En train de jouer — salon {activity.currentRoom.code}
+                  </p>
+                  <p className="text-xs text-ink-faint">{themeLabel(activity.currentRoom.theme)}</p>
+                  <p className="text-xs text-ink-muted mt-1.5">
+                    Avec : {activity.currentRoom.players.filter((p) => p).join(", ") || "seul pour l'instant"}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-ink-faint">Ne joue pas en ce moment.</p>
+              )}
+
+              {/* Timeline */}
+              <div>
+                <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint mb-3 flex items-center gap-1.5">
+                  <Calendar size={12} /> Parcours récent
+                </p>
+                {groups.length === 0 ? (
+                  <p className="text-xs text-ink-faint">Aucune activité enregistrée pour l&apos;instant.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {groups.map((g) => (
+                      <div key={g.label}>
+                        <p className="text-[10px] font-mono uppercase tracking-wide text-ink-faint mb-2">{g.label}</p>
+                        <div className="space-y-1 border-l border-white/8 pl-3.5">
+                          {g.items.map((e, i) => (
+                            <div key={i} className="flex items-center gap-2.5 text-xs py-1">
+                              <EventIcon type={e.event_type} />
+                              <span className="font-medium shrink-0">{eventLabel(e.event_type)}</span>
+                              {e.path && <span className="text-ink-faint font-mono truncate">{e.path}</span>}
+                              <span className="text-ink-faint font-mono ml-auto shrink-0 pl-2">
+                                {new Date(e.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -748,7 +911,7 @@ function UsersTab({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<AdminUser | null>(null);
   const [summary, setSummary] = useState<Pick<Stats, "recentUsers" | "recentlyOnline"> | null>(null);
 
   useEffect(() => {
@@ -909,8 +1072,7 @@ function UsersTab({
             </thead>
             <tbody className="divide-y divide-white/5">
               {users.map((u) => (
-                <Fragment key={u.id}>
-                <tr className={`hover:bg-white/[0.03] ${recipients.includes(u.email) ? "bg-gold/5" : ""}`}>
+                <tr key={u.id} className={`hover:bg-white/[0.03] ${recipients.includes(u.email) ? "bg-gold/5" : ""}`}>
                   <td className="px-4 py-3">
                     {u.email && (
                       <input
@@ -924,7 +1086,7 @@ function UsersTab({
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => setExpanded(expanded === u.id ? null : u.id)}
+                      onClick={() => setExpanded(u)}
                       className="inline-flex items-center gap-2 hover:text-gold transition-colors text-left"
                     >
                       <span
@@ -963,14 +1125,6 @@ function UsersTab({
                     )}
                   </td>
                 </tr>
-                {expanded === u.id && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-4 bg-white/[0.02]">
-                      <UserActivityPanel userId={u.id} />
-                    </td>
-                  </tr>
-                )}
-                </Fragment>
               ))}
               {users.length === 0 && (
                 <tr>
@@ -1001,6 +1155,8 @@ function UsersTab({
           Page suivante
         </button>
       </div>
+
+      {expanded && <UserActivityModal user={expanded} onClose={() => setExpanded(null)} />}
     </div>
   );
 }
