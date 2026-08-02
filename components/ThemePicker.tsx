@@ -1,26 +1,39 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Check, X, Flame } from "lucide-react";
+import { Search, Check, X, Flame, ArrowUp } from "lucide-react";
 import { THEME_OPTIONS, THEME_CATEGORIES, FEATURED_THEME_IDS, type ThemeOption } from "@/lib/themes";
 import ThemeCover from "@/components/ThemeCover";
-import Row from "@/components/Row";
 
 /*
  * Sélecteur de thème — unique, partagé par le wizard solo/local, la création de salon et
- * le rejeu de salon (avant, ce même bloc était dupliqué à l'identique 3 fois : source de
- * dérive garantie, comme le bug de deep-link ?mode= découvert plus tôt). Un seul endroit
- * à faire évoluer désormais.
+ * le rejeu de salon.
  *
- * Trois idées de fond pour rendre le choix évident plutôt qu'une simple grille jolie :
- * 1. Recherche instantanée — si le joueur sait ce qu'il veut ("Werenoi"), il tape et
- *    obtient sa réponse en un geste, sans parcourir 5 catégories à la main.
- * 2. Navigation rapide par catégorie (pilules collantes) — pour parcourir en connaissance
- *    de cause plutôt qu'en scrollant à l'aveugle, comme un vrai store d'app.
- * 3. Barre de sélection persistante — le choix en cours reste visible en permanence,
- *    même après avoir défilé loin ; la confirmation avant "Suivant" ne demande jamais de
- *    remonter tout en haut pour vérifier ce qu'on a choisi.
+ * Reconstruit autour d'un principe simple : UN SEUL axe de scroll (vertical), jamais deux
+ * en même temps. La version précédente empilait un carrousel horizontal PAR catégorie dans
+ * une page qui scrolle verticalement — sur mobile, le doigt ne sait jamais lequel des deux
+ * axes il est en train de faire défiler, ce qui donnait l'impression que le scroll "buggait"
+ * pile au changement de catégorie. Toutes les catégories sont désormais une grille qui
+ * s'enchaîne verticalement, comme la vue recherche — plus simple à parcourir, plus simple
+ * à défiler, plus simple à comprendre.
+ *
+ * Deuxième correction : le site utilise Lenis (scroll fluide personnalisé, voir
+ * window.__lenis). Un scrollIntoView() natif — ce qu'utilisaient les pastilles de
+ * catégorie — se bat avec Lenis qui recalcule sa propre position de scroll en parallèle,
+ * ce qui donnait des sauts, des à-coups, ou un scroll qui n'arrivait pas au bon endroit.
+ * On passe maintenant par l'API de Lenis quand elle existe, avec un repli natif sinon.
  */
+
+function scrollToEl(el: HTMLElement | null, offset: number) {
+  if (!el) return;
+  const lenis = (window as unknown as { __lenis?: { scrollTo: (target: HTMLElement, opts?: object) => void } }).__lenis;
+  if (lenis?.scrollTo) {
+    lenis.scrollTo(el, { offset, duration: 0.9 });
+  } else {
+    const y = el.getBoundingClientRect().top + window.scrollY + offset;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }
+}
 
 export default function ThemePicker({
   themeId,
@@ -34,8 +47,10 @@ export default function ThemePicker({
   const [themePhotos, setThemePhotos] = useState<Record<string, string | string[]>>({});
   const [trendingThemes, setTrendingThemes] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>(THEME_CATEGORIES[0]);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const scrollerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/blindtest/trending")
@@ -48,6 +63,35 @@ export default function ThemePicker({
       .catch(() => {});
   }, []);
 
+  // Surligne automatiquement la pastille de la catégorie qu'on est en train de regarder —
+  // fini de deviner "où" on est dans la liste après avoir scrollé un moment.
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) {
+          const cat = (visible.target as HTMLElement).dataset.category;
+          if (cat) setActiveCategory(cat);
+        }
+      },
+      { rootMargin: "-140px 0px -70% 0px", threshold: 0 }
+    );
+    Object.values(sectionRefs.current).forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themePhotos]);
+
+  // Bouton "Remonter" — apparaît une fois qu'on a vraiment scrollé, pas dès le premier pixel.
+  useEffect(() => {
+    function onScroll() {
+      setShowBackToTop(window.scrollY > 480);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const selected = useMemo(() => THEME_OPTIONS.find((t) => t.id === themeId), [themeId]);
 
   const filtered = useMemo(() => {
@@ -57,7 +101,13 @@ export default function ThemePicker({
   }, [query]);
 
   function jumpTo(cat: string) {
-    sectionRefs.current[cat]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToEl(sectionRefs.current[cat], -120);
+  }
+
+  function backToTop() {
+    const lenis = (window as unknown as { __lenis?: { scrollTo: (target: number, opts?: object) => void } }).__lenis;
+    if (lenis?.scrollTo) lenis.scrollTo(0, { duration: 0.9 });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function pick(t: ThemeOption) {
@@ -65,7 +115,7 @@ export default function ThemePicker({
   }
 
   return (
-    <div className="flex-1 flex flex-col gap-4 -mt-1">
+    <div ref={containerRef} className="flex-1 flex flex-col gap-4 -mt-1">
       {/* Barre de sélection persistante — toujours visible, même loin dans la liste */}
       <div className="sticky top-0 z-10 -mx-1 px-1 pb-1">
         <div className="flex items-center gap-3 glass rounded-2xl px-4 py-3 mb-3 backdrop-blur-xl">
@@ -98,12 +148,13 @@ export default function ThemePicker({
           )}
         </div>
 
-        {/* Navigation rapide par catégorie — masquée pendant une recherche */}
+        {/* Navigation rapide par catégorie — la catégorie active se surligne toute seule.
+            Masquée pendant une recherche (plus de notion de catégorie à ce moment-là). */}
         {!filtered && (
           <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
             {dailyTheme && (
               <button
-                onClick={() => scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
+                onClick={backToTop}
                 className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-mono uppercase tracking-wide border border-gold/30 text-gold hover:bg-gold/10 transition-colors"
               >
                 <Flame size={12} /> Défi
@@ -113,7 +164,9 @@ export default function ThemePicker({
               <button
                 key={cat}
                 onClick={() => jumpTo(cat)}
-                className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-mono uppercase tracking-wide glass backdrop-blur-xl text-ink-muted hover:text-ink transition-colors"
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-mono uppercase tracking-wide backdrop-blur-xl transition-colors ${
+                  activeCategory === cat ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+                }`}
               >
                 {cat}
               </button>
@@ -122,16 +175,16 @@ export default function ThemePicker({
         )}
       </div>
 
-      <div ref={scrollerRef} className="flex-1 flex flex-col gap-5">
-        {/* Résultats de recherche — grille plate, plus de notion de catégorie une fois
-            qu'on cherche quelque chose de précis */}
+      <div className="flex-1 flex flex-col gap-6">
+        {/* Résultats de recherche — même grille que la liste normale, juste sans notion de
+            catégorie une fois qu'on cherche quelque chose de précis */}
         {filtered ? (
           filtered.length === 0 ? (
             <p className="text-sm text-ink-faint text-center py-10">
               Aucun thème pour « {query} ». Essaie un artiste, une époque ou une région.
             </p>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {filtered.map((t, i) => (
                 <button key={t.id} onClick={() => pick(t)} className="relative text-left">
                   {trendingThemes.has(t.id) && <TrendingBadge />}
@@ -172,32 +225,42 @@ export default function ThemePicker({
             {THEME_CATEGORIES.map((cat) => {
               const items = THEME_OPTIONS.filter((t) => t.category === cat);
               return (
-                <div key={cat} ref={(el) => { sectionRefs.current[cat] = el; }} className="scroll-mt-32">
+                <div
+                  key={cat}
+                  ref={(el) => { sectionRefs.current[cat] = el; }}
+                  data-category={cat}
+                  className="scroll-mt-32"
+                >
                   <div className="flex items-baseline justify-between mb-2.5 px-0.5">
                     <p className="font-display text-base font-semibold">{cat}</p>
                     <span className="font-mono text-[10px] text-ink-faint">{items.length}</span>
                   </div>
-                  <Row>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {items.map((t, i) => (
-                      <button
-                        key={t.id}
-                        onClick={() => pick(t)}
-                        className="relative w-[92px] sm:w-[104px] shrink-0 snap-start text-left"
-                      >
+                      <button key={t.id} onClick={() => pick(t)} className="relative text-left">
                         {trendingThemes.has(t.id) && <TrendingBadge />}
                         <ThemeCover Icon={t.Icon} label={t.label} index={i} active={themeId === t.id} photoUrl={themePhotos[t.id]} />
                       </button>
                     ))}
-                    {/* Repère de fin de rangée — confirme qu'il n'y a rien de plus à droite,
-                        pour ne pas laisser croire à un chargement infini qui ne vient pas. */}
-                    <span className="shrink-0 w-1" aria-hidden="true" />
-                  </Row>
+                  </div>
                 </div>
               );
             })}
           </>
         )}
       </div>
+
+      {/* Remonter — pour "revenir en arrière" sans avoir à re-scroller toute la liste à la
+          main. N'apparaît qu'une fois qu'on a vraiment avancé dans la page. */}
+      {showBackToTop && (
+        <button
+          onClick={backToTop}
+          aria-label="Remonter en haut"
+          className="fixed bottom-28 right-4 z-20 w-11 h-11 rounded-full bg-gold hover:bg-glow text-white shadow-[0_6px_20px_rgba(240,0,28,0.45)] flex items-center justify-center transition-colors"
+        >
+          <ArrowUp size={18} />
+        </button>
+      )}
     </div>
   );
 }
