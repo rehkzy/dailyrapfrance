@@ -76,16 +76,18 @@ body {
 /* Panneaux verre dépoli */
 .glass {
   background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 18px -6px rgba(0, 0, 0, 0.35);
 }
 
 .glass-strong {
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 28px -8px rgba(0, 0, 0, 0.45);
 }
 
 /* Carte "dossier" — remplace les rangées glass ad hoc par un vocabulaire cohérent :
@@ -94,7 +96,8 @@ body {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 10px 30px -12px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .card:hover {
@@ -967,4 +970,31 @@ input[type="range"].brand-slider::-moz-range-track {
   0%   { transform: translate(-50%, 0) scale(0.6) rotate(0deg); opacity: 0; }
   15%  { transform: translate(-50%, -20px) scale(1.15) rotate(-6deg); opacity: 1; }
   100% { transform: translate(-50%, -160px) scale(1) rotate(8deg); opacity: 0; }
+}
+
+/* ============================================================
+   Couche "Liquid Glass" (iOS 26) — raffinements matériaux.
+   Reflet spéculaire, saturation derrière le verre, profondeur,
+   focus clavier visible. Additif : ne casse rien d'existant.
+   ============================================================ */
+
+/* Le survol d'une carte intensifie aussi sa profondeur, pas seulement sa bordure —
+   l'élément "se soulève" visuellement, cohérent avec .card-lift. */
+.card:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 44px -14px rgba(120, 1, 1, 0.5);
+}
+
+/* Focus clavier — anneau visible et cohérent sur tous les éléments interactifs, sans
+   affecter le clic/tap (focus-visible ne s'active qu'à la navigation clavier). Manquait
+   totalement : naviguer au clavier ne montrait jamais où on était. */
+:focus-visible {
+  outline: 2px solid rgba(240, 0, 28, 0.7);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Le verre réagit au toucher — flexion légère + bordure qui s'illumine, façon "gel"
+   iOS 26. Appliqué aux éléments déjà tactiles (tap-press/press), coût GPU nul au repos. */
+.tap-press:active, .press:active {
+  border-color: rgba(255, 255, 255, 0.18);
 }
