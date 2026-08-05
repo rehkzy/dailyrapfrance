@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
+import { Play, Users, Copy, Check, Crown, Medal, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
 import { randomGage } from "@/lib/gages";
 import { speedBonus } from "@/lib/scoring";
+import { trackEvent } from "@/lib/track";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, QCM_STAGE_PROMPTS, type QcmField } from "@/lib/qcmStages";
 import Magnetic from "@/components/Magnetic";
 import ThemePicker from "@/components/ThemePicker";
@@ -649,11 +650,13 @@ function BlindTestRoom({
     if (navigator.share) {
       try {
         await navigator.share({ title: "Blind Test DailyRapFrance", text, url });
+        trackEvent("share_room", { method: "native_share" });
       } catch {
         // l'utilisateur a annulé le partage
       }
     } else {
       await navigator.clipboard.writeText(url);
+      trackEvent("share_room", { method: "clipboard" });
       setShared(true);
       setTimeout(() => setShared(false), 1500);
     }
@@ -846,15 +849,39 @@ function BlindTestRoom({
           </div>
         )}
 
-        <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left">
-          {ranked.map((p, i) => (
-            <div key={p.user_id} className="flex items-center gap-4 py-3.5 px-5">
-              <span className="font-display text-lg w-6 text-center text-ink-faint">{i + 1}</span>
-              <span className="flex-1 text-sm font-medium">{p.display_name}</span>
-              <span className="font-mono text-gold">{scoreFor(p.user_id)} pts</span>
-            </div>
-          ))}
+        {/* Podium — avant, la fin de salon en ligne n'avait qu'une liste plate, contrairement
+            au mode local qui a déjà ce traitement. Même vocabulaire visuel (médaille +
+            colonnes de hauteurs différentes) pour les 3 premiers ; le reste du classement
+            garde la liste compacte en dessous. */}
+        <div className="flex items-end justify-center gap-3 mb-10">
+          {[ranked[1], ranked[0], ranked[2]].map((p, i) =>
+            p ? (
+              <div key={p.user_id} className={`flex flex-col items-center ${i === 1 ? "order-2" : i === 0 ? "order-1" : "order-3"}`}>
+                <Medal size={i === 1 ? 28 : 20} className={i === 1 ? "text-gold" : "text-ink-faint"} />
+                <div
+                  className={`glass rounded-t-lg w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 ${
+                    i === 1 ? "h-28 border-gold/40" : i === 0 ? "h-20" : "h-14"
+                  }`}
+                >
+                  <p className="text-xs font-medium truncate px-1 max-w-full">{p.display_name}</p>
+                  <p className="font-mono text-xs text-gold">{scoreFor(p.user_id)}</p>
+                </div>
+              </div>
+            ) : null
+          )}
         </div>
+
+        {ranked.length > 3 && (
+          <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left">
+            {ranked.slice(3).map((p, i) => (
+              <div key={p.user_id} className="flex items-center gap-4 py-3 px-5">
+                <span className="font-mono text-sm text-ink-faint w-6">{i + 4}</span>
+                <span className="flex-1 text-sm font-medium">{p.display_name}</span>
+                <span className="font-mono text-sm text-gold">{scoreFor(p.user_id)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 text-left">Récap de la partie</p>
         <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">

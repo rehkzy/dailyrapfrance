@@ -11,6 +11,7 @@
     "@google-analytics/data": "^6.1.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
+    "@untitledui/icons": "^0.0.22",
     "@vercel/functions": "^3.7.6",
     "googleapis": "^173.0.0",
     "lenis": "^1.1.14",

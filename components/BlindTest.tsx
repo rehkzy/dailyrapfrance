@@ -9,6 +9,7 @@ import {
   ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper,
   type LucideIcon,
 } from "lucide-react";
+import { Users01 } from "@untitledui/icons";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
 import { useUser } from "@/lib/useUser";
@@ -28,6 +29,11 @@ import ShareGame from "@/components/ShareGame";
 import { GameTabBarContent } from "@/components/GameTabBar";
 import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
+
+// Icône "salon" harmonisée avec la page d'accueil (Untitled UI) — remplace Globe (lucide)
+// qui donnait un symbole différent ("planète") de celui utilisé ailleurs pour le même
+// concept. Voir le même correctif dans app/page.tsx.
+const SalonIcon = Users01 as unknown as LucideIcon;
 
 type Track = {
   id: string;
@@ -87,6 +93,12 @@ export default function BlindTest() {
   const [hintsEnabled, setHintsEnabled] = useState(false);
   const [trackVolume, setTrackVolume] = useState(1);
   const [sfxEnabled, setSfxEnabled] = useState(true);
+  // Lancement auto du son — désactivé par défaut (comportement historique inchangé).
+  // Une fois activé, l'extrait démarre tout seul à chaque manche à partir de la 2e — la
+  // toute première manche de la partie demande encore un clic (contrainte navigateur :
+  // aucun <audio>.play() programmatique n'est autorisé avant une interaction utilisateur).
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
+  const audioUnlockedRef = useRef(false);
   const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -226,7 +238,16 @@ export default function BlindTest() {
   }
 
   useEffect(() => {
-    if (phase === "playing") resetRoundState();
+    if (phase === "playing") {
+      resetRoundState();
+      // Lancement auto — uniquement si l'audio a déjà été déverrouillé une première fois
+      // dans cette session (premier clic manuel sur "Lancer l'extrait"). Petit délai pour
+      // laisser le <audio> (remonté via key={track.id}) être prêt après resetRoundState().
+      if (autoPlayEnabled && audioUnlockedRef.current) {
+        const t = setTimeout(() => launchExtract(), 150);
+        return () => clearTimeout(t);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundIndex, phase]);
 
@@ -291,6 +312,7 @@ export default function BlindTest() {
     if (started || revealed) return;
     sfx.click();
     setStarted(true);
+    audioUnlockedRef.current = true;
     extractStartedAtRef.current = Date.now();
     setAudioError(false);
     audioRef.current?.play().catch(() => void recoverAudio(true));
@@ -774,7 +796,7 @@ export default function BlindTest() {
                 {
                   id: "online" as Mode,
                   label: "Salon en ligne",
-                  Icon: Globe,
+                  Icon: SalonIcon,
                   desc: "Un code à partager, chacun sur son téléphone.",
                   tag: "Multi à distance",
                   gradient: "from-[#3a0505] to-[#7a0f0f]",
@@ -1089,6 +1111,15 @@ export default function BlindTest() {
                     sfx.setMuted(!v);
                   }}
                 />
+                <div className="mt-2.5">
+                  <SettingToggle
+                    Icon={Play}
+                    label="Lancement automatique du son"
+                    description="L'extrait démarre tout seul à chaque manche, sans clic (à partir de la 2e — la première demande toujours un clic, contrainte du navigateur)."
+                    checked={autoPlayEnabled}
+                    onChange={setAutoPlayEnabled}
+                  />
+                </div>
               </div>
 
               <div className="glass rounded-xl p-4">
@@ -1198,7 +1229,7 @@ export default function BlindTest() {
           <>
             <h2 className="mb-3">
               <span
-                className="font-impact text-6xl md:text-7xl tracking-tight text-ink"
+                className="font-display font-extrabold text-6xl md:text-7xl tracking-tight text-ink"
                 style={{ textShadow: "0 0 40px rgba(240,0,28,0.45)" }}
               >
                 {ranked[0]?.score ?? 0}

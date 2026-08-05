@@ -1,4 +1,6 @@
-import { ArrowRight, Gamepad2, Trophy, Users2 } from "lucide-react";
+import { ArrowRight, Gamepad2, Trophy } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Users01 } from "@untitledui/icons";
 import Reveal from "@/components/Reveal";
 import Magnetic from "@/components/Magnetic";
 import ParallaxGlow from "@/components/ParallaxGlow";
@@ -6,6 +8,14 @@ import LogoShowcase from "@/components/LogoShowcase";
 import { InstagramIcon, TikTokIcon, XIcon } from "@/components/SocialIcons";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import FlipWords from "@/components/ui/FlipWords";
+import { trackEvent } from "@/lib/track";
+
+// Icône "salon" harmonisée sur tout le site (Untitled UI) — avant, la page d'accueil
+// utilisait Users2 (lucide) et l'écran de jeu utilisait Globe (lucide) pour représenter le
+// même concept ("des fois c'est un logo, des fois c'est une planète", relevé par l'audit).
+// Cast vers LucideIcon : les deux librairies exposent des composants structurellement
+// compatibles (size/className), seul le typage strict de lucide-react l'ignore.
+const SalonIcon = Users01 as unknown as LucideIcon;
 
 const features = [
   {
@@ -16,7 +26,7 @@ const features = [
     cta: "Jouer",
   },
   {
-    Icon: Users2,
+    Icon: SalonIcon,
     title: "Salons privés",
     text: "Crée une partie, partage le code, jouez en même temps chacun sur votre téléphone.",
     href: "/jouer",
@@ -157,6 +167,7 @@ export default function Home() {
                 href={s.href}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackEvent("social_click", { network: s.label })}
                 className="glass rounded-full pl-4 pr-6 py-3 text-sm font-medium hover:bg-white/10 hover:border-gold/40 transition-colors flex items-center gap-2"
               >
                 <s.Icon />
