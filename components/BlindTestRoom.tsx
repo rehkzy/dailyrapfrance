@@ -13,6 +13,7 @@ import Magnetic from "@/components/Magnetic";
 import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
+import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import type { User } from "@supabase/supabase-js";
 
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
@@ -23,7 +24,15 @@ function applicableFieldsFor(theme: string | undefined, track: { feats: string[]
   return track.feats.length ? [...base, "feat"] : base;
 }
 const ROUND_SECONDS = 25;
-const REVEAL_SECONDS = 3.2;
+// Durée d'affichage du résultat avant que la manche suivante démarre — alignée avec le
+// même correctif fait sur BlindTest.tsx (3.2s → 3.8s, jugé trop court par l'audit).
+const REVEAL_SECONDS = 3.8;
+// Petit sas de "Prépare-toi" avant que le décompte visible ne démarre. Le VRAI chrono
+// serveur (round_started_at) ne bouge pas — indispensable pour que le bonus de rapidité
+// reste juste et identique pour tout le monde — seule la couche d'affichage patiente un
+// instant, pour adoucir l'effet "le compteur tourne déjà, ça met la pression" remonté à
+// l'audit. Assez court pour ne pas donner l'impression d'un round plus long.
+const PRE_ROUND_GRACE_SECONDS = 1.5;
 const POINTS: Record<FieldKey, number> = { title: 1, artist: 1, feat: 2 };
 
 type RoomRow = {
@@ -94,6 +103,7 @@ function BlindTestRoom({
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   const [revealed, setRevealed] = useState(false);
   const revealedRef = useRef(false);
+  const [showIntro, setShowIntro] = useState(true);
   const [guess, setGuess] = useState({ title: "", artist: "", feat: "" });
   const [flash, setFlash] = useState<"ok" | "taken" | null>(null);
   const [qcmChoiceLocked, setQcmChoiceLocked] = useState(false);
@@ -201,6 +211,7 @@ function BlindTestRoom({
       setFlash(null);
       setRevealed(false);
       revealedRef.current = false;
+      setShowIntro(true);
       setAudioError(false);
       setQcmChoiceLocked(false);
       setQcmWrongId(null);
@@ -231,6 +242,9 @@ function BlindTestRoom({
 
     function check() {
       const elapsed = (Date.now() - startedAt) / 1000;
+      // Sas "Prépare-toi" — purement visuel, le vrai chrono (ci-dessous) tourne déjà
+      // pareil pour tout le monde en arrière-plan, donc le bonus de rapidité reste juste.
+      setShowIntro(elapsed < PRE_ROUND_GRACE_SECONDS);
       if (elapsed < ROUND_SECONDS) {
         setTimeLeft(Math.max(0, Math.round(ROUND_SECONDS - elapsed)));
         if (ROUND_SECONDS - elapsed <= 6) sfx.tick();
@@ -786,14 +800,10 @@ function BlindTestRoom({
 
           {isHost ? (
             <Magnetic strength={0.15} className="block w-full">
-              <button
-                onClick={startGame}
-                disabled={busy || players.length < 1}
-                className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full py-3.5 font-semibold flex items-center justify-center gap-2"
-              >
+              <BorderMagicButton onClick={startGame} disabled={busy || players.length < 1} fullWidth size="lg">
                 {busy ? "Chargement..." : "Démarrer la partie"}
                 {!busy && <Play size={18} />}
-              </button>
+              </BorderMagicButton>
             </Magnetic>
           ) : (
             <div className="flex items-center justify-center gap-3 py-1">
@@ -880,13 +890,10 @@ function BlindTestRoom({
         {closedMessage && <p className="text-sm text-riseNeg mb-4">{closedMessage}</p>}
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {isHost && (
-            <button
-              onClick={() => setReplaying(true)}
-              className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-6 py-3 font-medium transition-colors"
-            >
+            <BorderMagicButton onClick={() => setReplaying(true)} size="md">
               <RotateCcw size={16} />
               Rejouer — même salon
-            </button>
+            </BorderMagicButton>
           )}
           {confirmingQuit ? (
             <span className="inline-flex items-center gap-2 text-xs font-mono uppercase">
@@ -1062,6 +1069,13 @@ function BlindTestRoom({
             </div>
             {roundSolves.length === 0 && <p className="mt-4 font-mono text-sm text-ink-faint">Personne n'a trouvé.</p>}
           </div>
+        ) : showIntro ? (
+          <div className="py-8">
+            <p className="font-mono text-xs text-gold uppercase tracking-[0.24em] mb-2 animate-pulse">
+              Manche {room.current_round + 1}
+            </p>
+            <p className="text-sm text-ink-faint">Prépare-toi...</p>
+          </div>
         ) : (
           <>
             {/* La lecture du son a besoin d'un vrai clic (contrainte des navigateurs,
@@ -1070,9 +1084,9 @@ function BlindTestRoom({
                 tout le monde, dès le début de la manche, clic ou pas. */}
             {!started && (
               <Magnetic strength={0.2} className="block mb-5">
-                <button onClick={launchExtract} className="mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-8 py-4 font-medium transition-colors">
+                <BorderMagicButton onClick={launchExtract} size="md">
                   <Play size={20} /> Lancer le son
-                </button>
+                </BorderMagicButton>
               </Magnetic>
             )}
             {audioError && (
@@ -1246,14 +1260,10 @@ function ReplayPanel({
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
 
       <Magnetic strength={0.15} className="block w-full">
-        <button
-          onClick={() => onConfirm(theme, rounds, answerMode)}
-          disabled={busy}
-          className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full py-3.5 font-semibold flex items-center justify-center gap-2"
-        >
+        <BorderMagicButton onClick={() => onConfirm(theme, rounds, answerMode)} disabled={busy} fullWidth size="lg">
           {busy ? "Lancement..." : "Relancer la partie"}
           {!busy && <Play size={18} />}
-        </button>
+        </BorderMagicButton>
       </Magnetic>
     </div>
   );
@@ -1512,15 +1522,9 @@ function RoomMenu({
             </button>
           </div>
           <Magnetic strength={0.15} className="block w-full">
-            <button
-              onClick={handleCreate}
-              disabled={busy}
-              className={`tap-press w-full text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors ${
-                answerMode ? "cta-glow bg-gold hover:bg-glow" : "bg-gold/50 hover:bg-gold/70"
-              } disabled:opacity-60 disabled:animate-none`}
-            >
+            <BorderMagicButton onClick={handleCreate} disabled={busy} fullWidth size="lg">
               {party ? "Lancer la soirée" : "Créer une partie privée"}
-            </button>
+            </BorderMagicButton>
           </Magnetic>
         </div>
       </div>
