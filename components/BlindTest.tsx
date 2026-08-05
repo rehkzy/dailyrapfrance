@@ -1198,7 +1198,7 @@ export default function BlindTest() {
           <>
             <h2 className="mb-3">
               <span
-                className="font-display font-extrabold text-6xl md:text-7xl tracking-tight text-ink"
+                className="font-impact text-6xl md:text-7xl tracking-tight text-ink"
                 style={{ textShadow: "0 0 40px rgba(240,0,28,0.45)" }}
               >
                 {ranked[0]?.score ?? 0}

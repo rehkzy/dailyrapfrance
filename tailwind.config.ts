@@ -27,6 +27,11 @@ const config: Config = {
         display: ["var(--font-display)", "sans-serif"],
         sans: ["var(--font-body)", "sans-serif"],
         mono: ["var(--font-data)", "monospace"],
+        // Vague 3 de l'audit UI/UX : les boutons héritaient de l'Inter par défaut, ce qui
+        // les faisait paraître génériques malgré un logo très typé. Anton (poster/mixtape,
+        // jamais utilisé pour du texte courant) vient donner du poids aux CTA et aux gros
+        // scores — Bricolage Grotesque reste la display "lecture" (titres, sections).
+        impact: ["var(--font-impact)", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "6px",

@@ -2,12 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Anton&display=swap");
 
 :root {
   --font-display: "Bricolage Grotesque", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-data: "IBM Plex Mono", monospace;
+  /* Police "impact" — réservée aux boutons et aux gros scores (voir vague 3 de l'audit
+     UI/UX : les boutons héritaient de l'Inter par défaut du corps de texte, ce qui les
+     faisait paraître génériques malgré un logo très typé. Bricolage Grotesque (la display
+     de la charte) reste sur les titres ; Anton vient donner du poids aux CTA et aux
+     chiffres, façon affiche/mixtape — jamais utilisée pour du texte courant. */
+  --font-impact: "Anton", sans-serif;
 }
 
 body {

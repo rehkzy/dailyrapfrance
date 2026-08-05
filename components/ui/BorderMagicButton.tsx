@@ -84,7 +84,10 @@ export default function BorderMagicButton(props: Props) {
       className={[
         "relative inline-flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-full",
         "bg-bg/95 backdrop-blur-3xl",
-        "font-medium text-ink",
+        // Anton (font-impact) au lieu de l'Inter par défaut — c'était le vrai point faible
+        // relevé par l'audit ("les boutons font Claude générique") : ils n'héritaient pas
+        // de la personnalité du logo. Majuscules + tracking large pour l'effet affiche.
+        "font-impact uppercase tracking-wide text-[13px] text-ink",
       ].join(" ")}
     >
       {children}
