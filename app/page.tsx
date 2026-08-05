@@ -4,6 +4,8 @@ import Magnetic from "@/components/Magnetic";
 import ParallaxGlow from "@/components/ParallaxGlow";
 import LogoShowcase from "@/components/LogoShowcase";
 import { InstagramIcon, TikTokIcon, XIcon } from "@/components/SocialIcons";
+import BorderMagicButton from "@/components/ui/BorderMagicButton";
+import FlipWords from "@/components/ui/FlipWords";
 
 const features = [
   {
@@ -52,7 +54,12 @@ export default function Home() {
             Média indépendant · Depuis avril 2020
           </p>
           <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-            Le rap français, raconté avec passion.
+            Le rap français, raconté avec{" "}
+            <FlipWords
+              words={["passion", "exigence", "précision", "amour"]}
+              className="text-gold"
+            />
+            .
           </h1>
           <p className="text-ink-muted text-base sm:text-lg max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed">
             Sans algorithme entre vous et la scène — et un blind test pour tester tes
@@ -61,13 +68,10 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Magnetic className="w-full sm:w-auto">
-              <a
-                href="/jouer"
-                className="flex items-center justify-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3.5 sm:py-3 text-sm font-medium hover:bg-glow transition-colors w-full sm:w-auto"
-              >
+              <BorderMagicButton href="/jouer" size="lg" fullWidth className="sm:w-auto">
                 Jouer au Blind Test
                 <ArrowRight size={16} />
-              </a>
+              </BorderMagicButton>
             </Magnetic>
             <Magnetic className="w-full sm:w-auto">
               <a

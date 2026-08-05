@@ -3,22 +3,24 @@
 import React from "react";
 
 /**
- * BorderMagicButton — bouton avec bordure animée (conic-gradient rotatif)
- * adapté à la charte DailyRap : rouge signature sur fond noir profond.
+ * BorderMagicButton — bouton/lien avec bordure animée (conic-gradient rotatif)
+ * dans les couleurs de la charte DRF.
  *
- * Usage :
- *   <BorderMagicButton onClick={...}>Jouer au Blind Test</BorderMagicButton>
+ * Le dégradé pointe directement sur les tokens Tailwind du projet (gold / glow),
+ * déjà utilisés partout ailleurs (ex: bg-gradient-to-br from-gold to-glow) — donc
+ * si la charte évolue, ce bouton suit automatiquement, sans hex en dur.
+ *
+ * Deux modes :
+ *   - lien   : <BorderMagicButton href="/jouer">Jouer</BorderMagicButton>
+ *   - bouton : <BorderMagicButton onClick={...} type="submit">Valider</BorderMagicButton>
  *
  * Props utiles :
  *   - size : "sm" | "md" | "lg" (défaut "md")
  *   - fullWidth : true pour un bouton pleine largeur (mobile)
- *   - as : "button" (défaut) — mets ton propre <a>/<Link> autour si besoin
  */
 
-type Props = {
+type CommonProps = {
   children: React.ReactNode;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  type?: "button" | "submit";
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   disabled?: boolean;
@@ -26,57 +28,95 @@ type Props = {
   title?: string;
 };
 
-const SIZES: Record<NonNullable<Props["size"]>, string> = {
-  sm: "h-10 px-4 text-sm",
-  md: "h-12 px-6 text-sm",
-  lg: "h-14 px-8 text-base",
+type AsLink = CommonProps & {
+  href: string;
+  target?: string;
+  rel?: string;
+  onClick?: never;
+  type?: never;
 };
 
-export default function BorderMagicButton({
-  children,
-  onClick,
-  type = "button",
-  size = "md",
-  fullWidth = false,
-  disabled = false,
-  className = "",
-  title,
-}: Props) {
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
+type AsButton = CommonProps & {
+  href?: undefined;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  type?: "button" | "submit";
+  target?: never;
+  rel?: never;
+};
+
+type Props = AsLink | AsButton;
+
+const SIZES: Record<NonNullable<CommonProps["size"]>, string> = {
+  sm: "h-10 px-4 text-sm",
+  md: "h-12 px-6 text-sm",
+  lg: "h-[3.375rem] px-6 py-3 text-sm",
+};
+
+export default function BorderMagicButton(props: Props) {
+  const {
+    children,
+    size = "md",
+    fullWidth = false,
+    disabled = false,
+    className = "",
+    title,
+  } = props;
+
+  const wrapperClasses = [
+    "relative inline-flex overflow-hidden rounded-full p-[1.5px]",
+    "focus-within:outline-none focus-within:ring-2 focus-within:ring-gold/70 focus-within:ring-offset-2 focus-within:ring-offset-bg",
+    "transition-transform duration-150 active:scale-[0.97]",
+    disabled ? "opacity-50 pointer-events-none" : "",
+    fullWidth ? "w-full" : "",
+    SIZES[size],
+    className,
+  ].join(" ");
+
+  const borderGlow = (
+    <span
+      aria-hidden="true"
+      className="absolute inset-[-1000%] animate-[spin_2.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,theme(colors.glow)_0%,theme(colors.gold)_50%,theme(colors.glow)_100%)]"
+    />
+  );
+
+  const inner = (
+    <span
       className={[
-        "relative inline-flex overflow-hidden rounded-full p-[1.5px]",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
-        "transition-transform duration-150 active:scale-[0.97]",
-        disabled ? "opacity-50 pointer-events-none" : "",
-        fullWidth ? "w-full" : "",
-        SIZES[size],
-        className,
+        "relative inline-flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-full",
+        "bg-bg/95 backdrop-blur-3xl",
+        "font-medium text-ink",
       ].join(" ")}
     >
-      {/* Bordure animée — conic gradient dans la charte DRF */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-[-1000%] animate-[spin_2.5s_linear_infinite]"
-        style={{
-          background:
-            "conic-gradient(from 90deg at 50% 50%, #ffb3b3 0%, #e50914 25%, #3a0000 50%, #e50914 75%, #ffb3b3 100%)",
-        }}
-      />
-      {/* Cœur du bouton */}
-      <span
-        className={[
-          "relative inline-flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-full",
-          "bg-[#0a0a0a]/95 backdrop-blur-3xl",
-          "font-semibold text-white",
-        ].join(" ")}
+      {children}
+    </span>
+  );
+
+  if ("href" in props && props.href) {
+    return (
+      <a
+        href={props.href}
+        target={props.target}
+        rel={props.rel}
+        title={title}
+        className={wrapperClasses}
       >
-        {children}
-      </span>
+        {borderGlow}
+        {inner}
+      </a>
+    );
+  }
+
+  const buttonProps = props as AsButton;
+  return (
+    <button
+      type={buttonProps.type ?? "button"}
+      onClick={buttonProps.onClick}
+      disabled={disabled}
+      title={title}
+      className={wrapperClasses}
+    >
+      {borderGlow}
+      {inner}
     </button>
   );
 }
