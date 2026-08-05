@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
 
@@ -15,6 +15,11 @@ import { oauthCallbackUrl } from "@/lib/authRedirect";
  * - L'inscription passe emailRedirectTo = le callback avec ?next= vers la page actuelle :
  *   si la confirmation d'e-mail est activée côté Supabase, le clic dans le mail ramène
  *   pile où la personne était (le salon à rejoindre, pas l'accueil).
+ *
+ * Correctif audit : le message post-inscription ("vérifie ta boîte mail") était un texte
+ * discret en couleur "gold" (le rouge de la charte) — lu au premier coup d'œil comme un
+ * message d'ERREUR, pas de succès. Il est maintenant une vraie modale, en vert, avec une
+ * icône de validation : impossible de la manquer ou de la confondre avec un problème.
  */
 export default function EmailAuthForm() {
   const [tab, setTab] = useState<"login" | "signup">("login");
@@ -71,7 +76,7 @@ export default function EmailAuthForm() {
         } else if (data.session) {
           // Confirmation d'e-mail désactivée côté Supabase : session immédiate, rien à faire.
         } else {
-          setNotice("Compte créé ! Vérifie ta boîte mail et clique sur le lien de confirmation — il te ramènera exactement ici.");
+          setNotice("Vérifie ta boîte mail et clique sur le lien de confirmation — il te ramènera exactement ici.");
         }
       }
     } finally {
@@ -148,7 +153,6 @@ export default function EmailAuthForm() {
       </div>
 
       {error && <p className="text-xs text-riseNeg mt-2.5">{error}</p>}
-      {notice && <p className="text-xs text-gold mt-2.5 leading-relaxed">{notice}</p>}
 
       <button
         type="button"
@@ -159,6 +163,32 @@ export default function EmailAuthForm() {
         <Mail size={14} />
         {busy ? "Un instant..." : tab === "login" ? "Se connecter" : "Créer mon compte"}
       </button>
+
+      {/* Modale de succès — remplace l'ancien texte discret sous le bouton, qui se
+          confondait visuellement avec un message d'erreur (couleur de charte = rouge). */}
+      {notice && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Compte créé"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-sm bg-bg border border-emerald-500/30 rounded-2xl p-6 text-center shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={22} />
+            </div>
+            <p className="font-display text-lg font-semibold mb-2">Compte créé !</p>
+            <p className="text-sm text-ink-muted leading-relaxed mb-5">{notice}</p>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="w-full bg-white/8 hover:bg-white/12 border border-white/10 text-ink rounded-full py-2.5 text-sm font-medium transition-colors"
+            >
+              Compris
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -27,6 +27,7 @@ import ShareScoreCard from "@/components/ShareScoreCard";
 import ShareGame from "@/components/ShareGame";
 import { GameTabBarContent } from "@/components/GameTabBar";
 import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
+import BorderMagicButton from "@/components/ui/BorderMagicButton";
 
 type Track = {
   id: string;
@@ -67,16 +68,9 @@ export default function BlindTest() {
   const searchParams = useSearchParams();
   const joinRoomCode = searchParams.get("room");
   const deepLinkTheme = searchParams.get("theme");
-  // Deep-link de mode : les entrées "Même écran" (?mode=local) et "Salon privé"
-  // (?mode=online) du hub arrivent directement sur le bon écran au lieu de retomber en solo.
   const deepLinkMode = searchParams.get("mode");
 
-  // Setup — assistant en 3 étapes pour limiter le scroll
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(deepLinkTheme ? 1 : 0);
-  // Setup
-  // Aucun mode présélectionné : choisir Solo / Local / Salon est la première vraie
-  // décision du joueur, on ne la prend pas à sa place. Exceptions : arrivée par un lien
-  // de salon (?room=) ou un deep-link ?mode= — là, l'intention est déjà exprimée.
   const [mode, setMode] = useState<Mode | null>(
     joinRoomCode ? "online" : deepLinkMode === "online" || deepLinkMode === "local" || deepLinkMode === "solo" || deepLinkMode === "party" ? deepLinkMode : null
   );
@@ -84,19 +78,10 @@ export default function BlindTest() {
     deepLinkTheme && THEME_OPTIONS.some((t) => t.id === deepLinkTheme) ? deepLinkTheme : "mix"
   );
   const dailyTheme = useMemo(() => getDailyTheme(), []);
-  // Photos et thèmes tendance sont désormais gérés par ThemePicker lui-même (composant
-  // partagé avec le salon en ligne) — plus besoin de les charger ici.
   const [roundCount, setRoundCount] = useState(10);
   const [roundSeconds, setRoundSeconds] = useState(DEFAULT_ROUND_SECONDS);
-  // Jokers d'écoute — un compte plutôt qu'un simple on/off, pour un vrai curseur de difficulté.
   const [jokerCount, setJokerCount] = useState(1);
   const jokersEnabled = jokerCount > 0;
-  // Mode de réponse : "text" = champs à écrire (comportement historique, tolérance aux
-  // fautes) ; "qcm" = 3 titres proposés, un clic suffit. strictMode ne s'applique qu'au
-  // mode texte (n'a pas de sens pour un QCM).
-  // Aucune présélection : choisir Facile (QCM) ou Difficile (écrire) est une décision du
-  // joueur, tous modes confondus — le badge "À choisir" et la validation au lancement
-  // existent déjà et prennent le relais.
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
   const [strictMode, setStrictMode] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(false);
@@ -105,52 +90,37 @@ export default function BlindTest() {
   const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
   const [setupError, setSetupError] = useState<string | null>(null);
 
-  // Partie
   const [phase, setPhase] = useState<Phase>("setup");
   const [tracks, setTracks] = useState<Track[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [roundIndex, setRoundIndex] = useState(0);
 
-  // Round courant
   const [started, setStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_ROUND_SECONDS);
   const [buzzedBy, setBuzzedBy] = useState<string | null>(null);
   const [locked, setLocked] = useState<Set<string>>(new Set());
-  const [solved, setSolved] = useState<Partial<Record<FieldKey, string>>>({}); // field -> playerId
+  const [solved, setSolved] = useState<Partial<Record<FieldKey, string>>>({});
   const [guess, setGuess] = useState<{ title: string; artist: string; feat: string }>({ title: "", artist: "", feat: "" });
   const [revealed, setRevealed] = useState(false);
   const [roundGain, setRoundGain] = useState<{ playerId: string; points: number; nonce: number } | null>(null);
   const gainCounter = useRef(0);
   const [wrongFlash, setWrongFlash] = useState(false);
-  // QCM — options mémorisées par manche (2 intrus + la bonne réponse, ordre mélangé une
-  // seule fois par manche) et verrou une fois qu'un choix a été fait.
-  const [qcmLockedFor, setQcmLockedFor] = useState<string | null>(null); // playerId verrouillé (solo: "solo")
-  // Horloge de rapidité — posée au lancement de l'extrait, sert au bonus vitesse.
+  const [qcmLockedFor, setQcmLockedFor] = useState<string | null>(null);
   const extractStartedAtRef = useRef<number | null>(null);
   const [bonusFlash, setBonusFlash] = useState<number | null>(null);
-  const [qcmWrongId, setQcmWrongId] = useState<string | null>(null); // id du morceau cliqué à tort, pour le flash rouge ciblé
-  // Un extrait qui ne se charge/joue pas (lien Deezer cassé, souci réseau...) échouait avant en
-  // silence totale — le décompte tournait sans le moindre son, sans que personne ne comprenne
-  // pourquoi. On détecte l'échec et on l'affiche, avec un vrai bouton pour réessayer ou passer.
+  const [qcmWrongId, setQcmWrongId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const deadlineRef = useRef<number | null>(null); // horodatage de fin de manche — le décompte
-  // se recalcule à chaque tick à partir de l'heure réelle, plutôt que de décrémenter un
-  // compteur : ça évite qu'il se désynchronise ou paraisse "bloqué" si le navigateur retarde
-  // une frame (ouverture du clavier virtuel, re-rendu lourd, etc.)
+  const deadlineRef = useRef<number | null>(null);
 
   const track = tracks[roundIndex];
-  // Blind test mono-artiste ("Blind Test Ninho", etc.) : l'artiste est connu d'avance, le
-  // champ Artiste est donc retiré partout — saisie, validation, calcul de manche parfaite.
   const isSingleArtistTheme = themeId.startsWith("artist-");
   const baseFields: FieldKey[] = isSingleArtistTheme ? ["title"] : ["title", "artist"];
   const applicableFields: FieldKey[] = track?.feats?.length ? [...baseFields, "feat"] : baseFields;
 
-  // Historique de la partie — un récap façon "Wrapped" à la fin. Refs à jour à chaque rendu
-  // pour éviter que revealRound() (mémoïsé, dépendances limitées) capture une valeur périmée.
   const [roundHistory, setRoundHistory] = useState<{ track: Track; solved: Partial<Record<FieldKey, string>> }[]>([]);
   const trackRef = useRef<Track | undefined>(undefined);
   const singleArtistRef = useRef(false);
@@ -159,10 +129,6 @@ export default function BlindTest() {
   const solvedRef = useRef<Partial<Record<FieldKey, string>>>({});
   solvedRef.current = solved;
 
-  // Streak "sans faute" — combo de manches consécutives parfaitement trouvées, en solo
-  // uniquement (le concept est ambigu à plusieurs). Un bonus de points tombe tous les 3 crans,
-  // avec une petite explosion visuelle — le ressort classique qui donne envie d'enchaîner une
-  // manche de plus plutôt que de s'arrêter.
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [streakBurst, setStreakBurst] = useState<number | null>(null);
@@ -176,14 +142,6 @@ export default function BlindTest() {
     advanceTimeoutRef.current = null;
   }, []);
 
-  // Retire explicitement le focus du champ actif et réaligne la fenêtre. Indispensable aux
-  // transitions de manche : quand les inputs titre/artiste sont démontés alors qu'ils ont
-  // encore le focus (reveal, passage à la manche suivante), iOS Safari ne déclenche PAS
-  // "focusout" — le correctif "scroll fantôme" branché sur cet événement (voir l'effet de
-  // verrou de scroll plus bas) ne s'exécutait donc jamais dans ce chemin, et la couche de
-  // hit-testing restait décalée : "Lancer l'extrait" visible mais intouchable. On blur
-  // nous-mêmes AVANT le démontage, puis on remet fenêtre + racine de scroll à zéro une
-  // fois le clavier replié.
   const blurAndRealign = useCallback(() => {
     const ae = document.activeElement as HTMLElement | null;
     if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) {
@@ -193,8 +151,6 @@ export default function BlindTest() {
       window.scrollTo(0, 0);
       if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
     });
-    // Deuxième passe après l'animation de repli du clavier iOS (~250ms) — la première
-    // s'exécute parfois pendant que le viewport visuel bouge encore et se fait annuler.
     setTimeout(() => {
       window.scrollTo(0, 0);
       if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
@@ -228,13 +184,15 @@ export default function BlindTest() {
         return next;
       });
     }
+    // Durée d'affichage du résultat avant la manche suivante — 3.8s (au lieu de 3.2s),
+    // pour laisser le temps de lire le titre/artiste révélés sans que ça paraisse "flash".
     advanceTimeoutRef.current = setTimeout(() => {
       setRoundIndex((i) => {
         const next = i + 1;
         if (next >= tracks.length) setPhase("final");
         return next;
       });
-    }, 3200);
+    }, 3800);
   }, [blurAndRealign, clearTimers, tracks.length]);
 
   const tick = useCallback(() => {
@@ -272,15 +230,13 @@ export default function BlindTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundIndex, phase]);
 
-  // Mode maintenance (piloté depuis /admin) — vérifié au lancement d'une partie : les
-  // parties en cours ne sont pas coupées, mais on n'en démarre pas de nouvelle.
   async function maintenanceMessage(): Promise<string | null> {
     try {
       const { data } = await createClient().from("site_settings").select("value").eq("key", "maintenance").maybeSingle();
       const v = data?.value as { enabled?: boolean; message?: string } | undefined;
       return v?.enabled ? (v.message?.trim() || "Le blind test revient dans quelques minutes.") : null;
     } catch {
-      return null; // en cas de doute, on laisse jouer
+      return null;
     }
   }
 
@@ -342,13 +298,6 @@ export default function BlindTest() {
     intervalRef.current = setInterval(tick, 1000);
   }
 
-  // ── Récupération audio ────────────────────────────────────────────────
-  // Les URLs de preview Deezer sont signées et expirent : celles du pool (construit au
-  // lancement de la partie, avec du cache serveur) peuvent être mortes en pleine manche.
-  // À la moindre erreur, on va donc chercher une URL *fraîche* via /api/blindtest/preview
-  // et on relit — silencieusement au premier échec (une seule tentative auto par manche,
-  // pour ne pas boucler), et la bannière d'erreur ne s'affiche que si même l'URL neuve
-  // échoue. Le bouton "Réessayer" refait tout le cycle, URL fraîche comprise.
   const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
   const autoRecoveredRef = useRef<Set<string>>(new Set());
 
@@ -375,7 +324,6 @@ export default function BlindTest() {
     } catch {
       // On tente quand même une relecture de la source actuelle (panne réseau transitoire).
     }
-    // Laisse React re-rendre le <audio> avec la nouvelle src avant de relancer la lecture.
     setTimeout(() => {
       const audio = audioRef.current;
       if (!audio) return;
@@ -407,8 +355,6 @@ export default function BlindTest() {
 
   const TIME_JOKER_SECONDS = 15;
 
-  // 2e joker — prolonge le temps de la manche pour finir de répondre. Une fois par joueur
-  // et par partie, comme le premier.
   function useTimeJoker(playerId: string) {
     const player = players.find((p) => p.id === playerId);
     if (!jokersEnabled || !player || player.timeJokerUsed || !started || revealed) return;
@@ -426,6 +372,14 @@ export default function BlindTest() {
     setTimeout(() => setRoundGain((g) => (g?.nonce === nonce ? null : g)), 1200);
   }
 
+  // Vérifie les champs saisis contre le morceau courant.
+  //
+  // Correctif : l'artiste principal et les featurings sont désormais acceptés dans N'IMPORTE
+  // LEQUEL des deux champs "Artiste" / "Featuring" — avant, taper le nom d'un featuring dans
+  // le champ "Artiste" (ou l'inverse) était compté faux, alors que la personne avait
+  // reconnu une voix sur le morceau, ce qui est exactement le but du jeu. Le champ
+  // effectivement crédité (et donc les points, 1 ou 2) suit qui est réellement trouvé,
+  // pas la case où c'est tapé.
   function checkFields(playerId: string, values: { title: string; artist: string; feat: string }) {
     if (!track) return 0;
     let gained = 0;
@@ -436,21 +390,37 @@ export default function BlindTest() {
       gained += POINTS.title;
       sfx.correct();
     }
-    if (applicableFields.includes("artist") && !solved.artist && values.artist.trim() && isArtistMatch(values.artist, track.artistName)) {
-      newlySolved.artist = playerId;
-      gained += POINTS.artist;
-      sfx.correct();
+
+    const canArtist = applicableFields.includes("artist") && !solved.artist;
+    const canFeat = applicableFields.includes("feat") && !solved.feat;
+
+    if (canArtist && values.artist.trim()) {
+      if (isArtistMatch(values.artist, track.artistName)) {
+        newlySolved.artist = playerId;
+        gained += POINTS.artist;
+        sfx.correct();
+      } else if (canFeat && !newlySolved.feat && track.feats.some((f) => isArtistMatch(values.artist, f))) {
+        // Un featuring tapé dans la case "Artiste" — on le crédite quand même, sur le bon champ.
+        newlySolved.feat = playerId;
+        gained += POINTS.feat;
+        sfx.bonus();
+      }
     }
-    if (applicableFields.includes("feat") && !solved.feat && values.feat.trim() && track.feats.some((f) => isArtistMatch(values.feat, f))) {
-      newlySolved.feat = playerId;
-      gained += POINTS.feat;
-      sfx.bonus();
+
+    if (canFeat && !newlySolved.feat && values.feat.trim()) {
+      if (track.feats.some((f) => isArtistMatch(values.feat, f))) {
+        newlySolved.feat = playerId;
+        gained += POINTS.feat;
+        sfx.bonus();
+      } else if (canArtist && !newlySolved.artist && isArtistMatch(values.feat, track.artistName)) {
+        // Et inversement : l'artiste principal tapé dans la case "Featuring".
+        newlySolved.artist = playerId;
+        gained += POINTS.artist;
+        sfx.correct();
+      }
     }
 
     if (gained > 0) {
-      // ⚡ Bonus de rapidité — par champ trouvé, selon le temps écoulé depuis le lancement
-      // de l'extrait : ≤5 s → +2, ≤10 s → +1. Récompense les réflexes sans écraser les
-      // points de base.
       const startedAt = extractStartedAtRef.current;
       if (startedAt) {
         const elapsed = (Date.now() - startedAt) / 1000;
@@ -467,10 +437,6 @@ export default function BlindTest() {
     return gained;
   }
 
-  // QCM par étapes — plus de « Titre — Artiste » d'un bloc (trop facile). On fait deviner
-  // dans l'ordre : ARTISTE, puis TITRE, puis FEAT s'il y en a. L'étape courante est déduite
-  // de l'état "solved" (premier champ non résolu dans cet ordre), ce qui marche aussi en
-  // local : si un joueur se trompe en cours de route, le suivant reprend là où ça en était.
   const qcmStages = useMemo(
     () => (track && answerMode === "qcm" ? qcmStageOrder(applicableFields) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -483,19 +449,12 @@ export default function BlindTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.id, answerMode, currentQcmField]);
 
-  // Choix QCM d'une étape — solo (playerId "solo") et local (playerId = joueur qui a buzzé).
-  // Bonne réponse : seule l'étape courante est créditée (checkFields calcule les points de
-  // ce champ), puis on passe à l'étape suivante ; la dernière étape résolue déclenche la
-  // révélation via l'effet "tout est trouvé" existant. Mauvaise réponse : verrouille ce
-  // joueur pour la manche (solo → révèle ; local → passe la main comme un mauvais buzz),
-  // en GARDANT les points des étapes déjà réussies.
   function submitQcmChoice(playerId: string, chosenLabel: string) {
     if (!track || qcmLockedFor || !currentQcmField) return;
     if (qcmIsCorrect(currentQcmField, track, chosenLabel)) {
       const values = { title: "", artist: "", feat: "" };
       values[currentQcmField] = qcmCorrectLabel(currentQcmField, track);
       checkFields(playerId, values);
-      // Dernière étape ? La révélation part toute seule (effet "tous les champs trouvés").
       return;
     }
     sfx.wrong();
@@ -506,7 +465,6 @@ export default function BlindTest() {
       revealRound();
       return;
     }
-    // local : même mécanique de verrouillage que le buzz classique
     const nextLocked = new Set(locked);
     nextLocked.add(playerId);
     setLocked(nextLocked);
@@ -519,8 +477,6 @@ export default function BlindTest() {
     intervalRef.current = setInterval(tick, 1000);
   }
 
-  // "Rejoue ta pire manche" — relance un mini-round d'un seul titre, en solo, sans repasser
-  // par le wizard ni retélécharger le pool (le morceau est déjà en mémoire depuis le récap).
   function retrySingleTrack(track: Track) {
     sfx.click();
     setMode("solo");
@@ -541,13 +497,12 @@ export default function BlindTest() {
     return checkGuess(guessVal, name, "", strictMode);
   }
 
-  // Local : buzz
   function handleBuzz(playerId: string) {
     if (!started || revealed || buzzedBy || locked.has(playerId)) return;
     sfx.buzz();
     setBuzzedBy(playerId);
     if (intervalRef.current) clearInterval(intervalRef.current);
-    deadlineRef.current = null; // en pause — timeLeft garde sa dernière valeur affichée
+    deadlineRef.current = null;
   }
 
   function submitLocalGuess() {
@@ -568,15 +523,12 @@ export default function BlindTest() {
       intervalRef.current = setInterval(tick, 1000);
       return;
     }
-    // Points marqués : le useEffect sur `solved` déclenchera revealRound() tout seul si
-    // c'était le dernier champ manquant — sinon on relance le chrono pour la suite.
     setBuzzedBy(null);
     setGuess({ title: "", artist: "", feat: "" });
     deadlineRef.current = Date.now() + timeLeft * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
 
-  // Solo : formulaire toujours ouvert, champs résolus se verrouillent au fur et à mesure
   function submitSoloGuess() {
     if (!started || revealed || !track) return;
     const gained = checkFields("solo", guess);
@@ -596,7 +548,6 @@ export default function BlindTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [solved]);
 
-  // Sauvegarde du score solo — no-op silencieux si personne n'est connecté (géré côté route).
   const [scoreSaveStatus, setScoreSaveStatus] = useState<"idle" | "saved" | "guest">("idle");
   const [showConfetti, setShowConfetti] = useState(false);
   useEffect(() => {
@@ -633,10 +584,6 @@ export default function BlindTest() {
   }
 
   const [isFullscreen, setIsFullscreen] = useState(false);
-  // Le plein écran natif ne se déclenche pas de la même façon (voire pas du tout, sur iOS
-  // Safari) d'un navigateur à l'autre. Ce bouton ne peut donc pas dépendre uniquement de l'API
-  // Fullscreen pour donner un résultat visible : il force en plus, toujours, le mode immersif
-  // maison (masquage du site autour + verrou de scroll) — qui, lui, marche partout.
   const [manualImmersive, setManualImmersive] = useState(false);
   const immersive = phase === "playing" || manualImmersive;
 
@@ -665,15 +612,11 @@ export default function BlindTest() {
         else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
       }
     } catch {
-      // iOS Safari en particulier refuse le plein écran natif pour un élément quelconque (seul
-      // <video> y a droit). On échoue silencieusement — le mode immersif maison ci-dessus a de
-      // toute façon déjà pris effet, le bouton n'est donc jamais un bouton mort à l'usage.
+      // iOS Safari refuse le plein écran natif — échec silencieux, le mode immersif maison a
+      // déjà pris effet.
     }
   }
 
-  // Mode immersif — masque header/pied de page/texte éditorial (classe CSS sur <body>, voir
-  // globals.css). Peut être actif pendant la configuration (plein écran manuel) sans gêner :
-  // ça ne touche que l'affichage du site autour, jamais le scroll.
   useEffect(() => {
     document.body.classList.toggle("game-immersive", immersive);
     return () => {
@@ -681,25 +624,10 @@ export default function BlindTest() {
     };
   }, [immersive]);
 
-  // Verrou de scroll — séparé du mode immersif ci-dessus à dessein : il ne doit s'activer que
-  // pendant une manche (phase "playing"), jamais pendant la configuration. Sinon, activer le
-  // plein écran manuel depuis l'écran de configuration bloquait le scroll vertical nécessaire
-  // pour parcourir la liste des thèmes — un vrai bug rapporté, pas juste une hypothèse. Même
-  // technique que le tiroir de menu mobile (position fixed + restauration du scrollY), et met
-  // en pause le scroll fluide Lenis, qui sinon continue d'intercepter molette/tactile et de
-  // calculer son propre défilement par-dessus un <body> figé — verrouiller le body seul ne
-  // suffisait pas.
   const scrollYRef = useRef(0);
   useEffect(() => {
     const locked = phase === "playing";
 
-    // Avec le body en position:fixed, focus sur un champ = le navigateur (iOS Safari surtout)
-    // scrolle quand même la *fenêtre* pour dégager l'input au-dessus du clavier. À la fermeture
-    // du clavier, ce scroll fantôme persiste : la couche visuelle et la couche de hit-testing
-    // sont décalées, et plus aucun tap n'atteint sa cible ("Lancer l'extrait" mort après avoir
-    // renseigné titre/artiste). On remet la fenêtre à zéro dès qu'un champ perd le focus ou que
-    // le viewport visuel reprend sa taille (clavier replié) — jamais pendant la saisie, pour ne
-    // pas cacher l'input sous le clavier.
     const resetGhostScroll = () => {
       const ae = document.activeElement as HTMLElement | null;
       const typing = !!ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
@@ -711,8 +639,6 @@ export default function BlindTest() {
       }
     };
     const onFocusOut = () => {
-      // Laisse le temps au focus de passer sur l'élément suivant (tap sur un bouton) avant de
-      // décider — sinon on lirait encore l'input comme élément actif.
       setTimeout(resetGhostScroll, 60);
     };
 
@@ -753,13 +679,9 @@ export default function BlindTest() {
     };
   }, [phase]);
 
-  // Volume des extraits — réappliqué à chaque nouvelle manche puisque <audio> est remonté
-  // (key={track.id}) et perd donc tout état impératif précédent.
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = trackVolume;
   }, [trackVolume, track?.id]);
-
-  // ── Rendu ──────────────────────────────────────────────────────────────
 
   if (userLoading) {
     return (
@@ -787,9 +709,6 @@ export default function BlindTest() {
   if (phase === "setup" || phase === "loading") {
     return (
       <div className="max-w-2xl mx-auto pb-44 blindtest-shell">
-        {/* Barre de filtres façon Spotify — pilules pleines, pas un simple fil d'ariane texte.
-            Seulement 3 items désormais : elle tient sur n'importe quel écran sans jamais avoir
-            besoin de défiler ou de couper un mot. */}
         <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1 flex-wrap">
           {[
             { label: "Mode", Icon: Gamepad2 },
@@ -808,9 +727,6 @@ export default function BlindTest() {
           ))}
         </div>
 
-        {/* Conteneur volontairement SANS fond : la carte pleine formait un grand rectangle
-            sombre par-dessus l'aurora — c'était elle, le "fond noir brut". Chaque bloc
-            interne (cartes de mode, sélecteur, réglages) a déjà son propre verre. */}
         <div className="px-0.5 sm:px-1 flex flex-col">
           {phase === "loading" ? (
             <div className="flex-1 flex items-center justify-center py-10">
@@ -818,7 +734,6 @@ export default function BlindTest() {
             </div>
           ) : (
             <>
-          {/* Étape 0 — Mode */}
           {wizardStep === 0 && (
             <div
               className={`flex-1 space-y-3 rounded-2xl transition-shadow ${
@@ -846,9 +761,6 @@ export default function BlindTest() {
                   Icon: User,
                   desc: "Teste tes connaissances à ton rythme.",
                   tag: "1 joueur",
-                  // Palette strictement dans la charte : trois variations de rouge (pas de
-                  // violet ni de rose), différenciées par la chaleur/profondeur de la
-                  // teinte plutôt que par une nouvelle couleur à chaque carte.
                   gradient: "from-[#7a0f0f] to-[#F0001C]",
                 },
                 {
@@ -885,12 +797,6 @@ export default function BlindTest() {
                         sfx.click();
                         setMode(m.id);
                         setSetupError(null);
-                        // On ne saute plus automatiquement à l'étape suivante : un tap sur
-                        // une carte ne fait que la sélectionner (comme choisir un thème),
-                        // c'est "Suivant" qui fait avancer — sinon impossible de voir/remplir
-                        // les pseudos avant de quitter l'écran en mode Local. "Salon en ligne"
-                        // reste à part : ce n'est pas une étape du wizard mais un tout autre
-                        // écran (code à partager), donc il continue de s'ouvrir directement.
                       }}
                       className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
                         isActive
@@ -898,7 +804,6 @@ export default function BlindTest() {
                           : "border-white/10 hover:border-white/25"
                       }`}
                     >
-                      {/* Fond dégradé façon carte de match Tinder — discret au repos, plus présent sélectionné */}
                       <div
                         className={`absolute inset-0 bg-gradient-to-br ${m.gradient} transition-opacity duration-200 ${
                           isActive ? "opacity-25" : "opacity-0 group-hover:opacity-10"
@@ -938,9 +843,6 @@ export default function BlindTest() {
                       </div>
                     </button>
 
-                    {/* Éditeur de pseudos — replié directement sous la carte "Local" dès
-                        qu'elle est sélectionnée, plutôt que relégué tout en bas de l'écran
-                        après les 3 cartes (trop loin, sans lien visuel avec le choix fait). */}
                     {m.id === "local" && isActive && (
                       <div className="mt-2 rounded-xl border border-gold/20 bg-gold/[0.04] p-3.5 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
                         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2.5">Pseudos</p>
@@ -981,7 +883,6 @@ export default function BlindTest() {
             </div>
           )}
 
-          {/* Étape 1 — Thème */}
           {wizardStep === 1 && (
             <ThemePicker
               themeId={themeId}
@@ -993,13 +894,8 @@ export default function BlindTest() {
             />
           )}
 
-          {/* Étape 2 — Réglages + barème + lancer */}
           {wizardStep === 2 && (
             <div className="flex-1 space-y-7">
-              {/* Mode de réponse — LA décision obligatoire, en tête. Aucune présélection :
-                  choisir consciemment change tout le ressenti de jeu, on ne subit pas un
-                  défaut. Indicateur "à choisir" tant que rien n'est sélectionné, et
-                  surbrillance si on tente de lancer sans choix. */}
               <div>
                 <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
                   <Sliders size={13} />
@@ -1059,7 +955,6 @@ export default function BlindTest() {
                 </div>
               </div>
 
-              {/* Partie */}
               <div>
                 <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
                   <Disc size={13} />
@@ -1101,7 +996,6 @@ export default function BlindTest() {
                 </div>
               </div>
 
-              {/* Difficulté — réglages fins qui affinent le mode choisi ci-dessus */}
               <div>
                 <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
                   <Target size={13} />
@@ -1159,7 +1053,6 @@ export default function BlindTest() {
                 </div>
               </div>
 
-              {/* Confort */}
               <div>
                 <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
                   <Volume2 size={13} />
@@ -1198,8 +1091,6 @@ export default function BlindTest() {
                 />
               </div>
 
-              {/* Résumé visuel de la partie — scannable en un coup d'œil plutôt qu'à lire
-                  comme une phrase, juste avant de lancer. */}
               <div className="glass rounded-xl p-4">
                 <p className="font-mono text-[10px] text-gold uppercase tracking-[0.16em] mb-3">Barème & récap</p>
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -1239,10 +1130,6 @@ export default function BlindTest() {
           )}
         </div>
 
-        {/* Bloc fixe en bas du viewport — deux niveaux empilés :
-            — Précédent/Suivant/Lancer, toujours accessible sans scroller.
-            — En dessous, une barre d'onglets façon app mobile (Amis, Classement, Mon
-              compte, Plein écran) — sticky elle aussi, jamais reléguée en bas de page. */}
         <div className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/95 to-transparent -z-10" aria-hidden="true" />
           <div className="max-w-2xl mx-auto pointer-events-auto">
@@ -1277,14 +1164,15 @@ export default function BlindTest() {
                   </button>
                 ) : (
                   <Magnetic strength={0.15} className="flex-1 block">
-                    <button
+                    <BorderMagicButton
                       onClick={startGame}
                       disabled={phase === "loading"}
-                      className="cta-glow w-full bg-gold hover:bg-glow disabled:opacity-60 disabled:animate-none text-white rounded-full min-h-[44px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                      fullWidth
+                      size="md"
                     >
                       {phase === "loading" ? "Chargement..." : "Lancer la partie"}
                       {phase !== "loading" && <Play size={18} />}
-                    </button>
+                    </BorderMagicButton>
                   </Magnetic>
                 )}
               </div>
@@ -1430,13 +1318,10 @@ export default function BlindTest() {
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Magnetic>
-            <button
-              onClick={playAgain}
-              className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-6 py-3 font-medium transition-colors"
-            >
+            <BorderMagicButton onClick={playAgain} size="md">
               <RotateCcw size={16} />
               Rejouer
-            </button>
+            </BorderMagicButton>
           </Magnetic>
           {mode === "solo" && (
             <>
@@ -1478,7 +1363,6 @@ export default function BlindTest() {
     );
   }
 
-  // phase === "playing"
   if (!track) return null;
 
   const activePlayer = mode === "local" ? players.find((p) => p.id === buzzedBy) : players[0];
@@ -1571,19 +1455,14 @@ export default function BlindTest() {
             </p>
             <p className="text-sm text-ink-faint mb-7">Prêt à reconnaître ce son ?</p>
             <Magnetic strength={0.25}>
-              <button
-                onClick={launchExtract}
-                className="cta-glow tap-press mx-auto flex items-center gap-3 bg-gold hover:bg-glow text-white rounded-full px-10 py-5 font-semibold text-lg transition-colors"
-              >
+              <BorderMagicButton onClick={launchExtract} size="lg">
                 <Play size={22} fill="currentColor" />
                 Lancer l'extrait
-              </button>
+              </BorderMagicButton>
             </Magnetic>
           </div>
         ) : !revealed ? (
           <>
-            {/* Marque DR en tuile verre 3D — anime en continu pendant l'écoute, à la
-                place de l'ancien vinyle à cercles concentriques. */}
             <span className="block w-28 h-28 mx-auto mb-6">
               <DRMark3D size="100%" />
             </span>
@@ -1803,9 +1682,6 @@ export default function BlindTest() {
         )}
       </div>
 
-      {/* Barre de jeu — fixe en bas. Valider + Joker apparaissent seulement une fois la manche
-          lancée, mais la barre d'onglets, elle, reste affichée en permanence : plus pratique
-          pour accéder à Amis/Classement/Compte sans quitter la page. */}
       <div
         className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
@@ -1872,9 +1748,6 @@ export default function BlindTest() {
   );
 }
 
-// Ligne de réglage à interrupteur — icône, libellé, description courte, switch façon iOS.
-// Un seul composant pour les 3 toggles de l'étape Réglages, plutôt que le markup dupliqué
-// trois fois avec des risques de divergence visuelle.
 function SettingToggle({
   Icon,
   label,
