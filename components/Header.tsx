@@ -3,13 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu, X as CloseIcon, Info, Gamepad2 } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Info, Gamepad2, Trophy, Users } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
+import { Menu, MenuItem, MenuLink, HoveredLink } from "@/components/ui/navbar-menu";
 
+// Liste à plat — utilisée par le tiroir mobile (pas de sous-menus au clavier tactile,
+// tout est déjà déroulé dans une liste qu'on scrolle).
 const nav = [
   { href: "/a-propos", label: "À propos", Icon: Info },
   { href: "/jouer", label: "Jouer", Icon: Gamepad2 },
+  { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
+  { href: "/amis", label: "Amis", Icon: Users },
 ];
 
 const socials = [
@@ -45,24 +50,6 @@ function ScrollProgress() {
         style={{ width: `${progress}%` }}
       />
     </div>
-  );
-}
-
-function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
-  return (
-    <a
-      href={href}
-      className={`group/nav relative py-2 text-xs font-mono uppercase tracking-[0.12em] transition-colors ${
-        active ? "text-gold" : "text-ink-muted hover:text-ink"
-      }`}
-    >
-      {label}
-      <span
-        className={`absolute left-0 -bottom-0.5 h-px bg-gold transition-all duration-300 ${
-          active ? "w-full" : "w-0 group-hover/nav:w-full"
-        }`}
-      />
-    </a>
   );
 }
 
@@ -171,6 +158,9 @@ function MobileMenu({
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  // Menu déroulant desktop actif ("Jouer", "Communauté", ou null) — séparé du tiroir
+  // mobile, qui a son propre état `open`.
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const pathname = usePathname();
   const scrollYRef = useRef(0);
 
@@ -217,12 +207,28 @@ export default function Header() {
           />
         </a>
 
-        {/* Nav desktop */}
-        <nav className="hidden lg:flex items-center gap-7">
-          {nav.map((item) => (
-            <NavLink key={item.href} href={item.href} label={item.label} active={pathname === item.href || pathname?.startsWith(item.href + "/")} />
-          ))}
-        </nav>
+        {/* Nav desktop — menus déroulants (Jouer / Communauté), lien simple pour À propos */}
+        <div className="hidden lg:flex">
+          <Menu setActive={setActiveMenu}>
+            <MenuLink href="/a-propos" active={pathname === "/a-propos"}>
+              À propos
+            </MenuLink>
+            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jouer">
+              <div className="flex flex-col">
+                <HoveredLink href="/jouer?mode=solo">Solo</HoveredLink>
+                <HoveredLink href="/jouer?mode=local">Même écran</HoveredLink>
+                <HoveredLink href="/jouer?mode=online">Salon en ligne</HoveredLink>
+                <HoveredLink href="/jouer?mode=party">Mode Soirée</HoveredLink>
+              </div>
+            </MenuItem>
+            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Communauté">
+              <div className="flex flex-col">
+                <HoveredLink href="/blindtest/classement">Classement</HoveredLink>
+                <HoveredLink href="/amis">Amis</HoveredLink>
+              </div>
+            </MenuItem>
+          </Menu>
+        </div>
 
         <div className="hidden lg:flex items-center gap-4">
           <a
@@ -244,7 +250,7 @@ export default function Header() {
           aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
           aria-expanded={open}
         >
-          {open ? <CloseIcon size={22} /> : <Menu size={22} />}
+          {open ? <CloseIcon size={22} /> : <MenuIcon size={22} />}
         </button>
       </div>
 

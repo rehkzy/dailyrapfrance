@@ -571,6 +571,7 @@ export default function BlindTest() {
   }, [solved]);
 
   const [scoreSaveStatus, setScoreSaveStatus] = useState<"idle" | "saved" | "guest">("idle");
+  const [topPercent, setTopPercent] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   useEffect(() => {
     if (phase !== "final") return;
@@ -585,7 +586,10 @@ export default function BlindTest() {
       body: JSON.stringify({ theme: themeId, rounds: tracks.length, points: solo.score }),
     })
       .then((r) => r.json())
-      .then((data) => setScoreSaveStatus(data.saved ? "saved" : "guest"))
+      .then((data) => {
+        setScoreSaveStatus(data.saved ? "saved" : "guest");
+        setTopPercent(typeof data.topPercent === "number" ? data.topPercent : null);
+      })
       .catch(() => setScoreSaveStatus("guest"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -601,6 +605,7 @@ export default function BlindTest() {
     setRoundIndex(0);
     setRoundHistory([]);
     setScoreSaveStatus("idle");
+    setTopPercent(null);
     setShowConfetti(false);
     resetRoundState();
   }
@@ -1285,10 +1290,21 @@ export default function BlindTest() {
         )}
 
         {mode === "solo" && (
-          <p className="text-xs font-mono text-ink-faint mb-8">
-            {scoreSaveStatus === "saved" && "Score enregistré dans ton classement."}
-            {scoreSaveStatus === "guest" && "Connecte-toi pour sauvegarder ce score."}
-          </p>
+          <div className="mb-8">
+            {scoreSaveStatus === "saved" && (
+              <>
+                <p className="text-xs font-mono text-ink-faint mb-2.5">Score enregistré dans ton classement.</p>
+                {topPercent !== null && (
+                  <p className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold bg-gold/10 border border-gold/30 rounded-full px-3 py-1.5">
+                    🏆 Top {topPercent}% sur ce thème
+                  </p>
+                )}
+              </>
+            )}
+            {scoreSaveStatus === "guest" && (
+              <p className="text-xs font-mono text-ink-faint">Connecte-toi pour sauvegarder ce score.</p>
+            )}
+          </div>
         )}
 
         {roundHistory.length > 0 && (
