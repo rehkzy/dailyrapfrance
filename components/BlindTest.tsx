@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Zap, RotateCcw, Users, User, Disc, Clock,
+  Play, Zap, RotateCcw, Users, User, Disc, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   Sliders, Gamepad2, Maximize, Minimize, X, VolumeX, Volume2, Lightbulb, Target,
   ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper,
