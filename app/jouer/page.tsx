@@ -17,8 +17,8 @@ import GameCover from "@/components/GameCover";
  */
 
 const GAMES = [
+  { href: "/jeux/artists-manager", title: "Artists Manager 2026", cover: "/jeux/artists-manager.png", flag: "Nouveau" },
   { href: "/jouer?play=1", title: "Blind Test", cover: "/jeux/blind-test.png", flag: null },
-  { href: "/jeux/artists-manager", title: "Artists Manager 26", cover: "/jeux/artists-manager.svg", flag: "Nouveau" },
   { href: "/jeux/tracklist", title: "La Tracklist", cover: "/jeux/tracklist.png", flag: "Défi du jour" },
   { href: "/jeux/plus-haut", title: "Plus Haut, Plus Bas", cover: "/jeux/plus-haut.png", flag: null },
   { href: "/jeux/tribunal", title: "Le Tribunal", cover: "/jeux/tribunal.png", flag: "Vote du jour" },
@@ -38,31 +38,38 @@ const MULTI_MODES = [
 function NetflixHub() {
   return (
     <div className="-mt-6">
-      {/* Billboard héros — cover paysage du blind test en fond */}
+      {/* Billboard héros — Artists Manager 2026 en jeu vedette, bannière officielle en
+          fond + logo DR en watermark (façon "N" Netflix en haut du billboard) */}
       <section className="nf-billboard px-6 sm:px-10 pb-24 sm:pb-28 pt-28">
         <span
           className="absolute inset-0 -z-20"
-          style={{ backgroundImage: "url(/jeux/blind-test-wide.png)", backgroundSize: "cover", backgroundPosition: "center" }}
+          style={{ backgroundImage: "url(/jeux/artists-manager.png)", backgroundSize: "cover", backgroundPosition: "center" }}
           aria-hidden="true"
+        />
+        <img
+          src="/icon.svg"
+          alt=""
+          aria-hidden="true"
+          className="absolute top-24 left-6 sm:left-10 w-8 opacity-90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]"
         />
         <div className="max-w-5xl mx-auto w-full">
           <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-3">
             DailyRap Arcade · Jeu vedette
           </p>
-          <h1 className="font-impact text-5xl sm:text-7xl uppercase leading-none mb-3">
-            Blind Test
+          <h1 className="font-impact text-4xl sm:text-7xl uppercase leading-none mb-3">
+            Artists Manager 2026
           </h1>
           <p className="text-ink-muted text-sm sm:text-base max-w-md mb-6 leading-relaxed">
-            Reconnais les sons du rap français — seul, entre potes sur le même écran, ou
-            en salon à distance. Des dizaines de thèmes, un classement à grimper.
+            Dirige ton label de rap français : signe des talents, produis leurs projets,
+            gère la trésorerie et fais grimper ta réputation semaine après semaine.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <BorderMagicButton href="/jouer?play=1" size="lg">
+            <BorderMagicButton href="/jeux/artists-manager" size="lg">
               <Icon icon="game-icons:play-button" width={20} />
               Jouer
             </BorderMagicButton>
             <a
-              href="/blindtest/classement"
+              href="/blindtest/classement?jeu=artists-manager"
               className="inline-flex items-center gap-2 glass rounded-2xl px-6 h-16 text-sm font-semibold hover:border-gold/40 transition-colors"
             >
               <Trophy size={17} />

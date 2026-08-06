@@ -18,7 +18,7 @@ export const revalidate = 60;
  */
 const GAMES = [
   { id: "blindtest", label: "Blind Test", cover: "/jeux/blind-test.png", theme: null },
-  { id: "artists-manager", label: "Artists Manager 26", cover: "/jeux/artists-manager.svg", theme: "jeu-artists-manager" },
+  { id: "artists-manager", label: "Artists Manager 26", cover: "/jeux/artists-manager.png", theme: "jeu-artists-manager" },
   { id: "tracklist", label: "La Tracklist", cover: "/jeux/tracklist.png", theme: "jeu-tracklist" },
   { id: "plus-haut", label: "Plus Haut, Plus Bas", cover: "/jeux/plus-haut.png", theme: "jeu-plus-haut" },
   { id: "pronos", label: "Coach A&R", cover: "/jeux/coach-ar.png", theme: "jeu-pronos" },
