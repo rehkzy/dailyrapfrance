@@ -1023,8 +1023,11 @@ input[type="range"].brand-slider::-moz-range-track {
   letter-spacing: 0.03em;
   border: none;
   cursor: pointer;
-  transform: translateY(0);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+  transform: translateY(0) scale(1);
+  /* Courbe rebondissante (même famille que .solved-pop ailleurs dans ce fichier) pour
+     le soulèvement au survol — l'enfoncement au clic, lui, reste sec et instantané
+     (aucun rebond), pour un vrai ressenti de pression physique. */
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1033,12 +1036,16 @@ input[type="range"].brand-slider::-moz-range-track {
   background: linear-gradient(180deg, #ff4f60 0%, #f0001c 60%);
   box-shadow: 0 6px 0 #8a0014, 0 10px 22px -6px rgba(0, 0, 0, 0.45);
 }
+/* Survol — le bouton se soulève et son socle s'épaissit (anticipation avant le clic),
+   plutôt qu'un simple fondu de luminosité. */
 .game-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.05);
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 10px 0 #8a0014, 0 18px 30px -8px rgba(0, 0, 0, 0.5);
 }
 .game-btn-primary:active:not(:disabled) {
-  transform: translateY(6px);
+  transform: translateY(6px) scale(0.98);
   box-shadow: 0 0 0 #8a0014, 0 3px 8px -2px rgba(0, 0, 0, 0.4);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 
 .game-btn-dark {
@@ -1047,11 +1054,13 @@ input[type="range"].brand-slider::-moz-range-track {
   box-shadow: 0 6px 0 #050303, 0 10px 22px -6px rgba(0, 0, 0, 0.5);
 }
 .game-btn-dark:hover:not(:disabled) {
-  filter: brightness(1.15);
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 10px 0 #050303, 0 18px 30px -8px rgba(0, 0, 0, 0.55);
 }
 .game-btn-dark:active:not(:disabled) {
-  transform: translateY(6px);
+  transform: translateY(6px) scale(0.98);
   box-shadow: 0 0 0 #050303, 0 3px 8px -2px rgba(0, 0, 0, 0.4);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 
 .game-btn:disabled {
@@ -1066,7 +1075,10 @@ input[type="range"].brand-slider::-moz-range-track {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .game-btn {
+  .game-btn,
+  .game-btn-primary:hover:not(:disabled),
+  .game-btn-dark:hover:not(:disabled) {
     transition: box-shadow 0.08s ease;
+    transform: none;
   }
 }
