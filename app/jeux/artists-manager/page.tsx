@@ -1,24 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { ArrowLeft, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle, MapPin, User, Building2 } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
 
 /*
- * ARTISTS MANAGER 2026 — "Football Manager du rap français", v2 UI.
+ * ARTISTS MANAGER 2026 — v3 : onboarding façon "création de carrière" FM + tutoriel.
  *
- * Interface refondue sur le gabarit FM des références fournies :
- *  - Barre du haut identité + date + CONTINUER (le bouton signature FM)
- *  - Rangée de KPI cards (Trésorerie / Réputation / Streams hebdo)
- *  - Dashboard en cartes titrées : Studio, Prochaine échéance, mini-classement avec
- *    flèches de mouvement, boîte de réception façon inbox FM
- *  - Cartes artistes façon "player card" (bandeau dégradé + stats en barres)
- *  - Classement complet avec position, ▲▼ vs semaine précédente, ton label surligné
+ * Nouveautés :
+ *  - Wizard de personnalisation en 3 étapes au premier lancement (comme la création de
+ *    manager dans FM) : identité (prénom, pseudo), label (nom, ville, logo, couleur),
+ *    récap avant de lancer la carrière. Tout est réutilisé dans l'interface (barre du
+ *    haut, messages, écran de fin).
+ *  - Tutoriel guidé en 4 écrans après l'onboarding (survol des onglets, le bouton
+ *    Continuer, l'objectif) — affiché une seule fois.
+ *  - Checklist "Premiers pas" sur le dashboard (façon tâches FM), auto-cochée selon la
+ *    progression réelle, disparaît une fois les 3 actions faites.
  *
- * Simulation identique à la v1 (localStorage "drf-am26", score → blindtest_scores,
- * artistes 100% fictifs). Ajout : mémorisation de l'ordre du chart de la semaine
- * précédente pour afficher les mouvements.
+ * Les sauvegardes v1/v2 sont conservées : au chargement, si le profil manque, seul
+ * l'onboarding s'affiche — la partie en cours n'est PAS réinitialisée.
  */
 
 // ---------- Types ----------
@@ -60,6 +61,15 @@ type Release = {
 type Message = { id: string; week: number; title: string; body: string };
 type Rival = { name: string; streams: number };
 
+type Profile = {
+  firstName: string;
+  pseudo: string;
+  labelName: string;
+  city: string;
+  logo: string;   // emoji du label
+  color: string;  // accent hexa (variations charte)
+};
+
 type GameState = {
   week: number;
   cash: number;
@@ -70,7 +80,9 @@ type GameState = {
   releases: Release[];
   messages: Message[];
   rivals: Rival[];
-  prevChartOrder: string[]; // clés du chart la semaine passée — pour les flèches ▲▼
+  prevChartOrder: string[];
+  profile: Profile | null;
+  tutorialDone: boolean;
   gameOver: null | "bankrupt" | "season_end";
   scoreSaved: boolean;
 };
@@ -81,6 +93,15 @@ const FIRST = ["Zeyko", "Diako", "Sirem", "Kaira", "Noxx", "Tismé", "Rakelm", "
 const STYLES = ["Drill", "Mélo", "Boom bap", "Trap", "Cloud", "Afro"];
 const RIVAL_NAMES = ["Wesko", "Lynka", "7ID", "Marzo", "Selva", "KMR", "Dosia", "Priam"];
 const PROJECT_TITLES = ["Minuit", "Zone 7", "Éclipse", "Sans retour", "Or noir", "Antidote", "Mirage", "Balafre", "Horizon", "Vertige", "Cendres", "Apnée"];
+
+const CITIES = ["Paris", "Marseille", "Lyon", "Lille", "Seine-Saint-Denis", "Toulouse", "Strasbourg", "Bruxelles"];
+const LOGOS = ["🎤", "💿", "🔥", "🐺", "🦅", "💎", "👑", "🌙"];
+const COLORS = [
+  { label: "Rouge signal", v: "#F0001C" },
+  { label: "Braise", v: "#FF3B4E" },
+  { label: "Bordeaux", v: "#A3121B" },
+  { label: "Or", v: "#D4A017" },
+];
 
 const TYPE_META = {
   single: { label: "Single", weeks: 2, studioBase: 1 },
@@ -135,12 +156,11 @@ function initialState(): GameState {
     market: [makeArtist(used), makeArtist(used), makeArtist(used)],
     project: null,
     releases: [],
-    messages: [{
-      id: nextId(), week: 1, title: "Bienvenue au label",
-      body: `Tu démarres avec ${fmt(START_CASH)} €. Signe ton premier artiste, produis un projet, et fais grimper ta réputation. Faillite = fin de partie.`,
-    }],
+    messages: [],
     rivals: RIVAL_NAMES.map((name) => ({ name, streams: ri(60000, 380000) })),
     prevChartOrder: [],
+    profile: null,
+    tutorialDone: false,
     gameOver: null,
     scoreSaved: false,
   };
@@ -151,8 +171,10 @@ function load(): GameState | null {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const s = JSON.parse(raw) as GameState;
-    // Compat sauvegardes v1 (champ ajouté en v2)
+    // Compat v1/v2 — champs ajoutés depuis
     if (!Array.isArray(s.prevChartOrder)) s.prevChartOrder = [];
+    if (s.profile === undefined) s.profile = null;
+    if (typeof s.tutorialDone !== "boolean") s.tutorialDone = false;
     return s;
   } catch {
     return null;
@@ -167,7 +189,6 @@ function persist(s: GameState) {
   }
 }
 
-// Clé unique d'une entrée du chart (rival = son nom, sortie = id de release)
 type ChartEntry = { key: string; name: string; title: string | null; streams: number; mine: boolean };
 
 function computeChart(s: GameState): ChartEntry[] {
@@ -178,7 +199,7 @@ function computeChart(s: GameState): ChartEntry[] {
   return entries.sort((a, b) => b.streams - a.streams).slice(0, 10);
 }
 
-// ---------- Simulation d'une semaine ----------
+// ---------- Simulation ----------
 
 const EVENTS: { title: string; body: () => string; apply: (s: GameState) => void }[] = [
   {
@@ -210,7 +231,6 @@ const EVENTS: { title: string; body: () => string; apply: (s: GameState) => void
 
 function advanceWeek(prev: GameState): GameState {
   const s: GameState = JSON.parse(JSON.stringify(prev));
-  // Mémorise l'ordre du chart AVANT que la semaine bouge — base des flèches ▲▼
   s.prevChartOrder = computeChart(prev).map((e) => e.key);
   s.week += 1;
 
@@ -287,29 +307,25 @@ function advanceWeek(prev: GameState): GameState {
   return s;
 }
 
-// ---------- UI ----------
+// ---------- Petits composants UI ----------
 
 type Tab = "label" | "artistes" | "studio" | "charts";
 
 function Movement({ delta }: { delta: number | null }) {
-  // delta > 0 = monte, < 0 = descend, 0 = stable, null = nouvelle entrée
   if (delta === null) return <span className="font-mono text-[9px] uppercase text-gold">New</span>;
   if (delta > 0) return <TrendingUp size={13} className="text-risePos" />;
   if (delta < 0) return <TrendingDown size={13} className="text-riseNeg" />;
   return <Minus size={13} className="text-ink-faint" />;
 }
 
-function StatBar({ label, value, max = 20 }: { label: string; value: number; max?: number }) {
+function StatBar({ label, value, max = 20, color = "#F0001C" }: { label: string; value: number; max?: number; color?: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-[10px] font-mono uppercase text-ink-faint w-16 shrink-0">{label}</span>
       <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full"
-          style={{
-            width: `${(value / max) * 100}%`,
-            background: "linear-gradient(90deg, #7A0F0F, #F0001C)",
-          }}
+          style={{ width: `${(value / max) * 100}%`, background: `linear-gradient(90deg, #7A0F0F, ${color})` }}
         />
       </div>
       <span className="font-mono text-[11px] text-ink-muted w-6 text-right">{value}</span>
@@ -330,6 +346,253 @@ function SectionCard({ title, icon, action, children }: { title: string; icon: R
     </div>
   );
 }
+
+// ---------- Onboarding (création de carrière façon FM) ----------
+
+function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
+  const [step, setStep] = useState(0);
+  const [firstName, setFirstName] = useState("");
+  const [pseudo, setPseudo] = useState("");
+  const [labelName, setLabelName] = useState("");
+  const [city, setCity] = useState<string>(CITIES[0]);
+  const [customCity, setCustomCity] = useState("");
+  const [logo, setLogo] = useState(LOGOS[0]);
+  const [color, setColor] = useState(COLORS[0].v);
+
+  const finalCity = customCity.trim() || city;
+  const canNext = step === 0 ? firstName.trim().length > 0 && pseudo.trim().length > 0 : step === 1 ? labelName.trim().length > 0 : true;
+
+  const STEPS = ["Toi", "Ton label", "Récap"];
+
+  return (
+    <section className="max-w-md mx-auto px-6 pt-10 pb-24">
+      <a href="/jouer" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide mb-8">
+        <ArrowLeft size={14} /> Tous les jeux
+      </a>
+
+      <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-2">Artists Manager 2026</p>
+      <h1 className="font-impact text-3xl uppercase mb-1">Nouvelle carrière</h1>
+      <p className="text-sm text-ink-muted mb-6">Crée ton identité de manager avant de te lancer — comme dans FM.</p>
+
+      {/* Indicateur d'étapes */}
+      <div className="flex items-center gap-2 mb-8">
+        {STEPS.map((label, i) => (
+          <div key={label} className="flex items-center gap-2">
+            <span
+              className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                i < step ? "bg-gold text-white" : i === step ? "border-2 border-gold text-gold" : "border border-white/15 text-ink-faint"
+              }`}
+            >
+              {i < step ? "✓" : i + 1}
+            </span>
+            <span className={`text-xs font-medium ${i === step ? "text-ink" : "text-ink-faint"}`}>{label}</span>
+            {i < STEPS.length - 1 && <span className="w-6 h-px bg-white/15" />}
+          </div>
+        ))}
+      </div>
+
+      {step === 0 && (
+        <div className="space-y-5 solved-pop">
+          <div>
+            <label className="font-mono text-[10px] uppercase tracking-wide text-gold flex items-center gap-1.5 mb-2">
+              <User size={11} /> Ton prénom
+            </label>
+            <input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Florian"
+              maxLength={20}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="font-mono text-[10px] uppercase tracking-wide text-gold flex items-center gap-1.5 mb-2">
+              <Star size={11} /> Ton pseudo de manager
+            </label>
+            <input
+              value={pseudo}
+              onChange={(e) => setPseudo(e.target.value)}
+              placeholder="Flo93"
+              maxLength={16}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-gold/50"
+            />
+            <p className="text-[11px] text-ink-faint mt-1.5">C'est ce nom qui apparaîtra dans les messages de l'industrie.</p>
+          </div>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="space-y-5 solved-pop">
+          <div>
+            <label className="font-mono text-[10px] uppercase tracking-wide text-gold flex items-center gap-1.5 mb-2">
+              <Building2 size={11} /> Nom du label
+            </label>
+            <input
+              value={labelName}
+              onChange={(e) => setLabelName(e.target.value)}
+              placeholder="Minuit Records"
+              maxLength={24}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="font-mono text-[10px] uppercase tracking-wide text-gold flex items-center gap-1.5 mb-2">
+              <MapPin size={11} /> Ta ville de départ
+            </label>
+            <div className="flex gap-2 flex-wrap mb-2">
+              {CITIES.map((c) => (
+                <button key={c} onClick={() => { setCity(c); setCustomCity(""); }} className={`filter-pill ${city === c && !customCity ? "is-active" : ""}`}>
+                  {c}
+                </button>
+              ))}
+            </div>
+            <input
+              value={customCity}
+              onChange={(e) => setCustomCity(e.target.value)}
+              placeholder="Ou tape la tienne..."
+              maxLength={24}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gold/50"
+            />
+          </div>
+          <div>
+            <label className="font-mono text-[10px] uppercase tracking-wide text-gold mb-2 block">Logo du label</label>
+            <div className="flex gap-2 flex-wrap">
+              {LOGOS.map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLogo(l)}
+                  className={`w-11 h-11 rounded-xl text-xl flex items-center justify-center border transition-colors ${
+                    logo === l ? "border-gold bg-gold/15" : "border-white/10 bg-white/5 hover:border-white/25"
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="font-mono text-[10px] uppercase tracking-wide text-gold mb-2 block">Couleur du label</label>
+            <div className="flex gap-2 flex-wrap">
+              {COLORS.map((c) => (
+                <button
+                  key={c.v}
+                  onClick={() => setColor(c.v)}
+                  className={`flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1.5 text-xs font-medium border transition-colors ${
+                    color === c.v ? "border-gold/60 bg-gold/10 text-ink" : "border-white/10 bg-white/5 text-ink-muted hover:border-white/25"
+                  }`}
+                >
+                  <span className="w-5 h-5 rounded-full" style={{ background: c.v }} />
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="solved-pop">
+          {/* Carte récap façon fiche FM */}
+          <div className="glass-strong rounded-2xl overflow-hidden mb-5">
+            <div className="px-5 py-4" style={{ background: `linear-gradient(135deg, ${color}55, transparent)` }}>
+              <p className="text-3xl mb-1">{logo}</p>
+              <p className="font-impact text-2xl uppercase leading-none">{labelName}</p>
+              <p className="font-mono text-[11px] text-ink-muted mt-1.5 flex items-center gap-1">
+                <MapPin size={10} /> {finalCity}
+              </p>
+            </div>
+            <div className="px-5 py-4 space-y-1.5">
+              <p className="text-sm"><span className="text-ink-faint">Manager :</span> {firstName} « {pseudo} »</p>
+              <p className="text-sm"><span className="text-ink-faint">Trésorerie de départ :</span> {fmt(START_CASH)} €</p>
+              <p className="text-sm"><span className="text-ink-faint">Objectif :</span> tenir {SEASON_WEEKS} semaines et faire grimper ta réputation</p>
+            </div>
+          </div>
+          <p className="text-xs text-ink-faint leading-relaxed mb-2">
+            Tu pourras recommencer une carrière à tout moment depuis l'écran de fin.
+          </p>
+        </div>
+      )}
+
+      <div className="flex gap-3 mt-8">
+        {step > 0 && (
+          <button
+            onClick={() => setStep((s) => s - 1)}
+            className="glass rounded-2xl px-5 text-sm font-semibold hover:border-gold/40 transition-colors"
+          >
+            Retour
+          </button>
+        )}
+        <BorderMagicButton
+          onClick={() => {
+            sfx.click();
+            if (step < 2) setStep((s) => s + 1);
+            else onDone({ firstName: firstName.trim(), pseudo: pseudo.trim(), labelName: labelName.trim(), city: finalCity, logo, color });
+          }}
+          fullWidth
+          size="lg"
+          disabled={!canNext}
+        >
+          {step < 2 ? "Continuer" : "Lancer ma carrière"} <ArrowRight size={16} />
+        </BorderMagicButton>
+      </div>
+    </section>
+  );
+}
+
+// ---------- Tutoriel (coach marks, 4 écrans) ----------
+
+const TUTO_STEPS = [
+  {
+    title: "Bienvenue au label 👋",
+    body: (p: Profile) => `${p.pseudo}, te voilà à la tête de ${p.labelName} (${p.city}). Le principe : chaque semaine compte — tes décisions font vivre ou couler le label.`,
+  },
+  {
+    title: "Le bouton Continuer",
+    body: () => "C'est le cœur du jeu, comme dans FM : il fait avancer d'une semaine. Streams, trésorerie, hype et classement bougent à chaque pression. Il est toujours en haut à droite.",
+  },
+  {
+    title: "Les 4 onglets",
+    body: () => "Label = ton tableau de bord et ta boîte de réception. Artistes = ton roster et le marché des talents. Studio = lancer une prod. Charts = le classement face aux labels rivaux.",
+  },
+  {
+    title: "Ton objectif",
+    body: () => "Signe, produis, sors des projets pour battre les rivaux et faire grimper ta réputation. Trésorerie négative = faillite. Tiens les 52 semaines — ta checklist \"Premiers pas\" t'attend sur le dashboard.",
+  },
+];
+
+function Tutorial({ profile, onDone }: { profile: Profile; onDone: () => void }) {
+  const [i, setI] = useState(0);
+  const s = TUTO_STEPS[i];
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-4">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" aria-hidden="true" />
+      <div className="relative nav-panel rounded-3xl p-6 max-w-sm w-full solved-pop">
+        <p className="font-mono text-[10px] uppercase tracking-wide text-gold mb-3">
+          Tutoriel · {i + 1}/{TUTO_STEPS.length}
+        </p>
+        <h2 className="font-impact text-xl uppercase mb-2">{s.title}</h2>
+        <p className="text-sm text-ink-muted leading-relaxed mb-6">{s.body(profile)}</p>
+        <div className="flex items-center justify-between gap-3">
+          <button onClick={onDone} className="text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
+            Passer
+          </button>
+          <BorderMagicButton
+            onClick={() => {
+              sfx.click();
+              if (i < TUTO_STEPS.length - 1) setI(i + 1);
+              else onDone();
+            }}
+            size="md"
+          >
+            {i < TUTO_STEPS.length - 1 ? "Suivant" : "C'est parti 🔥"}
+          </BorderMagicButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Page ----------
 
 export default function ArtistsManagerPage() {
   const [state, setState] = useState<GameState | null>(null);
@@ -372,6 +635,28 @@ export default function ArtistsManagerPage() {
     return <div className="h-64 flex items-center justify-center text-ink-faint text-sm font-mono">Chargement du label...</div>;
   }
 
+  // ----- Onboarding (pas encore de profil) -----
+  if (!state.profile) {
+    return (
+      <Onboarding
+        onDone={(p) => {
+          sfx.victory();
+          update({
+            ...state,
+            profile: p,
+            messages: [{
+              id: nextId(), week: state.week, title: `${p.labelName} ouvre ses portes`,
+              body: `${p.pseudo}, tu démarres à ${p.city} avec ${fmt(START_CASH)} €. Signe ton premier artiste, produis un projet, et fais grimper ta réputation. Faillite = fin de partie.`,
+            }, ...state.messages].slice(0, 12),
+          });
+        }}
+      />
+    );
+  }
+
+  const profile = state.profile;
+
+  // ----- Écran de fin -----
   if (state.gameOver) {
     const bankrupt = state.gameOver === "bankrupt";
     return (
@@ -380,8 +665,8 @@ export default function ArtistsManagerPage() {
         <h1 className="font-impact text-3xl uppercase mb-2">{bankrupt ? "Faillite" : "Fin de saison"}</h1>
         <p className="text-sm text-ink-muted mb-8">
           {bankrupt
-            ? `Le label a coulé à la semaine ${state.week}. La rue n'oublie pas — mais elle pardonne : retente ta chance.`
-            : "52 semaines au sommet (ou pas loin). Voici ton bilan."}
+            ? `${profile.labelName} a coulé à la semaine ${state.week}. La rue n'oublie pas — mais elle pardonne : retente ta chance, ${profile.pseudo}.`
+            : `52 semaines à la tête de ${profile.labelName}. Voici ton bilan, ${profile.pseudo}.`}
         </p>
         <div className="grid grid-cols-2 gap-3 mb-10 text-left">
           <div className="glass rounded-2xl p-4">
@@ -401,9 +686,15 @@ export default function ArtistsManagerPage() {
             <p className="font-impact text-3xl">{fmt(Math.max(0, state.cash))} €</p>
           </div>
         </div>
-        <BorderMagicButton onClick={() => update(initialState())} size="lg" fullWidth>
-          <RotateCcw size={18} /> Nouvelle partie
+        <BorderMagicButton onClick={() => update({ ...initialState(), profile, tutorialDone: true })} size="lg" fullWidth>
+          <RotateCcw size={18} /> Nouvelle saison avec {profile.labelName}
         </BorderMagicButton>
+        <button
+          onClick={() => update(initialState())}
+          className="block mx-auto text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide mt-4"
+        >
+          Repartir de zéro (nouveau label)
+        </button>
         <a href="/jouer" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide mt-6">
           <ArrowLeft size={14} /> Tous les jeux
         </a>
@@ -411,6 +702,7 @@ export default function ArtistsManagerPage() {
     );
   }
 
+  // ----- Actions -----
   function sign(artist: Artist) {
     if (!state) return;
     if (state.cash < artist.signingFee) return;
@@ -422,7 +714,7 @@ export default function ArtistsManagerPage() {
       roster: [...state.roster, artist],
       market: [...state.market.filter((a) => a.id !== artist.id), makeArtist(used)],
       messages: [{
-        id: nextId(), week: state.week, title: `${artist.name} rejoint le label`,
+        id: nextId(), week: state.week, title: `${artist.name} rejoint ${state.profile!.labelName}`,
         body: `Prime de signature : ${fmt(artist.signingFee)} €. Salaire : ${fmt(artist.salary)} €/semaine. Au travail.`,
       }, ...state.messages].slice(0, 12),
     });
@@ -462,19 +754,35 @@ export default function ArtistsManagerPage() {
   const projectArtist = state.project ? state.roster.find((a) => a.id === state.project!.artistId) : null;
   const weeklyCosts = state.roster.reduce((sum, a) => sum + a.salary, 0);
   const totalCost = projStudio + projClip + projPromo;
+  const accent = profile.color;
+
+  // Checklist "Premiers pas" — auto-cochée selon la progression réelle
+  const firstSteps = [
+    { label: "Signer ton premier artiste", done: state.roster.length > 0, go: () => setTab("artistes") },
+    { label: "Lancer une première prod", done: state.project !== null || state.releases.length > 0, go: () => setTab("studio") },
+    { label: "Passer ta première semaine", done: state.week > 1, go: continueWeek },
+  ];
+  const allStepsDone = firstSteps.every((s) => s.done);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-44">
-      {/* ===== Barre du haut façon FM : identité · date · CONTINUER ===== */}
+      {/* Tutoriel — une seule fois, après l'onboarding */}
+      {!state.tutorialDone && (
+        <Tutorial profile={profile} onDone={() => update({ ...state, tutorialDone: true })} />
+      )}
+
+      {/* ===== Barre du haut façon FM : identité du label · semaine · CONTINUER ===== */}
       <div className="sticky top-16 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 nav-panel flex items-center gap-3">
         <a href="/jouer" aria-label="Tous les jeux" className="shrink-0 text-ink-faint hover:text-ink">
           <ArrowLeft size={18} />
         </a>
-        <img src="/icon.svg" alt="" aria-hidden="true" className="w-6 shrink-0 opacity-90" />
+        <span className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-base" style={{ background: `${accent}26` }}>
+          {profile.logo}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="font-impact text-sm uppercase leading-none truncate">Ton label</p>
-          <p className="font-mono text-[10px] text-ink-faint mt-0.5">
-            Semaine {state.week} / {SEASON_WEEKS} · Saison 2026
+          <p className="font-impact text-sm uppercase leading-none truncate">{profile.labelName}</p>
+          <p className="font-mono text-[10px] text-ink-faint mt-0.5 truncate">
+            {profile.city} · Semaine {state.week}/{SEASON_WEEKS} · {profile.pseudo}
           </p>
         </div>
         <BorderMagicButton onClick={continueWeek} size="sm">
@@ -482,7 +790,7 @@ export default function ArtistsManagerPage() {
         </BorderMagicButton>
       </div>
 
-      {/* ===== KPI cards — la rangée de stats FM ===== */}
+      {/* ===== KPI cards ===== */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-4">
         {[
           { label: "Trésorerie", value: `${fmt(state.cash)} €`, Icon: Wallet, alert: state.cash < weeklyCosts * 3 },
@@ -491,17 +799,40 @@ export default function ArtistsManagerPage() {
         ].map(({ label, value, Icon, alert }) => (
           <div key={label} className="glass-strong rounded-2xl p-3 sm:p-4">
             <p className="font-mono text-[9px] sm:text-[10px] uppercase tracking-wide text-ink-faint flex items-center gap-1 mb-1">
-              <Icon size={10} className="text-gold" /> {label}
+              <Icon size={10} style={{ color: accent }} /> {label}
             </p>
             <p className={`font-impact text-lg sm:text-2xl leading-none ${alert ? "text-riseNeg" : ""}`}>{value}</p>
           </div>
         ))}
       </div>
 
-      {/* ===== Onglet LABEL (dashboard FM) ===== */}
+      {/* ===== Onglet LABEL ===== */}
       {tab === "label" && (
         <div className="pt-4 space-y-4">
-          {/* Studio + prochaine échéance côte à côte sur desktop */}
+          {/* Checklist premiers pas — façon tâches FM, disparaît une fois complétée */}
+          {!allStepsDone && (
+            <SectionCard title="Premiers pas" icon={<CheckCircle2 size={11} />}>
+              <div className="space-y-2">
+                {firstSteps.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={s.done ? undefined : s.go}
+                    disabled={s.done}
+                    className={`w-full flex items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors ${
+                      s.done ? "text-ink-faint" : "text-ink hover:bg-white/5"
+                    }`}
+                  >
+                    {s.done
+                      ? <CheckCircle2 size={16} className="text-risePos shrink-0" />
+                      : <Circle size={16} className="text-gold shrink-0" />}
+                    <span className={`text-sm ${s.done ? "line-through" : ""}`}>{s.label}</span>
+                    {!s.done && <ChevronRight size={14} className="ml-auto text-ink-faint" />}
+                  </button>
+                ))}
+              </div>
+            </SectionCard>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-4">
             <SectionCard title="En studio" icon={<Disc3 size={11} />}>
               {state.project && projectArtist ? (
@@ -515,7 +846,7 @@ export default function ArtistsManagerPage() {
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${(1 - state.project.weeksLeft / TYPE_META[state.project.type].weeks) * 100}%`,
-                        background: "linear-gradient(90deg, #7A0F0F, #F0001C)",
+                        background: `linear-gradient(90deg, #7A0F0F, ${accent})`,
                       }}
                     />
                   </div>
@@ -544,7 +875,6 @@ export default function ArtistsManagerPage() {
             </SectionCard>
           </div>
 
-          {/* Mini classement — top 5 avec mouvements, comme la carte Standings FM */}
           <SectionCard
             title="Classement"
             icon={<BarChart3 size={11} />}
@@ -572,7 +902,6 @@ export default function ArtistsManagerPage() {
             </div>
           </SectionCard>
 
-          {/* Sorties actives */}
           {state.releases.length > 0 && (
             <SectionCard title="Sorties actives" icon={<Radio size={11} />}>
               <div className="space-y-2.5">
@@ -589,24 +918,27 @@ export default function ArtistsManagerPage() {
             </SectionCard>
           )}
 
-          {/* Inbox — boîte de réception FM */}
           <SectionCard title="Boîte de réception" icon={<Inbox size={11} />}>
-            <div className="divide-y divide-white/6 -mx-4 -mb-4">
-              {state.messages.map((m) => (
-                <div key={m.id} className="px-4 py-3 flex gap-3">
-                  <span className="shrink-0 w-8 h-8 rounded-full bg-gold/12 text-gold flex items-center justify-center">
-                    <Inbox size={13} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium flex items-baseline gap-2">
-                      {m.title}
-                      <span className="font-mono text-[9px] text-ink-faint shrink-0">S{m.week}</span>
-                    </p>
-                    <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">{m.body}</p>
+            {state.messages.length === 0 ? (
+              <p className="text-sm text-ink-faint">Rien pour l'instant — l'industrie t'écrira vite.</p>
+            ) : (
+              <div className="divide-y divide-white/6 -mx-4 -mb-4">
+                {state.messages.map((m) => (
+                  <div key={m.id} className="px-4 py-3 flex gap-3">
+                    <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
+                      <Inbox size={13} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium flex items-baseline gap-2">
+                        {m.title}
+                        <span className="font-mono text-[9px] text-ink-faint shrink-0">S{m.week}</span>
+                      </p>
+                      <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">{m.body}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </SectionCard>
         </div>
       )}
@@ -622,10 +954,9 @@ export default function ArtistsManagerPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 {state.roster.map((a, idx) => (
                   <div key={a.id} className="glass-strong rounded-2xl overflow-hidden">
-                    {/* Bandeau façon player card : dégradé + nom + numéro fantôme */}
                     <div
                       className="relative px-4 py-3"
-                      style={{ background: "linear-gradient(135deg, rgba(240,0,28,0.35), rgba(122,15,15,0.15))" }}
+                      style={{ background: `linear-gradient(135deg, ${accent}59, ${accent}14)` }}
                     >
                       <span
                         aria-hidden="true"
@@ -637,10 +968,10 @@ export default function ArtistsManagerPage() {
                       <p className="font-mono text-[10px] text-ink-muted mt-1">{a.style} · {fmt(a.salary)} €/sem</p>
                     </div>
                     <div className="p-4 space-y-1.5">
-                      <StatBar label="Flow" value={a.flow} />
-                      <StatBar label="Plume" value={a.plume} />
-                      <StatBar label="Charisme" value={a.charisme} />
-                      <StatBar label="Hype" value={a.hype} max={100} />
+                      <StatBar label="Flow" value={a.flow} color={accent} />
+                      <StatBar label="Plume" value={a.plume} color={accent} />
+                      <StatBar label="Charisme" value={a.charisme} color={accent} />
+                      <StatBar label="Hype" value={a.hype} max={100} color={accent} />
                     </div>
                   </div>
                 ))}
@@ -661,9 +992,9 @@ export default function ArtistsManagerPage() {
                     </div>
                     <div className="p-4">
                       <div className="space-y-1.5 mb-4">
-                        <StatBar label="Flow" value={a.flow} />
-                        <StatBar label="Plume" value={a.plume} />
-                        <StatBar label="Charisme" value={a.charisme} />
+                        <StatBar label="Flow" value={a.flow} color={accent} />
+                        <StatBar label="Plume" value={a.plume} color={accent} />
+                        <StatBar label="Charisme" value={a.charisme} color={accent} />
                       </div>
                       <button
                         onClick={() => sign(a)}
@@ -685,7 +1016,7 @@ export default function ArtistsManagerPage() {
         </div>
       )}
 
-      {/* ===== Onglet STUDIO — étapes numérotées + récap ===== */}
+      {/* ===== Onglet STUDIO ===== */}
       {tab === "studio" && (
         <div className="pt-4 space-y-4">
           {state.project ? (
@@ -759,7 +1090,7 @@ export default function ArtistsManagerPage() {
         </div>
       )}
 
-      {/* ===== Onglet CHARTS — classement complet avec mouvements ===== */}
+      {/* ===== Onglet CHARTS ===== */}
       {tab === "charts" && (
         <div className="pt-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Top streams — semaine {state.week}</p>
@@ -775,7 +1106,7 @@ export default function ArtistsManagerPage() {
                     <p className={`text-sm font-medium truncate ${e.mine ? "text-gold" : ""}`}>
                       {e.name}{e.title ? ` — « ${e.title} »` : ""}
                     </p>
-                    {e.mine && <p className="font-mono text-[9px] text-gold/70 uppercase">Ton label</p>}
+                    {e.mine && <p className="font-mono text-[9px] text-gold/70 uppercase">{profile.labelName}</p>}
                   </div>
                   <span className="font-mono text-xs text-ink-muted shrink-0">{fmt(e.streams)}</span>
                 </div>
@@ -788,7 +1119,7 @@ export default function ArtistsManagerPage() {
         </div>
       )}
 
-      {/* ===== Tab bar bas ===== */}
+      {/* ===== Tab bar ===== */}
       <nav className="fixed bottom-0 inset-x-0 z-40 nav-panel" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="max-w-3xl mx-auto grid grid-cols-4">
           {([
