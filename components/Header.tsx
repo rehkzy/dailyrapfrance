@@ -3,13 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, Trophy, Users, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
-import { Menu, MenuItem, MenuLink, HoveredLink } from "@/components/ui/navbar-menu";
+import { Menu, MenuItem, MenuLink, ProductItem } from "@/components/ui/navbar-menu";
 
-// Liste à plat — utilisée par le tiroir mobile (pas de sous-menus au clavier tactile,
-// tout est déjà déroulé dans une liste qu'on scrolle).
 // Liste à plat — utilisée par le tiroir mobile. Les jeux sont listés directement
 // (pas de sous-menus au tactile) — le tiroir scrolle déjà si besoin.
 const nav = [
@@ -21,9 +19,19 @@ const nav = [
   { href: "/jeux/pronos", label: "Coach A&R", Icon: Sparkles },
   { href: "/jeux/punchline", label: "La Punchline", Icon: Mic2 },
   { href: "/jeux/ghostwriter", label: "Ghostwriter", Icon: Ghost },
-  { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
-  { href: "/amis", label: "Amis", Icon: Users },
   { href: "/a-propos", label: "À propos", Icon: Info },
+];
+
+// Menu déroulant desktop "Tous les jeux" — accès direct à chaque jeu (plus besoin de
+// passer par le hub /jouer), avec preview image façon Aceternity ProductItem.
+const GAME_PREVIEWS = [
+  { title: "Blind Test", href: "/jouer?play=1", src: "/jeux/blind-test.png", description: "Reconnais les sons du rap français" },
+  { title: "La Tracklist", href: "/jeux/tracklist", src: "/jeux/tracklist.png", description: "Le morceau mystère du jour" },
+  { title: "Plus Haut, Plus Bas", href: "/jeux/plus-haut", src: "/jeux/plus-haut.png", description: "Qui stream le plus ?" },
+  { title: "Le Tribunal", href: "/jeux/tribunal", src: "/jeux/tribunal.png", description: "Le duel du jour" },
+  { title: "Coach A&R", href: "/jeux/pronos", src: "/jeux/coach-ar.png", description: "Tes pronos de la semaine" },
+  { title: "La Punchline", href: "/jeux/punchline", src: "/jeux/punchline.png", description: "Qui a dit ça ?" },
+  { title: "Ghostwriter", href: "/jeux/ghostwriter", src: "/jeux/ghostwriter.png", description: "Démasque l'IA" },
 ];
 
 const socials = [
@@ -216,8 +224,8 @@ export default function Header() {
           />
         </a>
 
-        {/* Nav desktop — Accueil (le site) et Jouer (LE hub de tous les jeux) en accès
-            direct, puis les jeux et la communauté en menus déroulants */}
+        {/* Nav desktop — Accueil, Jouer (le hub), "Tous les jeux" (accès direct à
+            chaque jeu avec preview image, plus besoin de passer par le hub), À propos */}
         <div className="hidden lg:flex">
           <Menu setActive={setActiveMenu}>
             <MenuLink href="/" active={pathname === "/"}>
@@ -226,24 +234,16 @@ export default function Header() {
             <MenuLink href="/jouer" active={pathname === "/jouer"}>
               Jouer
             </MenuLink>
-            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jeux">
-              <div className="flex flex-col">
-                <HoveredLink href="/jouer?play=1">Blind Test</HoveredLink>
-                <HoveredLink href="/jeux/tracklist">La Tracklist</HoveredLink>
-                <HoveredLink href="/jeux/plus-haut">Plus Haut, Plus Bas</HoveredLink>
-                <HoveredLink href="/jeux/tribunal">Le Tribunal</HoveredLink>
-                <HoveredLink href="/jeux/pronos">Coach A&amp;R</HoveredLink>
-                <HoveredLink href="/jeux/punchline">La Punchline</HoveredLink>
-                <HoveredLink href="/jeux/ghostwriter">Ghostwriter</HoveredLink>
+            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Tous les jeux">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[440px]">
+                {GAME_PREVIEWS.map((g) => (
+                  <ProductItem key={g.href} title={g.title} href={g.href} src={g.src} description={g.description} />
+                ))}
               </div>
             </MenuItem>
-            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Communauté">
-              <div className="flex flex-col">
-                <HoveredLink href="/blindtest/classement">Classement</HoveredLink>
-                <HoveredLink href="/amis">Amis</HoveredLink>
-                <HoveredLink href="/a-propos">À propos</HoveredLink>
-              </div>
-            </MenuItem>
+            <MenuLink href="/a-propos" active={pathname === "/a-propos"}>
+              À propos
+            </MenuLink>
           </Menu>
         </div>
 
