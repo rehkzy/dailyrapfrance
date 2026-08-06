@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Play, Zap, RotateCcw, Users, User, Disc, Clock,
-  Medal, Headphones, Check, Globe, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Sliders, Gamepad2, Maximize, Minimize, Flame, X, VolumeX, Volume2, Lightbulb, Target,
+  Zap, RotateCcw, Users, User, Disc, Clock,
+  Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
+  Sliders, Gamepad2, Maximize, Minimize, X, VolumeX, Volume2, Lightbulb, Target,
   ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper,
   type LucideIcon,
 } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Users01 } from "@untitledui/icons";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
@@ -1030,7 +1031,7 @@ export default function BlindTest() {
                 </p>
                 <div className="flex items-center justify-between gap-4 glass rounded-xl p-4 mb-2.5">
                   <span className="min-w-0 flex items-start gap-2.5">
-                    <Headphones size={15} className="text-gold shrink-0 mt-0.5" />
+                    <Icon icon="game-icons:headphones" width={15} className="text-gold shrink-0 mt-0.5" />
                     <span className="min-w-0">
                       <span className="block text-sm font-medium">Jokers d'écoute</span>
                       <span className="block text-xs text-ink-faint mt-0.5 leading-snug">
@@ -1153,7 +1154,7 @@ export default function BlindTest() {
                     <Timer size={12} className="text-gold" /> {roundSeconds}s / manche
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <Headphones size={12} className="text-gold" />
+                    <Icon icon="game-icons:headphones" width={12} className="text-gold" />
                     {jokersEnabled ? `${jokerCount} joker${jokerCount > 1 ? "s" : ""} d'écoute` : "Sans joker d'écoute"}
                   </span>
                 </div>
@@ -1207,7 +1208,7 @@ export default function BlindTest() {
                       size="md"
                     >
                       {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-                      {phase !== "loading" && <Play size={18} />}
+                      {phase !== "loading" && <Icon icon="game-icons:play-button" width={18} />}
                     </BorderMagicButton>
                   </Magnetic>
                 )}
@@ -1243,7 +1244,7 @@ export default function BlindTest() {
             </h2>
             {bestStreak >= 2 && (
               <p className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold bg-gold/10 border border-gold/30 rounded-full px-3 py-1 mb-10">
-                <Flame size={12} className="fill-current" />
+                <Icon icon="game-icons:flame" width={12} className="text-gold" />
                 Meilleur combo : {bestStreak} manches parfaites d'affilée
               </p>
             )}
@@ -1256,7 +1257,11 @@ export default function BlindTest() {
               {[ranked[1], ranked[0], ranked[2]].map((p, i) =>
                 p ? (
                   <div key={p.id} className={`flex flex-col items-center ${i === 1 ? "order-2" : i === 0 ? "order-1" : "order-3"}`}>
-                    <Medal size={i === 1 ? 28 : 20} className={i === 1 ? "text-gold" : "text-ink-faint"} />
+                    <Icon
+                      icon={i === 1 ? "game-icons:trophy" : "game-icons:podium-winner"}
+                      width={i === 1 ? 28 : 20}
+                      className={i === 1 ? "text-gold" : "text-ink-faint"}
+                    />
                     <div
                       className={`glass rounded-t-lg w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 ${
                         i === 1 ? "h-28 border-gold/40" : i === 0 ? "h-20" : "h-14"
@@ -1446,7 +1451,7 @@ export default function BlindTest() {
         <div className="flex-1 min-w-0 flex items-center justify-center flex-wrap gap-2">
           {mode === "solo" && streak >= 2 && (
             <span className="solved-pop inline-flex items-center gap-1 font-mono text-xs font-semibold text-gold bg-gold/10 border border-gold/30 rounded-full px-2.5 py-1">
-              <Flame size={12} className="fill-current" />
+              <Icon icon="game-icons:flame" width={12} className="text-gold" />
               {streak}
             </span>
           )}
@@ -1489,7 +1494,7 @@ export default function BlindTest() {
             className="solved-pop absolute inset-x-0 top-6 z-20 flex items-center justify-center gap-2 pointer-events-none"
           >
             <span className="inline-flex items-center gap-1.5 bg-gold text-white font-display font-semibold text-sm rounded-full px-4 py-1.5 shadow-[0_4px_20px_rgba(240,0,28,0.5)]">
-              <Flame size={15} className="fill-current" />
+              <Icon icon="game-icons:flame" width={15} />
               Combo x{streakBurst} — +2 bonus
             </span>
           </div>
@@ -1506,7 +1511,7 @@ export default function BlindTest() {
             <p className="text-sm text-ink-faint mb-7">Prêt à reconnaître ce son ?</p>
             <Magnetic strength={0.25}>
               <BorderMagicButton onClick={launchExtract} size="lg">
-                <Play size={22} fill="currentColor" />
+                <Icon icon="game-icons:play-button" width={22} />
                 Lancer l'extrait
               </BorderMagicButton>
             </Magnetic>
@@ -1644,7 +1649,7 @@ export default function BlindTest() {
                           disabled={p.jokersLeft <= 0}
                           className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-full px-3 py-1.5 text-ink-faint hover:text-gold disabled:opacity-30 disabled:hover:text-ink-faint transition-colors"
                         >
-                          <Headphones size={13} />
+                          <Icon icon="game-icons:headphones" width={13} />
                           Joker {p.name} {jokerCount > 1 && `(${p.jokersLeft})`}
                         </button>
                       ))}
@@ -1764,7 +1769,7 @@ export default function BlindTest() {
                         aria-label="Joker : écouter un autre passage de l'extrait"
                         className="tap-press shrink-0 flex items-center gap-1.5 text-xs font-mono rounded-full px-4 min-h-[48px] text-ink-muted hover:text-gold hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
                       >
-                        <Headphones size={15} />
+                        <Icon icon="game-icons:headphones" width={15} />
                         Joker {jokerCount > 1 && `(${soloPlayer?.jokersLeft ?? 0})`}
                       </button>
                     )}

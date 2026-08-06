@@ -1004,3 +1004,69 @@ input[type="range"].brand-slider::-moz-range-track {
 .tap-press:active, .press:active {
   border-color: rgba(255, 255, 255, 0.18);
 }
+
+/* ============================================================
+   Bouton "jeu mobile" — signature de la refonte UI/UX jeu.
+   Mécanique Supercell/King/Duolingo : une tranche de couleur
+   posée sur un socle plus sombre (box-shadow SANS flou — un
+   vrai socle net, pas un glow), qui s'enfonce littéralement au
+   clic. Remplace le glow flou générique utilisé jusqu'ici.
+   ============================================================ */
+.game-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  font-family: var(--font-impact);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: none;
+  cursor: pointer;
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.game-btn-primary {
+  color: #fff;
+  background: linear-gradient(180deg, #ff4f60 0%, #f0001c 60%);
+  box-shadow: 0 6px 0 #8a0014, 0 10px 22px -6px rgba(0, 0, 0, 0.45);
+}
+.game-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.game-btn-primary:active:not(:disabled) {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 #8a0014, 0 3px 8px -2px rgba(0, 0, 0, 0.4);
+}
+
+.game-btn-dark {
+  color: #f5e8e8;
+  background: linear-gradient(180deg, #2a1416 0%, #180a0b 60%);
+  box-shadow: 0 6px 0 #050303, 0 10px 22px -6px rgba(0, 0, 0, 0.5);
+}
+.game-btn-dark:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+.game-btn-dark:active:not(:disabled) {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 #050303, 0 3px 8px -2px rgba(0, 0, 0, 0.4);
+}
+
+.game-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+.game-btn:focus-visible {
+  outline: 3px solid rgba(240, 0, 28, 0.6);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-btn {
+    transition: box-shadow 0.08s ease;
+  }
+}

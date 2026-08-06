@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Play, Users, Copy, Check, Crown, Medal, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
+import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -792,7 +793,7 @@ function BlindTestRoom({
             <div className="flex flex-wrap justify-center gap-2">
               {players.map((p) => (
                 <span key={p.user_id} className="glass rounded-full px-3 py-1 text-sm flex items-center gap-1.5">
-                  {p.user_id === room.host_id && <Crown size={12} className="text-gold" />}
+                  {p.user_id === room.host_id && <Icon icon="game-icons:crown" width={12} className="text-gold" />}
                   {p.display_name}
                 </span>
               ))}
@@ -805,7 +806,7 @@ function BlindTestRoom({
             <Magnetic strength={0.15} className="block w-full">
               <BorderMagicButton onClick={startGame} disabled={busy || players.length < 1} fullWidth size="lg">
                 {busy ? "Chargement..." : "Démarrer la partie"}
-                {!busy && <Play size={18} />}
+                {!busy && <Icon icon="game-icons:play-button" width={18} />}
               </BorderMagicButton>
             </Magnetic>
           ) : (
@@ -857,7 +858,11 @@ function BlindTestRoom({
           {[ranked[1], ranked[0], ranked[2]].map((p, i) =>
             p ? (
               <div key={p.user_id} className={`flex flex-col items-center ${i === 1 ? "order-2" : i === 0 ? "order-1" : "order-3"}`}>
-                <Medal size={i === 1 ? 28 : 20} className={i === 1 ? "text-gold" : "text-ink-faint"} />
+                <Icon
+                  icon={i === 1 ? "game-icons:trophy" : "game-icons:podium-winner"}
+                  width={i === 1 ? 28 : 20}
+                  className={i === 1 ? "text-gold" : "text-ink-faint"}
+                />
                 <div
                   className={`glass rounded-t-lg w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 ${
                     i === 1 ? "h-28 border-gold/40" : i === 0 ? "h-20" : "h-14"
@@ -1112,7 +1117,7 @@ function BlindTestRoom({
             {!started && (
               <Magnetic strength={0.2} className="block mb-5">
                 <BorderMagicButton onClick={launchExtract} size="md">
-                  <Play size={20} /> Lancer le son
+                  <Icon icon="game-icons:play-button" width={20} /> Lancer le son
                 </BorderMagicButton>
               </Magnetic>
             )}
@@ -1289,7 +1294,7 @@ function ReplayPanel({
       <Magnetic strength={0.15} className="block w-full">
         <BorderMagicButton onClick={() => onConfirm(theme, rounds, answerMode)} disabled={busy} fullWidth size="lg">
           {busy ? "Lancement..." : "Relancer la partie"}
-          {!busy && <Play size={18} />}
+          {!busy && <Icon icon="game-icons:play-button" width={18} />}
         </BorderMagicButton>
       </Magnetic>
     </div>
