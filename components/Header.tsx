@@ -22,9 +22,16 @@ const nav = [
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
-// Menu déroulant desktop "Tous les jeux" — accès direct à chaque jeu (plus besoin de
-// passer par le hub /jouer), avec preview image façon Aceternity ProductItem.
+// Vignette pour "Tous les jeux" dans le menu — pas de screenshot du hub, donc une petite
+// grille 2x2 en dégradé (couleurs de la charte) générée en SVG inline, zéro fichier à gérer.
+const ALL_GAMES_PREVIEW =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232a0509'/%3E%3Cstop offset='100%25' stop-color='%230a0707'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='16' fill='url(%23g)'/%3E%3Crect x='30' y='30' width='60' height='60' rx='8' fill='%23F0001C'/%3E%3Crect x='110' y='30' width='60' height='60' rx='8' fill='%237A0F0F'/%3E%3Crect x='30' y='110' width='60' height='60' rx='8' fill='%23A3121B'/%3E%3Crect x='110' y='110' width='60' height='60' rx='8' fill='%23F0001C' opacity='0.6'/%3E%3C/svg%3E";
+
+// Menu déroulant desktop "Jouer" — regroupe désormais TOUT : le hub ("Tous les jeux",
+// preview grille 2x2 ci-dessus) + l'accès direct à chaque jeu, preview image façon
+// Aceternity ProductItem.
 const GAME_PREVIEWS = [
+  { title: "Tous les jeux", href: "/jouer", src: ALL_GAMES_PREVIEW, description: "Le hub avec l'arcade complète" },
   { title: "Blind Test", href: "/jouer?play=1", src: "/jeux/blind-test.png", description: "Reconnais les sons du rap français" },
   { title: "La Tracklist", href: "/jeux/tracklist", src: "/jeux/tracklist.png", description: "Le morceau mystère du jour" },
   { title: "Plus Haut, Plus Bas", href: "/jeux/plus-haut", src: "/jeux/plus-haut.png", description: "Qui stream le plus ?" },
@@ -224,17 +231,14 @@ export default function Header() {
           />
         </a>
 
-        {/* Nav desktop — Accueil, Jouer (le hub), "Tous les jeux" (accès direct à
-            chaque jeu avec preview image, plus besoin de passer par le hub), À propos */}
+        {/* Nav desktop — Accueil, Jouer (déroulant : hub "Tous les jeux" en tête + accès
+            direct à chaque jeu avec preview image), À propos */}
         <div className="hidden lg:flex">
           <Menu setActive={setActiveMenu}>
             <MenuLink href="/" active={pathname === "/"}>
               Accueil
             </MenuLink>
-            <MenuLink href="/jouer" active={pathname === "/jouer"}>
-              Jouer
-            </MenuLink>
-            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Tous les jeux">
+            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jouer">
               <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[440px]">
                 {GAME_PREVIEWS.map((g) => (
                   <ProductItem key={g.href} title={g.title} href={g.href} src={g.src} description={g.description} />

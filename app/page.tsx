@@ -21,10 +21,10 @@ export default function Home() {
     <>
       {/* Hero — l'icône seule, en grand, comme un écran de lancement d'app */}
       <Reveal>
-      <section className="relative overflow-hidden min-h-[88vh] sm:min-h-[92vh] flex flex-col">
+      <section className="relative overflow-hidden min-h-[56vh] sm:min-h-[64vh] flex flex-col">
         <ParallaxGlow />
 
-        <div className="relative flex-1 flex flex-col items-center justify-center px-6 pt-24 pb-8">
+        <div className="relative flex-1 flex flex-col items-center justify-center px-6 pt-16 pb-8">
           <LogoShowcase />
         </div>
 
