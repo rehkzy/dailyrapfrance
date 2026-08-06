@@ -1082,3 +1082,112 @@ input[type="range"].brand-slider::-moz-range-track {
     transform: none;
   }
 }
+
+/* ============================================================
+   Vocabulaire "plateforme de jeux" (inspiration CrazyGames,
+   exécuté dans la charte DRF rouge/noir) — tuiles de catégories
+   en dégradé, vignettes de jeu avec badge et zoom au survol.
+   ============================================================ */
+
+/* Tuile de catégorie — bandeau horizontal scrollable, dégradé sombre → teinte,
+   icône en haut à droite, libellé en bas à gauche (gabarit CrazyGames). */
+.cat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 200px;
+  height: 110px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
+}
+.cat-card:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: rgba(240, 0, 28, 0.5);
+}
+.cat-card .cat-icon {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cat-card:hover .cat-icon {
+  transform: scale(1.15) rotate(-6deg);
+}
+.cat-card .cat-label {
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Vignette de jeu — coins bien arrondis, zoom doux du fond au survol,
+   badge en haut à gauche. Le gabarit visuel des cartes CrazyGames. */
+.game-thumb {
+  position: relative;
+  display: block;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  isolation: isolate;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.game-thumb:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(240, 0, 28, 0.55);
+  box-shadow: 0 14px 34px -10px rgba(240, 0, 28, 0.4);
+}
+.game-thumb .thumb-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transition: transform 0.35s ease;
+}
+.game-thumb:hover .thumb-bg {
+  transform: scale(1.07);
+}
+
+/* Badge de vignette — "Top", "Nouveau", "Hot"... posé en haut à gauche,
+   petit, plein, très lisible (gabarit CrazyGames). */
+.thumb-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.thumb-badge-top {
+  background: #f0001c;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(240, 0, 28, 0.5);
+}
+.thumb-badge-new {
+  background: #fff;
+  color: #0a0707;
+}
+.thumb-badge-hot {
+  background: linear-gradient(135deg, #ff6b3b, #f0001c);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-card, .cat-card .cat-icon, .game-thumb, .game-thumb .thumb-bg {
+    transition: none;
+  }
+  .cat-card:hover, .game-thumb:hover { transform: none; }
+  .game-thumb:hover .thumb-bg { transform: none; }
+}

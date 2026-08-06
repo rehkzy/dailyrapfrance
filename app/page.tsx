@@ -16,30 +16,6 @@ import SocialLinks from "@/components/SocialLinks";
 // compatibles (size/className), seul le typage strict de lucide-react l'ignore.
 const SalonIcon = Users01 as unknown as LucideIcon;
 
-const features = [
-  {
-    Icon: Gamepad2,
-    title: "Blind Test",
-    text: "90s, cloud rap, 93, 91, Marseille... des dizaines de thèmes, seul ou entre potes.",
-    href: "/jouer",
-    cta: "Jouer",
-  },
-  {
-    Icon: SalonIcon,
-    title: "Salons privés",
-    text: "Crée une partie, partage le code, jouez en même temps chacun sur votre téléphone.",
-    href: "/jouer",
-    cta: "Créer un salon",
-  },
-  {
-    Icon: Trophy,
-    title: "Classement",
-    text: "Connecte-toi, enregistre tes scores, grimpe dans le classement général.",
-    href: "/blindtest/classement",
-    cta: "Voir le classement",
-  },
-];
-
 export default function Home() {
   return (
     <>
@@ -89,35 +65,62 @@ export default function Home() {
       </section>
       </Reveal>
 
-      {/* Ce que tu trouveras ici — grille bento, la fonctionnalité phare mise en avant */}
+      {/* Modes de jeu — rangée de tuiles de catégories scrollable (gabarit plateforme de
+          jeux : dégradé sombre → teinte, icône en haut à droite, libellé en bas), suivie
+          des vignettes avec badges. Remplace l'ancienne grille bento. */}
       <Reveal>
       <section className="max-w-5xl mx-auto px-6 py-16 sm:py-20">
-        <div className="grid sm:grid-cols-2 gap-4">
-          {(() => {
-            const featured = features[0];
-            return (
-              <a href={featured.href} className="group card card-lift p-7 sm:p-8 flex flex-col justify-between sm:row-span-2 min-h-[220px] sm:min-h-[360px] relative overflow-hidden">
-                <div className="brand-pulse absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-gold/10 blur-2xl" aria-hidden="true" />
-                <featured.Icon className="text-gold mb-5 relative" size={28} strokeWidth={1.6} />
-                <div className="relative">
-                  <h3 className="font-display text-2xl sm:text-3xl font-medium mb-3">{featured.title}</h3>
-                  <p className="text-sm sm:text-base text-ink-muted leading-relaxed mb-5">{featured.text}</p>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-gold group-hover:text-glow transition-colors">
-                    {featured.cta} <ArrowRight size={13} />
-                  </span>
-                </div>
-              </a>
-            );
-          })()}
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-6 px-6 snap-x">
+          {[
+            { label: "Solo", emoji: "🎧", href: "/jouer?mode=solo", gradient: "linear-gradient(135deg, #2a0509 0%, #7a0f0f 100%)" },
+            { label: "Entre potes", emoji: "🎉", href: "/jouer?mode=local", gradient: "linear-gradient(135deg, #3a0505 0%, #a3121b 100%)" },
+            { label: "Salon en ligne", emoji: "🌍", href: "/jouer?mode=online", gradient: "linear-gradient(135deg, #1c0406 0%, #f0001c 130%)" },
+            { label: "Mode Soirée", emoji: "📺", href: "/jouer?mode=party", gradient: "linear-gradient(135deg, #7a0f0f 0%, #ff6b3b 140%)" },
+            { label: "Classement", emoji: "🏆", href: "/blindtest/classement", gradient: "linear-gradient(135deg, #12060a 0%, #5c0a10 100%)" },
+          ].map((c) => (
+            <a key={c.label} href={c.href} className="cat-card snap-start shrink-0" style={{ background: c.gradient }}>
+              <span className="cat-icon" aria-hidden="true">{c.emoji}</span>
+              <span className="cat-label">{c.label}</span>
+            </a>
+          ))}
+        </div>
 
-          {features.slice(1).map((f) => (
-            <a key={f.title} href={f.href} className="group card card-lift p-6 flex flex-col">
-              <f.Icon className="text-gold mb-4" size={20} strokeWidth={1.6} />
-              <h3 className="font-display text-lg font-medium mb-2">{f.title}</h3>
-              <p className="text-sm text-ink-muted leading-relaxed mb-4 flex-1">{f.text}</p>
-              <span className="text-xs font-mono uppercase tracking-wide text-gold group-hover:text-glow transition-colors">
-                {f.cta} →
-              </span>
+        <div className="grid sm:grid-cols-3 gap-4 mt-8">
+          {[
+            {
+              badge: "Top" as const,
+              badgeClass: "thumb-badge-top",
+              title: "Blind Test",
+              text: "90s, cloud rap, 93, Marseille... des dizaines de thèmes.",
+              href: "/jouer",
+              Icon: Gamepad2,
+              gradient: "radial-gradient(120% 110% at 80% 0%, rgba(240,0,28,0.5), transparent 55%), linear-gradient(160deg, #2a0509 0%, #0a0707 100%)",
+            },
+            {
+              badge: "Nouveau" as const,
+              badgeClass: "thumb-badge-new",
+              title: "Salons privés",
+              text: "Un code à partager, chacun sur son téléphone.",
+              href: "/jouer?mode=online",
+              Icon: SalonIcon,
+              gradient: "radial-gradient(120% 110% at 20% 0%, rgba(120,1,1,0.7), transparent 60%), linear-gradient(200deg, #1c090c 0%, #0a0707 100%)",
+            },
+            {
+              badge: "Hot" as const,
+              badgeClass: "thumb-badge-hot",
+              title: "Classement",
+              text: "Enregistre tes scores, grimpe dans le top.",
+              href: "/blindtest/classement",
+              Icon: Trophy,
+              gradient: "radial-gradient(130% 110% at 50% 110%, rgba(255,59,78,0.35), transparent 60%), linear-gradient(160deg, #170a0c 0%, #0a0707 100%)",
+            },
+          ].map((g) => (
+            <a key={g.title} href={g.href} className="game-thumb min-h-[190px] p-5 flex flex-col justify-end">
+              <span className="thumb-bg" style={{ background: g.gradient }} aria-hidden="true" />
+              <span className={`thumb-badge ${g.badgeClass}`}>{g.badge}</span>
+              <g.Icon className="text-gold mb-3" size={26} strokeWidth={1.8} />
+              <h3 className="font-display text-xl font-semibold mb-1">{g.title}</h3>
+              <p className="text-xs text-ink-muted leading-relaxed">{g.text}</p>
             </a>
           ))}
         </div>
