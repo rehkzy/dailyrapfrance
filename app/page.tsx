@@ -5,10 +5,9 @@ import Reveal from "@/components/Reveal";
 import Magnetic from "@/components/Magnetic";
 import ParallaxGlow from "@/components/ParallaxGlow";
 import LogoShowcase from "@/components/LogoShowcase";
-import { InstagramIcon, TikTokIcon, XIcon } from "@/components/SocialIcons";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import FlipWords from "@/components/ui/FlipWords";
-import { trackEvent } from "@/lib/track";
+import SocialLinks from "@/components/SocialLinks";
 
 // Icône "salon" harmonisée sur tout le site (Untitled UI) — avant, la page d'accueil
 // utilisait Users2 (lucide) et l'écran de jeu utilisait Globe (lucide) pour représenter le
@@ -39,12 +38,6 @@ const features = [
     href: "/blindtest/classement",
     cta: "Voir le classement",
   },
-];
-
-const socials = [
-  { label: "Instagram", href: "https://www.instagram.com/dailyrapfrance/", Icon: InstagramIcon },
-  { label: "TikTok", href: "https://www.tiktok.com/@dailyrapfrance", Icon: TikTokIcon },
-  { label: "X", href: "https://x.com/DailyRapFrance", Icon: XIcon },
 ];
 
 export default function Home() {
@@ -161,19 +154,7 @@ export default function Home() {
           </p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-3 sm:gap-4">
-            {socials.map((s) => (
-              <a
-                key={s.label}
-                href={s.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackEvent("social_click", { network: s.label })}
-                className="glass rounded-full pl-4 pr-6 py-3 text-sm font-medium hover:bg-white/10 hover:border-gold/40 transition-colors flex items-center gap-2"
-              >
-                <s.Icon />
-                {s.label}
-              </a>
-            ))}
+            <SocialLinks />
           </div>
         </div>
       </section>
