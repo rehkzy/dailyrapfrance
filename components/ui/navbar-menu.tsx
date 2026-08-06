@@ -59,8 +59,17 @@ export function MenuItem({
         {item}
       </button>
       {children && isOpen && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 solved-pop">
-          <div className="glass-strong rounded-2xl border border-white/10 p-4 shadow-2xl min-w-[220px]">
+        // Ce conteneur ne fait QUE positionner/centrer le panneau (translate-x-1/2) — il
+        // ne porte JAMAIS d'animation. Correctif d'un bug de décalage : l'animation
+        // .solved-pop pose elle-même une valeur de `transform` (scale) dans ses keyframes,
+        // ce qui écrasait le translateX(-50%) de centrage pendant les 0.35s de
+        // l'animation (les deux se disputaient la même propriété CSS) — le panneau
+        // apparaissait donc décalé à droite, puis "sautait" à sa position correcte une
+        // fois l'animation terminée. En séparant centrage (ici, statique) et animation
+        // (sur le panneau interne ci-dessous, qui n'a pas besoin de translateX), le
+        // panneau reste centré du premier au dernier instant.
+        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3">
+          <div className="glass-strong rounded-2xl border border-white/10 p-4 shadow-2xl min-w-[220px] solved-pop">
             {children}
           </div>
         </div>
