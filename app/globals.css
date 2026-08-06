@@ -1206,17 +1206,22 @@ input[type="range"].brand-slider::-moz-range-track {
   align-items: flex-end;
   overflow: hidden;
   isolation: isolate;
+  /* Fond de secours (visible seulement si aucune image n'est fournie derrière) —
+     l'ancien dégradé opaque vivait dans ::after et recouvrait donc TOUTE image de
+     fond placée en z-index inférieur : la bannière du jeu vedette était invisible. */
+  background: radial-gradient(90% 80% at 75% 20%, rgba(240, 0, 28, 0.35), transparent 60%),
+    linear-gradient(160deg, #2a0509 0%, #0a0707 90%);
 }
 .nf-billboard::after {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: -10;
+  /* Scrim de lisibilité UNIQUEMENT translucide (assombrit le bas pour le texte et la
+     gauche pour le titre, comme Netflix) — l'image en -z-20 reste visible à travers. */
   background:
-    linear-gradient(180deg, transparent 30%, rgba(10, 7, 7, 0.85) 78%, #0a0707 100%),
-    linear-gradient(90deg, rgba(10, 7, 7, 0.75) 0%, transparent 55%),
-    radial-gradient(90% 80% at 75% 20%, rgba(240, 0, 28, 0.4), transparent 60%),
-    linear-gradient(160deg, #2a0509 0%, #0a0707 90%);
+    linear-gradient(180deg, rgba(10, 7, 7, 0.15) 20%, rgba(10, 7, 7, 0.82) 78%, rgba(10, 7, 7, 0.96) 100%),
+    linear-gradient(90deg, rgba(10, 7, 7, 0.72) 0%, transparent 55%);
 }
 
 /* Rangée horizontale — scroll fluide avec snap, sans barre visible.
