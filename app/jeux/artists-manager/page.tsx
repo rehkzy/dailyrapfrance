@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, TrendingUp, TrendingDown, Minus, RotateCcw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { ArrowLeft, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, RotateCcw } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
 
@@ -304,9 +304,11 @@ export default function ArtistsManagerPage() {
   // Formulaire studio
   const [projArtist, setProjArtist] = useState<string>("");
   const [projType, setProjType] = useState<Project["type"]>("single");
-  const [projStudio, setProjStudio] = useState(BUDGET_PRESETS.studio[1].v);
-  const [projClip, setProjClip] = useState(BUDGET_PRESETS.clip[1].v);
-  const [projPromo, setProjPromo] = useState(BUDGET_PRESETS.promo[1].v);
+  // Annotation <number> explicite — BUDGET_PRESETS est en `as const`, donc sans elle
+  // TypeScript infère le type LITTÉRAL (5000, pas number) et refuse ensuite set(p.v).
+  const [projStudio, setProjStudio] = useState<number>(BUDGET_PRESETS.studio[1].v);
+  const [projClip, setProjClip] = useState<number>(BUDGET_PRESETS.clip[1].v);
+  const [projPromo, setProjPromo] = useState<number>(BUDGET_PRESETS.promo[1].v);
 
   useEffect(() => {
     setState(load() ?? initialState());
@@ -631,7 +633,8 @@ export default function ArtistsManagerPage() {
 
               {(["studio", "clip", "promo"] as const).map((k) => {
                 const value = k === "studio" ? projStudio : k === "clip" ? projClip : projPromo;
-                const set = k === "studio" ? setProjStudio : k === "clip" ? setProjClip : setProjPromo;
+                const set: Dispatch<SetStateAction<number>> =
+                  k === "studio" ? setProjStudio : k === "clip" ? setProjClip : setProjPromo;
                 return (
                   <div key={k}>
                     <p className="font-mono text-[10px] uppercase tracking-wide text-gold mb-2">
