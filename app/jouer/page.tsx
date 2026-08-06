@@ -1,274 +1,154 @@
-import { Play, Flame, Users, Trophy, ArrowRight, Cast, Wifi, Disc3, LogIn, Radio, Zap, Crown, Cloud } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { getDailyTheme, THEME_OPTIONS } from "@/lib/themes";
-import ShareGame from "@/components/ShareGame";
-import GameTabBar from "@/components/GameTabBar";
-import BlindTestLogo, { BlindTestMark } from "@/components/BlindTestLogo";
-import InstallPrompt from "@/components/InstallPrompt";
-import LivePlayersBadge from "@/components/LivePlayersBadge";
-import LaunchAnnouncement from "@/components/LaunchAnnouncement";
-import DailyGuessCard from "@/components/DailyGuessCard";
-import JoinRoomInput from "@/components/JoinRoomInput";
+"use client";
 
-export const metadata = {
-  title: "Jouer au Blind Test Rap Français — Gratuit & Multijoueur | DailyRapFrance",
-  description:
-    "Lance une partie de blind test rap français en 10 secondes : défi du jour, mode solo, entre potes sur le même écran ou en salon privé en ligne. Gratuit, sans téléchargement.",
-  alternates: { canonical: "https://dailyrapfrance.best/jouer" },
-  openGraph: {
-    title: "Jouer au Blind Test Rap Français — DailyRapFrance",
-    description: "Défi du jour, mode solo, entre potes ou salon privé. Gratuit, sans téléchargement.",
-    url: "https://dailyrapfrance.best/jouer",
-    type: "website",
-    locale: "fr_FR",
-  },
-};
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Info } from "lucide-react";
+import { Icon } from "@iconify/react";
+import BlindTest from "@/components/BlindTest";
+import BorderMagicButton from "@/components/ui/BorderMagicButton";
+import BrandLoader from "@/components/BrandLoader";
 
-// Données structurées — déclare le jeu comme VideoGame/WebApplication auprès de Google :
-// éligible aux résultats enrichis et ancre le site sur "blind test rap français".
-const JSONLD_GAME = {
-  "@context": "https://schema.org",
-  "@type": "VideoGame",
-  name: "Blind Test Rap Français — DailyRapFrance",
-  url: "https://dailyrapfrance.best/jouer",
-  description:
-    "Blind test rap français en ligne et gratuit : reconnais le titre, l'artiste et le featuring avant la fin du chrono. Défi du jour, mode solo, multijoueur local et salons privés en ligne.",
-  applicationCategory: "GameApplication",
-  operatingSystem: "Web",
-  gamePlatform: ["Web browser", "Mobile"],
-  genre: ["Music", "Quiz", "Trivia"],
-  inLanguage: "fr-FR",
-  playMode: ["SinglePlayer", "MultiPlayer", "CoOp"],
-  isAccessibleForFree: true,
-  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
-  publisher: { "@id": "https://dailyrapfrance.best/#org" },
-};
+/*
+ * /jouer — transformé en hub façon Netflix : billboard héros, rangées horizontales
+ * scrollables, "Top des jeux" avec les gros chiffres, badges rouges.
+ *
+ * IMPORTANT — compatibilité des liens existants : tous les deep-links historiques
+ * (?mode=solo|local|online|party, ?room=CODE) continuent de lancer directement le
+ * blind test comme avant. Le hub ne s'affiche que sur /jouer "nu". Le CTA du
+ * billboard pointe vers ?play=1, qui monte aussi le blind test (écran de config).
+ */
 
-// Compte à rebours jusqu'à minuit — rendu côté serveur en cellules de verre statiques,
-// hydraté côté client par DailyCountdown (composant léger, pas de dépendance).
-import DailyCountdown from "@/components/DailyCountdown";
-
-// Quatre thèmes mis en avant en Quick Play, avec chacun sa teinte
-const QUICK = [
-  { id: "2000s", era: "00s", glowOpacity: 0.5, Icon: Radio },
-  { id: "recent", era: "20s", glowOpacity: 0.38, Icon: Zap },
-  { id: "90s", era: "90s", glowOpacity: 0.62, Icon: Crown },
-  { id: "cloud", era: "CLD", glowOpacity: 0.3, Icon: Cloud },
+const NEW_GAMES = [
+  { href: "/jeux/tracklist", title: "Le Tracklist", sub: "Le morceau mystère du jour", icon: "game-icons:calendar", flag: "Défi du jour", g: "radial-gradient(100% 100% at 80% 0%, rgba(240,0,28,0.55), transparent 60%), linear-gradient(160deg, #2a0509, #0d0708)" },
+  { href: "/jeux/plus-haut", title: "Plus Haut, Plus Bas", sub: "Qui stream le plus ?", icon: "game-icons:chart", flag: null, g: "radial-gradient(110% 100% at 20% 100%, rgba(255,59,78,0.4), transparent 60%), linear-gradient(200deg, #1c090c, #0a0707)" },
+  { href: "/jeux/tribunal", title: "Le Tribunal", sub: "Le duel du jour", icon: "game-icons:scales", flag: "Vote du jour", g: "radial-gradient(110% 100% at 85% 100%, rgba(120,1,1,0.75), transparent 60%), linear-gradient(160deg, #170a0c, #0a0707)" },
+  { href: "/jeux/pronos", title: "Coach A&R", sub: "Tes pronos de la semaine", icon: "game-icons:crystal-ball", flag: null, g: "radial-gradient(100% 100% at 15% 0%, rgba(240,0,28,0.35), transparent 55%), linear-gradient(180deg, #1a070b, #0a0707)" },
+  { href: "/jeux/punchline", title: "La Punchline", sub: "Qui a dit ça ?", icon: "game-icons:microphone", flag: null, g: "radial-gradient(110% 100% at 90% 15%, rgba(255,107,59,0.3), transparent 55%), linear-gradient(170deg, #200a0d, #0a0707)" },
+  { href: "/jeux/ghostwriter", title: "Ghostwriter", sub: "Démasque l'IA", icon: "game-icons:ghost", flag: null, g: "radial-gradient(100% 100% at 50% 0%, rgba(240,0,28,0.35), transparent 55%), linear-gradient(180deg, #150a10, #0a0707)" },
 ];
 
-export default async function JouerPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+// Le Top — l'ordre reflète simplement la mise en avant éditoriale du moment.
+const TOP_GAMES = [
+  { href: "/jouer?play=1", title: "Blind Test", icon: "game-icons:headphones", g: "radial-gradient(120% 100% at 50% 0%, rgba(240,0,28,0.6), transparent 65%), linear-gradient(180deg, #3a0508, #0d0708)" },
+  { href: "/jeux/tracklist", title: "Le Tracklist", icon: "game-icons:calendar", g: "linear-gradient(200deg, #7a0f0f, #12060a)" },
+  { href: "/jeux/plus-haut", title: "Plus Haut", icon: "game-icons:chart", g: "linear-gradient(160deg, #a3121b, #150708)" },
+  { href: "/jeux/tribunal", title: "Le Tribunal", icon: "game-icons:scales", g: "linear-gradient(180deg, #5c0a10, #0d0708)" },
+  { href: "/jeux/pronos", title: "Coach A&R", icon: "game-icons:crystal-ball", g: "linear-gradient(200deg, #43060b, #0a0707)" },
+];
 
-  let displayName: string | null = null;
-  if (user) {
-    const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
-    displayName = profile?.display_name ?? null;
-  }
+const MULTI_MODES = [
+  { href: "/jouer?mode=local", title: "Même écran", sub: "Un seul appareil, on se le passe", icon: "game-icons:tv" },
+  { href: "/jouer?mode=online", title: "Salon privé", sub: "Un code, chacun son téléphone", icon: "game-icons:wifi-router" },
+  { href: "/jouer?mode=party", title: "Mode Soirée", sub: "Écran TV + gages pour le dernier", icon: "game-icons:party-popper" },
+];
 
-  const dailyTheme = getDailyTheme();
-  const initial = (displayName ?? "?").charAt(0).toUpperCase();
-  const quickThemes = QUICK.map((q) => ({ ...q, theme: THEME_OPTIONS.find((t) => t.id === q.id) })).filter((q) => q.theme);
-
+function NetflixHub() {
   return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD_GAME) }} />
-      <div className="aurora-fixed" aria-hidden="true" />
-      <section className="relative z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-36 lg:pb-16">
-          {/* En-tête d'app — salut + avatar */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <a
-                href={user ? "/parametres" : "/blindtest"}
-                aria-label="Mon compte"
-                className="press w-11 h-11 rounded-full bg-gradient-to-br from-glow to-signal ring-2 ring-white/15 flex items-center justify-center font-display font-bold text-sm text-white"
-              >
-                {user ? initial : <Disc3 size={19} />}
-              </a>
-              <div className="min-w-0 leading-tight">
-                <p className="text-xs text-ink-muted">Prêt à jouer ?</p>
-                <p className="font-semibold truncate">{displayName ? `Salut, ${displayName}` : "Salut"}</p>
-              </div>
-            </div>
-            <a href="/blindtest/classement" className="press glass rounded-full px-4 py-2.5 text-xs font-semibold text-ink flex items-center gap-2">
-              <Trophy size={14} className="text-[#FFC53D]" /> Classement
-            </a>
-          </div>
-
-          {/* Titre */}
-          <div className="mb-4">
-            <LivePlayersBadge />
-          </div>
-          <h1 className="mb-10">
-            <BlindTestLogo markSize={72} spinning />
+    <div className="-mt-6">
+      {/* Billboard héros */}
+      <section className="nf-billboard px-6 sm:px-10 pb-10 pt-28 -mx-6">
+        <div className="max-w-5xl mx-auto w-full">
+          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-3">
+            DailyRap Arcade · Jeu vedette
+          </p>
+          <h1 className="font-impact text-5xl sm:text-7xl uppercase leading-none mb-3">
+            Blind Test
           </h1>
-
-          {/* Bento hero — Solo/Défi + Entre potes */}
-          <div className="grid lg:grid-cols-[1.45fr_1fr] gap-4 mb-10">
-            {/* Carte Solo / Défi du jour */}
-            <div className="relative rounded-[28px] overflow-hidden glass p-6 sm:p-8 flex flex-col min-h-[320px]">
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(90% 80% at 85% 0%, rgba(240,0,28,0.42), transparent 55%), radial-gradient(70% 60% at 0% 100%, rgba(120,1,1,0.5), transparent 60%)",
-                }}
-                aria-hidden="true"
-              />
-              <div className="vinyl-disc float-soft absolute -right-10 top-1/2 -translate-y-1/2 w-64 h-64 sm:w-96 sm:h-96 opacity-95" aria-hidden="true" />
-              <div className="vinyl-disc absolute right-52 sm:right-80 -bottom-10 w-28 h-28 opacity-40 hidden sm:block" aria-hidden="true" />
-              <div className="relative">
-                <span className="tag-pill" style={{ background: "rgba(255,59,78,0.12)", color: "#FF3B4E", border: "1px solid rgba(255,59,78,0.35)" }}>
-                  <Flame size={11} /> Défi du jour · {dailyTheme.label}
-                </span>
-                <h2 className="font-display font-extrabold text-xl sm:text-2xl mt-4 mb-1">Mode Solo</h2>
-                <p className="text-sm text-ink-muted max-w-[280px]">Même thème pour tout le monde aujourd'hui. Il expire dans :</p>
-                <div className="mt-4">
-                  <DailyCountdown />
-                </div>
-              </div>
-              <div className="relative mt-auto pt-6 flex flex-col sm:flex-row gap-3">
-                <a href="/blindtest" className="press btn-primary flex-1 flex items-center justify-center gap-2.5 rounded-2xl py-4 font-bold text-[15px] text-white">
-                  <Play size={18} fill="currentColor" /> Lancer une partie
-                  <ArrowRight size={17} className="opacity-80" />
-                </a>
-                <a
-                  href={`/blindtest?theme=${dailyTheme.id}`}
-                  className="press glass flex items-center justify-center gap-2 rounded-2xl px-5 py-4 font-semibold text-sm text-ink hover:bg-white/10"
-                >
-                  <Flame size={16} className="text-glow" /> Relever le défi
-                </a>
-              </div>
-            </div>
-
-            {/* Colonne Entre potes */}
-            <div className="flex flex-col gap-4">
-              <a href="/blindtest?mode=local" className="press lift relative glass rounded-[28px] p-6 flex-1 overflow-hidden block">
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ background: "radial-gradient(80% 70% at 100% 100%, rgba(120,1,1,0.55), transparent 60%)" }}
-                  aria-hidden="true"
-                />
-                <div className="relative flex items-start justify-between gap-3">
-                  <div>
-                    <span className="tag-pill bg-white/[0.06] text-ink border border-white/15">
-                      <Cast size={11} className="text-glow" /> Entre potes
-                    </span>
-                    <h3 className="font-display font-extrabold text-lg mt-3 mb-1">Même écran</h3>
-                    <p className="text-xs text-ink-muted">Un seul appareil, on se le passe.</p>
-                  </div>
-                  <span className="w-11 h-11 shrink-0 rounded-full glass flex items-center justify-center text-ink">
-                    <ArrowRight size={17} />
-                  </span>
-                </div>
-              </a>
-
-              <div className="glass rounded-[28px] p-6 flex-1">
-                <span className="tag-pill bg-white/[0.06] text-ink border border-white/15">
-                  <Wifi size={11} className="text-glow" /> Salon privé
-                </span>
-                <p className="text-xs text-ink-muted mt-3 mb-3">Entre un code pour rejoindre — ou crée ton salon.</p>
-                <JoinRoomInput />
-              </div>
-            </div>
-          </div>
-
-          <DailyGuessCard />
-
-          {/* Quick Play */}
-          <div className="mb-10">
-            <div className="flex items-end justify-between mb-4">
-              <h3 className="font-display font-extrabold text-base">Quick Play</h3>
-              <a href="/blindtest" className="text-xs text-ink-muted hover:text-ink flex items-center gap-1">
-                Tous les thèmes <ArrowRight size={12} />
-              </a>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-              {quickThemes.map(({ id, era, glowOpacity, Icon, theme }) => (
-                <a
-                  key={id}
-                  href={`/blindtest?theme=${id}`}
-                  className="press lift group relative text-left rounded-3xl p-5 h-44 flex flex-col justify-end overflow-hidden border border-white/10 hover:border-glow/50 transition-colors bg-bg-deep"
-                >
-                  {/* halo Rouge Daily — l'intensité distingue les cartes, pas la teinte */}
-                  <span
-                    className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl transition-opacity group-hover:opacity-100"
-                    style={{ background: "radial-gradient(circle, #F0001C, #780101 70%)", opacity: glowOpacity }}
-                    aria-hidden="true"
-                  />
-                  {/* millésime en filigrane — Bricolage extra-bold, la signature typographique */}
-                  <span
-                    className="absolute -top-3 -right-2 font-display font-extrabold text-[92px] leading-none text-transparent select-none"
-                    style={{ WebkitTextStroke: "1.5px rgba(245,232,232,0.14)" }}
-                    aria-hidden="true"
-                  >
-                    {era}
-                  </span>
-                  <span className="absolute top-4 left-4 w-10 h-10 rounded-2xl glass flex items-center justify-center text-glow">
-                    <Icon size={17} />
-                  </span>
-                  <p className="relative font-display font-bold text-[15px] leading-tight flex items-center gap-2">
-                    {theme!.label}
-                    <ArrowRight
-                      size={14}
-                      className="text-glow opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
-                    />
-                  </p>
-                  <p className="relative text-[11px] text-ink-muted mt-0.5 line-clamp-1">{theme!.text}</p>
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Social + connexion + partage */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <a href="/amis" className="press lift glass rounded-[28px] p-6 block">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-display font-bold text-sm">Amis</h3>
-                <span className="w-9 h-9 rounded-full bg-gold/12 text-gold flex items-center justify-center">
-                  <Users size={15} />
-                </span>
-              </div>
-              <p className="text-xs text-ink-muted">Retrouve tes potes, défie-les sur ton meilleur thème.</p>
+          <p className="text-ink-muted text-sm sm:text-base max-w-md mb-6 leading-relaxed">
+            Reconnais les sons du rap français — seul, entre potes sur le même écran, ou
+            en salon à distance. Des dizaines de thèmes, un classement à grimper.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <BorderMagicButton href="/jouer?play=1" size="lg">
+              <Icon icon="game-icons:play-button" width={20} />
+              Jouer
+            </BorderMagicButton>
+            <a
+              href="/blindtest/classement"
+              className="inline-flex items-center gap-2 glass rounded-2xl px-6 h-16 text-sm font-semibold hover:border-gold/40 transition-colors"
+            >
+              <Info size={17} />
+              Classement
             </a>
-
-            {user ? (
-              <a href="/blindtest/classement" className="press lift glass rounded-[28px] p-6 block">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-display font-bold text-sm">Top du jour</h3>
-                  <Trophy size={15} className="text-[#FFC53D]" />
-                </div>
-                <p className="text-xs text-ink-muted">Vois qui domine le défi du jour — et prends ta place.</p>
-              </a>
-            ) : (
-              <a href="/blindtest" className="press lift glass rounded-[28px] p-6 block">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-display font-bold text-sm">Pas encore connecté</h3>
-                  <span className="w-9 h-9 rounded-full bg-gold/12 text-gold flex items-center justify-center">
-                    <LogIn size={15} />
-                  </span>
-                </div>
-                <p className="text-xs text-ink-muted">Connecte-toi pour sauvegarder tes scores et jouer avec tes amis.</p>
-              </a>
-            )}
-          </div>
-
-          {/* Partage */}
-          <div className="glass rounded-[28px] p-6 mt-4">
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2">Fais-le connaître</p>
-            <p className="text-sm text-ink-muted mb-4">
-              Un blind test se joue mieux à plusieurs — envoie le lien à tes potes avant votre prochaine soirée.
-            </p>
-            <ShareGame />
           </div>
         </div>
       </section>
-      <LaunchAnnouncement />
-      <InstallPrompt />
-      <GameTabBar />
-    </>
+
+      <div className="max-w-5xl mx-auto space-y-10 pb-24">
+        {/* Nouveaux jeux */}
+        <section>
+          <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">Nouveaux jeux</h2>
+          <div className="nf-row -mx-6 px-6">
+            {NEW_GAMES.map((g) => (
+              <a key={g.href} href={g.href} className="nf-card flex flex-col justify-end p-3.5" style={{ background: g.g }}>
+                <Icon icon={g.icon} width={26} className="text-gold mb-1.5" />
+                <p className="font-display text-base font-semibold leading-tight">{g.title}</p>
+                <p className="text-[11px] text-ink-muted">{g.sub}</p>
+                {g.flag && <span className="nf-flag">{g.flag}</span>}
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Top façon Netflix — gros chiffres */}
+        <section>
+          <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">
+            Top des jeux aujourd&apos;hui 🇫🇷
+          </h2>
+          <div className="nf-row -mx-6 px-6 items-end">
+            {TOP_GAMES.map((g, i) => (
+              <a key={g.href + i} href={g.href} className="nf-rank-item">
+                <span className="nf-rank" aria-hidden="true">{i + 1}</span>
+                <span className="nf-card flex flex-col items-center justify-center gap-2 p-3 text-center" style={{ background: g.g }}>
+                  <Icon icon={g.icon} width={34} className="text-gold" />
+                  <span className="font-display text-sm font-semibold leading-tight">{g.title}</span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Multijoueur */}
+        <section>
+          <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">Jouer à plusieurs</h2>
+          <div className="nf-row -mx-6 px-6">
+            {MULTI_MODES.map((m) => (
+              <a
+                key={m.href}
+                href={m.href}
+                className="nf-card flex flex-col justify-end p-3.5"
+                style={{ background: "radial-gradient(110% 100% at 80% 0%, rgba(120,1,1,0.65), transparent 60%), linear-gradient(170deg, #1c090c, #0a0707)" }}
+              >
+                <Icon icon={m.icon} width={26} className="text-gold mb-1.5" />
+                <p className="font-display text-base font-semibold leading-tight">{m.title}</p>
+                <p className="text-[11px] text-ink-muted">{m.sub}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function JouerInner() {
+  const params = useSearchParams();
+  // Deep-links historiques (?mode=, ?room=) + nouveau ?play=1 → blind test directement.
+  const wantsGame = params.get("mode") || params.get("room") || params.get("play");
+  if (wantsGame) return <BlindTest />;
+  return <NetflixHub />;
+}
+
+export default function JouerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-64 flex items-center justify-center">
+          <BrandLoader size="md" />
+        </div>
+      }
+    >
+      <JouerInner />
+    </Suspense>
   );
 }

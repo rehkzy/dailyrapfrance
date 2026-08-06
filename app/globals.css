@@ -1191,3 +1191,103 @@ input[type="range"].brand-slider::-moz-range-track {
   .cat-card:hover, .game-thumb:hover { transform: none; }
   .game-thumb:hover .thumb-bg { transform: none; }
 }
+
+/* ============================================================
+   Hub /jouer façon Netflix — billboard plein écran, rangées
+   horizontales scrollables, gros chiffres de classement.
+   ============================================================ */
+
+/* Billboard — le héros plein cadre avec dégradé de lisibilité en bas,
+   comme la bannière d'accueil Netflix. */
+.nf-billboard {
+  position: relative;
+  min-height: 62vh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  isolation: isolate;
+}
+.nf-billboard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, transparent 30%, rgba(10, 7, 7, 0.85) 78%, #0a0707 100%),
+    linear-gradient(90deg, rgba(10, 7, 7, 0.75) 0%, transparent 55%),
+    radial-gradient(90% 80% at 75% 20%, rgba(240, 0, 28, 0.4), transparent 60%),
+    linear-gradient(160deg, #2a0509 0%, #0a0707 90%);
+}
+
+/* Rangée horizontale — scroll fluide avec snap, sans barre visible.
+   Sur desktop, les cartes dépassent légèrement du cadre pour inviter au scroll. */
+.nf-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 8px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.nf-row::-webkit-scrollbar { display: none; }
+.nf-row > * { scroll-snap-align: start; flex-shrink: 0; }
+
+/* Carte de rangée — format paysage 16:9 comme les vignettes Netflix,
+   zoom au survol SANS pousser les voisines (transform seulement). */
+.nf-card {
+  position: relative;
+  width: 240px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  isolation: isolate;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, z-index 0s;
+}
+.nf-card:hover {
+  transform: scale(1.07);
+  border-color: rgba(240, 0, 28, 0.6);
+  z-index: 2;
+}
+@media (min-width: 640px) { .nf-card { width: 280px; } }
+
+/* Gros chiffre de classement façon "Top 10" Netflix — contour seul,
+   la carte chevauche le chiffre. */
+.nf-rank-item {
+  display: flex;
+  align-items: flex-end;
+}
+.nf-rank {
+  font-family: var(--font-impact);
+  font-size: 130px;
+  line-height: 0.78;
+  color: transparent;
+  -webkit-text-stroke: 3px rgba(245, 232, 232, 0.35);
+  margin-right: -18px;
+  z-index: 0;
+  user-select: none;
+}
+@media (min-width: 640px) { .nf-rank { font-size: 170px; } }
+.nf-rank-item .nf-card { z-index: 1; width: 150px; aspect-ratio: 2 / 3; }
+@media (min-width: 640px) { .nf-rank-item .nf-card { width: 170px; } }
+
+/* Badge rouge en bas de carte — "Ajout récent" / "Défi du jour" Netflix. */
+.nf-flag {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f0001c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 3px 3px 0 0;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-card { transition: none; }
+  .nf-card:hover { transform: none; }
+}

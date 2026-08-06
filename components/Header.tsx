@@ -3,18 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Info, Gamepad2, Trophy, Users } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Info, Gamepad2, Trophy, Users, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import { Menu, MenuItem, MenuLink, HoveredLink } from "@/components/ui/navbar-menu";
 
 // Liste à plat — utilisée par le tiroir mobile (pas de sous-menus au clavier tactile,
 // tout est déjà déroulé dans une liste qu'on scrolle).
+// Liste à plat — utilisée par le tiroir mobile. Les jeux sont listés directement
+// (pas de sous-menus au tactile) — le tiroir scrolle déjà si besoin.
 const nav = [
-  { href: "/a-propos", label: "À propos", Icon: Info },
   { href: "/jouer", label: "Jouer", Icon: Gamepad2 },
+  { href: "/jeux/tracklist", label: "Le Tracklist", Icon: CalendarDays },
+  { href: "/jeux/plus-haut", label: "Plus Haut, Plus Bas", Icon: TrendingUp },
+  { href: "/jeux/tribunal", label: "Le Tribunal", Icon: Scale },
+  { href: "/jeux/pronos", label: "Coach A&R", Icon: Sparkles },
+  { href: "/jeux/punchline", label: "La Punchline", Icon: Mic2 },
+  { href: "/jeux/ghostwriter", label: "Ghostwriter", Icon: Ghost },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
   { href: "/amis", label: "Amis", Icon: Users },
+  { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
 const socials = [
@@ -207,15 +215,26 @@ export default function Header() {
           />
         </a>
 
-        {/* Nav desktop — menus déroulants (Jouer / Communauté), lien simple pour À propos */}
+        {/* Nav desktop — les JEUX en première place (façon Netflix : Accueil, Séries,
+            Films... → ici chaque jeu est une destination), le reste en menus déroulants */}
         <div className="hidden lg:flex">
           <Menu setActive={setActiveMenu}>
-            <MenuLink href="/a-propos" active={pathname === "/a-propos"}>
-              À propos
+            <MenuLink href="/jouer" active={pathname === "/jouer"}>
+              Jouer
             </MenuLink>
-            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jouer">
+            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jeux">
               <div className="flex flex-col">
-                <HoveredLink href="/jouer?mode=solo">Solo</HoveredLink>
+                <HoveredLink href="/jouer?play=1">Blind Test</HoveredLink>
+                <HoveredLink href="/jeux/tracklist">Le Tracklist</HoveredLink>
+                <HoveredLink href="/jeux/plus-haut">Plus Haut, Plus Bas</HoveredLink>
+                <HoveredLink href="/jeux/tribunal">Le Tribunal</HoveredLink>
+                <HoveredLink href="/jeux/pronos">Coach A&amp;R</HoveredLink>
+                <HoveredLink href="/jeux/punchline">La Punchline</HoveredLink>
+                <HoveredLink href="/jeux/ghostwriter">Ghostwriter</HoveredLink>
+              </div>
+            </MenuItem>
+            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Multijoueur">
+              <div className="flex flex-col">
                 <HoveredLink href="/jouer?mode=local">Même écran</HoveredLink>
                 <HoveredLink href="/jouer?mode=online">Salon en ligne</HoveredLink>
                 <HoveredLink href="/jouer?mode=party">Mode Soirée</HoveredLink>
@@ -225,6 +244,7 @@ export default function Header() {
               <div className="flex flex-col">
                 <HoveredLink href="/blindtest/classement">Classement</HoveredLink>
                 <HoveredLink href="/amis">Amis</HoveredLink>
+                <HoveredLink href="/a-propos">À propos</HoveredLink>
               </div>
             </MenuItem>
           </Menu>
