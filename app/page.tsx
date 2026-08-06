@@ -77,6 +77,7 @@ export default function Home() {
             { label: "Salon en ligne", emoji: "🌍", href: "/jouer?mode=online", gradient: "linear-gradient(135deg, #1c0406 0%, #f0001c 130%)" },
             { label: "Mode Soirée", emoji: "📺", href: "/jouer?mode=party", gradient: "linear-gradient(135deg, #7a0f0f 0%, #ff6b3b 140%)" },
             { label: "Classement", emoji: "🏆", href: "/blindtest/classement", gradient: "linear-gradient(135deg, #12060a 0%, #5c0a10 100%)" },
+            { label: "Autres jeux", emoji: "🎮", href: "/jeux", gradient: "linear-gradient(135deg, #0a0707 0%, #3a0505 100%)" },
           ].map((c) => (
             <a key={c.label} href={c.href} className="cat-card snap-start shrink-0" style={{ background: c.gradient }}>
               <span className="cat-icon" aria-hidden="true">{c.emoji}</span>
