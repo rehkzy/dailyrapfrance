@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle, MapPin, User, Building2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle, MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
 
@@ -81,6 +81,8 @@ type GameState = {
   messages: Message[];
   rivals: Rival[];
   prevChartOrder: string[];
+  totalReleases: number;        // sorties publiées depuis le début (cumul carrière)
+  totalStreamsAllTime: number;  // streams cumulés toutes sorties confondues
   profile: Profile | null;
   tutorialDone: boolean;
   gameOver: null | "bankrupt" | "season_end";
@@ -159,6 +161,8 @@ function initialState(): GameState {
     messages: [],
     rivals: RIVAL_NAMES.map((name) => ({ name, streams: ri(60000, 380000) })),
     prevChartOrder: [],
+    totalReleases: 0,
+    totalStreamsAllTime: 0,
     profile: null,
     tutorialDone: false,
     gameOver: null,
@@ -175,6 +179,10 @@ function load(): GameState | null {
     if (!Array.isArray(s.prevChartOrder)) s.prevChartOrder = [];
     if (s.profile === undefined) s.profile = null;
     if (typeof s.tutorialDone !== "boolean") s.tutorialDone = false;
+    if (typeof s.totalReleases !== "number") s.totalReleases = s.releases?.length ?? 0;
+    if (typeof s.totalStreamsAllTime !== "number") {
+      s.totalStreamsAllTime = (s.releases ?? []).reduce((sum, r) => sum + (r.totalStreams ?? 0), 0);
+    }
     return s;
   } catch {
     return null;
@@ -255,6 +263,7 @@ function advanceWeek(prev: GameState): GameState {
           weeksOut: 0,
         });
         artist.hype = Math.min(100, artist.hype + 12);
+        s.totalReleases += 1;
         s.messages.unshift({
           id: nextId(), week: s.week, title: `Sortie : « ${s.project.title} »`,
           body: `Le ${TYPE_META[s.project.type].label.toLowerCase()} de ${artist.name} est dans les bacs. Premier bilan de streams la semaine prochaine.`,
@@ -268,6 +277,7 @@ function advanceWeek(prev: GameState): GameState {
   for (const r of s.releases) {
     r.weeksOut += 1;
     r.totalStreams += r.weeklyStreams;
+    s.totalStreamsAllTime += r.weeklyStreams;
     weekRevenue += r.weeklyStreams * 0.0032;
     const decay = 0.68 + Math.min(0.18, r.promo / 60000) + Math.min(0.08, r.quality / 300);
     r.weeklyStreams = Math.round(r.weeklyStreams * decay);
@@ -309,7 +319,19 @@ function advanceWeek(prev: GameState): GameState {
 
 // ---------- Petits composants UI ----------
 
-type Tab = "label" | "artistes" | "studio" | "charts";
+type Tab = "label" | "artistes" | "marche" | "studio" | "charts" | "messages" | "finances" | "stats";
+
+// Menu unique — la sidebar desktop (façon FM) et la tab bar mobile piochent dedans.
+const MENU: { id: Tab; label: string; Icon: typeof Wallet; mobile: boolean }[] = [
+  { id: "label", label: "Dashboard", Icon: LayoutDashboard, mobile: true },
+  { id: "artistes", label: "Artistes", Icon: Users, mobile: true },
+  { id: "marche", label: "Marché", Icon: UserPlus, mobile: false },
+  { id: "studio", label: "Studio", Icon: Disc3, mobile: true },
+  { id: "charts", label: "Charts", Icon: BarChart3, mobile: true },
+  { id: "messages", label: "Messages", Icon: Inbox, mobile: false },
+  { id: "finances", label: "Finances", Icon: PiggyBank, mobile: false },
+  { id: "stats", label: "Stats", Icon: LineChart, mobile: false },
+];
 
 function Movement({ delta }: { delta: number | null }) {
   if (delta === null) return <span className="font-mono text-[9px] uppercase text-gold">New</span>;
@@ -551,8 +573,8 @@ const TUTO_STEPS = [
     body: () => "C'est le cœur du jeu, comme dans FM : il fait avancer d'une semaine. Streams, trésorerie, hype et classement bougent à chaque pression. Il est toujours en haut à droite.",
   },
   {
-    title: "Les 4 onglets",
-    body: () => "Label = ton tableau de bord et ta boîte de réception. Artistes = ton roster et le marché des talents. Studio = lancer une prod. Charts = le classement face aux labels rivaux.",
+    title: "Le menu du label",
+    body: () => "Dashboard = ta vue d'ensemble. Artistes = ton roster. Marché = le recrutement. Studio = lancer une prod. Charts, Messages, Finances et Stats complètent le tout — menu à gauche sur ordi, barre du bas + raccourcis sur mobile.",
   },
   {
     title: "Ton objectif",
@@ -758,14 +780,14 @@ export default function ArtistsManagerPage() {
 
   // Checklist "Premiers pas" — auto-cochée selon la progression réelle
   const firstSteps = [
-    { label: "Signer ton premier artiste", done: state.roster.length > 0, go: () => setTab("artistes") },
+    { label: "Signer ton premier artiste", done: state.roster.length > 0, go: () => setTab("marche") },
     { label: "Lancer une première prod", done: state.project !== null || state.releases.length > 0, go: () => setTab("studio") },
     { label: "Passer ta première semaine", done: state.week > 1, go: continueWeek },
   ];
   const allStepsDone = firstSteps.every((s) => s.done);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-44">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-44 lg:pb-16">
       {/* Tutoriel — une seule fois, après l'onboarding */}
       {!state.tutorialDone && (
         <Tutorial profile={profile} onDone={() => update({ ...state, tutorialDone: true })} />
@@ -790,6 +812,42 @@ export default function ArtistsManagerPage() {
         </BorderMagicButton>
       </div>
 
+      {/* ===== Sidebar FM (desktop) + colonne de contenu ===== */}
+      <div className="lg:flex lg:gap-6 lg:items-start">
+        <aside className="hidden lg:block w-52 shrink-0 sticky top-[7.25rem] self-start pt-4">
+          <nav className="glass-strong rounded-2xl py-2 overflow-hidden">
+            {MENU.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => { sfx.click(); setTab(id); }}
+                className={`relative w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors text-left ${
+                  tab === id ? "text-ink bg-white/5" : "text-ink-muted hover:text-ink hover:bg-white/[0.03]"
+                }`}
+              >
+                {/* Barre d'accent à gauche de l'item actif — la signature sidebar FM */}
+                {tab === id && (
+                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r" style={{ background: accent }} />
+                )}
+                <Icon size={16} style={tab === id ? { color: accent } : undefined} />
+                {label}
+                {id === "messages" && state.messages.length > 0 && (
+                  <span
+                    className="ml-auto min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                    style={{ background: accent }}
+                  >
+                    {state.messages.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+          <p className="font-mono text-[9px] text-ink-faint uppercase tracking-wide px-4 mt-3">
+            Saison 2026 · {profile.labelName}
+          </p>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+
       {/* ===== KPI cards ===== */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-4">
         {[
@@ -803,6 +861,25 @@ export default function ArtistsManagerPage() {
             </p>
             <p className={`font-impact text-lg sm:text-2xl leading-none ${alert ? "text-riseNeg" : ""}`}>{value}</p>
           </div>
+        ))}
+      </div>
+
+      {/* Raccourcis mobile vers les sections absentes de la tab bar basse */}
+      <div className="flex gap-2 overflow-x-auto pt-3 lg:hidden -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
+        {MENU.filter((m) => !m.mobile).map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            onClick={() => { sfx.click(); setTab(id); }}
+            className={`filter-pill shrink-0 inline-flex items-center gap-1.5 ${tab === id ? "is-active" : ""}`}
+          >
+            <Icon size={12} />
+            {label}
+            {id === "messages" && state.messages.length > 0 && (
+              <span className="min-w-4 h-4 px-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: accent }}>
+                {state.messages.length}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
@@ -918,12 +995,22 @@ export default function ArtistsManagerPage() {
             </SectionCard>
           )}
 
-          <SectionCard title="Boîte de réception" icon={<Inbox size={11} />}>
+          <SectionCard
+            title="Boîte de réception"
+            icon={<Inbox size={11} />}
+            action={
+              state.messages.length > 3 ? (
+                <button onClick={() => setTab("messages")} className="font-mono text-[10px] uppercase text-gold hover:text-glow">
+                  Tout voir →
+                </button>
+              ) : undefined
+            }
+          >
             {state.messages.length === 0 ? (
               <p className="text-sm text-ink-faint">Rien pour l'instant — l'industrie t'écrira vite.</p>
             ) : (
               <div className="divide-y divide-white/6 -mx-4 -mb-4">
-                {state.messages.map((m) => (
+                {state.messages.slice(0, 3).map((m) => (
                   <div key={m.id} className="px-4 py-3 flex gap-3">
                     <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
                       <Inbox size={13} />
@@ -943,13 +1030,21 @@ export default function ArtistsManagerPage() {
         </div>
       )}
 
-      {/* ===== Onglet ARTISTES ===== */}
+      {/* ===== Onglet ARTISTES (roster seul — le recrutement vit dans Marché) ===== */}
       {tab === "artistes" && (
         <div className="pt-4 space-y-6">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Ton roster ({state.roster.length})</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">Ton roster ({state.roster.length})</p>
+              <button onClick={() => setTab("marche")} className="font-mono text-[10px] uppercase text-gold hover:text-glow">
+                Recruter →
+              </button>
+            </div>
             {state.roster.length === 0 ? (
-              <p className="text-sm text-ink-faint glass rounded-2xl p-4">Personne pour l'instant — signe ton premier artiste ci-dessous.</p>
+              <p className="text-sm text-ink-faint glass rounded-2xl p-4">
+                Personne pour l'instant —{" "}
+                <button onClick={() => setTab("marche")} className="text-gold hover:text-glow">va voir le marché →</button>
+              </p>
             ) : (
               <div className="grid sm:grid-cols-2 gap-3">
                 {state.roster.map((a, idx) => (
@@ -978,41 +1073,47 @@ export default function ArtistsManagerPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
 
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Sur le marché</p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {state.market.map((a) => {
-                const affordable = state.cash >= a.signingFee;
-                return (
-                  <div key={a.id} className="glass rounded-2xl overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/8">
-                      <p className="font-impact text-lg uppercase leading-none">{a.name}</p>
-                      <p className="font-mono text-[10px] text-ink-muted mt-1">{a.style}</p>
-                    </div>
-                    <div className="p-4">
-                      <div className="space-y-1.5 mb-4">
-                        <StatBar label="Flow" value={a.flow} color={accent} />
-                        <StatBar label="Plume" value={a.plume} color={accent} />
-                        <StatBar label="Charisme" value={a.charisme} color={accent} />
-                      </div>
-                      <button
-                        onClick={() => sign(a)}
-                        disabled={!affordable}
-                        className={`w-full rounded-xl py-2.5 text-sm font-semibold border transition-colors ${
-                          affordable
-                            ? "border-gold/50 bg-gold/10 text-gold hover:bg-gold/20"
-                            : "border-white/8 text-ink-faint cursor-not-allowed"
-                        }`}
-                      >
-                        Signer — {fmt(a.signingFee)} €{!affordable && " (fonds insuffisants)"}
-                      </button>
-                    </div>
+      {/* ===== Onglet MARCHÉ (recrutement, façon Transfer FM) ===== */}
+      {tab === "marche" && (
+        <div className="pt-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Talents disponibles</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {state.market.map((a) => {
+              const affordable = state.cash >= a.signingFee;
+              return (
+                <div key={a.id} className="glass rounded-2xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-white/8">
+                    <p className="font-impact text-lg uppercase leading-none">{a.name}</p>
+                    <p className="font-mono text-[10px] text-ink-muted mt-1">{a.style}</p>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="p-4">
+                    <div className="space-y-1.5 mb-4">
+                      <StatBar label="Flow" value={a.flow} color={accent} />
+                      <StatBar label="Plume" value={a.plume} color={accent} />
+                      <StatBar label="Charisme" value={a.charisme} color={accent} />
+                    </div>
+                    <button
+                      onClick={() => sign(a)}
+                      disabled={!affordable}
+                      className={`w-full rounded-xl py-2.5 text-sm font-semibold border transition-colors ${
+                        affordable
+                          ? "border-gold/50 bg-gold/10 text-gold hover:bg-gold/20"
+                          : "border-white/8 text-ink-faint cursor-not-allowed"
+                      }`}
+                    >
+                      Signer — {fmt(a.signingFee)} €{!affordable && " (fonds insuffisants)"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          <p className="text-[11px] text-ink-faint font-mono mt-4">
+            Le marché tourne au fil des semaines — un talent parti ne revient pas.
+          </p>
         </div>
       )}
 
@@ -1026,7 +1127,7 @@ export default function ArtistsManagerPage() {
           ) : state.roster.length === 0 ? (
             <p className="text-sm text-ink-faint glass rounded-2xl p-4">
               Il te faut d'abord un artiste.{" "}
-              <button onClick={() => setTab("artistes")} className="text-gold hover:text-glow">Voir le marché →</button>
+              <button onClick={() => setTab("marche")} className="text-gold hover:text-glow">Voir le marché →</button>
             </p>
           ) : (
             <>
@@ -1119,15 +1220,143 @@ export default function ArtistsManagerPage() {
         </div>
       )}
 
-      {/* ===== Tab bar ===== */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 nav-panel" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      {/* ===== Onglet MESSAGES (inbox complète) ===== */}
+      {tab === "messages" && (
+        <div className="pt-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Boîte de réception</p>
+          {state.messages.length === 0 ? (
+            <p className="text-sm text-ink-faint glass rounded-2xl p-4">Rien pour l'instant — l'industrie t'écrira vite.</p>
+          ) : (
+            <div className="card divide-y divide-white/8 overflow-hidden">
+              {state.messages.map((m) => (
+                <div key={m.id} className="px-4 py-3.5 flex gap-3">
+                  <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
+                    <Inbox size={13} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium flex items-baseline gap-2">
+                      {m.title}
+                      <span className="font-mono text-[9px] text-ink-faint shrink-0">S{m.week}</span>
+                    </p>
+                    <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">{m.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===== Onglet FINANCES (façon Finance FM) ===== */}
+      {tab === "finances" && (
+        <div className="pt-4 space-y-4">
+          {/* Bilan hebdo estimé */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            {(() => {
+              const revenue = weeklyStreams * 0.0032;
+              const net = revenue - weeklyCosts;
+              return [
+                { label: "Revenus / sem", value: `+${fmt(revenue)} €`, cls: "text-risePos" },
+                { label: "Salaires / sem", value: `-${fmt(weeklyCosts)} €`, cls: "text-riseNeg" },
+                { label: "Net estimé", value: `${net >= 0 ? "+" : ""}${fmt(net)} €`, cls: net >= 0 ? "text-risePos" : "text-riseNeg" },
+              ].map(({ label, value, cls }) => (
+                <div key={label} className="glass-strong rounded-2xl p-3 sm:p-4">
+                  <p className="font-mono text-[9px] sm:text-[10px] uppercase tracking-wide text-ink-faint mb-1">{label}</p>
+                  <p className={`font-impact text-lg sm:text-2xl leading-none ${cls}`}>{value}</p>
+                </div>
+              ));
+            })()}
+          </div>
+
+          <SectionCard title="Masse salariale" icon={<Users size={11} />}>
+            {state.roster.length === 0 ? (
+              <p className="text-sm text-ink-faint">Aucun artiste sous contrat.</p>
+            ) : (
+              <div className="space-y-2">
+                {state.roster.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between">
+                    <p className="text-sm">{a.name}</p>
+                    <span className="font-mono text-xs text-riseNeg">-{fmt(a.salary)} €/sem</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Revenus par sortie" icon={<Radio size={11} />}>
+            {state.releases.length === 0 ? (
+              <p className="text-sm text-ink-faint">Aucune sortie active — les streams paient tes factures.</p>
+            ) : (
+              <div className="space-y-2">
+                {state.releases.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-3">
+                    <p className="text-sm truncate min-w-0">« {r.title} » — {r.artistName}</p>
+                    <span className="font-mono text-xs text-risePos shrink-0">+{fmt(r.weeklyStreams * 0.0032)} €/sem</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
+          <p className="text-[11px] text-ink-faint font-mono">
+            ~3,20 € pour 1 000 streams. Les budgets studio/clip/promo sont débités au lancement de la prod.
+          </p>
+        </div>
+      )}
+
+      {/* ===== Onglet STATS (carrière, façon Statistic FM) ===== */}
+      {tab === "stats" && (
+        <div className="pt-4 space-y-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            {[
+              { label: "Streams carrière", value: fmt(state.totalStreamsAllTime) },
+              { label: "Sorties publiées", value: `${state.totalReleases}` },
+              { label: "Artistes au roster", value: `${state.roster.length}` },
+              { label: "Semaines en poste", value: `${state.week}` },
+            ].map(({ label, value }) => (
+              <div key={label} className="glass-strong rounded-2xl p-4">
+                <p className="font-mono text-[10px] uppercase tracking-wide text-ink-faint mb-1">{label}</p>
+                <p className="font-impact text-2xl leading-none">{value}</p>
+              </div>
+            ))}
+          </div>
+
+          <SectionCard title="Réputation du label" icon={<Star size={11} />}>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${Math.round(state.reputation)}%`, background: `linear-gradient(90deg, #7A0F0F, ${accent})` }}
+                />
+              </div>
+              <span className="font-impact text-xl">{Math.round(state.reputation)}<span className="text-ink-faint text-sm">/100</span></span>
+            </div>
+            <p className="text-[11px] text-ink-faint font-mono mt-3">
+              Monte en battant les labels rivaux au classement hebdo.
+            </p>
+          </SectionCard>
+
+          <SectionCard title="Hype du roster" icon={<TrendingUp size={11} />}>
+            {state.roster.length === 0 ? (
+              <p className="text-sm text-ink-faint">Signe des artistes pour suivre leur hype ici.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {[...state.roster].sort((a, b) => b.hype - a.hype).map((a) => (
+                  <StatBar key={a.id} label={a.name} value={a.hype} max={100} color={accent} />
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        </div>
+      )}
+
+        </div>{/* /colonne de contenu */}
+      </div>{/* /flex sidebar + contenu */}
+
+      {/* ===== Tab bar (mobile uniquement — la sidebar prend le relais sur desktop) ===== */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 nav-panel lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="max-w-3xl mx-auto grid grid-cols-4">
-          {([
-            { id: "label" as Tab, label: "Label", Icon: Wallet },
-            { id: "artistes" as Tab, label: "Artistes", Icon: Users },
-            { id: "studio" as Tab, label: "Studio", Icon: Disc3 },
-            { id: "charts" as Tab, label: "Charts", Icon: BarChart3 },
-          ]).map(({ id, label, Icon }) => (
+          {MENU.filter((m) => m.mobile).map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => { sfx.click(); setTab(id); }}
