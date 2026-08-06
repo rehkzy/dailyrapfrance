@@ -1416,7 +1416,10 @@ export default function BlindTest() {
   const soloPlayer = players[0];
 
   return (
-    <div className="max-w-2xl mx-auto pb-40 blindtest-shell">
+    <div
+      className="max-w-2xl mx-auto pb-40 blindtest-shell overflow-y-auto overscroll-contain"
+      style={{ maxHeight: "100dvh" }}
+    >
       <audio
         key={track.id}
         ref={audioRef}
