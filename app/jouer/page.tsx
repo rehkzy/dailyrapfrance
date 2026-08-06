@@ -7,14 +7,13 @@ import { Icon } from "@iconify/react";
 import BlindTest from "@/components/BlindTest";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import BrandLoader from "@/components/BrandLoader";
+import GameCover from "@/components/GameCover";
 
 /*
- * /jouer — LE hub de tous les jeux, façon Netflix : billboard héros, rangées
- * horizontales scrollables de covers (les visuels officiels dans /public/jeux),
- * "Top des jeux" avec les gros chiffres.
- *
- * Compatibilité : les deep-links historiques (?mode=, ?room=) et le CTA ?play=1
- * montent directement le blind test — le hub ne s'affiche que sur /jouer nu.
+ * /jouer — LE hub de tous les jeux, façon Netflix : billboard héros (cover paysage du
+ * blind test en fond), rangées horizontales scrollables de covers, "Top des jeux" avec
+ * les gros chiffres. Compatibilité : ?mode=, ?room=, ?play=1 montent directement le
+ * blind test — le hub ne s'affiche que sur /jouer nu.
  */
 
 const GAMES = [
@@ -27,7 +26,6 @@ const GAMES = [
   { href: "/jeux/ghostwriter", title: "Ghostwriter", cover: "/jeux/ghostwriter.png", flag: null },
 ];
 
-// Le Top — ordre éditorial du moment (le blind test reste le produit phare).
 const TOP = [GAMES[0], GAMES[1], GAMES[2], GAMES[3], GAMES[4]];
 
 const MULTI_MODES = [
@@ -39,8 +37,13 @@ const MULTI_MODES = [
 function NetflixHub() {
   return (
     <div className="-mt-6">
-      {/* Billboard héros */}
+      {/* Billboard héros — cover paysage du blind test en fond */}
       <section className="nf-billboard px-6 sm:px-10 pb-10 pt-28 -mx-6">
+        <span
+          className="absolute inset-0 -z-20"
+          style={{ backgroundImage: "url(/jeux/blind-test-wide.png)", backgroundSize: "cover", backgroundPosition: "center" }}
+          aria-hidden="true"
+        />
         <div className="max-w-5xl mx-auto w-full">
           <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-3">
             DailyRap Arcade · Jeu vedette
@@ -74,15 +77,7 @@ function NetflixHub() {
           <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">Tous les jeux</h2>
           <div className="nf-row -mx-6 px-6">
             {GAMES.map((g) => (
-              <a
-                key={g.href}
-                href={g.href}
-                className="nf-poster"
-                style={{ backgroundImage: `url(${g.cover})` }}
-                aria-label={g.title}
-              >
-                {g.flag && <span className="nf-flag">{g.flag}</span>}
-              </a>
+              <GameCover key={g.href} href={g.href} cover={g.cover} title={g.title} flag={g.flag} variant="poster" />
             ))}
           </div>
         </section>
@@ -94,10 +89,10 @@ function NetflixHub() {
           </h2>
           <div className="nf-row -mx-6 px-6 items-end">
             {TOP.map((g, i) => (
-              <a key={g.href + i} href={g.href} className="nf-rank-item" aria-label={`${i + 1} — ${g.title}`}>
+              <div key={g.href + i} className="nf-rank-item">
                 <span className="nf-rank" aria-hidden="true">{i + 1}</span>
-                <span className="nf-poster" style={{ backgroundImage: `url(${g.cover})` }} />
-              </a>
+                <GameCover href={g.href} cover={g.cover} title={g.title} variant="poster" />
+              </div>
             ))}
           </div>
         </section>

@@ -115,6 +115,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   }}
                   aria-hidden="true"
                 />
+                <img src="/icon.svg" alt="" aria-hidden="true" className="cover-logo" />
                 <p className="font-display text-sm font-semibold leading-tight mb-1">{g.label}</p>
                 <p className="text-[11px] text-ink-muted leading-snug">
                   {g.games} partie{g.games > 1 ? "s" : ""} · {g.points} pts
