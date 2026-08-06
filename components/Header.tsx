@@ -3,23 +3,30 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, Headphones, ChevronDown, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import { Menu, MenuItem, MenuLink, ProductItem } from "@/components/ui/navbar-menu";
 
-// Liste à plat — utilisée par le tiroir mobile. Les jeux sont listés directement
-// (pas de sous-menus au tactile) — le tiroir scrolle déjà si besoin.
-const nav = [
+// Liens simples du tiroir mobile (hors jeux, qui sont regroupés à part ci-dessous).
+const SIMPLE_LINKS = [
   { href: "/", label: "Accueil", Icon: Home },
-  { href: "/jouer", label: "Jouer — tous les jeux", Icon: Gamepad2 },
+  { href: "/a-propos", label: "À propos", Icon: Info },
+];
+
+// Jeux du tiroir mobile — regroupés dans une section repliable "Jouer" (accordéon),
+// même logique que le menu déroulant desktop, plutôt qu'une liste à plat de 8 pages :
+// avoir chaque jeu comme item de menu séparé au même niveau que "Accueil"/"À propos"
+// noyait la nav et donnait l'impression de se perdre parmi trop de pages.
+const MOBILE_GAMES = [
+  { href: "/jouer", label: "Tous les jeux", Icon: Gamepad2 },
+  { href: "/jouer?play=1", label: "Blind Test", Icon: Headphones },
   { href: "/jeux/tracklist", label: "La Tracklist", Icon: CalendarDays },
   { href: "/jeux/plus-haut", label: "Plus Haut, Plus Bas", Icon: TrendingUp },
   { href: "/jeux/tribunal", label: "Le Tribunal", Icon: Scale },
   { href: "/jeux/pronos", label: "Coach A&R", Icon: Sparkles },
   { href: "/jeux/punchline", label: "La Punchline", Icon: Mic2 },
   { href: "/jeux/ghostwriter", label: "Ghostwriter", Icon: Ghost },
-  { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
 // Vignette pour "Tous les jeux" dans le menu — pas de screenshot du hub, donc une petite
@@ -95,6 +102,12 @@ function MobileMenu({
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const onGamePage = !!pathname && (pathname === "/jouer" || pathname.startsWith("/jeux/"));
+  // Replié par défaut, sauf si on est déjà sur une page jeu — pas la peine de forcer un
+  // tap supplémentaire pour retrouver où on est.
+  const [gamesOpen, setGamesOpen] = useState(onGamePage);
+
   if (!mounted) return null;
 
   return createPortal(
@@ -139,11 +152,12 @@ function MobileMenu({
           </div>
 
           <nav className="space-y-1.5 mb-6">
-            {nav.map((item) => {
-              const active = pathname === item.href || pathname?.startsWith(item.href + "/");
+            {/* Accueil */}
+            {(() => {
+              const item = SIMPLE_LINKS[0];
+              const active = pathname === item.href;
               return (
                 <a
-                  key={item.href}
                   href={item.href}
                   className={`flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors ${
                     active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"
@@ -153,7 +167,59 @@ function MobileMenu({
                   <span className="text-base font-medium">{item.label}</span>
                 </a>
               );
-            })}
+            })()}
+
+            {/* Jouer — accordéon regroupant tous les jeux, comme le déroulant desktop */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setGamesOpen((v) => !v)}
+                aria-expanded={gamesOpen}
+                className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors ${
+                  onGamePage ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"
+                }`}
+              >
+                <Gamepad2 size={18} className={onGamePage ? "text-gold" : "text-ink-faint"} />
+                <span className="text-base font-medium flex-1 text-left">Jouer</span>
+                <ChevronDown size={16} className={`transition-transform ${gamesOpen ? "rotate-180" : ""}`} />
+              </button>
+              {gamesOpen && (
+                <div className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1 solved-pop">
+                  {MOBILE_GAMES.map((item) => {
+                    const active = pathname === item.href.split("?")[0] && (item.href === "/jouer" ? pathname === "/jouer" : true);
+                    return (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+                          active ? "bg-gold/12 text-gold" : "text-ink-muted hover:text-ink hover:bg-white/5"
+                        }`}
+                      >
+                        <item.Icon size={16} className={active ? "text-gold" : "text-ink-faint"} />
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* À propos */}
+            {(() => {
+              const item = SIMPLE_LINKS[1];
+              const active = pathname === item.href;
+              return (
+                <a
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors ${
+                    active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"
+                  }`}
+                >
+                  <item.Icon size={18} className={active ? "text-gold" : "text-ink-faint"} />
+                  <span className="text-base font-medium">{item.label}</span>
+                </a>
+              );
+            })()}
           </nav>
 
           <div className="flex flex-col gap-4 pt-4 border-t border-white/8">
@@ -239,7 +305,7 @@ export default function Header() {
               Accueil
             </MenuLink>
             <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jouer">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[440px]">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[440px] max-w-[calc(100vw-3rem)]">
                 {GAME_PREVIEWS.map((g) => (
                   <ProductItem key={g.href} title={g.title} href={g.href} src={g.src} description={g.description} />
                 ))}
