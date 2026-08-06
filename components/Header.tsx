@@ -235,7 +235,7 @@ export default function Header() {
             direct à chaque jeu avec preview image), À propos */}
         <div className="hidden lg:flex">
           <Menu setActive={setActiveMenu}>
-            <MenuLink href="/" active={pathname === "/"}>
+            <MenuLink href="/" active={pathname === "/"} setActive={setActiveMenu}>
               Accueil
             </MenuLink>
             <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jouer">
@@ -245,7 +245,7 @@ export default function Header() {
                 ))}
               </div>
             </MenuItem>
-            <MenuLink href="/a-propos" active={pathname === "/a-propos"}>
+            <MenuLink href="/a-propos" active={pathname === "/a-propos"} setActive={setActiveMenu}>
               À propos
             </MenuLink>
           </Menu>

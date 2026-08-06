@@ -81,18 +81,26 @@ export function MenuItem({
 // Item de niveau supérieur SANS sous-menu — même gabarit visuel que MenuItem (pour un
 // alignement parfait dans la barre), mais rendu directement comme un lien, pas un bouton
 // qui ouvre un panneau. Pour "À propos" par exemple, qui n'a rien à déplier en dessous.
+//
+// setActive(null) au survol : sans ça, passer la souris de "Jouer" (qui ouvre son panneau)
+// à "Accueil" ou "À propos" ne refermait JAMAIS le panneau — MenuLink n'avait aucun
+// gestionnaire de survol, donc l'état "actif" posé par le MenuItem voisin restait figé
+// indéfiniment, panneau ouvert par-dessus le reste du site.
 export function MenuLink({
   href,
   active,
+  setActive,
   children,
 }: {
   href: string;
   active?: boolean;
+  setActive?: (item: string | null) => void;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
+      onMouseEnter={() => setActive?.(null)}
       className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-block ${
         active ? "text-gold" : "text-ink-muted hover:text-ink"
       }`}
