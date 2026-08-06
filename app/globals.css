@@ -1226,9 +1226,16 @@ input[type="range"].brand-slider::-moz-range-track {
   gap: 10px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding-bottom: 8px;
+  /* Marge haut/bas généreuse — indispensable : dès que overflow-x n'est pas "visible",
+     la spec CSS force overflow-y à "auto" aussi (même sans le déclarer), donc cette
+     rangée découpe verticalement tout ce qui dépasse sa hauteur de repos. Sans cette
+     marge, la carte agrandie au survol (et son badge tout en bas) se retrouvaient
+     rognés par ce clip vertical involontaire.
+     -webkit-overflow-scrolling: touch garantit un scroll fluide sur iOS malgré ce padding. */
+  padding: 18px 0 26px;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 .nf-row::-webkit-scrollbar { display: none; }
 .nf-row > * { scroll-snap-align: start; flex-shrink: 0; }

@@ -38,7 +38,7 @@ function NetflixHub() {
   return (
     <div className="-mt-6">
       {/* Billboard héros — cover paysage du blind test en fond */}
-      <section className="nf-billboard px-6 sm:px-10 pb-10 pt-28 -mx-6">
+      <section className="nf-billboard px-6 sm:px-10 pb-16 sm:pb-20 pt-28 -mx-6">
         <span
           className="absolute inset-0 -z-20"
           style={{ backgroundImage: "url(/jeux/blind-test-wide.png)", backgroundSize: "cover", backgroundPosition: "center" }}
@@ -71,7 +71,7 @@ function NetflixHub() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto space-y-10 pb-24">
+      <div className="max-w-5xl mx-auto space-y-12 pb-24">
         {/* Tous les jeux — covers officielles */}
         <section>
           <h2 className="font-display text-lg sm:text-xl font-semibold mb-3">Tous les jeux</h2>
