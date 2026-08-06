@@ -10,7 +10,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
-import { Users01 } from "@untitledui/icons";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
 import { useUser } from "@/lib/useUser";
@@ -34,7 +33,16 @@ import BorderMagicButton from "@/components/ui/BorderMagicButton";
 // Icône "salon" harmonisée avec la page d'accueil (Untitled UI) — remplace Globe (lucide)
 // qui donnait un symbole différent ("planète") de celui utilisé ailleurs pour le même
 // concept. Voir le même correctif dans app/page.tsx.
-const SalonIcon = Users01 as unknown as LucideIcon;
+// Icône dédiée "salon en ligne" (réseau/distance) — Local (même écran) et Salon en ligne
+// (à distance) utilisaient jusqu'ici tous les deux une icône "personnes" quasi identique
+// (Users / Users01), impossible à distinguer d'un coup d'œil sur le même écran. Ici, un
+// petit adaptateur pour donner à l'icône Iconify le même gabarit de props que les icônes
+// Lucide (size/strokeWidth) utilisées partout ailleurs dans ce tableau de modes — même
+// icône que la tuile "Salon privé" du hub /jouer, pour rester cohérent entre les pages.
+function RemoteSalonIconBase({ size = 24, className }: { size?: number; strokeWidth?: number; className?: string }) {
+  return <Icon icon="game-icons:wifi-router" width={size} height={size} className={className} />;
+}
+const RemoteSalonIcon = RemoteSalonIconBase as unknown as LucideIcon;
 
 type Track = {
   id: string;
@@ -736,7 +744,7 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto pb-44 blindtest-shell">
+      <div className="max-w-2xl mx-auto pt-6 sm:pt-8 pb-28 blindtest-shell">
         <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1 flex-wrap">
           {[
             { label: "Mode", Icon: Gamepad2 },
@@ -802,7 +810,7 @@ export default function BlindTest() {
                 {
                   id: "online" as Mode,
                   label: "Salon en ligne",
-                  Icon: SalonIcon,
+                  Icon: RemoteSalonIcon,
                   desc: "Un code à partager, chacun sur son téléphone.",
                   tag: "Multi à distance",
                   gradient: "from-[#3a0505] to-[#7a0f0f]",

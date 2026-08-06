@@ -1,6 +1,4 @@
-import { ArrowRight, Gamepad2, Trophy } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { Users01 } from "@untitledui/icons";
+import { ArrowRight } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import Magnetic from "@/components/Magnetic";
 import ParallaxGlow from "@/components/ParallaxGlow";
@@ -8,13 +6,7 @@ import LogoShowcase from "@/components/LogoShowcase";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import FlipWords from "@/components/ui/FlipWords";
 import SocialLinks from "@/components/SocialLinks";
-
-// Icône "salon" harmonisée sur tout le site (Untitled UI) — avant, la page d'accueil
-// utilisait Users2 (lucide) et l'écran de jeu utilisait Globe (lucide) pour représenter le
-// même concept ("des fois c'est un logo, des fois c'est une planète", relevé par l'audit).
-// Cast vers LucideIcon : les deux librairies exposent des composants structurellement
-// compatibles (size/className), seul le typage strict de lucide-react l'ignore.
-const SalonIcon = Users01 as unknown as LucideIcon;
+import GameCover from "@/components/GameCover";
 
 export default function Home() {
   return (
@@ -86,43 +78,23 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4 mt-8">
+        <div className="flex items-center justify-between mt-10 mb-3">
+          <h2 className="font-display text-lg sm:text-xl font-semibold">L&apos;arcade DailyRap</h2>
+          <a href="/jouer" className="text-xs font-mono uppercase tracking-wide text-gold hover:text-glow transition-colors">
+            Voir tous les jeux →
+          </a>
+        </div>
+        <div className="nf-row -mx-6 px-6">
           {[
-            {
-              badge: "Top" as const,
-              badgeClass: "thumb-badge-top",
-              title: "Blind Test",
-              text: "90s, cloud rap, 93, Marseille... des dizaines de thèmes.",
-              href: "/jouer",
-              Icon: Gamepad2,
-              gradient: "radial-gradient(120% 110% at 80% 0%, rgba(240,0,28,0.5), transparent 55%), linear-gradient(160deg, #2a0509 0%, #0a0707 100%)",
-            },
-            {
-              badge: "Nouveau" as const,
-              badgeClass: "thumb-badge-new",
-              title: "Salons privés",
-              text: "Un code à partager, chacun sur son téléphone.",
-              href: "/jouer?mode=online",
-              Icon: SalonIcon,
-              gradient: "radial-gradient(120% 110% at 20% 0%, rgba(120,1,1,0.7), transparent 60%), linear-gradient(200deg, #1c090c 0%, #0a0707 100%)",
-            },
-            {
-              badge: "Hot" as const,
-              badgeClass: "thumb-badge-hot",
-              title: "Classement",
-              text: "Enregistre tes scores, grimpe dans le top.",
-              href: "/blindtest/classement",
-              Icon: Trophy,
-              gradient: "radial-gradient(130% 110% at 50% 110%, rgba(255,59,78,0.35), transparent 60%), linear-gradient(160deg, #170a0c 0%, #0a0707 100%)",
-            },
+            { title: "Blind Test", href: "/jouer?play=1", cover: "/jeux/blind-test.png", flag: null },
+            { title: "La Tracklist", href: "/jeux/tracklist", cover: "/jeux/tracklist.png", flag: "Défi du jour" },
+            { title: "Plus Haut, Plus Bas", href: "/jeux/plus-haut", cover: "/jeux/plus-haut.png", flag: null },
+            { title: "Le Tribunal", href: "/jeux/tribunal", cover: "/jeux/tribunal.png", flag: "Vote du jour" },
+            { title: "Coach A&R", href: "/jeux/pronos", cover: "/jeux/coach-ar.png", flag: null },
+            { title: "La Punchline", href: "/jeux/punchline", cover: "/jeux/punchline.png", flag: null },
+            { title: "Ghostwriter", href: "/jeux/ghostwriter", cover: "/jeux/ghostwriter.png", flag: null },
           ].map((g) => (
-            <a key={g.title} href={g.href} className="game-thumb min-h-[190px] p-5 flex flex-col justify-end">
-              <span className="thumb-bg" style={{ background: g.gradient }} aria-hidden="true" />
-              <span className={`thumb-badge ${g.badgeClass}`}>{g.badge}</span>
-              <g.Icon className="text-gold mb-3" size={26} strokeWidth={1.8} />
-              <h3 className="font-display text-xl font-semibold mb-1">{g.title}</h3>
-              <p className="text-xs text-ink-muted leading-relaxed">{g.text}</p>
-            </a>
+            <GameCover key={g.href} href={g.href} cover={g.cover} title={g.title} flag={g.flag} variant="poster" />
           ))}
         </div>
       </section>
