@@ -18,6 +18,7 @@ import GameCover from "@/components/GameCover";
 
 const GAMES = [
   { href: "/jouer?play=1", title: "Blind Test", cover: "/jeux/blind-test.png", flag: null },
+  { href: "/jeux/artists-manager", title: "Artists Manager 26", cover: "/jeux/artists-manager.svg", flag: "Nouveau" },
   { href: "/jeux/tracklist", title: "La Tracklist", cover: "/jeux/tracklist.png", flag: "Défi du jour" },
   { href: "/jeux/plus-haut", title: "Plus Haut, Plus Bas", cover: "/jeux/plus-haut.png", flag: null },
   { href: "/jeux/tribunal", title: "Le Tribunal", cover: "/jeux/tribunal.png", flag: "Vote du jour" },

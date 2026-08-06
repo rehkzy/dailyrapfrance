@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, Headphones, ChevronDown, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, Headphones, Briefcase, ChevronDown, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import { Menu, MenuItem, MenuLink, ProductItem } from "@/components/ui/navbar-menu";
@@ -22,6 +22,7 @@ const SIMPLE_LINKS = [
 const MOBILE_GAMES = [
   { href: "/jouer", label: "Tous les jeux", Icon: Gamepad2 },
   { href: "/jouer?play=1", label: "Blind Test", Icon: Headphones },
+  { href: "/jeux/artists-manager", label: "Artists Manager 26", Icon: Briefcase },
   { href: "/jeux/tracklist", label: "La Tracklist", Icon: CalendarDays },
   { href: "/jeux/plus-haut", label: "Plus Haut, Plus Bas", Icon: TrendingUp },
   { href: "/jeux/tribunal", label: "Le Tribunal", Icon: Scale },
@@ -40,6 +41,7 @@ const ALL_GAMES_PREVIEW =
 // Aceternity ProductItem.
 const GAME_PREVIEWS = [
   { title: "Tous les jeux", href: "/jouer", src: ALL_GAMES_PREVIEW, description: "Le hub avec l'arcade complète" },
+  { title: "Artists Manager 26", href: "/jeux/artists-manager", src: "/jeux/artists-manager.svg", description: "Gère ton label, signe des talents" },
   { title: "Blind Test", href: "/jouer?play=1", src: "/jeux/blind-test.png", description: "Reconnais les sons du rap français" },
   { title: "La Tracklist", href: "/jeux/tracklist", src: "/jeux/tracklist.png", description: "Le morceau mystère du jour" },
   { title: "Plus Haut, Plus Bas", href: "/jeux/plus-haut", src: "/jeux/plus-haut.png", description: "Qui stream le plus ?" },
