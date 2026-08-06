@@ -1226,13 +1226,13 @@ input[type="range"].brand-slider::-moz-range-track {
   gap: 10px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  /* Marge haut/bas généreuse — indispensable : dès que overflow-x n'est pas "visible",
-     la spec CSS force overflow-y à "auto" aussi (même sans le déclarer), donc cette
-     rangée découpe verticalement tout ce qui dépasse sa hauteur de repos. Sans cette
-     marge, la carte agrandie au survol (et son badge tout en bas) se retrouvaient
-     rognés par ce clip vertical involontaire.
-     -webkit-overflow-scrolling: touch garantit un scroll fluide sur iOS malgré ce padding. */
-  padding: 18px 0 26px;
+  /* padding-top/bottom (PAS le raccourci "padding: X 0 Y" — ça mettait gauche/droite à
+     0 et écrasait le px-6 posé côté JSX, d'où le survol coupé à gauche) : indispensable
+     car dès que overflow-x n'est pas "visible", la spec CSS force overflow-y à "auto"
+     aussi (même sans le déclarer), donc cette rangée découpe verticalement tout ce qui
+     dépasse sa hauteur de repos — la carte agrandie au survol et son badge. */
+  padding-top: 18px;
+  padding-bottom: 26px;
   -ms-overflow-style: none;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -1279,19 +1279,20 @@ input[type="range"].brand-slider::-moz-range-track {
 .nf-rank-item .nf-card { z-index: 1; width: 150px; aspect-ratio: 2 / 3; }
 @media (min-width: 640px) { .nf-rank-item .nf-card { width: 170px; } }
 
-/* Badge rouge en bas de carte — "Ajout récent" / "Défi du jour" Netflix. */
+/* Badge rouge — "Défi du jour" / "Vote du jour". En haut à droite (sous le logo à
+   gauche) pour ne jamais chevaucher le titre en bas de carte. */
 .nf-flag {
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 10px;
+  right: 10px;
   background: #f0001c;
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 3px 3px 0 0;
+  padding: 4px 9px;
+  border-radius: 999px;
   white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(240, 0, 28, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1337,28 +1338,40 @@ input[type="range"].brand-slider::-moz-range-track {
 }
 .cover-logo {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 16px;
+  top: 10px;
+  left: 10px;
+  width: 26px;
   height: auto;
-  opacity: 0.85;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
 }
 .cover-title {
   position: absolute;
   left: 10px;
   right: 10px;
   bottom: 8px;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 12.5px;
-  line-height: 1.25;
+  font-family: var(--font-impact);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-size: 15px;
+  line-height: 1.15;
   color: #f5e8e8;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 .cover-title-lg {
-  font-size: 15px;
+  font-size: 19px;
   left: 14px;
   right: 14px;
   bottom: 12px;
+}
+
+/* Panneau des menus déroulants (navbar-menu.tsx) — noir renforcé et flou plus poussé
+   que .glass-strong standard, pour rester lisible même par-dessus un fond chargé
+   (titre de page, image de couverture...) derrière lui. */
+.nav-panel {
+  background: rgba(6, 4, 4, 0.97);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 24px 60px -12px rgba(0, 0, 0, 0.8);
 }

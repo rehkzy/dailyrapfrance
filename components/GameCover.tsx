@@ -5,6 +5,20 @@
  * le logo en dur — tout est posé en code, ce qui permet de réutiliser le MÊME visuel en
  * portrait (.nf-poster) et en paysage (.nf-card) sans dupliquer les fichiers avec texte.
  */
+
+// "Plus Haut, Plus Bas" — traitement spécial : des "+" en rouge (couleur charte) à la
+// place du mot "Plus", pour coller à l'esprit de la cover d'origine (triangles haut/bas).
+function renderCoverTitle(title: string) {
+  if (title === "Plus Haut, Plus Bas") {
+    return (
+      <>
+        <span className="text-gold">+</span> Haut, <span className="text-gold">+</span> Bas
+      </>
+    );
+  }
+  return title;
+}
+
 export default function GameCover({
   href,
   cover,
@@ -29,7 +43,9 @@ export default function GameCover({
     >
       <img src="/icon.svg" alt="" aria-hidden="true" className="cover-logo" />
       {flag && <span className="nf-flag">{flag}</span>}
-      <span className={variant === "card" ? "cover-title cover-title-lg" : "cover-title"}>{title}</span>
+      <span className={variant === "card" ? "cover-title cover-title-lg" : "cover-title"}>
+        {renderCoverTitle(title)}
+      </span>
     </a>
   );
 }

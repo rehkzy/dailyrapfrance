@@ -69,7 +69,7 @@ export function MenuItem({
         // (sur le panneau interne ci-dessous, qui n'a pas besoin de translateX), le
         // panneau reste centré du premier au dernier instant.
         <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3">
-          <div className="glass-strong rounded-2xl border border-white/10 p-4 shadow-2xl min-w-[220px] solved-pop">
+          <div className="nav-panel rounded-2xl p-4 solved-pop min-w-[220px]">
             {children}
           </div>
         </div>
