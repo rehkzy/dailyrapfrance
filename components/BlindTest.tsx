@@ -16,6 +16,7 @@ import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
 import { speedBonus } from "@/lib/scoring";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel, QCM_STAGE_PROMPTS } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
 import Magnetic from "@/components/Magnetic";
@@ -660,9 +661,9 @@ export default function BlindTest() {
     };
   }, [immersive]);
 
-  const scrollYRef = useRef(0);
   useEffect(() => {
     const locked = phase === "playing";
+    if (!locked) return; // rien à verrouiller, rien à nettoyer
 
     const resetGhostScroll = () => {
       const ae = document.activeElement as HTMLElement | null;
@@ -678,39 +679,21 @@ export default function BlindTest() {
       setTimeout(resetGhostScroll, 60);
     };
 
-    if (locked) {
-      scrollYRef.current = window.scrollY;
-      document.body.classList.add("game-scroll-lock");
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${scrollYRef.current}px`;
-      document.body.style.left = "0";
-      document.body.style.right = "0";
-      document.body.style.width = "100%";
-      window.__lenis?.stop();
-      window.addEventListener("focusout", onFocusOut);
-      window.visualViewport?.addEventListener("resize", resetGhostScroll);
-    } else {
-      document.body.classList.remove("game-scroll-lock");
-      const y = scrollYRef.current;
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.width = "";
-      if (y) window.scrollTo(0, y);
-      window.__lenis?.start();
-      window.removeEventListener("focusout", onFocusOut);
-      window.visualViewport?.removeEventListener("resize", resetGhostScroll);
-    }
+    document.body.classList.add("game-scroll-lock");
+    lockScroll();
+    window.__lenis?.stop();
+    window.addEventListener("focusout", onFocusOut);
+    window.visualViewport?.addEventListener("resize", resetGhostScroll);
+
+    // Un seul chemin de nettoyage — appelé automatiquement par React à la fois quand
+    // `phase` change ET au démontage, donc un unlockScroll() pour un lockScroll(),
+    // jamais plus (l'ancienne version avait un risque de double-décompte : la branche
+    // "else" ET le cleanup pouvaient tous deux se déclencher pour le même verrou).
     return () => {
       window.removeEventListener("focusout", onFocusOut);
       window.visualViewport?.removeEventListener("resize", resetGhostScroll);
       document.body.classList.remove("game-scroll-lock");
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.width = "";
+      unlockScroll();
       window.__lenis?.start();
     };
   }, [phase]);

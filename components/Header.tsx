@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, Headphones, ChevronDown, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import { Menu, MenuItem, MenuLink, ProductItem } from "@/components/ui/navbar-menu";
+import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 // Liens simples du tiroir mobile (hors jeux, qui sont regroupés à part ci-dessous).
 const SIMPLE_LINKS = [
@@ -252,33 +253,15 @@ export default function Header() {
   // mobile, qui a son propre état `open`.
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const pathname = usePathname();
-  const scrollYRef = useRef(0);
 
-  // Verrouillage du scroll en arrière-plan — la technique fiable sur iOS Safari.
+  // Verrouillage du scroll en arrière-plan — verrou partagé (compteur de références,
+  // voir lib/scrollLock.ts) : évite les conflits avec un autre verrou actif ailleurs
+  // sur le site (ex. une manche de blind test en cours) qui s'écrasaient l'un l'autre.
   useEffect(() => {
     if (open) {
-      scrollYRef.current = window.scrollY;
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${scrollYRef.current}px`;
-      document.body.style.left = "0";
-      document.body.style.right = "0";
-      document.body.style.width = "100%";
-    } else {
-      const y = scrollYRef.current;
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.width = "";
-      if (y) window.scrollTo(0, y);
+      lockScroll();
+      return () => unlockScroll();
     }
-    return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.width = "";
-    };
   }, [open]);
 
   // Ferme le tiroir automatiquement si on navigue autrement
@@ -287,7 +270,7 @@ export default function Header() {
   }, [pathname]);
 
   return (
-    <header className="glass sticky top-0 z-50 rounded-none">
+    <header className="nav-panel sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <a href="/" className="flex items-center gap-3 shrink-0 group/logo" onClick={() => setOpen(false)}>
           <img
