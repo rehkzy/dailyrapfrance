@@ -1291,3 +1291,30 @@ input[type="range"].brand-slider::-moz-range-track {
   .nf-card { transition: none; }
   .nf-card:hover { transform: none; }
 }
+
+/* Carte-affiche — variante portrait de .nf-card pour les covers de jeux (format 3:4
+   des visuels fournis). L'image remplit toute la carte, le zoom au survol reste le même. */
+.nf-poster {
+  position: relative;
+  width: 150px;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background-size: cover;
+  background-position: center;
+  isolation: isolate;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease;
+}
+.nf-poster:hover {
+  transform: scale(1.06);
+  border-color: rgba(240, 0, 28, 0.6);
+  z-index: 2;
+}
+@media (min-width: 640px) { .nf-poster { width: 190px; } }
+.nf-rank-item .nf-poster { z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-poster { transition: none; }
+  .nf-poster:hover { transform: none; }
+}
