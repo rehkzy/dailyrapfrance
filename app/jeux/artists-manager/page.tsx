@@ -124,7 +124,7 @@ function SectionCard({ title, icon, action, children }: { title: string; icon: R
   );
 }
 
-// ---------- Onboarding (création de carrière façon FM) ----------
+// ---------- Onboarding (création de carrière) ----------
 
 function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   const [step, setStep] = useState(0);
@@ -149,7 +149,7 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
 
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-2">Artists Manager 2026</p>
       <h1 className="font-impact text-3xl uppercase mb-1">Nouvelle carrière</h1>
-      <p className="text-sm text-ink-muted mb-6">Crée ton identité de manager avant de te lancer — comme dans FM.</p>
+      <p className="text-sm text-ink-muted mb-6">Crée ton identité de manager avant de te lancer.</p>
 
       <div className="flex items-center gap-2 mb-8">
         {STEPS.map((label, i) => (
@@ -653,7 +653,7 @@ export default function ArtistsManagerPage() {
         <Tutorial profile={profile} onDone={() => update({ ...state, tutorialDone: true })} />
       )}
 
-      {/* ===== Barre du haut façon FM : identité du label · semaine · CONTINUER ===== */}
+      {/* ===== Barre du haut : identité du label · semaine · CONTINUER ===== */}
       <div className="sticky top-16 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 nav-panel flex items-center gap-3">
         <a href="/jouer" aria-label="Tous les jeux" className="shrink-0 text-ink-faint hover:text-ink">
           <ArrowLeft size={18} />
@@ -672,7 +672,7 @@ export default function ArtistsManagerPage() {
         </BorderMagicButton>
       </div>
 
-      {/* ===== Sidebar FM (desktop) + colonne de contenu ===== */}
+      {/* ===== Sidebar (desktop) + colonne de contenu ===== */}
       <div className="lg:flex lg:gap-6 lg:items-start">
         <aside className="hidden lg:block w-52 shrink-0 sticky top-[7.25rem] self-start pt-4">
           <nav className="glass-strong rounded-2xl py-2 overflow-hidden">
@@ -934,7 +934,7 @@ export default function ArtistsManagerPage() {
             </SectionCard>
           )}
 
-          {/* Checklist premiers pas — façon tâches FM, disparaît une fois complétée */}
+          {/* Checklist premiers pas — disparaît une fois complétée */}
           {!allStepsDone && (
             <SectionCard title="Premiers pas" icon={<CheckCircle2 size={11} />}>
               <div className="space-y-2">
