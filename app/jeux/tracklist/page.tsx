@@ -56,7 +56,9 @@ export default function TracklistPage() {
   redirect("/jeux/bientot?titre=La%20Tracklist");
 }
 
-export function TracklistPageReal() {
+void TracklistPageReal; // référencé pour éviter un avertissement de build (non appelé)
+
+function TracklistPageReal() {
   const [daily, setDaily] = useState<Daily | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [state, setState] = useState<SavedState | null>(null);

@@ -23,7 +23,9 @@ export default function PronosPage() {
 type ChartTrack = { id: string; title: string; artist: string; cover: string };
 type Pick = { id: string; title: string; artist: string };
 
-export function PronosPageReal() {
+void PronosPageReal; // référencé pour éviter un avertissement de build (non appelé)
+
+function PronosPageReal() {
   const [chart, setChart] = useState<ChartTrack[]>([]);
   const [week, setWeek] = useState("");
   const [myPicks, setMyPicks] = useState<Pick[] | null>(null);

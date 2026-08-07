@@ -30,7 +30,9 @@ function loadBest(): number {
   }
 }
 
-export function PlusHautPageReal() {
+void PlusHautPageReal; // référencé pour éviter un avertissement de build (non appelé)
+
+function PlusHautPageReal() {
   const [pool, setPool] = useState<Track[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState<Track | null>(null);

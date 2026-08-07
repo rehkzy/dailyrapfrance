@@ -25,7 +25,9 @@ export default function TribunalPage() {
   redirect("/jeux/bientot?titre=Le%20Tribunal");
 }
 
-export function TribunalPageReal() {
+void TribunalPageReal; // référencé pour éviter un avertissement de build (non appelé)
+
+function TribunalPageReal() {
   const [duel, setDuel] = useState<Duel | null>(null);
   const [votes, setVotes] = useState<{ a: number; b: number }>({ a: 0, b: 0 });
   const [myVote, setMyVote] = useState<"a" | "b" | null>(null);
