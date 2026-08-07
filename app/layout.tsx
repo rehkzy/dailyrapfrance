@@ -11,11 +11,11 @@ import ActivityTracker from "@/components/ActivityTracker";
 export const metadata: Metadata = {
   metadataBase: new URL("https://dailyrapfrance.best"),
   title: {
-    default: "DailyRapFrance — Blind Test Rap Français & média rap FR",
+    default: "DailyRapFrance — L'arcade de jeux rap français",
     template: "%s",
   },
   description:
-    "Le blind test rap français n°1 : gratuit, en ligne, solo ou multijoueur. Défi du jour, classement, thèmes par époque et par artiste. Par DailyRapFrance, média indépendant du rap FR depuis 2020.",
+    "L'arcade de jeux rap français : blind test rap français n°1 (gratuit, solo ou multijoueur) et Artists Manager 2026, le jeu de gestion pour diriger ton label. Par DailyRapFrance, média indépendant du rap FR depuis 2020.",
   keywords: [
     "blind test rap français",
     "blind test rap",
@@ -23,6 +23,9 @@ export const metadata: Metadata = {
     "jeu rap français",
     "blind test en ligne gratuit",
     "blind test multijoueur",
+    "jeu de gestion rap",
+    "artists manager",
+    "arcade rap français",
     "rap fr",
   ],
   icons: {
@@ -32,14 +35,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Blind Test",
+    title: "DailyRapFrance",
   },
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "DailyRapFrance — Blind Test Rap Français",
-    description: "Le blind test rap français : gratuit, solo ou entre potes. Défi du jour et classement.",
+    title: "DailyRapFrance — L'arcade de jeux rap français",
+    description: "Blind test rap français et Artists Manager 2026 : l'arcade de jeux rap français s'agrandit. Gratuit, en ligne, solo ou entre potes.",
     siteName: "DailyRapFrance",
     locale: "fr_FR",
     type: "website",
@@ -47,13 +50,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "DailyRapFrance — Blind Test Rap Français",
-    description: "Le blind test rap français : gratuit, solo ou entre potes.",
+    title: "DailyRapFrance — L'arcade de jeux rap français",
+    description: "Blind test rap français et Artists Manager 2026 : l'arcade de jeux rap français s'agrandit.",
   },
 };
 
 // Données structurées globales — aident Google à afficher le site comme une entité
-// (sitelinks, knowledge panel) et à comprendre le champ lexical "blind test rap français".
+// (sitelinks, knowledge panel) et à comprendre le champ lexical du site : blind test
+// rap français ET arcade de jeux rap (Artists Manager 2026 et la suite).
 const JSONLD_SITE = {
   "@context": "https://schema.org",
   "@graph": [
@@ -62,7 +66,7 @@ const JSONLD_SITE = {
       "@id": "https://dailyrapfrance.best/#website",
       url: "https://dailyrapfrance.best",
       name: "DailyRapFrance",
-      description: "Blind test rap français en ligne et média du rap FR.",
+      description: "Arcade de jeux rap français (blind test, Artists Manager 2026...) et média du rap FR.",
       inLanguage: "fr-FR",
     },
     {
