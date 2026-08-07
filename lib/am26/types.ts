@@ -118,7 +118,42 @@ export type Release = {
   totalStreams: number;
   weeksOut: number;
   radioPlays: number; // passages radio hebdo (rémunération équitable + boost de streams)
+  expected: number;   // prévision de démarrage annoncée à la sortie (suspense S+1)
+  certified: "or" | "platine" | "diamant" | null; // dernier palier atteint
 };
+
+// Objectifs de saison — arcs à deadline avec récompense (aides, synchro...).
+// Inspirés des vrais leviers de financement du secteur en France.
+export type Objective = {
+  id: string;
+  label: string;
+  desc: string;
+  metric: "streams" | "reputation" | "certifs";
+  target: number;
+  deadlineWeek: number;
+  reward: number;       // € versés si atteint avant la deadline
+  rewardLabel: string;  // ex : "Aide à la création (CNM)"
+  status: "active" | "done" | "failed";
+};
+
+// Dilemmes de l'industrie — dossiers à trancher (2 options, vrais arbitrages).
+export type ChoiceEvent = {
+  id: string;
+  kind: "brand" | "playlist" | "advance" | "feat";
+  refId: string | null; // id de la sortie ou de l'artiste concerné
+  createdWeek: number;
+  expiresWeek: number;
+  title: string;
+  body: string;
+  optionA: string;      // libellé du choix A (l'accepter)
+  optionB: string;      // libellé du choix B (refuser / alternative)
+};
+
+// Avance distributeur : cash immédiat contre une part du streaming pendant N semaines.
+export type AdvanceDeal = { weeksLeft: number; share: number };
+
+// Certification obtenue (palmarès carrière — survit à la vente du catalogue).
+export type Certification = { title: string; artistName: string; level: "or" | "platine" | "diamant"; week: number };
 
 // ---------- Monde vivant ----------
 
@@ -199,6 +234,10 @@ export type GameState = {
   loan: Loan | null;
   lastWeekIncome: IncomeBreakdown;
   pendingConcertIncome: number;   // cachets encaissés depuis la dernière avancée
+  objectives: Objective[];        // arcs de saison (aides, synchro, bonus)
+  pendingChoices: ChoiceEvent[];  // dilemmes à trancher (max 1 actif)
+  advanceDeal: AdvanceDeal | null; // avance distributeur en cours de remboursement
+  certifications: Certification[]; // palmarès carrière
   prevChartOrder: string[];
   totalReleases: number;
   totalStreamsAllTime: number;

@@ -46,10 +46,11 @@ export function makeArtist(usedNames: Set<string>, scoutBonus = 0): Artist {
     plume,
     charisme: ri(5 + talent * 8, 10 + talent * 10),
     hype: ri(5, 30),
-    // Avance mensuelle (€/mois) et prime de signature — ordres de grandeur d'un
-    // label indé français pour un artiste en développement.
-    salary: Math.round(ri(700 + talent * 900, 1100 + talent * 1600) / 50) * 50,
-    signingFee: Math.round(ri(2000 + talent * 5000, 4000 + talent * 9000) / 100) * 100,
+    // Avance mensuelle (€/mois) et prime de signature — échelle "artiste en
+    // développement" d'un label indé : signer doit rester accessible, c'est
+    // développer qui coûte.
+    salary: Math.round(ri(400 + talent * 500, 600 + talent * 900) / 50) * 50,
+    signingFee: Math.round(ri(800 + talent * 2200, 1500 + talent * 3500) / 100) * 100,
     potential,
     shownPotential: fuzzyRange(potential, 20),
   };

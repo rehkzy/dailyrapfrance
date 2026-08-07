@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight,
   RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle,
   MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart, Briefcase,
-  Mic2, AlertCircle, XCircle, Handshake, Sparkles,
+  Mic2, AlertCircle, XCircle, Handshake, Sparkles, Target, Trophy,
 } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
@@ -22,7 +22,8 @@ import {
   acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistContractValue,
   budgetTotalCost, catalogValue, computeArtistChart, computeLabelChart, computeProductionStats,
   computeProjectChart, declineConcert, declineCounter, fireStaff, fmt, initialState, load,
-  makeOffer, persist, sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
+  makeOffer, persist, resolveChoice, sellArtistContract, sellCatalog, staffByRole,
+  staffMonthlyCost, takeLoan,
 } from "@/lib/am26/engine";
 
 /*
@@ -586,7 +587,14 @@ export default function ArtistsManagerPage() {
 
   const counteredNegos = state.negotiations.filter((n) => n.status === "countered");
   const pendingNegos = state.negotiations.filter((n) => n.status === "pending");
-  const todoCount = state.concertOffers.length + counteredNegos.length;
+  const todoCount = state.concertOffers.length + counteredNegos.length + state.pendingChoices.length;
+  // Objectif de saison en cours (le premier encore actif) — le fil rouge.
+  const activeObjective = state.objectives.find((o) => o.status === "active") ?? null;
+  const objectiveValue = activeObjective
+    ? activeObjective.metric === "streams" ? state.totalStreamsAllTime
+      : activeObjective.metric === "reputation" ? Math.round(state.reputation)
+      : state.certifications.length
+    : 0;
 
   // Checklist "Premiers pas" — auto-cochée selon la progression réelle
   const firstSteps = [
@@ -746,6 +754,34 @@ export default function ArtistsManagerPage() {
           {todoCount > 0 && (
             <SectionCard title={`À traiter (${todoCount})`} icon={<AlertCircle size={11} />}>
               <div className="space-y-3">
+                {state.pendingChoices.map((c) => (
+                  <div key={c.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
+                        <Sparkles size={13} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{c.title}</p>
+                        <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">{c.body}</p>
+                        <p className="font-mono text-[9px] text-ink-faint mt-1 uppercase">Expire semaine {c.expiresWeek}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2.5">
+                      <button
+                        onClick={() => { sfx.correct(); update(resolveChoice(state, c.id, "a")); }}
+                        className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
+                      >
+                        {c.optionA}
+                      </button>
+                      <button
+                        onClick={() => { sfx.click(); update(resolveChoice(state, c.id, "b")); }}
+                        className="rounded-xl px-4 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors"
+                      >
+                        {c.optionB}
+                      </button>
+                    </div>
+                  </div>
+                ))}
                 {state.concertOffers.map((o) => (
                   <div key={o.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                     <div className="flex items-start gap-2.5">
@@ -809,6 +845,33 @@ export default function ArtistsManagerPage() {
                   );
                 })}
               </div>
+            </SectionCard>
+          )}
+
+          {/* Objectif de saison — le fil rouge : une cible, une deadline, une
+              récompense inspirée des vrais leviers du secteur (CNM, synchro...). */}
+          {activeObjective && (
+            <SectionCard title="Objectif de saison" icon={<Target size={11} />}>
+              <p className="text-sm font-medium">{activeObjective.label}</p>
+              <p className="text-xs text-ink-muted mt-1 leading-relaxed">{activeObjective.desc}</p>
+              <div className="flex items-center gap-3 mt-3">
+                <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(100, Math.round((objectiveValue / activeObjective.target) * 100))}%`,
+                      background: `linear-gradient(90deg, #7A0F0F, ${accent})`,
+                    }}
+                  />
+                </div>
+                <span className="font-mono text-[11px] text-ink-muted shrink-0">
+                  {fmt(objectiveValue)} / {fmt(activeObjective.target)}
+                </span>
+              </div>
+              <p className="font-mono text-[10px] text-ink-faint mt-2">
+                Avant la semaine {activeObjective.deadlineWeek} ({Math.max(0, activeObjective.deadlineWeek - state.week)} restantes) ·
+                récompense : <span className="text-risePos">+{fmt(activeObjective.reward)} €</span> ({activeObjective.rewardLabel})
+              </p>
             </SectionCard>
           )}
 
@@ -1588,6 +1651,11 @@ export default function ArtistsManagerPage() {
                     <p className="font-mono text-[10px] uppercase text-ink-faint">Total semaine</p>
                     <span className="font-impact text-lg text-risePos">+{fmt(total)} €</span>
                   </div>
+                  {state.advanceDeal && (
+                    <p className="font-mono text-[10px] text-riseNeg mt-2">
+                      Avance distributeur en cours : {Math.round(state.advanceDeal.share * 100)} % du streaming retenus encore {state.advanceDeal.weeksLeft} semaine{state.advanceDeal.weeksLeft > 1 ? "s" : ""}.
+                    </p>
+                  )}
                 </div>
               );
             })()}
@@ -1741,6 +1809,30 @@ export default function ArtistsManagerPage() {
               </div>
             ))}
           </div>
+
+          <SectionCard title="Palmarès — certifications" icon={<Trophy size={11} />}>
+            {state.certifications.length === 0 ? (
+              <p className="text-sm text-ink-faint">
+                Aucune certification pour l'instant — 500 000 streams cumulés sur une sortie = single d'or. À toi de jouer.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {[...state.certifications].reverse().map((c, i) => (
+                  <div key={`${c.title}-${c.level}-${i}`} className="flex items-center justify-between gap-3">
+                    <p className="text-sm truncate min-w-0">
+                      {c.level === "or" ? "🥇" : c.level === "platine" ? "💿" : "💎"} « {c.title} » — {c.artistName}
+                    </p>
+                    <span className="font-mono text-[10px] text-ink-faint uppercase shrink-0">
+                      {c.level} · S{c.week}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[11px] text-ink-faint font-mono mt-3">
+              Or : 500 k · Platine : 1,5 M · Diamant : 4 M streams cumulés. (En vrai en France : 15 M / 30 M / 50 M d'équivalents streams.)
+            </p>
+          </SectionCard>
 
           <SectionCard title="Réputation du label" icon={<Star size={11} />}>
             <div className="flex items-center gap-3">

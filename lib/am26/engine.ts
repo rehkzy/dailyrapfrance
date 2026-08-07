@@ -9,11 +9,11 @@
  */
 
 import type {
-  Artist, BudgetKey, BudgetOption, ChartEntry, ConcertOffer, GameState,
-  LabelChartEntry, Negotiation, Person, Project, ProjectChartEntry, Release, StaffRole,
+  Artist, BudgetKey, BudgetOption, ChartEntry, ChoiceEvent, ConcertOffer, GameState,
+  LabelChartEntry, Negotiation, Objective, Person, Project, ProjectChartEntry, Release, StaffRole,
 } from "./types";
 import {
-  BUDGET_PRESETS, DROITS_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
+  BUDGET_PRESETS, CERT_LEVELS, DROITS_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
   MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, RADIO_RATE, SAVE_KEY,
   SAVE_VERSION, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH,
   STREAM_RATE, TYPE_META, VENUES,
@@ -189,6 +189,38 @@ function generateConcertOffers(s: GameState) {
 
 // ---------- Sauvegarde ----------
 
+// Objectifs de la saison — un fil rouge avec des vraies références du secteur
+// (aides du CNM, synchro, bonus distributeur). Récompense si atteint AVANT la
+// deadline ; sinon, l'occasion passe.
+function makeObjectives(): Objective[] {
+  return [
+    {
+      id: "obj-1", label: "Premier cap : 250 000 streams cumulés", metric: "streams", target: 250000,
+      deadlineWeek: 13, reward: 6000, rewardLabel: "Aide à la création (CNM)",
+      desc: "Le Centre national de la musique soutient les labels qui font leurs preuves. Montre que tu sais sortir un projet qui compte.",
+      status: "active",
+    },
+    {
+      id: "obj-2", label: "Faire un nom : réputation 40", metric: "reputation", target: 40,
+      deadlineWeek: 26, reward: 5000, rewardLabel: "Subvention de structuration",
+      desc: "Un label crédible attire les aides et les partenaires. Presse, classements, régularité : tout compte.",
+      status: "active",
+    },
+    {
+      id: "obj-3", label: "Changer d'échelle : 1 000 000 de streams cumulés", metric: "streams", target: 1000000,
+      deadlineWeek: 39, reward: 8000, rewardLabel: "Synchro pub / série",
+      desc: "Les superviseurs musicaux cherchent des catalogues qui tournent. Le million ouvre les portes des synchros.",
+      status: "active",
+    },
+    {
+      id: "obj-4", label: "Consécration : 2 certifications", metric: "certifs", target: 2,
+      deadlineWeek: 52, reward: 10000, rewardLabel: "Bonus distributeur",
+      desc: "Deux singles certifiés dans l'année : ton distributeur récompense les labels qui livrent des hits.",
+      status: "active",
+    },
+  ];
+}
+
 export function initialState(): GameState {
   const used = new Set<string>();
   return {
@@ -211,6 +243,10 @@ export function initialState(): GameState {
     loan: null,
     lastWeekIncome: { streaming: 0, droits: 0, radio: 0, concerts: 0 },
     pendingConcertIncome: 0,
+    objectives: makeObjectives(),
+    pendingChoices: [],
+    advanceDeal: null,
+    certifications: [],
     prevChartOrder: [],
     totalReleases: 0,
     totalStreamsAllTime: 0,
@@ -338,8 +374,12 @@ export function advanceWeek(prev: GameState): GameState {
       if (artist) {
         const proj = s.project;
         const trendMult = s.trends[artist.style] ?? 1;
+        // Prévision "des pros" : ce que le projet devrait faire sur le papier.
+        // La tendance, l'aléa et la presse feront la vraie histoire — suspense
+        // révélé au premier bilan, la semaine suivante.
+        const expected = Math.round(proj.quality * 2800 * proj.reach * proj.adsMult + artist.hype * 2200 * proj.reach);
         let initialStreams = Math.round(
-          (proj.quality * 900 * proj.reach * proj.adsMult + artist.hype * 700 * proj.reach + rnd(0, 10000)) * trendMult
+          (proj.quality * 2800 * proj.reach * proj.adsMult + artist.hype * 2200 * proj.reach + rnd(0, 25000)) * trendMult
         );
         const mediaHit = Math.random() < proj.mediaChance;
         if (mediaHit) {
@@ -366,12 +406,14 @@ export function advanceWeek(prev: GameState): GameState {
           totalStreams: 0,
           weeksOut: 0,
           radioPlays,
+          expected,
+          certified: null,
         });
         artist.hype = Math.min(100, artist.hype + proj.hypeBoost);
         s.totalReleases += 1;
         s.messages.unshift({
           id: nextId(), week: s.week, title: `Sortie : « ${proj.title} »`,
-          body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name} est dans les bacs${trendMult >= 1.2 ? ` — et le ${artist.style} est en pleine tendance, ça tombe bien` : trendMult <= 0.8 ? ` — mais le ${artist.style} n'a pas le vent en poupe en ce moment` : ""}. Premier bilan la semaine prochaine.`,
+          body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name} est dans les bacs${trendMult >= 1.2 ? ` — et le ${artist.style} est en pleine tendance, ça tombe bien` : trendMult <= 0.8 ? ` — mais le ${artist.style} n'a pas le vent en poupe en ce moment` : ""}. Les pros tablent sur ~${fmt(expected)} streams de démarrage. Verdict au premier bilan, la semaine prochaine.`,
         });
         if (mediaHit) {
           s.messages.unshift({
@@ -391,6 +433,7 @@ export function advanceWeek(prev: GameState): GameState {
   }
 
   // 3) Vie des sorties : streams, radio, revenus détaillés, déclin.
+  //    v9 : verdict du premier bilan (vs prévision) + certifications.
   let streamingRev = 0;
   let radioRev = 0;
   for (const r of s.releases) {
@@ -399,12 +442,67 @@ export function advanceWeek(prev: GameState): GameState {
     s.totalStreamsAllTime += r.weeklyStreams;
     streamingRev += r.weeklyStreams * STREAM_RATE;
     radioRev += r.radioPlays * RADIO_RATE;
+
+    // Premier bilan : la réalité face aux prévisions — le suspense de chaque sortie.
+    if (r.weeksOut === 1 && r.expected > 0) {
+      const ratio = r.weeklyStreams / r.expected;
+      if (ratio >= 1.25) {
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `« ${r.title} » explose les prévisions 🚀`,
+          body: `${fmt(r.weeklyStreams)} streams en première semaine, contre ~${fmt(r.expected)} attendus. ${r.artistName} fait taire tout le monde.`,
+        });
+        const a = s.roster.find((x) => x.id === r.artistId);
+        if (a) a.hype = Math.min(100, a.hype + 5);
+      } else if (ratio <= 0.7) {
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `Démarrage en demi-teinte pour « ${r.title} »`,
+          body: `${fmt(r.weeklyStreams)} streams en première semaine, loin des ~${fmt(r.expected)} espérés. Tendance défavorable ? Manque de visibilité ? À toi d'analyser.`,
+        });
+      } else {
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `Premier bilan : « ${r.title} »`,
+          body: `${fmt(r.weeklyStreams)} streams en première semaine — dans les clous des prévisions (~${fmt(r.expected)}).`,
+        });
+      }
+    }
+
+    // Certifications : chaque palier franchi entre au palmarès du label.
+    for (const cert of CERT_LEVELS) {
+      const already = CERT_LEVELS.findIndex((c) => c.level === r.certified);
+      const target = CERT_LEVELS.findIndex((c) => c.level === cert.level);
+      if (target > already && r.totalStreams >= cert.at) {
+        r.certified = cert.level;
+        s.certifications.push({ title: r.title, artistName: r.artistName, level: cert.level, week: s.week });
+        s.reputation = Math.min(100, s.reputation + cert.rep);
+        const a = s.roster.find((x) => x.id === r.artistId);
+        if (a) a.hype = Math.min(100, a.hype + 8);
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `${cert.emoji} « ${r.title} » certifié single ${cert.level === "or" ? "d'or" : cert.level === "platine" ? "de platine" : "de diamant"} !`,
+          body: `${fmt(cert.at)} streams cumulés — ${r.artistName} entre au palmarès du label. (En vrai, en France : or = 15 M d'équivalents streams — l'échelle du jeu est adaptée.) Réputation +${cert.rep}.`,
+        });
+      }
+    }
+
     // La radio entretient les streams (chaque passage expose la sortie),
     // puis la rotation s'érode naturellement.
     r.weeklyStreams = Math.round(r.weeklyStreams * r.retention) + r.radioPlays * 250;
     r.radioPlays = Math.floor(r.radioPlays * 0.78);
   }
   s.releases = s.releases.filter((r) => r.weeklyStreams > 200);
+  // Avance distributeur : une part du streaming part au distributeur.
+  let advanceNote = 0;
+  if (s.advanceDeal) {
+    advanceNote = Math.round(streamingRev * s.advanceDeal.share);
+    streamingRev -= advanceNote;
+    s.advanceDeal.weeksLeft -= 1;
+    if (s.advanceDeal.weeksLeft <= 0) {
+      s.advanceDeal = null;
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: "Avance distributeur soldée",
+        body: `La retenue sur tes revenus streaming prend fin — tu retouches 100 % de ton exploitation.`,
+      });
+    }
+  }
   // Droits voisins + édition : quote-part sur l'exploitation (streaming + radio).
   const droitsRev = (streamingRev + radioRev) * DROITS_RATE;
   const concertRev = s.pendingConcertIncome;
@@ -522,6 +620,37 @@ export function advanceWeek(prev: GameState): GameState {
   }
   s.concertOffers = s.concertOffers.filter((o) => o.expiresWeek >= s.week);
 
+  // 7bis) Dilemmes de l'industrie : parfois, une opportunité à double tranchant
+  //       se présente — placement de marque, pitch playlist, avance, feat.
+  //       Un seul dossier à la fois, il expire si tu ne tranches pas.
+  s.pendingChoices = s.pendingChoices.filter((c) => {
+    if (c.expiresWeek >= s.week) return true;
+    s.messages.unshift({
+      id: nextId(), week: s.week, title: "Opportunité expirée",
+      body: `« ${c.title} » n'a pas eu de réponse à temps — dans cette industrie, les portes ne restent pas ouvertes.`,
+    });
+    return false;
+  });
+  if (s.pendingChoices.length === 0 && Math.random() < 0.22) {
+    const kinds: ChoiceEvent["kind"][] = [];
+    if (s.releases.length > 0) {
+      kinds.push("brand", "playlist");
+      if (!s.advanceDeal) kinds.push("advance"); // pas deux avances en même temps
+    }
+    if (s.roster.length > 0) kinds.push("feat");
+    if (kinds.length > 0) {
+      const kind = pick(kinds);
+      const choice = makeChoiceEvent(s, kind);
+      if (choice) {
+        s.pendingChoices.push(choice);
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `📋 ${choice.title}`,
+          body: `Une décision t'attend sur le dashboard — l'offre expire semaine ${choice.expiresWeek}.`,
+        });
+      }
+    }
+  }
+
   // 8) Le monde vit : rivaux (signatures, sorties, débauchages) + tendances.
   tickWorld(s);
 
@@ -529,6 +658,29 @@ export function advanceWeek(prev: GameState): GameState {
   const myLabelStreams = s.releases.reduce((sum, r) => sum + r.weeklyStreams, 0);
   const beaten = s.rivals.filter((r) => myLabelStreams > rivalLabelStreams(r)).length;
   s.reputation = Math.max(0, Math.min(100, s.reputation + (beaten >= 5 ? 3 : beaten >= 2 ? 1 : myLabelStreams > 0 ? 0 : -1)));
+
+  // 9bis) Objectifs de saison : atteint avant la deadline → récompense versée ;
+  //       deadline dépassée → l'occasion est perdue (mais la saison continue).
+  for (const obj of s.objectives) {
+    if (obj.status !== "active") continue;
+    const value = obj.metric === "streams" ? s.totalStreamsAllTime
+      : obj.metric === "reputation" ? s.reputation
+      : s.certifications.length;
+    if (value >= obj.target) {
+      obj.status = "done";
+      s.cash += obj.reward;
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `🎯 Objectif atteint : ${obj.rewardLabel}`,
+        body: `${obj.label} — validé avant la semaine ${obj.deadlineWeek}. ${obj.rewardLabel} : +${fmt(obj.reward)} € versés au label. C'est comme ça qu'on structure une maison.`,
+      });
+    } else if (s.week > obj.deadlineWeek) {
+      obj.status = "failed";
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `Occasion manquée : ${obj.rewardLabel}`,
+        body: `${obj.label} n'a pas été atteint à temps — les ${fmt(obj.reward)} € te passent sous le nez. Le prochain objectif t'attend sur le dashboard.`,
+      });
+    }
+  }
 
   // 10) Marchés qui tournent : candidats staff (disponibilité limitée) et talents.
   //     v8 : la cellule A&R travaille le marché — estimations affinées, vivier
@@ -753,5 +905,118 @@ export function sellCatalog(s: GameState, releaseId: string): GameState {
     id: nextId(), week: next.week, title: `Catalogue cédé : « ${release.title} »`,
     body: `Les droits de « ${release.title} » (${release.artistName}) sont vendus ${fmt(value)} €. Les revenus futurs de cette sortie ne te reviennent plus.`,
   });
+  return next;
+}
+
+// ---------- Dilemmes de l'industrie ----------
+
+// Chaque dilemme apprend un vrai mécanisme du secteur : placement de marque,
+// pitch playlist payant, avance distributeur, featuring inter-labels.
+function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"]): ChoiceEvent | null {
+  const base = { id: nextId(), kind, createdWeek: s.week, expiresWeek: s.week + 2 };
+  if (kind === "brand" || kind === "playlist" || kind === "advance") {
+    const release = s.releases[0];
+    if (!release) return null;
+    if (kind === "brand") {
+      return {
+        ...base, refId: release.artistId,
+        title: `Placement de produit pour ${release.artistName}`,
+        body: `Une marque de streetwear propose 4 000 € pour apparaître dans les prochains contenus de ${release.artistName}. Le cachet est réel — l'effet sur l'image aussi.`,
+        optionA: "Accepter (+4 000 €, image écornée)",
+        optionB: "Refuser (crédibilité préservée)",
+      };
+    }
+    if (kind === "playlist") {
+      return {
+        ...base, refId: release.id,
+        title: `Pitch playlist pour « ${release.title} »`,
+        body: `Un pitcheur indépendant propose de présenter « ${release.title} » aux gros curateurs de playlists pour 500 €. Aucun résultat garanti — c'est la règle du jeu du pitch.`,
+        optionA: "Payer le pitch (-500 €, résultat incertain)",
+        optionB: "Décliner",
+      };
+    }
+    return {
+      ...base, refId: null,
+      title: "Avance distributeur",
+      body: `Ton distributeur propose 3 000 € d'avance immédiate contre 20 % de tes revenus streaming pendant 8 semaines. Du cash tout de suite, moins de marge demain — le grand classique du secteur.`,
+      optionA: "Prendre l'avance (+3 000 €)",
+      optionB: "Garder ses marges",
+    };
+  }
+  // feat
+  const artist = pick(s.roster);
+  if (!artist) return null;
+  const rival = pick(s.rivals);
+  return {
+    ...base, refId: artist.id,
+    title: `Featuring proposé à ${artist.name}`,
+    body: `L'équipe d'un artiste de ${rival.name} propose un feat à ${artist.name} : 1 200 € de frais de session, exposition croisée des deux fanbases à la clé.`,
+    optionA: "Financer le feat (-1 200 €, hype)",
+    optionB: "Passer son tour",
+  };
+}
+
+export function resolveChoice(s: GameState, choiceId: string, option: "a" | "b"): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  const choice = next.pendingChoices.find((c) => c.id === choiceId);
+  if (!choice) return next;
+  next.pendingChoices = next.pendingChoices.filter((c) => c.id !== choiceId);
+
+  if (choice.kind === "brand") {
+    const artist = next.roster.find((a) => a.id === choice.refId);
+    if (option === "a") {
+      next.cash += 4000;
+      if (artist) artist.hype = Math.max(0, artist.hype - 6);
+      next.reputation = Math.max(0, next.reputation - 2);
+      next.messages.unshift({
+        id: nextId(), week: next.week, title: "Le placement fait jaser",
+        body: `+4 000 € encaissés... mais une partie du public trouve ça « vendu ». Hype et réputation en prennent un peu. L'argent des marques n'est jamais gratuit.`,
+      });
+    } else {
+      if (artist) artist.hype = Math.min(100, artist.hype + 3);
+      next.messages.unshift({
+        id: nextId(), week: next.week, title: "La crédibilité avant tout",
+        body: `Tu refuses le placement — la street respecte. ${artist ? `${artist.name} gagne en crédibilité.` : ""} Pas de cash, mais une image intacte.`,
+      });
+    }
+  } else if (choice.kind === "playlist") {
+    if (option === "a") {
+      next.cash -= 500;
+      const release = next.releases.find((r) => r.id === choice.refId);
+      if (release && Math.random() < 0.6) {
+        release.weeklyStreams = Math.round(release.weeklyStreams * 1.35);
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `« ${release.title} » entre en playlist ✅`,
+          body: `Le pitch a fonctionné — plusieurs curateurs ajoutent le titre, les streams décollent. Les 500 € les mieux investis du mois.`,
+        });
+      } else {
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: "Pitch resté lettre morte",
+          body: `500 € et pas une réponse des curateurs. C'est le jeu du pitch : parfois ça prend, parfois non. Les pros diversifient leurs canaux.`,
+        });
+      }
+    }
+  } else if (choice.kind === "advance") {
+    if (option === "a") {
+      next.cash += 3000;
+      next.advanceDeal = { weeksLeft: 8, share: 0.2 };
+      next.messages.unshift({
+        id: nextId(), week: next.week, title: "Avance distributeur signée",
+        body: `+3 000 € tout de suite — en échange, 20 % de tes revenus streaming partiront au distributeur pendant 8 semaines. Surveille tes marges dans Finances.`,
+      });
+    }
+  } else if (choice.kind === "feat") {
+    if (option === "a") {
+      next.cash -= 1200;
+      const artist = next.roster.find((a) => a.id === choice.refId);
+      if (artist) {
+        artist.hype = Math.min(100, artist.hype + 12);
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `Le feat de ${artist.name} fait du bruit`,
+          body: `Session payée, morceau enregistré — l'exposition croisée dope la hype de ${artist.name}. Les feats, c'est le nerf du rap game.`,
+        });
+      }
+    }
+  }
   return next;
 }

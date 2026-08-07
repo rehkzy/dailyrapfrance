@@ -142,56 +142,55 @@ export const TYPE_META = {
   album: { label: "Album", weeks: 7, studioBase: 2.4 },
 } as const;
 
-// Tarifs calés sur les prix réels du milieu en France (ordres de grandeur indé) :
-// lease d'instru ~30-70 €, exclu 500-2000 €, prod prestige 3000-8000 € ; studio
-// 300-600 €/jour ; mix 150-400 €/titre (800-2500 € pour un ingé reconnu à
-// l'échelle d'un projet) ; mastering 80-150 €/titre ; clip street 1500-4000 €,
-// réalisateur 8000-25000 € ; agence RP 2000-5000 € la campagne.
+// Tarifs calés sur les prix réels du milieu en France, échelle "artiste en
+// développement" : lease d'instru ~30-70 €, exclu ~200-500 €, prod prestige
+// 1000-3000 € ; home studio à la séance ; clip street 500-1500 €, réalisateur
+// 4000-10000 € ; agence RP 1500-3000 € la campagne.
 export const BUDGET_PRESETS: Record<BudgetKey, BudgetOption[]> = {
   instru: [
     { label: "Lease (non-exclusif)", v: 50, mult: 0.85 },
-    { label: "Achat exclusif", v: 800, mult: 1.0 },
-    { label: "Exclusif prestige", v: 4000, mult: 1.15 },
+    { label: "Achat exclusif", v: 300, mult: 1.0 },
+    { label: "Exclusif prestige", v: 1800, mult: 1.15 },
   ],
   enregistrement: [
-    { label: "Home studio", v: 300, add: 2 },
-    { label: "Studio pro", v: 1500, add: 6 },
-    { label: "Résidence studio", v: 5000, add: 12 },
+    { label: "Home studio", v: 200, add: 2 },
+    { label: "Studio pro", v: 800, add: 6 },
+    { label: "Résidence studio", v: 2500, add: 12 },
   ],
   mix: [
-    { label: "Auto-mix", v: 150, mult: 0.9 },
-    { label: "Ingé son", v: 800, mult: 1.0 },
-    { label: "Ingé son reconnu", v: 2500, mult: 1.12 },
+    { label: "Auto-mix", v: 100, mult: 0.9 },
+    { label: "Ingé son", v: 500, mult: 1.0 },
+    { label: "Ingé son reconnu", v: 1500, mult: 1.12 },
   ],
   mastering: [
-    { label: "Standard", v: 100, mult: 0.92 },
-    { label: "Pro", v: 400, mult: 1.0 },
-    { label: "Broadcast", v: 1200, mult: 1.1 },
+    { label: "Standard", v: 80, mult: 0.92 },
+    { label: "Pro", v: 250, mult: 1.0 },
+    { label: "Broadcast", v: 800, mult: 1.1 },
   ],
   cover: [
     { label: "Template", v: 0, mult: 0.92 },
-    { label: "Graphiste freelance", v: 500, mult: 1.0 },
-    { label: "DA + shooting", v: 2500, mult: 1.12 },
+    { label: "Graphiste freelance", v: 300, mult: 1.0 },
+    { label: "DA + shooting", v: 1500, mult: 1.12 },
   ],
   clip: [
     { label: "Aucun", v: 0, mult: 1.0, hypeBoost: 0 },
-    { label: "Clip street", v: 2500, mult: 1.08, hypeBoost: 8 },
-    { label: "Réalisateur", v: 12000, mult: 1.18, hypeBoost: 16 },
+    { label: "Clip street", v: 800, mult: 1.08, hypeBoost: 8 },
+    { label: "Réalisateur", v: 6000, mult: 1.18, hypeBoost: 16 },
   ],
   distribution: [
-    { label: "Sélective", v: 100, mult: 0.85 },
-    { label: "Large", v: 500, mult: 1.0 },
-    { label: "Premium (pitch playlists)", v: 2500, mult: 1.2 },
+    { label: "Sélective", v: 50, mult: 0.85 },
+    { label: "Large", v: 300, mult: 1.0 },
+    { label: "Premium (pitch playlists)", v: 1500, mult: 1.2 },
   ],
   publicite: [
-    { label: "Bouche à oreille", v: 200, mult: 1.0 },
-    { label: "Campagne ciblée", v: 2000, mult: 1.35 },
-    { label: "Campagne large", v: 7000, mult: 1.8 },
+    { label: "Bouche à oreille", v: 150, mult: 1.0 },
+    { label: "Campagne ciblée", v: 1200, mult: 1.35 },
+    { label: "Campagne large", v: 4000, mult: 1.8 },
   ],
   presse: [
     { label: "Aucune", v: 0, mediaChance: 0 },
-    { label: "Relance presse", v: 1000, mediaChance: 0.35 },
-    { label: "Agence RP", v: 3500, mediaChance: 0.7 },
+    { label: "Relance presse", v: 700, mediaChance: 0.35 },
+    { label: "Agence RP", v: 2500, mediaChance: 0.7 },
   ],
 };
 
@@ -212,11 +211,11 @@ export const DEFAULT_BUDGET_CHOICE: Record<BudgetKey, number> = {
 
 // ---------- Constantes de partie ----------
 
-export const START_CASH = 35000;
+export const START_CASH = 40000;
 export const SEASON_WEEKS = 52;
 export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 8;             // v8 : charts multiples, revenus détaillés, A&R
+export const SAVE_VERSION = 9;             // v9 : rééquilibrage, objectifs, dilemmes, certifs
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
 export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
 // Droits voisins + édition (SACEM/SDRM, abstraction) : quote-part label sur
@@ -235,4 +234,12 @@ export const LOAN_OFFERS: { amount: number; minRep: number }[] = [
   { amount: 10000, minRep: 0 },
   { amount: 25000, minRep: 30 },
   { amount: 50000, minRep: 55 },
+];
+
+// Paliers de certification (échelle du jeu — en vrai, en France : single d'or
+// = 15 M d'équivalents streams, platine = 30 M, diamant = 50 M).
+export const CERT_LEVELS: { level: "or" | "platine" | "diamant"; at: number; emoji: string; rep: number }[] = [
+  { level: "or", at: 500000, emoji: "🥇", rep: 3 },
+  { level: "platine", at: 1500000, emoji: "💿", rep: 5 },
+  { level: "diamant", at: 4000000, emoji: "💎", rep: 8 },
 ];
