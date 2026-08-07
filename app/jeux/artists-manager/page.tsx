@@ -54,19 +54,20 @@ import {
 
 // ---------- Navigation ----------
 
-const MENU: { id: Tab; label: string; Icon: typeof Wallet; mobile: boolean }[] = [
-  { id: "label", label: "Dashboard", Icon: LayoutDashboard, mobile: true },
-  { id: "artistes", label: "Artistes", Icon: Users, mobile: true },
-  { id: "marche", label: "Marché", Icon: UserPlus, mobile: false },
-  { id: "staff", label: "Staff", Icon: Briefcase, mobile: false },
-  { id: "studio", label: "Studio", Icon: Disc3, mobile: true },
-  { id: "charts", label: "Charts", Icon: BarChart3, mobile: true },
-  { id: "messages", label: "Messages", Icon: Inbox, mobile: false },
-  { id: "finances", label: "Finances", Icon: PiggyBank, mobile: false },
-  { id: "stats", label: "Stats", Icon: LineChart, mobile: false },
-  { id: "agenda", label: "Agenda", Icon: Calendar, mobile: false },
-  { id: "telephone", label: "Téléphone", Icon: Smartphone, mobile: false },
-  { id: "reseaux", label: "Réseaux", Icon: Share2, mobile: false },
+const MENU: { id: Tab; label: string; Icon: typeof Wallet; mobile: boolean; group: string }[] = [
+  // §10 — sidebar restructurée en sections professionnelles
+  { id: "label", label: "Accueil", Icon: LayoutDashboard, mobile: true, group: "Principal" },
+  { id: "artistes", label: "Artistes", Icon: Users, mobile: true, group: "Principal" },
+  { id: "marche", label: "Scouting", Icon: UserPlus, mobile: false, group: "Principal" },
+  { id: "studio", label: "Studio", Icon: Disc3, mobile: true, group: "Principal" },
+  { id: "agenda", label: "Planning", Icon: Calendar, mobile: false, group: "Principal" },
+  { id: "staff", label: "Équipe", Icon: Briefcase, mobile: false, group: "Business" },
+  { id: "finances", label: "Finances", Icon: PiggyBank, mobile: false, group: "Business" },
+  { id: "stats", label: "Analytics", Icon: LineChart, mobile: false, group: "Business" },
+  { id: "messages", label: "Interactions", Icon: Inbox, mobile: false, group: "Communication" },
+  { id: "telephone", label: "Téléphone", Icon: Smartphone, mobile: false, group: "Communication" },
+  { id: "reseaux", label: "Réseaux", Icon: Share2, mobile: false, group: "Communication" },
+  { id: "charts", label: "Charts", Icon: BarChart3, mobile: true, group: "Monde" },
 ];
 
 // ---------- Petits composants UI ----------
@@ -446,6 +447,8 @@ export default function ArtistsManagerPage() {
   const [roleFilter, setRoleFilter] = useState<StaffRole | "tous">("tous");
   const [offerFor, setOfferFor] = useState<string | null>(null);
   const [confirmFireId, setConfirmFireId] = useState<string | null>(null);
+  // §5 — garde du temps : décisions en attente listées avant d'avancer la semaine.
+  const [showContinueCheck, setShowContinueCheck] = useState(false);
   // Ventes (survie financière) — double confirmation pour éviter les fausses manips.
   const [confirmSellArtistId, setConfirmSellArtistId] = useState<string | null>(null);
   const [confirmSellReleaseId, setConfirmSellReleaseId] = useState<string | null>(null);
@@ -735,18 +738,69 @@ export default function ArtistsManagerPage() {
             </span>
           </div>
 
-          {/* CONTINUER — dégradé violet → rose, plein, jamais coupé */}
-          <button onClick={continueWeek} className="fm-continue shrink-0">
-            Continuer <ChevronRight size={16} />
+          {/* CONTINUER — contrôleur du temps (§4-5) : vérifie les décisions en attente */}
+          <button
+            onClick={() => {
+              if (todoCount > 0 && !showContinueCheck) { sfx.click(); setShowContinueCheck(true); }
+              else { setShowContinueCheck(false); continueWeek(); }
+            }}
+            className="fm-continue shrink-0"
+          >
+            ▶ Continuer <ChevronRight size={16} />
           </button>
         </div>
+
+        {/* §5 — le temps peut être bloqué : panneau des décisions avant d'avancer */}
+        {showContinueCheck && todoCount > 0 && (
+          <div className="fm-topbar rounded-2xl mt-2 p-4">
+            <p className="font-impact text-sm uppercase mb-2">
+              {todoCount} situation{todoCount > 1 ? "s" : ""} nécessite{todoCount > 1 ? "nt" : ""} votre attention
+            </p>
+            <ul className="space-y-1.5 mb-3">
+              {state.artistDialogue && (
+                <li className="text-xs text-ink-muted flex items-center gap-2"><span className="prio-dot prio-r" /> {state.artistDialogue.artistName} attend une discussion</li>
+              )}
+              {state.pendingChoices.length > 0 && (
+                <li className="text-xs text-ink-muted flex items-center gap-2"><span className="prio-dot prio-y" /> {state.pendingChoices.length} dossier{state.pendingChoices.length > 1 ? "s" : ""} à trancher</li>
+              )}
+              {counteredNegos.length > 0 && (
+                <li className="text-xs text-ink-muted flex items-center gap-2"><span className="prio-dot prio-y" /> {counteredNegos.length} contre-proposition{counteredNegos.length > 1 ? "s" : ""} de recrutement</li>
+              )}
+              {state.concertOffers.length > 0 && (
+                <li className="text-xs text-ink-muted flex items-center gap-2"><span className="prio-dot prio-g" /> {state.concertOffers.length} offre{state.concertOffers.length > 1 ? "s" : ""} de concert en attente</li>
+              )}
+              {state.artistIdeas.length > 0 && (
+                <li className="text-xs text-ink-muted flex items-center gap-2"><span className="prio-dot prio-g" /> {state.artistIdeas.length} idée{state.artistIdeas.length > 1 ? "s" : ""} de projet proposée{state.artistIdeas.length > 1 ? "s" : ""}</li>
+              )}
+            </ul>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { sfx.click(); setShowContinueCheck(false); setTab("label"); }}
+                className="fm-continue text-xs"
+              >
+                Voir les décisions
+              </button>
+              <button
+                onClick={() => { sfx.click(); setShowContinueCheck(false); continueWeek(); }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold border border-white/15 text-ink-muted hover:text-ink hover:border-white/30 transition-colors"
+              >
+                Ignorer et continuer
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== Sidebar (desktop) + colonne de contenu ===== */}
       <div className="lg:flex lg:gap-6 lg:items-start">
         <aside className="hidden lg:block w-52 shrink-0 sticky top-[7.25rem] self-start pt-4">
           <nav className="glass-strong rounded-2xl py-2 overflow-hidden">
-            {MENU.map(({ id, label, Icon }) => (
+            {["Principal", "Business", "Communication", "Monde"].map((group) => (
+              <div key={group}>
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-faint px-4 pt-3 pb-1">
+                  {group}
+                </p>
+                {MENU.filter((m) => m.group === group).map(({ id, label, Icon }) => (
               <button
                 key={id}
                 onClick={() => { sfx.click(); setTab(id); }}
@@ -774,6 +828,8 @@ export default function ArtistsManagerPage() {
                 )}
               </button>
             ))}
+              </div>
+            ))}
           </nav>
           <p className="font-mono text-[9px] text-ink-faint uppercase tracking-wide px-4 mt-3">
             Saison 2026 · {profile.labelName}
@@ -782,19 +838,58 @@ export default function ArtistsManagerPage() {
 
         <div className="min-w-0 flex-1">
 
-      {/* ===== KPI cards ===== */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-4">
+      {/* ===== COMMAND CENTER (§2) — état de la semaine en un regard ===== */}
+      <div className="glass-strong rounded-2xl px-4 py-3 mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="font-impact text-sm uppercase tracking-wide shrink-0">
+          Semaine {state.week} <span className="text-ink-faint">/ {SEASON_WEEKS}</span>
+        </p>
+        <span className="hidden sm:block w-px h-5 bg-white/10" />
         {[
-          { label: "Trésorerie", value: `${fmt(state.cash)} €`, Icon: Wallet, alert: state.cash < monthlyCosts },
-          { label: "Réputation", value: `${Math.round(state.reputation)}`, Icon: Star, alert: false },
-          { label: "Streams / sem", value: fmt(weeklyStreams), Icon: Radio, alert: false },
-        ].map(({ label, value, Icon, alert }) => (
-          <div key={label} className="glass-strong rounded-2xl p-3 sm:p-4">
+          { n: state.concertOffers.length + state.artistIdeas.length, label: "opportunités", cls: "prio-g", go: () => setTab("agenda") },
+          { n: state.pendingChoices.length + counteredNegos.length, label: "décisions", cls: "prio-y", go: () => setTab("label") },
+          { n: (state.cash < 0 ? 1 : 0) + (state.artistDialogue ? 1 : 0), label: "urgent", cls: "prio-r", go: () => setTab(state.cash < 0 ? "finances" : "label") },
+          { n: state.messages.length, label: "messages", cls: "prio-b", go: () => setTab("messages") },
+        ].map(({ n, label, cls, go }) => (
+          <button
+            key={label}
+            onClick={() => { sfx.click(); go(); }}
+            className={`inline-flex items-center gap-1.5 text-xs font-semibold transition-opacity ${n === 0 ? "opacity-35" : "hover:opacity-80"}`}
+          >
+            <span className={`prio-dot ${cls}`} />
+            <span className="font-impact text-sm">{n}</span> {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ===== KPI pro (§17-18) — chiffres contextualisés, cliquables (§19) ===== */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-3">
+        {[
+          {
+            label: "Trésorerie", value: `${fmt(state.cash)} €`, Icon: Wallet,
+            alert: state.cash < monthlyCosts,
+            sub: monthlyCosts > 0
+              ? `−${fmt(monthlyCosts)} €/mois · runway ${state.cash > 0 ? Math.max(0, state.cash / monthlyCosts).toFixed(1) : "0"} mois`
+              : "aucune charge fixe",
+            go: () => setTab("finances"),
+          },
+          {
+            label: "Réputation", value: `${Math.round(state.reputation)}`, Icon: Star, alert: false,
+            sub: state.reputation < 15 ? "structure encore peu connue" : state.reputation < 40 ? "label qui monte" : "acteur reconnu",
+            go: () => setTab("stats"),
+          },
+          {
+            label: "Streams / sem", value: fmt(weeklyStreams), Icon: Radio, alert: false,
+            sub: state.releases.length === 0 ? "aucune sortie active" : `${state.releases.length} sortie${state.releases.length > 1 ? "s" : ""} au catalogue`,
+            go: () => setTab("stats"),
+          },
+        ].map(({ label, value, Icon, alert, sub, go }) => (
+          <button key={label} onClick={() => { sfx.click(); go(); }} className="glass-strong rounded-2xl p-3 sm:p-4 text-left transition-transform hover:scale-[1.015]">
             <p className="font-mono text-[9px] sm:text-[10px] uppercase tracking-wide text-ink-faint flex items-center gap-1 mb-1">
               <Icon size={10} style={{ color: accent }} /> {label}
             </p>
             <p className={`font-impact text-lg sm:text-2xl leading-none ${alert ? "text-riseNeg" : ""}`}>{value}</p>
-          </div>
+            <p className="font-mono text-[9px] text-ink-faint mt-1.5 truncate">{sub}</p>
+          </button>
         ))}
       </div>
 

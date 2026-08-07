@@ -1375,7 +1375,7 @@ input[type="range"].brand-slider::-moz-range-track {
    (titre de page, image de couverture...) derrière lui. */
 /* ===== Artists Manager — barre "Portal" façon FM26 ===== */
 .fm-topbar {
-  background: linear-gradient(180deg, rgba(18, 16, 34, 0.97), rgba(10, 9, 20, 0.97));
+  background: linear-gradient(180deg, rgba(16, 13, 16, 0.97), rgba(8, 6, 8, 0.98));
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1395,16 +1395,16 @@ input[type="range"].brand-slider::-moz-range-track {
   letter-spacing: 0.01em;
   color: #fff;
   white-space: nowrap;
-  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 55%, #ec4899 100%);
+  background: linear-gradient(90deg, #a3121b 0%, #f0001c 60%, #ff2b3a 100%);
   box-shadow:
-    0 0 22px rgba(168, 85, 247, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 0 22px rgba(240, 0, 28, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
 .fm-continue:hover {
   filter: brightness(1.1);
   box-shadow:
-    0 0 30px rgba(236, 72, 153, 0.55),
+    0 0 30px rgba(240, 0, 28, 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .fm-continue:active {
@@ -1420,24 +1420,26 @@ input[type="range"].brand-slider::-moz-range-track {
 }
 
 /* ============================================================
-   ARTISTS MANAGER — SKIN COMPLET "FM26 PORTAL"
-   Reskin intégral de la page via la classe .fm-skin sur la racine :
-   panneaux bleu nuit, accents violet/rose, pills type Portal,
-   sans toucher au reste du site ni à la logique du jeu.
+   ARTISTS MANAGER 2026 — SKIN "COMMAND CENTER" (GDD §7-8, §59-61)
+   Identité : noir profond légèrement bleuté · surfaces gris très
+   sombre · texte blanc/gris · rouge DailyRap rare et puissant ·
+   violet réservé au créatif. Pas d'esthétique SaaS générique.
+   Scopé sous .fm-skin — n'affecte pas le reste du site.
    ============================================================ */
 
 .fm-skin {
-  --fm-navy-1: #121022;
-  --fm-navy-2: #0a0914;
-  --fm-purple: #a855f7;
-  --fm-pink: #ec4899;
-  --fm-violet: #7c3aed;
-  --fm-line: rgba(255, 255, 255, 0.09);
+  --am-bg-1: #0a0b10;        /* noir bleuté profond */
+  --am-bg-2: #06070b;
+  --am-surface-1: rgba(19, 20, 27, 0.94);
+  --am-surface-2: rgba(12, 13, 18, 0.96);
+  --am-line: rgba(255, 255, 255, 0.08);
+  --am-red: #f0001c;         /* rouge DailyRap — rare, réservé à l'essentiel */
+  --am-violet: #8b5cf6;      /* réservé au créatif (studio) */
   position: relative;
   isolation: isolate;
 }
 
-/* Fond de scène : dégradé bleu nuit + halos violets, fixé derrière le jeu */
+/* Fond de scène : noir bleuté, un seul halo rouge très discret */
 .fm-skin::before {
   content: "";
   position: fixed;
@@ -1445,108 +1447,88 @@ input[type="range"].brand-slider::-moz-range-track {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(900px 500px at 15% -5%, rgba(124, 58, 237, 0.16), transparent 60%),
-    radial-gradient(800px 480px at 95% 10%, rgba(236, 72, 153, 0.10), transparent 60%),
-    linear-gradient(180deg, #0d0b1a 0%, #070610 100%);
+    radial-gradient(1000px 500px at 85% -10%, rgba(240, 0, 28, 0.06), transparent 60%),
+    linear-gradient(180deg, var(--am-bg-1) 0%, var(--am-bg-2) 100%);
 }
 
-/* --- Panneaux : tout .glass-strong / .nav-panel du jeu devient un panel FM --- */
+/* --- Panneaux : surfaces sombres sobres, bordure discrète (§8, §59) --- */
 .fm-skin .glass-strong,
 .fm-skin .nav-panel {
-  background: linear-gradient(180deg, rgba(20, 18, 38, 0.92), rgba(11, 10, 22, 0.94));
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid var(--fm-line);
+  background: linear-gradient(180deg, var(--am-surface-1), var(--am-surface-2));
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  border: 1px solid var(--am-line);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 18px 50px -14px rgba(0, 0, 0, 0.7);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 16px 44px -14px rgba(0, 0, 0, 0.7);
 }
 
-/* --- Titres de section : magenta façon "Messages / Fixture Schedule" --- */
-.fm-skin h1.font-impact,
-.fm-skin h2.font-impact,
-.fm-skin h3.font-impact {
-  background: linear-gradient(90deg, #f0abfc, var(--fm-pink));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* --- Langage visuel des priorités (§7) --- */
+.fm-skin .prio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
 }
+.fm-skin .prio-r { background: #f0001c; box-shadow: 0 0 8px rgba(240, 0, 28, 0.7); }
+.fm-skin .prio-o { background: #f97316; box-shadow: 0 0 8px rgba(249, 115, 22, 0.5); }
+.fm-skin .prio-y { background: #eab308; box-shadow: 0 0 8px rgba(234, 179, 8, 0.5); }
+.fm-skin .prio-g { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+.fm-skin .prio-b { background: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); }
+.fm-skin .prio-v { background: #8b5cf6; box-shadow: 0 0 8px rgba(139, 92, 246, 0.5); }
 
-/* --- Pills de filtre : onglets Portal (actif = violet plein) --- */
+/* --- Pills de filtre : sobres, actif = rouge (usage rare mais fort) --- */
 .fm-skin .filter-pill {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--fm-line);
-  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--am-line);
+  color: rgba(255, 255, 255, 0.6);
   border-radius: 999px;
   transition: all 0.15s ease;
 }
 .fm-skin .filter-pill:hover {
-  background: rgba(168, 85, 247, 0.12);
-  border-color: rgba(168, 85, 247, 0.4);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 .fm-skin .filter-pill.is-active {
-  background: linear-gradient(90deg, var(--fm-violet), var(--fm-purple));
+  background: var(--am-red);
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 0 16px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 0 14px rgba(240, 0, 28, 0.35);
 }
 
-/* --- Boutons du jeu (BorderMagicButton) : dégradé FM --- */
+/* --- Boutons du jeu : primaire rouge, secondaire surface --- */
 .fm-skin .game-btn-primary {
-  background: linear-gradient(90deg, var(--fm-violet) 0%, var(--fm-purple) 55%, var(--fm-pink) 100%) !important;
+  background: linear-gradient(180deg, #ff1e33, var(--am-red)) !important;
   border: none !important;
   color: #fff !important;
   box-shadow:
-    0 0 20px rgba(168, 85, 247, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    0 0 18px rgba(240, 0, 28, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
 }
-.fm-skin .game-btn-primary:hover {
-  filter: brightness(1.12);
-}
+.fm-skin .game-btn-primary:hover { filter: brightness(1.1); }
 .fm-skin .game-btn-dark {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid var(--fm-line) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--am-line) !important;
   color: rgba(255, 255, 255, 0.85) !important;
 }
 .fm-skin .game-btn-dark:hover {
-  background: rgba(168, 85, 247, 0.14) !important;
-  border-color: rgba(168, 85, 247, 0.45) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* --- Barres / séparateurs / hovers de liste --- */
-.fm-skin [class*="border-white/10"] {
-  border-color: var(--fm-line);
-}
-.fm-skin nav button:hover,
-.fm-skin .hover\:bg-white\/\[0\.03\]:hover {
-  background: rgba(168, 85, 247, 0.08);
-}
+/* --- Hovers de navigation, hiérarchie sobre (§60) --- */
+.fm-skin nav button:hover { background: rgba(255, 255, 255, 0.04); }
 
-/* --- Scrollbars fines, assorties --- */
-.fm-skin *::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
-}
-.fm-skin *::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.35);
-  border-radius: 999px;
-}
-.fm-skin *::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* --- Scrollbars fines neutres --- */
+.fm-skin *::-webkit-scrollbar { height: 6px; width: 6px; }
+.fm-skin *::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 999px; }
+.fm-skin *::-webkit-scrollbar-track { background: transparent; }
 
-/* --- Inputs / selects éventuels dans le jeu --- */
-.fm-skin input,
-.fm-skin select,
-.fm-skin textarea {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--fm-line);
-}
+/* --- Inputs : focus rouge discret --- */
 .fm-skin input:focus,
 .fm-skin select:focus,
 .fm-skin textarea:focus {
-  border-color: rgba(168, 85, 247, 0.6);
+  border-color: rgba(240, 0, 28, 0.55);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18);
+  box-shadow: 0 0 0 3px rgba(240, 0, 28, 0.14);
 }
