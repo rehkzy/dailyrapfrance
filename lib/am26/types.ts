@@ -42,6 +42,10 @@ export type Artist = {
   // porte le risque financier.
   lifetimeRevenue: number;
   advanceRecouped: boolean;
+  // v14 — momentum & surexposition (§15) : sortir trop vite après la
+  // précédente sortie fatigue le public ; disparaître trop longtemps casse
+  // le momentum. 0 = jamais sorti.
+  lastReleaseWeek: number;
 };
 
 // ---------- Staff (personnes simulées) ----------
@@ -123,6 +127,7 @@ export type Project = {
   bpm: number;
   structure: SongStructure;
   featuringArtistId: string | null; // autre artiste du roster en featuring
+  beatmakerId: string | null; // v14 — beatmaker choisi sur le marketplace
 };
 
 export type Release = {
@@ -230,6 +235,46 @@ export type Loan = {
   takenWeek: number;
 };
 
+// ---------- v14 : monde physique, marketplace, autonomie des artistes ----------
+
+// §8 — Marketplace de prods et beatmakers : chaque prod a une existence
+// propre, refusée elle peut devenir le hit d'un concurrent.
+export type Beatmaker = {
+  id: string;
+  name: string;
+  styleAffinity: string | null; // bonus si le style de l'artiste correspond
+  qualityBonus: number;         // 0 à ~0.14, s'ajoute au multiplicateur qualité
+  fee: number;                  // coût de la prod, en plus du budget instru
+  exclusive: boolean;           // une exclu ne repasse pas sur le marché une fois prise
+};
+
+// §9 — Vault musicale : les chutes de studio ne sont pas perdues, elles
+// dorment et peuvent ressortir plus tard, à moindre coût.
+export type VaultTrack = {
+  id: string;
+  artistId: string;
+  artistName: string;
+  artistStyle: string;
+  title: string;
+  quality: number;    // hérité du projet dont la session est issue
+  createdWeek: number;
+};
+
+// §6 — Autonomie des artistes : un artiste a parfois sa propre idée de
+// projet. L'accepter la respecte (bonus d'inspiration) ; l'ignorer laisse
+// filer l'occasion.
+export type ArtistIdeaOffer = {
+  id: string;
+  artistId: string;
+  artistName: string;
+  type: Project["type"];
+  title: string;
+  pitch: string;         // ce que l'artiste dit pour convaincre
+  qualityBonus: number;  // bonus d'inspiration si on suit son idée
+  costDiscount: number;  // 0-1, réduction sur le coût studio par défaut
+  expiresWeek: number;
+};
+
 // ---------- Divers ----------
 
 export type Message = { id: string; week: number; title: string; body: string };
@@ -268,6 +313,11 @@ export type GameState = {
   pendingChoices: ChoiceEvent[];  // dilemmes à trancher (max 1 actif)
   advanceDeal: AdvanceDeal | null; // avance distributeur en cours de remboursement
   certifications: Certification[]; // palmarès carrière
+  // v14 — monde physique, marketplace, autonomie.
+  hasHomeStudio: boolean;         // §2 — local aménagé, réduit durablement le coût d'enregistrement
+  beatmakerMarket: Beatmaker[];   // §8 — marketplace de prods, tourne chaque semaine
+  vault: VaultTrack[];            // §9 — chutes de studio en attente
+  artistIdeas: ArtistIdeaOffer[]; // §6 — idées de projet spontanées à traiter
   prevChartOrder: string[];
   totalReleases: number;
   totalStreamsAllTime: number;

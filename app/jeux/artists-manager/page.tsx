@@ -14,18 +14,19 @@ import type { Artist, BudgetKey, GameState, Person, Profile, Project, SongStruct
 import {
   BPM_MAX, BPM_MIN, BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS,
   CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE, DROITS_RATE, FEATURING_FEE_RATE,
-  FREEMIUM_STREAM_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS,
-  MONTH_WEEKS, PREMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST, PUSH_WINDOW_WEEKS, RADIO_RATE,
-  SEASON_WEEKS, SONG_STRUCTURES, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS,
-  START_CASH, STREAM_RATE, STYLE_BPM, STYLES, TYPE_META,
+  FREEMIUM_STREAM_RATE, HOME_STUDIO_COST, HOME_STUDIO_DISCOUNT, LIQUIDATION_FLOOR, LOAN_INTEREST,
+  LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS, PREMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST,
+  PUSH_WINDOW_WEEKS, RADIO_RATE, SEASON_WEEKS, SONG_STRUCTURES, STAFF_ROLES, STAFF_ROLE_KEYS,
+  STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STYLE_BPM, STYLES, TYPE_META, VAULT_RELEASE_COST,
 } from "@/lib/am26/data";
 import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
 import {
   acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistContractValue,
-  budgetTotalCost, catalogValue, computeArtistChart, computeLabelChart, computeProductionStats,
-  computeProjectChart, declineConcert, declineCounter, featuringCost, fireStaff, fmt,
-  initialState, load, makeOffer, persist, pushRelease, releaseLifecycleStage, releaseWeeklyRevenue,
-  resolveChoice, sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
+  budgetTotalCost, buyHomeStudio, catalogValue, computeArtistChart, computeLabelChart,
+  computeProductionStats, computeProjectChart, declineArtistIdea, declineConcert, declineCounter,
+  effectiveBudgetCost, featuringCost, fireStaff, fmt, initialState, load, makeOffer, persist,
+  pushRelease, releaseLifecycleStage, releaseVaultTrack, releaseWeeklyRevenue, resolveChoice,
+  sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, startProjectFromIdea, takeLoan,
 } from "@/lib/am26/engine";
 
 /*
@@ -413,6 +414,7 @@ export default function ArtistsManagerPage() {
   const [projBpm, setProjBpm] = useState<number>(100);
   const [projStructure, setProjStructure] = useState<SongStructure>("classique");
   const [projFeaturing, setProjFeaturing] = useState<string>(""); // id d'un autre artiste du roster, "" = aucun
+  const [projBeatmaker, setProjBeatmaker] = useState<string>(""); // v14 — id d'un beatmaker du marketplace, "" = aucun
   // Onglet Staff : filtre de rôle + candidat dont le panneau d'offre est ouvert +
   // confirmation de licenciement (double appui).
   const [roleFilter, setRoleFilter] = useState<StaffRole | "tous">("tous");
@@ -553,11 +555,12 @@ export default function ArtistsManagerPage() {
     if (!artist) return;
     const featArtist = projFeaturing ? state.roster.find((a) => a.id === projFeaturing) ?? null : null;
     const featCost = featArtist ? featuringCost(featArtist) : 0;
-    const cost = budgetTotalCost(budgetChoice) + featCost;
+    const beatmaker = projBeatmaker ? state.beatmakerMarket.find((b) => b.id === projBeatmaker) ?? null : null;
+    const cost = effectiveBudgetCost(budgetChoice, state.hasHomeStudio, beatmaker) + featCost;
     if (state.cash < cost) return;
     sfx.click();
     const meta = TYPE_META[projType];
-    const stats = computeProductionStats(artist, budgetChoice, projType, state.staff, projBpm, projStructure, featArtist);
+    const stats = computeProductionStats(artist, budgetChoice, projType, state.staff, projBpm, projStructure, featArtist, beatmaker);
     const title = PROJECT_TITLES[Math.floor(Math.random() * PROJECT_TITLES.length)];
     update({
       ...state,
@@ -565,14 +568,19 @@ export default function ArtistsManagerPage() {
       project: {
         artistId: artist.id, type: projType, title, weeksLeft: meta.weeks,
         bpm: projBpm, structure: projStructure, featuringArtistId: featArtist ? featArtist.id : null,
+        beatmakerId: beatmaker ? beatmaker.id : null,
         ...stats,
       },
+      beatmakerMarket: beatmaker && beatmaker.exclusive
+        ? state.beatmakerMarket.filter((b) => b.id !== beatmaker.id)
+        : state.beatmakerMarket,
       messages: [{
         id: nextId(), week: state.week, title: `Studio : « ${title} »`,
-        body: `${artist.name}${featArtist ? ` feat. ${featArtist.name}` : ""} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines). Budget engagé : ${fmt(cost)} €${featCost > 0 ? ` (dont ${fmt(featCost)} € de featuring)` : ""}.`,
+        body: `${artist.name}${featArtist ? ` feat. ${featArtist.name}` : ""} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines)${beatmaker ? ` sur une prod de ${beatmaker.name}` : ""}. Budget engagé : ${fmt(cost)} €${featCost > 0 ? ` (dont ${fmt(featCost)} € de featuring)` : ""}${state.hasHomeStudio ? " — home studio déjà déduit" : ""}.`,
       }, ...state.messages].slice(0, 16),
     });
     setProjFeaturing("");
+    setProjBeatmaker("");
     setTab("label");
   }
 
@@ -598,15 +606,16 @@ export default function ArtistsManagerPage() {
   const featuringCandidates = state.roster.filter((a) => a.id !== projArtist);
   const previewFeatArtist = projFeaturing ? state.roster.find((a) => a.id === projFeaturing) ?? null : null;
   const previewFeatCost = previewFeatArtist ? featuringCost(previewFeatArtist) : 0;
-  const grandTotalCost = totalCost + previewFeatCost;
+  const previewBeatmaker = projBeatmaker ? state.beatmakerMarket.find((b) => b.id === projBeatmaker) ?? null : null;
+  const grandTotalCost = effectiveBudgetCost(budgetChoice, state.hasHomeStudio, previewBeatmaker) + previewFeatCost;
   const preview = previewArtist
-    ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff, projBpm, projStructure, previewFeatArtist)
+    ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff, projBpm, projStructure, previewFeatArtist, previewBeatmaker)
     : null;
   const accent = profile.color;
 
   const counteredNegos = state.negotiations.filter((n) => n.status === "countered");
   const pendingNegos = state.negotiations.filter((n) => n.status === "pending");
-  const todoCount = state.concertOffers.length + counteredNegos.length + state.pendingChoices.length;
+  const todoCount = state.concertOffers.length + counteredNegos.length + state.pendingChoices.length + state.artistIdeas.length;
   // Objectif de saison en cours (le premier encore actif) — le fil rouge.
   const activeObjective = state.objectives.find((o) => o.status === "active") ?? null;
   const objectiveValue = activeObjective
@@ -826,6 +835,37 @@ export default function ArtistsManagerPage() {
                         className="rounded-xl px-4 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors"
                       >
                         Refuser
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {state.artistIdeas.map((idea) => (
+                  <div key={idea.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
+                        <Sparkles size={13} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">Idée de projet — {idea.artistName}</p>
+                        <p className="text-xs text-ink-muted mt-0.5 italic">{idea.pitch}</p>
+                        <p className="font-mono text-[9px] text-ink-faint mt-1">
+                          « {idea.title} » · {TYPE_META[idea.type].label} · -{Math.round(idea.costDiscount * 100)}% de budget · expire S{idea.expiresWeek}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2.5">
+                      <button
+                        onClick={() => { sfx.correct(); update(startProjectFromIdea(state, idea.id)); }}
+                        disabled={!!state.project}
+                        className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 disabled:border-white/8 disabled:text-ink-faint disabled:cursor-not-allowed transition-colors"
+                      >
+                        {state.project ? "Studio occupé" : "Suivre l'idée"}
+                      </button>
+                      <button
+                        onClick={() => { sfx.click(); update(declineArtistIdea(state, idea.id)); }}
+                        className="rounded-xl px-4 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors"
+                      >
+                        Laisser filer
                       </button>
                     </div>
                   </div>
@@ -1376,6 +1416,63 @@ export default function ArtistsManagerPage() {
       {/* ===== Onglet STUDIO ===== */}
       {tab === "studio" && (
         <div className="pt-4 space-y-4">
+          {/* v14 — home studio (§2) : achat unique, effet permanent, visible
+              quelle que soit la situation (projet en cours ou non). */}
+          <SectionCard title="Local de travail" icon={<Building2 size={11} />}>
+            {state.hasHomeStudio ? (
+              <p className="text-sm text-risePos">
+                Home studio aménagé — coût d'enregistrement réduit de {Math.round(HOME_STUDIO_DISCOUNT * 100)} % en permanence.
+              </p>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-ink-muted">
+                  Un local équipé réduit durablement le coût d'enregistrement de chaque prod (-{Math.round(HOME_STUDIO_DISCOUNT * 100)} %).
+                </p>
+                <button
+                  onClick={() => { sfx.click(); update(buyHomeStudio(state)); }}
+                  disabled={state.cash < HOME_STUDIO_COST}
+                  className="shrink-0 rounded-xl px-4 py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 disabled:border-white/8 disabled:text-ink-faint disabled:cursor-not-allowed transition-colors"
+                >
+                  Aménager — {fmt(HOME_STUDIO_COST)} €
+                </button>
+              </div>
+            )}
+          </SectionCard>
+
+          {/* v14 — vault musicale (§9) : les chutes de studio dorment ici,
+              exploitables plus tard à moindre coût. */}
+          {state.vault.length > 0 && (
+            <SectionCard title="Vault musicale" icon={<Disc3 size={11} />}>
+              <div className="space-y-3">
+                {state.vault.map((v) => {
+                  const stillSigned = state.roster.some((a) => a.id === v.artistId);
+                  return (
+                    <div key={v.id} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">« {v.title} » — {v.artistName}</p>
+                        <p className="font-mono text-[9px] text-ink-faint">Qualité ~{v.quality} · en attente depuis S{v.createdWeek}</p>
+                      </div>
+                      {stillSigned ? (
+                        <button
+                          onClick={() => { sfx.click(); update(releaseVaultTrack(state, v.id)); }}
+                          disabled={state.cash < VAULT_RELEASE_COST}
+                          className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 disabled:border-white/8 disabled:text-ink-faint disabled:cursor-not-allowed transition-colors"
+                        >
+                          Sortir — {fmt(VAULT_RELEASE_COST)} €
+                        </button>
+                      ) : (
+                        <span className="font-mono text-[9px] text-ink-faint shrink-0">Artiste parti</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-ink-faint font-mono mt-3">
+                Sortie rapide, sans vrai travail de studio — démarrage plus modeste qu'une sortie travaillée, mais un revenu presque gratuit.
+              </p>
+            </SectionCard>
+          )}
+
           {state.project ? (
             <p className="text-sm text-ink-faint glass rounded-2xl p-4">
               Un projet est déjà en cours — un seul à la fois dans cette version. Avance les semaines pour le terminer.
@@ -1481,6 +1578,30 @@ export default function ArtistsManagerPage() {
                   </p>
                 </SectionCard>
               )}
+
+              {/* v14 — marketplace de beatmakers (§8) : une prod refusée peut
+                  devenir le hit d'un concurrent — le marché tourne chaque semaine. */}
+              <SectionCard title="6 · Prod (optionnel)" icon={<Disc3 size={11} />}>
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => setProjBeatmaker("")} className={`filter-pill ${projBeatmaker === "" ? "is-active" : ""}`}>
+                    Instru générique
+                  </button>
+                  {state.beatmakerMarket.map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() => setProjBeatmaker(b.id)}
+                      className={`filter-pill ${projBeatmaker === b.id ? "is-active" : ""}`}
+                    >
+                      {b.name}{b.exclusive ? " (exclu)" : ""} · +{Math.round(b.qualityBonus * 100)}% · {fmt(b.fee)} €
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-ink-faint font-mono mt-2">
+                  {previewBeatmaker
+                    ? `${previewBeatmaker.name}${previewBeatmaker.styleAffinity ? ` (spécialiste ${previewBeatmaker.styleAffinity})` : ""} — bonus qualité ${previewBeatmaker.styleAffinity === previewArtist?.style ? "renforcé par l'affinité de style" : "standard"}.${previewBeatmaker.exclusive ? " Prod exclusive : elle disparaît du marché une fois prise." : ""}`
+                    : "Une prod nommée peut booster la qualité, surtout si son style colle à celui de l'artiste. Optionnel — le budget instru générique suffit pour démarrer."}
+                </p>
+              </SectionCard>
 
               {BUDGET_GROUPS.map((group) => (
                 <SectionCard key={group.title} title={group.title} icon={<Disc3 size={11} />}>

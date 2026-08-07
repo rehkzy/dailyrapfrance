@@ -208,9 +208,9 @@ export const BUDGET_LABELS: Record<BudgetKey, string> = {
 };
 
 export const BUDGET_GROUPS: { title: string; keys: BudgetKey[] }[] = [
-  { title: "6 · Production", keys: ["instru", "enregistrement", "mix", "mastering"] },
-  { title: "7 · Visuel", keys: ["cover", "clip", "clipConcept"] },
-  { title: "8 · Sortie", keys: ["distribution", "publicite", "presse"] },
+  { title: "7 · Production", keys: ["instru", "enregistrement", "mix", "mastering"] },
+  { title: "8 · Visuel", keys: ["cover", "clip", "clipConcept"] },
+  { title: "9 · Sortie", keys: ["distribution", "publicite", "presse"] },
 ];
 
 export const DEFAULT_BUDGET_CHOICE: Record<BudgetKey, number> = {
@@ -223,7 +223,7 @@ export const START_CASH = 40000;
 export const SEASON_WEEKS = 52;
 export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 11;            // v13 : Label Intelligence Center — data réaliste, recoupment, fraude
+export const SAVE_VERSION = 12;            // v14 : lieux de travail, marketplace, autonomie des artistes, vault, momentum
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
 export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
 // Droits voisins + édition (SACEM/SDRM, abstraction) : quote-part label sur
@@ -334,3 +334,28 @@ export const SNEP_FREEMIUM_RATIO = 7; // 7 streams freemium = 1 équivalent prem
 // garantis. Risque de détection réel, sanction sévère si pris.
 export const FRAUD_DETECTION_CHANCE = 0.4;
 export const FRAUD_REPUTATION_PENALTY = 8;
+
+// ---------- v14 : monde physique, marketplace, autonomie des artistes ----------
+
+// §2 — Lieu de travail simplifié : un home studio aménagé réduit durablement
+// le coût des sessions d'enregistrement (achat unique, effet permanent).
+export const HOME_STUDIO_COST = 8000;
+export const HOME_STUDIO_DISCOUNT = 0.35; // -35% sur le budget "enregistrement"
+
+// §8 — Marketplace de beatmakers : noms fictifs, pas de vrais artistes/labels.
+export const BEATMAKER_NAMES = [
+  "Kydro", "Lassko", "Wavenoir", "Tempo Sale", "Ondine Beats", "Fresk",
+  "Dalla Prod", "Nuit Grave", "Skalpel", "Rimeur Fantôme", "Basbleu", "Miro",
+];
+
+// §15 — Momentum & surexposition : sortir trop tôt après la précédente sortie
+// fatigue le public ; disparaître trop longtemps casse le momentum.
+export const SUREXPOSITION_WEEKS = 3;      // en dessous de ce délai : pénalité
+export const SUREXPOSITION_PENALTY = 0.82; // multiplicateur qualité/portée
+export const MOMENTUM_LOSS_WEEKS = 14;     // au-delà : hype décroît plus vite
+export const MOMENTUM_LOSS_EXTRA_DECAY = 1.2;
+
+// §9 — Vault musicale.
+export const VAULT_CHANCE = 0.22;          // chance qu'une session laisse une chute
+export const VAULT_RELEASE_COST = 400;     // coût pour sortir une chute de vault
+export const VAULT_RELEASE_WEEKS = 1;      // sortie quasi immédiate, pas de vrai studio

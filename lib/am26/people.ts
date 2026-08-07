@@ -4,8 +4,8 @@
  * niveau/potentiel n'est jamais parfaitement connu, seulement une fourchette.
  */
 
-import type { Artist, Person, StaffRole } from "./types";
-import { ARTIST_NAMES, CITIES, CONTRACT_MAX_WEEKS, CONTRACT_MIN_WEEKS, FIRSTNAMES, LASTNAMES, PERSONALITIES, STAFF_ROLES, STAFF_ROLE_KEYS, STYLES } from "./data";
+import type { Artist, Beatmaker, Person, StaffRole } from "./types";
+import { ARTIST_NAMES, BEATMAKER_NAMES, CITIES, CONTRACT_MAX_WEEKS, CONTRACT_MIN_WEEKS, FIRSTNAMES, LASTNAMES, PERSONALITIES, STAFF_ROLES, STAFF_ROLE_KEYS, STYLES } from "./data";
 
 export const rnd = (min: number, max: number) => min + Math.random() * (max - min);
 export const ri = (min: number, max: number) => Math.round(rnd(min, max));
@@ -59,6 +59,7 @@ export function makeArtist(usedNames: Set<string>, scoutBonus = 0): Artist {
     leaving: false,
     lifetimeRevenue: 0,
     advanceRecouped: false,
+    lastReleaseWeek: 0,
   };
 }
 
@@ -121,4 +122,22 @@ export function fullName(p: Person): string {
 export function personalityDesc(name: string): string {
   const p = PERSONALITIES.find((x) => x.name === name);
   return p ? p.desc : "";
+}
+
+// ---------- v14 : marketplace de beatmakers ----------
+
+export function makeBeatmaker(usedNames: Set<string>): Beatmaker {
+  const available = BEATMAKER_NAMES.filter((n) => !usedNames.has(n));
+  const name = available.length > 0 ? pick(available) : `Prod ${ri(100, 999)}`;
+  usedNames.add(name);
+  const tier = rnd(0, 1); // 0 = obscur, 1 = très demandé
+  const exclusive = tier > 0.7 && Math.random() < 0.5;
+  return {
+    id: nextId(),
+    name,
+    styleAffinity: Math.random() < 0.75 ? pick(STYLES) : null,
+    qualityBonus: Number((0.02 + tier * 0.12).toFixed(2)),
+    fee: Math.round((150 + tier * 1800) / 50) * 50,
+    exclusive,
+  };
 }

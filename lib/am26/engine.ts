@@ -9,19 +9,22 @@
  */
 
 import type {
-  Artist, BudgetKey, BudgetOption, ChartEntry, ChoiceEvent, ConcertOffer, GameState,
-  LabelChartEntry, Negotiation, Objective, Person, Project, ProjectChartEntry, Release, SongStructure, StaffRole,
+  Artist, ArtistIdeaOffer, Beatmaker, BudgetKey, BudgetOption, ChartEntry, ChoiceEvent,
+  ConcertOffer, GameState, LabelChartEntry, Negotiation, Objective, Person, Project,
+  ProjectChartEntry, Release, SongStructure, StaffRole, VaultTrack,
 } from "./types";
 import {
   BUDGET_PRESETS, CERT_LEVELS, CONTRACT_MAX_WEEKS, CONTRACT_RENEWAL_RAISE, CONTRACT_RENEWAL_WINDOW,
-  DROITS_RATE, FEATURING_FEE_RATE, FRAUD_DETECTION_CHANCE, FRAUD_REPUTATION_PENALTY, LIQUIDATION_FLOOR,
-  LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES,
-  PERSONALITY_CLASHES, PLATFORM_BASE_SPLIT, PREMIUM_STREAM_RATE, FREEMIUM_STREAM_RATE, PUSH_COST,
-  PUSH_WINDOW_WEEKS, RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS, SNEP_REAL_THRESHOLDS,
-  STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STREAM_SOURCE_BASE_SPLIT,
-  STYLE_BPM, TOUR_MAX_DATES, TOUR_MIN_DATES, TYPE_META, VENUES,
+  DEFAULT_BUDGET_CHOICE, DROITS_RATE, FEATURING_FEE_RATE, FRAUD_DETECTION_CHANCE, FRAUD_REPUTATION_PENALTY, HOME_STUDIO_COST,
+  HOME_STUDIO_DISCOUNT, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, MOMENTUM_LOSS_EXTRA_DECAY,
+  MOMENTUM_LOSS_WEEKS, MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, PERSONALITY_CLASHES,
+  PLATFORM_BASE_SPLIT, PREMIUM_STREAM_RATE, FREEMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST, PUSH_WINDOW_WEEKS,
+  RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS, SNEP_REAL_THRESHOLDS, STAFF_ROLES, STAFF_ROLE_KEYS,
+  STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STREAM_SOURCE_BASE_SPLIT, STYLE_BPM,
+  SUREXPOSITION_PENALTY, SUREXPOSITION_WEEKS, TOUR_MAX_DATES, TOUR_MIN_DATES, TYPE_META,
+  VAULT_CHANCE, VAULT_RELEASE_COST, VAULT_RELEASE_WEEKS, VENUES,
 } from "./data";
-import { fullName, makeArtist, makeInitialStaffMarket, makeStaffCandidate, nextId, pick, ri, rnd } from "./people";
+import { fullName, makeArtist, makeBeatmaker, makeInitialStaffMarket, makeStaffCandidate, nextId, pick, ri, rnd } from "./people";
 import { makeRivals, makeTrends, rivalLabelStreams, tickWorld } from "./world";
 
 export const fmt = (n: number) => Math.round(n).toLocaleString("fr-FR");
@@ -34,6 +37,18 @@ export function budgetPreset(key: BudgetKey, choice: Record<BudgetKey, number>):
 
 export function budgetTotalCost(choice: Record<BudgetKey, number>): number {
   return (Object.keys(BUDGET_PRESETS) as BudgetKey[]).reduce((sum, k) => sum + budgetPreset(k, choice).v, 0);
+}
+
+// v14 — coût réel d'une prod : le home studio réduit durablement le budget
+// d'enregistrement (§2), un beatmaker choisi sur le marketplace s'ajoute (§8).
+export function effectiveBudgetCost(
+  choice: Record<BudgetKey, number>,
+  hasHomeStudio: boolean,
+  beatmaker: Beatmaker | null
+): number {
+  const enrCost = budgetPreset("enregistrement", choice).v * (hasHomeStudio ? 1 - HOME_STUDIO_DISCOUNT : 1);
+  const otherCost = budgetTotalCost(choice) - budgetPreset("enregistrement", choice).v;
+  return Math.round(enrCost + otherCost + (beatmaker ? beatmaker.fee : 0));
 }
 
 // ---------- Staff ----------
@@ -59,7 +74,8 @@ export function computeProductionStats(
   staff: Person[],
   bpm: number,
   structure: SongStructure,
-  featuringArtist: Artist | null
+  featuringArtist: Artist | null,
+  beatmaker: Beatmaker | null = null
 ): Pick<Project, "quality" | "reach" | "adsMult" | "mediaChance" | "hypeBoost" | "retention"> {
   const meta = TYPE_META[type];
   const instru = budgetPreset("instru", choice);
@@ -101,11 +117,17 @@ export function computeProductionStats(
   const featMult = featuringArtist ? 1.14 : 1;
   const featHypeAdj = featuringArtist ? 6 : 0;
 
+  // v14 — beatmaker du marketplace (§8) : bonus qualité, plus fort si son
+  // style de prédilection correspond à celui de l'artiste.
+  const beatmakerMult = beatmaker
+    ? 1 + beatmaker.qualityBonus + (beatmaker.styleAffinity === artist.style ? 0.04 : 0)
+    : 1;
+
   const skill = (artist.flow + artist.plume) / 2; // 0-20
   const quality = Math.round(
     (skill * 3.2 + (enr.add ?? 0)) *
     (instru.mult ?? 1) * (mix.mult ?? 1) * (master.mult ?? 1) * (cover.mult ?? 1) * (clipConcept.mult ?? 1) *
-    daMult * ingeMult * bpmMult * structQualityMult *
+    daMult * ingeMult * bpmMult * structQualityMult * beatmakerMult *
     meta.studioBase
   );
   const reach = (dist.mult ?? 1) * (clip.mult ?? 1) * structReachMult * featMult;
@@ -281,6 +303,11 @@ function makeObjectives(): Objective[] {
   ];
 }
 
+function makeBeatmakerMarket(): Beatmaker[] {
+  const used = new Set<string>();
+  return [makeBeatmaker(used), makeBeatmaker(used), makeBeatmaker(used), makeBeatmaker(used)];
+}
+
 export function initialState(): GameState {
   const used = new Set<string>();
   return {
@@ -308,6 +335,10 @@ export function initialState(): GameState {
     pendingChoices: [],
     advanceDeal: null,
     certifications: [],
+    hasHomeStudio: false,
+    beatmakerMarket: makeBeatmakerMarket(),
+    vault: [],
+    artistIdeas: [],
     prevChartOrder: [],
     totalReleases: 0,
     totalStreamsAllTime: 0,
@@ -435,12 +466,17 @@ export function advanceWeek(prev: GameState): GameState {
       if (artist) {
         const proj = s.project;
         const trendMult = s.trends[artist.style] ?? 1;
+        // v14 — momentum & surexposition (§15) : sortir trop vite après la
+        // précédente sortie fatigue le public — un vrai risque, pas un simple curseur.
+        const weeksSinceLast = artist.lastReleaseWeek > 0 ? s.week - artist.lastReleaseWeek : 999;
+        const surexpose = weeksSinceLast < SUREXPOSITION_WEEKS;
+        const momentumMult = surexpose ? SUREXPOSITION_PENALTY : 1;
         // Prévision "des pros" : ce que le projet devrait faire sur le papier.
         // La tendance, l'aléa et la presse feront la vraie histoire — suspense
         // révélé au premier bilan, la semaine suivante.
-        const expected = Math.round(proj.quality * 2800 * proj.reach * proj.adsMult + artist.hype * 2200 * proj.reach);
+        const expected = Math.round((proj.quality * 2800 * proj.reach * proj.adsMult + artist.hype * 2200 * proj.reach) * momentumMult);
         let initialStreams = Math.round(
-          (proj.quality * 2800 * proj.reach * proj.adsMult + artist.hype * 2200 * proj.reach + rnd(0, 25000)) * trendMult
+          (proj.quality * 2800 * proj.reach * proj.adsMult + artist.hype * 2200 * proj.reach + rnd(0, 25000)) * trendMult * momentumMult
         );
         const mediaHit = Math.random() < proj.mediaChance;
         if (mediaHit) {
@@ -476,8 +512,15 @@ export function advanceWeek(prev: GameState): GameState {
           certAlerted: null,
         });
         artist.hype = Math.min(100, artist.hype + proj.hypeBoost);
+        artist.lastReleaseWeek = s.week;
         s.totalReleases += 1;
         const featGuest = proj.featuringArtistId ? s.roster.find((a) => a.id === proj.featuringArtistId) : null;
+        if (surexpose) {
+          s.messages.unshift({
+            id: nextId(), week: s.week, title: `Surexposition : « ${proj.title} »`,
+            body: `${artist.name} enchaîne trop vite après sa dernière sortie (${weeksSinceLast} semaine${weeksSinceLast > 1 ? "s" : ""} seulement) — le public a besoin de souffler. Démarrage pénalisé.`,
+          });
+        }
         s.messages.unshift({
           id: nextId(), week: s.week, title: `Sortie : « ${proj.title} »`,
           body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name}${featGuest ? ` feat. ${featGuest.name}` : ""} est dans les bacs${trendMult >= 1.2 ? ` — et le ${artist.style} est en pleine tendance, ça tombe bien` : trendMult <= 0.8 ? ` — mais le ${artist.style} n'a pas le vent en poupe en ce moment` : ""}. Les pros tablent sur ~${fmt(expected)} streams de démarrage. Verdict au premier bilan, la semaine prochaine.`,
@@ -492,6 +535,20 @@ export function advanceWeek(prev: GameState): GameState {
           s.messages.unshift({
             id: nextId(), week: s.week, title: `« ${proj.title} » entre en rotation radio`,
             body: `${radioPlays} passages programmés cette semaine — chaque diffusion rapporte des droits et entretient les streams.`,
+          });
+        }
+        // v14 — vault musicale (§9) : la session peut laisser une chute
+        // exploitable plus tard, à moindre coût.
+        if (Math.random() < VAULT_CHANCE) {
+          const vaultTrack: VaultTrack = {
+            id: nextId(), artistId: artist.id, artistName: artist.name, artistStyle: artist.style,
+            title: PROJECT_TITLES[Math.floor(Math.random() * PROJECT_TITLES.length)],
+            quality: Math.round(proj.quality * rnd(0.7, 0.92)), createdWeek: s.week,
+          };
+          s.vault.push(vaultTrack);
+          s.messages.unshift({
+            id: nextId(), week: s.week, title: `Chute de studio : « ${vaultTrack.title} »`,
+            body: `La session a laissé un morceau inutilisé, « ${vaultTrack.title} » (${artist.name}). Il dort dans la vault — tu peux le sortir plus tard, à moindre coût, depuis le Studio.`,
           });
         }
       }
@@ -737,9 +794,20 @@ export function advanceWeek(prev: GameState): GameState {
 
   // 5) Vie du roster : hype (le CM ralentit la chute et relance les délaissés),
   //    progression vers le potentiel caché.
+  //    v14 — perte de momentum (§15) : un silence trop long accélère la chute.
   const cm = staffByRole(s.staff, "cm");
-  const hypeDecay = Math.max(0.5, 2 - (cm ? cm.skill / 8 : 0));
-  for (const a of s.roster) a.hype = Math.max(0, a.hype - hypeDecay);
+  const baseHypeDecay = Math.max(0.5, 2 - (cm ? cm.skill / 8 : 0));
+  for (const a of s.roster) {
+    const weeksSinceLast = a.lastReleaseWeek > 0 ? s.week - a.lastReleaseWeek : 0;
+    const momentumLost = weeksSinceLast >= MOMENTUM_LOSS_WEEKS;
+    a.hype = Math.max(0, a.hype - baseHypeDecay * (momentumLost ? MOMENTUM_LOSS_EXTRA_DECAY : 1));
+    if (momentumLost && weeksSinceLast === MOMENTUM_LOSS_WEEKS) {
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `${a.name} perd le momentum`,
+        body: `Rien de neuf depuis ${weeksSinceLast} semaines — le public passe à autre chose. Une sortie relancerait la dynamique.`,
+      });
+    }
+  }
   if (cm && s.roster.length > 0) {
     const lowest = [...s.roster].sort((a, b) => a.hype - b.hype)[0];
     lowest.hype = Math.min(100, lowest.hype + cm.skill / 6);
@@ -912,6 +980,51 @@ export function advanceWeek(prev: GameState): GameState {
     }
   }
 
+  // v14 — marketplace de beatmakers (§8) : tourne comme les autres marchés —
+  // une prod refusée peut devenir le hit d'un concurrent (elle disparaît).
+  if (Math.random() < 0.35 && s.beatmakerMarket.length > 0) {
+    s.beatmakerMarket = s.beatmakerMarket.slice(1);
+  }
+  while (s.beatmakerMarket.length < 4) {
+    const used = new Set(s.beatmakerMarket.map((b) => b.name));
+    s.beatmakerMarket.push(makeBeatmaker(used));
+  }
+
+  // v14 — autonomie des artistes (§6) : une idée de projet spontanée, à
+  // traiter ou à laisser filer. Un seul dossier à la fois, comme les dilemmes.
+  s.artistIdeas = s.artistIdeas.filter((idea) => {
+    if (idea.expiresWeek >= s.week) return true;
+    const a = s.roster.find((x) => x.id === idea.artistId);
+    s.messages.unshift({
+      id: nextId(), week: s.week, title: "Idée laissée de côté",
+      body: `${a ? a.name : "L'artiste"} n'a plus reparlé de « ${idea.title} » — l'envie est passée.`,
+    });
+    return false;
+  });
+  if (s.artistIdeas.length === 0 && s.roster.length > 0 && !s.project && Math.random() < 0.15) {
+    const candidate = pick(s.roster.filter((a) => a.hype >= 35));
+    if (candidate) {
+      const type: Project["type"] = pick(["single", "single", "ep"]);
+      const idea: ArtistIdeaOffer = {
+        id: nextId(), artistId: candidate.id, artistName: candidate.name, type,
+        title: PROJECT_TITLES[Math.floor(Math.random() * PROJECT_TITLES.length)],
+        pitch: pick([
+          "« J'ai un truc, là, il faut qu'on le fasse maintenant. »",
+          "« Cette prod tourne dans ma tête depuis des jours, on la sort. »",
+          "« Fais-moi confiance sur celle-là, je le sens. »",
+        ]),
+        qualityBonus: rnd(0.08, 0.16),
+        costDiscount: rnd(0.2, 0.4),
+        expiresWeek: s.week + 2,
+      };
+      s.artistIdeas.push(idea);
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `${candidate.name} a une idée de projet`,
+        body: `${idea.pitch} Réponds depuis le Studio avant que l'inspiration ne retombe.`,
+      });
+    }
+  }
+
   s.messages = s.messages.slice(0, 16);
 
   // 11) Banque : le découvert est autorisé (agios hebdo), la liquidation ne
@@ -1017,6 +1130,88 @@ export function fireStaff(s: GameState, personId: string): GameState {
     id: nextId(), week: next.week, title: `${fullName(person)} quitte le label`,
     body: `Licenciement acté — indemnité de ${STAFF_SEVERANCE_MONTHS} mois de salaire (${fmt(severance)} €). Le poste est vacant, son effet disparaît immédiatement.`,
   });
+  return next;
+}
+
+// ---------- v14 : monde physique & vault ----------
+
+export function buyHomeStudio(s: GameState): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  if (next.hasHomeStudio || next.cash < HOME_STUDIO_COST) return next;
+  next.cash -= HOME_STUDIO_COST;
+  next.hasHomeStudio = true;
+  next.messages.unshift({
+    id: nextId(), week: next.week, title: "Home studio aménagé",
+    body: `${fmt(HOME_STUDIO_COST)} € investis dans un local équipé — le coût d'enregistrement de chaque prod baisse de ${Math.round(HOME_STUDIO_DISCOUNT * 100)} % de façon permanente.`,
+  });
+  return next;
+}
+
+// Sortir une chute de vault : pas de vrai studio, juste une mise en ligne
+// rapide et peu coûteuse. Streams de départ plus modestes qu'une vraie sortie
+// travaillée, mais un vrai revenu quasi gratuit.
+export function releaseVaultTrack(s: GameState, vaultId: string): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  const track = next.vault.find((v) => v.id === vaultId);
+  if (!track || next.cash < VAULT_RELEASE_COST) return next;
+  const artist = next.roster.find((a) => a.id === track.artistId);
+  if (!artist) return next; // l'artiste a quitté le label entretemps
+  next.cash -= VAULT_RELEASE_COST;
+  next.vault = next.vault.filter((v) => v.id !== vaultId);
+  const initialStreams = Math.round(track.quality * 1400 + artist.hype * 900 + rnd(0, 8000));
+  const release: Release = {
+    id: nextId(), artistId: artist.id, artistName: artist.name, artistStyle: track.artistStyle,
+    title: track.title, type: "single", quality: track.quality, retention: 0.62,
+    weeklyStreams: initialStreams, totalStreams: 0, weeksOut: 0, radioPlays: 0,
+    expected: initialStreams, certified: null, pushed: false,
+    premiumShare: computePremiumShare(artist.hype, false),
+    platformSplit: normalizedSplit(PLATFORM_BASE_SPLIT),
+    streamSource: normalizedSplit(STREAM_SOURCE_BASE_SPLIT, false),
+    certAlerted: null,
+  };
+  next.releases.unshift(release);
+  artist.lastReleaseWeek = next.week;
+  next.totalReleases += 1;
+  next.messages.unshift({
+    id: nextId(), week: next.week, title: `Vault ouverte : « ${track.title} »`,
+    body: `La chute de studio de ${artist.name} sort enfin — ${fmt(VAULT_RELEASE_COST)} € et c'est en ligne. Sans promo ni tapage, elle démarre plus modestement qu'une vraie sortie travaillée.`,
+  });
+  return next;
+}
+
+// Suivre l'idée d'un artiste : projet lancé avec un budget par défaut, moins
+// cher (l'artiste pousse, il n'attend pas un studio de prestige) et un bonus
+// de qualité "inspiration" — respecter l'envie de l'artiste paie.
+export function startProjectFromIdea(s: GameState, ideaId: string): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  if (next.project) return next;
+  const idea = next.artistIdeas.find((i) => i.id === ideaId);
+  const artist = idea ? next.roster.find((a) => a.id === idea.artistId) : null;
+  if (!idea || !artist) return next;
+  const bpmRange = STYLE_BPM[artist.style] ?? [80, 140];
+  const bpm = Math.round((bpmRange[0] + bpmRange[1]) / 2);
+  const stats = computeProductionStats(artist, DEFAULT_BUDGET_CHOICE, idea.type, next.staff, bpm, "classique", null, null);
+  const baseCost = effectiveBudgetCost(DEFAULT_BUDGET_CHOICE, next.hasHomeStudio, null);
+  const cost = Math.round(baseCost * (1 - idea.costDiscount));
+  if (next.cash < cost) return next;
+  next.cash -= cost;
+  next.project = {
+    artistId: artist.id, type: idea.type, title: idea.title,
+    weeksLeft: TYPE_META[idea.type].weeks,
+    bpm, structure: "classique", featuringArtistId: null, beatmakerId: null,
+    ...stats, quality: Math.round(stats.quality * (1 + idea.qualityBonus)), hypeBoost: stats.hypeBoost + 3,
+  };
+  next.artistIdeas = next.artistIdeas.filter((i) => i.id !== ideaId);
+  next.messages.unshift({
+    id: nextId(), week: next.week, title: `Studio : « ${idea.title} » (idée de ${artist.name})`,
+    body: `Tu suis l'inspiration de ${artist.name} — budget réduit (${fmt(cost)} €), mais l'énergie du moment est réelle.`,
+  });
+  return next;
+}
+
+export function declineArtistIdea(s: GameState, ideaId: string): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  next.artistIdeas = next.artistIdeas.filter((i) => i.id !== ideaId);
   return next;
 }
 
