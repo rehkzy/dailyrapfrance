@@ -1,10 +1,18 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Sparkles } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import BrandLoader from "@/components/BrandLoader";
 import { sfx } from "@/lib/sfx";
+
+// Désactivé pour l'instant — seuls Blind Test et Artists Manager 2026 sont
+// jouables. Le composant réel (PronosPageReal, plus bas) est intact et prêt
+// à être réactivé : il suffit de remplacer ce redirect par son rendu.
+export default function PronosPage() {
+  redirect("/jeux/bientot?titre=Coach%20A%26R");
+}
 
 /*
  * Coach A&R — chaque semaine, choisis 3 morceaux du top rap actuel que tu penses
@@ -15,7 +23,7 @@ import { sfx } from "@/lib/sfx";
 type ChartTrack = { id: string; title: string; artist: string; cover: string };
 type Pick = { id: string; title: string; artist: string };
 
-export default function PronosPage() {
+export function PronosPageReal() {
   const [chart, setChart] = useState<ChartTrack[]>([]);
   const [week, setWeek] = useState("");
   const [myPicks, setMyPicks] = useState<Pick[] | null>(null);

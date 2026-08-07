@@ -1,5 +1,6 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Scale } from "lucide-react";
 import BrandLoader from "@/components/BrandLoader";
@@ -17,7 +18,14 @@ type Duel = {
   b_id: string; b_title: string; b_artist: string; b_cover: string | null;
 };
 
+// Désactivé pour l'instant — seuls Blind Test et Artists Manager 2026 sont
+// jouables. Le composant réel (TribunalPageReal, plus bas) est intact et prêt
+// à être réactivé : il suffit de remplacer ce redirect par son rendu.
 export default function TribunalPage() {
+  redirect("/jeux/bientot?titre=Le%20Tribunal");
+}
+
+export function TribunalPageReal() {
   const [duel, setDuel] = useState<Duel | null>(null);
   const [votes, setVotes] = useState<{ a: number; b: number }>({ a: 0, b: 0 });
   const [myVote, setMyVote] = useState<"a" | "b" | null>(null);

@@ -56,13 +56,15 @@ const HISTORY_ERAS = [
 const FEATURED_ARTISTS = ["pnl", "booba", "jul", "sch", "ninho", "nekfeu", "badara"];
 
 // L'arcade — le blind test n'est plus le seul jeu, et d'autres arrivent. Covers officielles,
-// même composant que le hub /jouer et la page profil.
+// même composant que le hub /jouer et la page profil. Seuls Blind Test et Artists Manager
+// 2026 sont jouables pour l'instant ; le reste est encore en préparation.
 const ARCADE_PREVIEW = [
-  { title: "Blind Test", href: "/jouer?play=1", cover: "/jeux/blind-test.png" },
-  { title: "La Tracklist", href: "/jeux/tracklist", cover: "/jeux/tracklist.png" },
-  { title: "Plus Haut, Plus Bas", href: "/jeux/plus-haut", cover: "/jeux/plus-haut.png" },
-  { title: "Le Tribunal", href: "/jeux/tribunal", cover: "/jeux/tribunal.png" },
-  { title: "Coach A&R", href: "/jeux/pronos", cover: "/jeux/coach-ar.png" },
+  { title: "Artists Manager 2026", href: "/jeux/artists-manager", cover: "/jeux/artists-manager.png", flag: "Nouveau" },
+  { title: "Blind Test", href: "/jouer?play=1", cover: "/jeux/blind-test.png", flag: null },
+  { title: "La Tracklist", href: "/jeux/bientot?titre=La%20Tracklist", cover: "/jeux/tracklist.png", flag: "Bientôt" },
+  { title: "Plus Haut, Plus Bas", href: "/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas", cover: "/jeux/plus-haut.png", flag: "Bientôt" },
+  { title: "Le Tribunal", href: "/jeux/bientot?titre=Le%20Tribunal", cover: "/jeux/tribunal.png", flag: "Bientôt" },
+  { title: "Coach A&R", href: "/jeux/bientot?titre=Coach%20A%26R", cover: "/jeux/coach-ar.png", flag: "Bientôt" },
 ];
 
 export default async function AProposPage() {
@@ -170,7 +172,7 @@ export default async function AProposPage() {
           </h2>
           <div className="nf-row -mx-6 px-6 mb-4">
             {ARCADE_PREVIEW.map((g) => (
-              <GameCover key={g.href} href={g.href} cover={g.cover} title={g.title} variant="poster" />
+              <GameCover key={g.href} href={g.href} cover={g.cover} title={g.title} flag={g.flag} variant="poster" />
             ))}
           </div>
           <a

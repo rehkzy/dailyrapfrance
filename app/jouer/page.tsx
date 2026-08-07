@@ -19,15 +19,17 @@ import GameCover from "@/components/GameCover";
 const GAMES = [
   { href: "/jeux/artists-manager", title: "Artists Manager 2026", cover: "/jeux/artists-manager.png", flag: "Nouveau" },
   { href: "/jouer?play=1", title: "Blind Test", cover: "/jeux/blind-test.png", flag: null },
-  { href: "/jeux/tracklist", title: "La Tracklist", cover: "/jeux/tracklist.png", flag: "Défi du jour" },
-  { href: "/jeux/plus-haut", title: "Plus Haut, Plus Bas", cover: "/jeux/plus-haut.png", flag: null },
-  { href: "/jeux/tribunal", title: "Le Tribunal", cover: "/jeux/tribunal.png", flag: "Vote du jour" },
-  { href: "/jeux/pronos", title: "Coach A&R", cover: "/jeux/coach-ar.png", flag: null },
-  { href: "/jeux/punchline", title: "La Punchline", cover: "/jeux/punchline.png", flag: null },
-  { href: "/jeux/ghostwriter", title: "Ghostwriter", cover: "/jeux/ghostwriter.png", flag: null },
+  { href: "/jeux/bientot?titre=La%20Tracklist", title: "La Tracklist", cover: "/jeux/tracklist.png", flag: "Bientôt" },
+  { href: "/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas", title: "Plus Haut, Plus Bas", cover: "/jeux/plus-haut.png", flag: "Bientôt" },
+  { href: "/jeux/bientot?titre=Le%20Tribunal", title: "Le Tribunal", cover: "/jeux/tribunal.png", flag: "Bientôt" },
+  { href: "/jeux/bientot?titre=Coach%20A%26R", title: "Coach A&R", cover: "/jeux/coach-ar.png", flag: "Bientôt" },
+  { href: "/jeux/bientot?titre=La%20Punchline", title: "La Punchline", cover: "/jeux/punchline.png", flag: "Bientôt" },
+  { href: "/jeux/bientot?titre=Ghostwriter", title: "Ghostwriter", cover: "/jeux/ghostwriter.png", flag: "Bientôt" },
 ];
 
-const TOP = [GAMES[0], GAMES[1], GAMES[2], GAMES[3], GAMES[4]];
+// Top des jeux — seuls les jeux réellement jouables ont une vraie activité à
+// classer ; les jeux "Bientôt" n'y figurent pas (rien à classer pour l'instant).
+const TOP = [GAMES[0], GAMES[1]];
 
 const MULTI_MODES = [
   { href: "/jouer?mode=local", title: "Même écran", sub: "Un seul appareil, on se le passe", icon: "game-icons:tv" },

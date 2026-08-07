@@ -20,15 +20,15 @@ const SIMPLE_LINKS = [
 // avoir chaque jeu comme item de menu séparé au même niveau que "Accueil"/"À propos"
 // noyait la nav et donnait l'impression de se perdre parmi trop de pages.
 const MOBILE_GAMES = [
-  { href: "/jouer", label: "Tous les jeux", Icon: Gamepad2 },
-  { href: "/jouer?play=1", label: "Blind Test", Icon: Headphones },
-  { href: "/jeux/artists-manager", label: "Artists Manager 26", Icon: Briefcase },
-  { href: "/jeux/tracklist", label: "La Tracklist", Icon: CalendarDays },
-  { href: "/jeux/plus-haut", label: "Plus Haut, Plus Bas", Icon: TrendingUp },
-  { href: "/jeux/tribunal", label: "Le Tribunal", Icon: Scale },
-  { href: "/jeux/pronos", label: "Coach A&R", Icon: Sparkles },
-  { href: "/jeux/punchline", label: "La Punchline", Icon: Mic2 },
-  { href: "/jeux/ghostwriter", label: "Ghostwriter", Icon: Ghost },
+  { href: "/jouer", label: "Tous les jeux", Icon: Gamepad2, soon: false },
+  { href: "/jouer?play=1", label: "Blind Test", Icon: Headphones, soon: false },
+  { href: "/jeux/artists-manager", label: "Artists Manager 26", Icon: Briefcase, soon: false },
+  { href: "/jeux/bientot?titre=La%20Tracklist", label: "La Tracklist", Icon: CalendarDays, soon: true },
+  { href: "/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas", label: "Plus Haut, Plus Bas", Icon: TrendingUp, soon: true },
+  { href: "/jeux/bientot?titre=Le%20Tribunal", label: "Le Tribunal", Icon: Scale, soon: true },
+  { href: "/jeux/bientot?titre=Coach%20A%26R", label: "Coach A&R", Icon: Sparkles, soon: true },
+  { href: "/jeux/bientot?titre=La%20Punchline", label: "La Punchline", Icon: Mic2, soon: true },
+  { href: "/jeux/bientot?titre=Ghostwriter", label: "Ghostwriter", Icon: Ghost, soon: true },
 ];
 
 // Vignette pour "Tous les jeux" dans le menu — pas de screenshot du hub, donc une petite
@@ -43,12 +43,12 @@ const GAME_PREVIEWS = [
   { title: "Tous les jeux", href: "/jouer", src: ALL_GAMES_PREVIEW, description: "Le hub avec l'arcade complète" },
   { title: "Artists Manager 26", href: "/jeux/artists-manager", src: "/jeux/artists-manager.png", description: "Gère ton label, signe des talents" },
   { title: "Blind Test", href: "/jouer?play=1", src: "/jeux/blind-test.png", description: "Reconnais les sons du rap français" },
-  { title: "La Tracklist", href: "/jeux/tracklist", src: "/jeux/tracklist.png", description: "Le morceau mystère du jour" },
-  { title: "Plus Haut, Plus Bas", href: "/jeux/plus-haut", src: "/jeux/plus-haut.png", description: "Qui stream le plus ?" },
-  { title: "Le Tribunal", href: "/jeux/tribunal", src: "/jeux/tribunal.png", description: "Le duel du jour" },
-  { title: "Coach A&R", href: "/jeux/pronos", src: "/jeux/coach-ar.png", description: "Tes pronos de la semaine" },
-  { title: "La Punchline", href: "/jeux/punchline", src: "/jeux/punchline.png", description: "Qui a dit ça ?" },
-  { title: "Ghostwriter", href: "/jeux/ghostwriter", src: "/jeux/ghostwriter.png", description: "Démasque l'IA" },
+  { title: "La Tracklist", href: "/jeux/bientot?titre=La%20Tracklist", src: "/jeux/tracklist.png", description: "Bientôt disponible" },
+  { title: "Plus Haut, Plus Bas", href: "/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas", src: "/jeux/plus-haut.png", description: "Bientôt disponible" },
+  { title: "Le Tribunal", href: "/jeux/bientot?titre=Le%20Tribunal", src: "/jeux/tribunal.png", description: "Bientôt disponible" },
+  { title: "Coach A&R", href: "/jeux/bientot?titre=Coach%20A%26R", src: "/jeux/coach-ar.png", description: "Bientôt disponible" },
+  { title: "La Punchline", href: "/jeux/bientot?titre=La%20Punchline", src: "/jeux/punchline.png", description: "Bientôt disponible" },
+  { title: "Ghostwriter", href: "/jeux/bientot?titre=Ghostwriter", src: "/jeux/ghostwriter.png", description: "Bientôt disponible" },
 ];
 
 const socials = [
@@ -199,7 +199,12 @@ function MobileMenu({
                         }`}
                       >
                         <item.Icon size={16} className={active ? "text-gold" : "text-ink-faint"} />
-                        <span className="text-sm font-medium">{item.label}</span>
+                        <span className="text-sm font-medium flex-1">{item.label}</span>
+                        {item.soon && (
+                          <span className="shrink-0 font-mono text-[9px] uppercase tracking-wide text-ink-faint bg-white/8 rounded-full px-2 py-0.5">
+                            Bientôt
+                          </span>
+                        )}
                       </a>
                     );
                   })}

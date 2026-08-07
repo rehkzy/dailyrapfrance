@@ -1,5 +1,6 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, Share2, X as XIcon } from "lucide-react";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -48,7 +49,14 @@ function saveState(s: SavedState) {
   }
 }
 
+// Désactivé pour l'instant — seuls Blind Test et Artists Manager 2026 sont
+// jouables. Le composant réel (TracklistPageReal, plus bas) est intact et prêt
+// à être réactivé : il suffit de remplacer ce redirect par son rendu.
 export default function TracklistPage() {
+  redirect("/jeux/bientot?titre=La%20Tracklist");
+}
+
+export function TracklistPageReal() {
   const [daily, setDaily] = useState<Daily | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [state, setState] = useState<SavedState | null>(null);

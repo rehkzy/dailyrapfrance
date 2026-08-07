@@ -1,10 +1,18 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, RotateCcw, TrendingUp } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import BrandLoader from "@/components/BrandLoader";
 import { sfx } from "@/lib/sfx";
+
+// Désactivé pour l'instant — seuls Blind Test et Artists Manager 2026 sont
+// jouables. Le composant réel (PlusHautPageReal, plus bas) est intact et prêt
+// à être réactivé : il suffit de remplacer ce redirect par son rendu.
+export default function PlusHautPage() {
+  redirect("/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas");
+}
 
 /*
  * Plus Haut, Plus Bas — deux morceaux, lequel a le plus de streams (rank Deezer) ?
@@ -22,7 +30,7 @@ function loadBest(): number {
   }
 }
 
-export default function PlusHautPage() {
+export function PlusHautPageReal() {
   const [pool, setPool] = useState<Track[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState<Track | null>(null);
