@@ -146,7 +146,7 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   const STEPS = ["Toi", "Ton label", "Récap"];
 
   return (
-    <section className="max-w-md mx-auto px-6 pt-10 pb-24">
+    <section className="fm-skin max-w-md mx-auto px-6 pt-10 pb-24">
       <a href="/jouer" className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide mb-8">
         <ArrowLeft size={14} /> Tous les jeux
       </a>
@@ -519,7 +519,7 @@ export default function ArtistsManagerPage() {
   if (state.gameOver) {
     const bankrupt = state.gameOver === "bankrupt";
     return (
-      <section className="max-w-md mx-auto px-6 pt-16 pb-24 text-center">
+      <section className="fm-skin max-w-md mx-auto px-6 pt-16 pb-24 text-center">
         <p className="text-4xl mb-4">{bankrupt ? "💸" : "🏆"}</p>
         <h1 className="font-impact text-3xl uppercase mb-2">{bankrupt ? "Liquidation judiciaire" : "Fin de saison"}</h1>
         <p className="text-sm text-ink-muted mb-8">
@@ -687,7 +687,7 @@ export default function ArtistsManagerPage() {
   const hintLabel = (p: number) => (p < 0.25 ? "faible" : p < 0.6 ? "moyenne" : "élevée");
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-44 lg:pb-16">
+    <div className="fm-skin max-w-6xl mx-auto px-4 sm:px-6 pb-44 lg:pb-16">
       {showResetNotice && <ResetNotice onDismiss={() => setShowResetNotice(false)} />}
 
       {/* v17 §4 — bouton Continuer intelligent */}
@@ -703,23 +703,43 @@ export default function ArtistsManagerPage() {
         <Tutorial profile={profile} onDone={() => update({ ...state, tutorialDone: true })} />
       )}
 
-      {/* ===== Barre du haut : identité du label · semaine · CONTINUER ===== */}
-      <div className="sticky top-16 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 nav-panel flex items-center gap-3">
-        <a href="/jouer" aria-label="Tous les jeux" className="shrink-0 text-ink-faint hover:text-ink">
-          <ArrowLeft size={18} />
-        </a>
-        <span className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-base" style={{ background: `${accent}26` }}>
-          {profile.logo}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-impact text-sm uppercase leading-none truncate">{profile.labelName}</p>
-          <p className="font-mono text-[10px] text-ink-faint mt-0.5 truncate">
-            {profile.city} · Semaine {state.week}/{SEASON_WEEKS} · {profile.pseudo}
-          </p>
+      {/* ===== Barre du haut — style "Portal" FM26 : blason · nav · date · CONTINUER ===== */}
+      <div className="sticky top-16 z-30 pt-3">
+        <div className="fm-topbar rounded-2xl flex items-center gap-3 px-3 sm:px-4 py-2">
+          <a href="/jouer" aria-label="Tous les jeux" className="shrink-0 text-ink-faint hover:text-ink transition-colors">
+            <ArrowLeft size={18} />
+          </a>
+          {/* Blason du label, cerclé comme le crest FM */}
+          <span
+            className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg"
+            style={{ background: `${accent}22`, border: `2px solid ${accent}66`, boxShadow: `0 0 18px ${accent}44` }}
+          >
+            {profile.logo}
+          </span>
+          <div className="min-w-0">
+            <p className="font-impact text-sm sm:text-base uppercase leading-none truncate" style={{ color: accent }}>
+              {profile.labelName}
+            </p>
+            <p className="font-mono text-[10px] text-ink-faint mt-0.5 truncate">
+              {profile.city} · {profile.pseudo}
+            </p>
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Bloc date/semaine — comme le "4 Jan 2026 · Sun 18:30" de FM */}
+          <div className="hidden sm:flex flex-col items-center px-3 py-1 rounded-xl border border-white/10 bg-white/[0.04]">
+            <span className="font-impact text-sm leading-none">Semaine {state.week}</span>
+            <span className="font-mono text-[9px] uppercase tracking-wide text-ink-faint mt-0.5">
+              Saison · {SEASON_WEEKS} sem.
+            </span>
+          </div>
+
+          {/* CONTINUER — dégradé violet → rose, plein, jamais coupé */}
+          <button onClick={continueWeek} className="fm-continue shrink-0">
+            Continuer <ChevronRight size={16} />
+          </button>
         </div>
-        <BorderMagicButton onClick={continueWeek} size="sm">
-          Continuer <ChevronRight size={14} />
-        </BorderMagicButton>
       </div>
 
       {/* ===== Sidebar (desktop) + colonne de contenu ===== */}
