@@ -31,6 +31,11 @@ export type Artist = {
   // au fil des semaines (flow/plume qui montent).
   potential: number;              // 0-20, CACHÉ
   shownPotential: [number, number]; // fourchette affichée au joueur
+  // v12 — contrat à durée : un artiste n'est pas signé pour toujours. Le
+  // renouvellement se négocie avant l'échéance (dilemme ChoiceEvent "renewal").
+  contractWeeksLeft: number;
+  contractWeeksTotal: number;
+  leaving: boolean; // renouvellement refusé — partira en fin de contrat
 };
 
 // ---------- Staff (personnes simulées) ----------
@@ -75,6 +80,7 @@ export type ConcertOffer = {
   cityName: string;
   fee: number;
   expiresWeek: number;
+  dates: number; // 1 = date unique ; 3-5 = tournée (v12)
 };
 
 // ---------- Production ----------
@@ -90,7 +96,11 @@ export type BudgetOption = {
 
 export type BudgetKey =
   | "instru" | "enregistrement" | "mix" | "mastering"
-  | "cover" | "clip" | "distribution" | "publicite" | "presse";
+  | "cover" | "clip" | "clipConcept" | "distribution" | "publicite" | "presse";
+
+// v10 — structure du morceau : un vrai arbitrage créatif, pas juste un curseur
+// de budget. Chaque choix a un vrai effet mécanique et un vrai risque.
+export type SongStructure = "classique" | "minimaliste" | "experimental";
 
 export type Project = {
   artistId: string;
@@ -103,6 +113,10 @@ export type Project = {
   mediaChance: number;
   hypeBoost: number;
   retention: number;
+  // v10 — création musicale construite.
+  bpm: number;
+  structure: SongStructure;
+  featuringArtistId: string | null; // autre artiste du roster en featuring
 };
 
 export type Release = {
@@ -120,6 +134,7 @@ export type Release = {
   radioPlays: number; // passages radio hebdo (rémunération équitable + boost de streams)
   expected: number;   // prévision de démarrage annoncée à la sortie (suspense S+1)
   certified: "or" | "platine" | "diamant" | null; // dernier palier atteint
+  pushed: boolean;    // v11 — boost de campagne post-sortie déjà utilisé ?
 };
 
 // Objectifs de saison — arcs à deadline avec récompense (aides, synchro...).
@@ -139,7 +154,7 @@ export type Objective = {
 // Dilemmes de l'industrie — dossiers à trancher (2 options, vrais arbitrages).
 export type ChoiceEvent = {
   id: string;
-  kind: "brand" | "playlist" | "advance" | "feat";
+  kind: "brand" | "playlist" | "advance" | "feat" | "renewal";
   refId: string | null; // id de la sortie ou de l'artiste concerné
   createdWeek: number;
   expiresWeek: number;

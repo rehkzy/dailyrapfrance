@@ -10,13 +10,14 @@
 
 import type {
   Artist, BudgetKey, BudgetOption, ChartEntry, ChoiceEvent, ConcertOffer, GameState,
-  LabelChartEntry, Negotiation, Objective, Person, Project, ProjectChartEntry, Release, StaffRole,
+  LabelChartEntry, Negotiation, Objective, Person, Project, ProjectChartEntry, Release, SongStructure, StaffRole,
 } from "./types";
 import {
-  BUDGET_PRESETS, CERT_LEVELS, DROITS_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
-  MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, RADIO_RATE, SAVE_KEY,
-  SAVE_VERSION, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH,
-  STREAM_RATE, TYPE_META, VENUES,
+  BUDGET_PRESETS, CERT_LEVELS, CONTRACT_MAX_WEEKS, CONTRACT_RENEWAL_RAISE, CONTRACT_RENEWAL_WINDOW,
+  DROITS_RATE, FEATURING_FEE_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
+  MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, PERSONALITY_CLASHES, PUSH_COST,
+  PUSH_WINDOW_WEEKS, RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS,
+  STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STYLE_BPM, TOUR_MAX_DATES, TOUR_MIN_DATES, TYPE_META, VENUES,
 } from "./data";
 import { fullName, makeArtist, makeInitialStaffMarket, makeStaffCandidate, nextId, pick, ri, rnd } from "./people";
 import { makeRivals, makeTrends, rivalLabelStreams, tickWorld } from "./world";
@@ -47,12 +48,16 @@ export function staffMonthlyCost(staff: Person[]): number {
 
 // Utilisée pour l'aperçu en direct dans le Studio ET pour les valeurs figées sur
 // le Project au lancement — une seule formule, pas de divergence. v6 : le staff
-// en poste modifie le résultat (effets documentés dans STAFF_ROLES).
+// en poste modifie le résultat. v10 : BPM/structure/featuring — de vrais choix
+// créatifs, pas juste des curseurs de budget.
 export function computeProductionStats(
   artist: Artist,
   choice: Record<BudgetKey, number>,
   type: Project["type"],
-  staff: Person[]
+  staff: Person[],
+  bpm: number,
+  structure: SongStructure,
+  featuringArtist: Artist | null
 ): Pick<Project, "quality" | "reach" | "adsMult" | "mediaChance" | "hypeBoost" | "retention"> {
   const meta = TYPE_META[type];
   const instru = budgetPreset("instru", choice);
@@ -61,6 +66,7 @@ export function computeProductionStats(
   const master = budgetPreset("mastering", choice);
   const cover = budgetPreset("cover", choice);
   const clip = budgetPreset("clip", choice);
+  const clipConcept = budgetPreset("clipConcept", choice);
   const dist = budgetPreset("distribution", choice);
   const ads = budgetPreset("publicite", choice);
   const presse = budgetPreset("presse", choice);
@@ -75,23 +81,46 @@ export function computeProductionStats(
   // Ingé son maison : +0 à ~+14 % sur le rendu mix/master.
   const ingeMult = inge ? 1 + inge.skill / 140 + (inge.styleAffinity === artist.style ? 0.03 : 0) : 1;
 
+  // v10 — BPM : coller au tempo du style rapporte, s'en éloigner coûte.
+  const bpmRange = STYLE_BPM[artist.style] ?? [80, 140];
+  const bpmGap = bpm < bpmRange[0] ? bpmRange[0] - bpm : bpm > bpmRange[1] ? bpm - bpmRange[1] : 0;
+  const bpmMult = bpmGap === 0 ? 1.08 : bpmGap <= 15 ? 0.98 : 0.88;
+
+  // v10 — structure du morceau : arbitrage portée/qualité/rétention/risque.
+  let structQualityMult = 1;
+  let structReachMult = 1;
+  let structRetentionAdj = 0;
+  let structHypeAdj = 0;
+  if (structure === "minimaliste") { structQualityMult = 0.95; structReachMult = 0.9; structRetentionAdj = 0.06; }
+  else if (structure === "experimental") { structReachMult = 1.16; structRetentionAdj = -0.06; structHypeAdj = 5; }
+
+  // v10 — featuring : croise les fanbases des deux artistes, coûte une part
+  // de la cote du featuré (voir featuringCost).
+  const featMult = featuringArtist ? 1.14 : 1;
+  const featHypeAdj = featuringArtist ? 6 : 0;
+
   const skill = (artist.flow + artist.plume) / 2; // 0-20
   const quality = Math.round(
     (skill * 3.2 + (enr.add ?? 0)) *
-    (instru.mult ?? 1) * (mix.mult ?? 1) * (master.mult ?? 1) * (cover.mult ?? 1) *
-    daMult * ingeMult *
+    (instru.mult ?? 1) * (mix.mult ?? 1) * (master.mult ?? 1) * (cover.mult ?? 1) * (clipConcept.mult ?? 1) *
+    daMult * ingeMult * bpmMult * structQualityMult *
     meta.studioBase
   );
-  const reach = (dist.mult ?? 1) * (clip.mult ?? 1);
+  const reach = (dist.mult ?? 1) * (clip.mult ?? 1) * structReachMult * featMult;
   // Marketing : chaque euro de pub travaille plus dur (jusqu'à +20 %).
   const adsMult = (ads.mult ?? 1) * (marketing ? 1 + marketing.skill / 100 : 1);
   // Attaché(e) de presse : chance média du budget + son carnet d'adresses.
   const mediaChance = Math.min(0.9, (presse.mediaChance ?? 0) + (pressePerso ? pressePerso.skill / 100 : 0));
-  const hypeBoost = 12 + (clip.hypeBoost ?? 0);
-  const retention = Math.max(0.55, Math.min(0.9,
-    0.62 + ((master.mult ?? 1) * ingeMult - 1) * 0.5 + (reach - 1) * 0.15 + quality / 1000
+  const hypeBoost = 12 + (clip.hypeBoost ?? 0) + structHypeAdj + featHypeAdj;
+  const retention = Math.max(0.5, Math.min(0.92,
+    0.62 + ((master.mult ?? 1) * ingeMult - 1) * 0.5 + (reach - 1) * 0.15 + quality / 1000 + structRetentionAdj
   ));
   return { quality, reach, adsMult, mediaChance, hypeBoost, retention };
+}
+
+// Coût d'un featuring avec un autre artiste du roster — part de sa cote.
+export function featuringCost(a: Artist): number {
+  return Math.round((a.signingFee * FEATURING_FEE_RATE) / 50) * 50;
 }
 
 // ---------- Négociations d'embauche ----------
@@ -169,21 +198,29 @@ function generateConcertOffers(s: GameState) {
   const skill = booker ? booker.skill : 4;
   // Cachet réaliste pour un artiste en développement : ~300-1500 € sans hype,
   // 2000-6000 € avec une vraie hype et un bon booker.
-  const fee = Math.round((300 + artist.hype * rnd(25, 60) + skill * rnd(40, 90)) / 50) * 50;
+  const feePerDate = Math.round((300 + artist.hype * rnd(25, 60) + skill * rnd(40, 90)) / 50) * 50;
+  // v12 — un bon booker avec un artiste qui a de la hype peut décrocher une
+  // vraie tournée (plusieurs dates) plutôt qu'une date isolée.
+  const isTour = booker && booker.skill >= 10 && artist.hype >= 45 && Math.random() < 0.3;
+  const dates = isTour ? ri(TOUR_MIN_DATES, TOUR_MAX_DATES) : 1;
+  const fee = isTour ? Math.round((feePerDate * dates * 0.88) / 50) * 50 : feePerDate;
   const offer: ConcertOffer = {
     id: nextId(),
     artistId: artist.id,
     artistName: artist.name,
-    venue: pick(VENUES),
-    cityName: pick(["Paris", "Marseille", "Lyon", "Lille", "Bordeaux", "Nantes", "Genève", "Bruxelles"]),
+    venue: isTour ? "Tournée nationale" : pick(VENUES),
+    cityName: isTour ? `${dates} villes` : pick(["Paris", "Marseille", "Lyon", "Lille", "Bordeaux", "Nantes", "Genève", "Bruxelles"]),
     fee,
     expiresWeek: s.week + 2,
+    dates,
   };
   s.concertOffers.push(offer);
   s.messages.unshift({
     id: nextId(), week: s.week,
-    title: `Offre de concert pour ${artist.name}`,
-    body: `${booker ? `Ton booker a décroché` : `Une salle propose`} une date (cachet : ${fmt(fee)} €). Accepte ou refuse depuis le dashboard — l'offre expire dans 2 semaines.`,
+    title: isTour ? `Tournée proposée pour ${artist.name}` : `Offre de concert pour ${artist.name}`,
+    body: isTour
+      ? `Ton booker a monté une tournée de ${dates} dates (cachet total : ${fmt(fee)} €). Accepte ou refuse depuis le dashboard — l'offre expire dans 2 semaines.`
+      : `${booker ? `Ton booker a décroché` : `Une salle propose`} une date (cachet : ${fmt(fee)} €). Accepte ou refuse depuis le dashboard — l'offre expire dans 2 semaines.`,
   });
 }
 
@@ -408,12 +445,14 @@ export function advanceWeek(prev: GameState): GameState {
           radioPlays,
           expected,
           certified: null,
+          pushed: false,
         });
         artist.hype = Math.min(100, artist.hype + proj.hypeBoost);
         s.totalReleases += 1;
+        const featGuest = proj.featuringArtistId ? s.roster.find((a) => a.id === proj.featuringArtistId) : null;
         s.messages.unshift({
           id: nextId(), week: s.week, title: `Sortie : « ${proj.title} »`,
-          body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name} est dans les bacs${trendMult >= 1.2 ? ` — et le ${artist.style} est en pleine tendance, ça tombe bien` : trendMult <= 0.8 ? ` — mais le ${artist.style} n'a pas le vent en poupe en ce moment` : ""}. Les pros tablent sur ~${fmt(expected)} streams de démarrage. Verdict au premier bilan, la semaine prochaine.`,
+          body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name}${featGuest ? ` feat. ${featGuest.name}` : ""} est dans les bacs${trendMult >= 1.2 ? ` — et le ${artist.style} est en pleine tendance, ça tombe bien` : trendMult <= 0.8 ? ` — mais le ${artist.style} n'a pas le vent en poupe en ce moment` : ""}. Les pros tablent sur ~${fmt(expected)} streams de démarrage. Verdict au premier bilan, la semaine prochaine.`,
         });
         if (mediaHit) {
           s.messages.unshift({
@@ -434,6 +473,24 @@ export function advanceWeek(prev: GameState): GameState {
 
   // 3) Vie des sorties : streams, radio, revenus détaillés, déclin.
   //    v9 : verdict du premier bilan (vs prévision) + certifications.
+  //    v12 : réseaux sociaux — canal média séparé de la presse et de la radio,
+  //    piloté par le CM. Rare, mais un vrai coup de boost quand ça arrive.
+  const cmSocial = staffByRole(s.staff, "cm");
+  if (cmSocial && s.releases.length > 0) {
+    for (const r of s.releases) {
+      if (r.weeksOut > 6) continue; // les réseaux s'emballent surtout sur les sorties fraîches
+      const viralChance = cmSocial.skill / 500;
+      if (Math.random() < viralChance) {
+        const bump = rnd(1.25, 1.6);
+        r.weeklyStreams = Math.round(r.weeklyStreams * bump);
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `« ${r.title} » devient viral sur les réseaux 📱`,
+          body: `Un extrait tourne fort sur les réseaux — le travail de ton CM paie. Streams de la semaine dopés de ${Math.round((bump - 1) * 100)} %.`,
+        });
+        break; // un seul moment viral par semaine, pour garder l'effet marquant
+      }
+    }
+  }
   let streamingRev = 0;
   let radioRev = 0;
   for (const r of s.releases) {
@@ -548,6 +605,22 @@ export function advanceWeek(prev: GameState): GameState {
     //  - Motivation au fond = risque de démission (sans indemnité, poste vacant).
     //  - Chacun peut progresser en compétence... et toi, tu apprends à les
     //    connaître : la fourchette de niveau affichée se resserre vers le vrai.
+    // v12 — relations d'équipe (light) : certains duos de personnalités ne
+    // s'entendent pas naturellement. Rien de dramatique, mais ça pèse sur le moral.
+    for (const [a, b] of PERSONALITY_CLASHES) {
+      const hasA = s.staff.some((p) => p.personality === a);
+      const hasB = s.staff.some((p) => p.personality === b);
+      if (hasA && hasB && Math.random() < 0.4) {
+        for (const p of s.staff) {
+          if (p.personality === a || p.personality === b) p.motivation = Math.max(0, p.motivation - 2);
+        }
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: "Tensions dans l'équipe",
+          body: `Les profils ${a.toLowerCase()} et ${b.toLowerCase()} ne font pas toujours bon ménage — ambiance un peu tendue ce mois-ci, motivation en légère baisse.`,
+        });
+      }
+    }
+
     const resigning: Person[] = [];
     for (const p of s.staff) {
       const [lo, hi] = STAFF_ROLES[p.role].baseSalary;
@@ -604,6 +677,36 @@ export function advanceWeek(prev: GameState): GameState {
         body: `Le travail paie : ${a.name} franchit un cap technique. Son plafond réel, lui, reste à découvrir.`,
       });
     }
+  }
+
+  // 5bis) Contrats d'artistes (v12) — un artiste n'est pas signé pour toujours.
+  //       Le renouvellement se négocie avant l'échéance (dilemme dans "À traiter").
+  const departing: Artist[] = [];
+  for (const a of s.roster) {
+    a.contractWeeksLeft -= 1;
+    if (a.contractWeeksLeft === CONTRACT_RENEWAL_WINDOW && !a.leaving) {
+      const hasChoice = s.pendingChoices.some((c) => c.kind === "renewal" && c.refId === a.id);
+      if (!hasChoice) {
+        const choice = makeChoiceEvent(s, "renewal", a.id);
+        if (choice) {
+          s.pendingChoices.push(choice);
+          s.messages.unshift({
+            id: nextId(), week: s.week, title: `Fin de contrat approche : ${a.name}`,
+            body: `Le contrat de ${a.name} se termine dans ${CONTRACT_RENEWAL_WINDOW} semaines. Décide de son avenir dans "À traiter".`,
+          });
+        }
+      }
+    }
+    if (a.contractWeeksLeft <= 0) departing.push(a);
+  }
+  for (const a of departing) {
+    s.roster = s.roster.filter((x) => x.id !== a.id);
+    s.pendingChoices = s.pendingChoices.filter((c) => !(c.kind === "renewal" && c.refId === a.id));
+    if (s.project && s.project.artistId === a.id) s.project = null;
+    s.messages.unshift({
+      id: nextId(), week: s.week, title: `${a.name} quitte le label`,
+      body: `Fin de contrat — ${a.name} part libre. ${a.leaving ? "Le renouvellement avait été décliné." : ""} Ses sorties déjà publiées restent dans ton catalogue.`,
+    });
   }
 
   // 6) Attaché(e) de presse : entretien de réputation hebdo.
@@ -763,12 +866,15 @@ export function acceptConcert(s: GameState, offerId: string): GameState {
   next.concertOffers = next.concertOffers.filter((o) => o.id !== offerId);
   next.cash += offer.fee;
   next.pendingConcertIncome += offer.fee;
-  next.totalConcerts += 1;
+  next.totalConcerts += offer.dates;
   const artist = next.roster.find((a) => a.id === offer.artistId);
-  if (artist) artist.hype = Math.min(100, artist.hype + ri(3, 8));
+  if (artist) artist.hype = Math.min(100, artist.hype + (offer.dates > 1 ? ri(10, 18) : ri(3, 8)));
   next.messages.unshift({
-    id: nextId(), week: next.week, title: `${offer.artistName} sur scène à ${offer.cityName}`,
-    body: `Date confirmée à ${offer.venue}. Cachet encaissé : ${fmt(offer.fee)} €. La scène entretient la hype.`,
+    id: nextId(), week: next.week,
+    title: offer.dates > 1 ? `${offer.artistName} part en tournée` : `${offer.artistName} sur scène à ${offer.cityName}`,
+    body: offer.dates > 1
+      ? `Tournée de ${offer.dates} dates confirmée. Cachet total encaissé : ${fmt(offer.fee)} €. Une vraie tournée marque les esprits — la hype grimpe fort.`
+      : `Date confirmée à ${offer.venue}. Cachet encaissé : ${fmt(offer.fee)} €. La scène entretient la hype.`,
   });
   return next;
 }
@@ -908,12 +1014,52 @@ export function sellCatalog(s: GameState, releaseId: string): GameState {
   return next;
 }
 
+// ---------- Campagne de sortie (v11) ----------
+
+// Boost de campagne post-sortie — relance presse/réseaux, utilisable une fois
+// par sortie dans les 4 semaines qui suivent le drop. Coup de pouce ponctuel,
+// pas une baguette magique : effet notable mais pas garanti à chaque fois.
+export function pushRelease(s: GameState, releaseId: string): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  const release = next.releases.find((r) => r.id === releaseId);
+  if (!release || release.pushed || release.weeksOut > PUSH_WINDOW_WEEKS) return next;
+  if (next.cash < PUSH_COST) return next;
+  next.cash -= PUSH_COST;
+  release.pushed = true;
+  const hit = Math.random() < 0.65;
+  if (hit) {
+    release.weeklyStreams = Math.round(release.weeklyStreams * rnd(1.2, 1.5));
+    next.messages.unshift({
+      id: nextId(), week: next.week, title: `Relance de campagne payante pour « ${release.title} »`,
+      body: `${fmt(PUSH_COST)} € investis en relance presse/réseaux — la sortie reprend un coup de vie, les streams de la semaine grimpent.`,
+    });
+  } else {
+    next.messages.unshift({
+      id: nextId(), week: next.week, title: `Relance sans grand effet pour « ${release.title} »`,
+      body: `${fmt(PUSH_COST)} € investis, mais la relance n'a pas vraiment pris cette fois. Une campagne, ça ne marche pas à tous les coups.`,
+    });
+  }
+  return next;
+}
+
 // ---------- Dilemmes de l'industrie ----------
 
 // Chaque dilemme apprend un vrai mécanisme du secteur : placement de marque,
 // pitch playlist payant, avance distributeur, featuring inter-labels.
-function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"]): ChoiceEvent | null {
+function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"], refIdArg?: string): ChoiceEvent | null {
   const base = { id: nextId(), kind, createdWeek: s.week, expiresWeek: s.week + 2 };
+  if (kind === "renewal") {
+    const artist = s.roster.find((a) => a.id === refIdArg);
+    if (!artist) return null;
+    const newSalary = Math.round((artist.salary * (1 + CONTRACT_RENEWAL_RAISE)) / 50) * 50;
+    return {
+      ...base, refId: artist.id, expiresWeek: s.week + artist.contractWeeksLeft,
+      title: `Renouvellement de contrat — ${artist.name}`,
+      body: `Le contrat de ${artist.name} arrive à échéance dans ${artist.contractWeeksLeft} semaines. Il/elle demande une revalorisation à ${fmt(newSalary)} €/mois (contre ${fmt(artist.salary)} € aujourd'hui) pour rester.`,
+      optionA: `Renouveler à ${fmt(newSalary)} €/mois`,
+      optionB: "Le laisser partir en fin de contrat",
+    };
+  }
   if (kind === "brand" || kind === "playlist" || kind === "advance") {
     const release = s.releases[0];
     if (!release) return null;
@@ -1014,6 +1160,27 @@ export function resolveChoice(s: GameState, choiceId: string, option: "a" | "b")
         next.messages.unshift({
           id: nextId(), week: next.week, title: `Le feat de ${artist.name} fait du bruit`,
           body: `Session payée, morceau enregistré — l'exposition croisée dope la hype de ${artist.name}. Les feats, c'est le nerf du rap game.`,
+        });
+      }
+    }
+  } else if (choice.kind === "renewal") {
+    const artist = next.roster.find((a) => a.id === choice.refId);
+    if (artist) {
+      if (option === "a") {
+        const newSalary = Math.round((artist.salary * (1 + CONTRACT_RENEWAL_RAISE)) / 50) * 50;
+        artist.salary = newSalary;
+        artist.contractWeeksLeft = ri(CONTRACT_MIN_WEEKS, CONTRACT_MAX_WEEKS);
+        artist.contractWeeksTotal = artist.contractWeeksLeft;
+        artist.leaving = false;
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `${artist.name} prolonge l'aventure`,
+          body: `Nouveau contrat signé à ${fmt(newSalary)} €/mois. ${artist.name} reste au label.`,
+        });
+      } else {
+        artist.leaving = true;
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `${artist.name} partira en fin de contrat`,
+          body: `Pas de renouvellement — ${artist.name} quittera le label dans ${artist.contractWeeksLeft} semaines. Ses sorties actuelles continuent de tourner d'ici là.`,
         });
       }
     }

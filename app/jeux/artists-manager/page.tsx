@@ -10,20 +10,22 @@ import {
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
 
-import type { Artist, BudgetKey, GameState, Person, Profile, Project, StaffRole, Tab } from "@/lib/am26/types";
+import type { Artist, BudgetKey, GameState, Person, Profile, Project, SongStructure, StaffRole, Tab } from "@/lib/am26/types";
 import {
-  BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS, DEFAULT_BUDGET_CHOICE,
-  DROITS_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS,
-  PROJECT_TITLES, RADIO_RATE, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS,
-  START_CASH, STREAM_RATE, STYLES, TYPE_META,
+  BPM_MAX, BPM_MIN, BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS,
+  CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE, DROITS_RATE, FEATURING_FEE_RATE,
+  LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS,
+  PROJECT_TITLES, PUSH_COST, PUSH_WINDOW_WEEKS, RADIO_RATE, SEASON_WEEKS, SONG_STRUCTURES,
+  STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STYLE_BPM,
+  STYLES, TYPE_META,
 } from "@/lib/am26/data";
 import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
 import {
   acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistContractValue,
   budgetTotalCost, catalogValue, computeArtistChart, computeLabelChart, computeProductionStats,
-  computeProjectChart, declineConcert, declineCounter, fireStaff, fmt, initialState, load,
-  makeOffer, persist, resolveChoice, sellArtistContract, sellCatalog, staffByRole,
-  staffMonthlyCost, takeLoan,
+  computeProjectChart, declineConcert, declineCounter, featuringCost, fireStaff, fmt,
+  initialState, load, makeOffer, persist, pushRelease, resolveChoice, sellArtistContract,
+  sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
 } from "@/lib/am26/engine";
 
 /*
@@ -407,6 +409,10 @@ export default function ArtistsManagerPage() {
   // BudgetOption ni des littéraux `as const` (piège des types littéraux déjà vécu).
   const [budgetChoice, setBudgetChoice] = useState<Record<BudgetKey, number>>(DEFAULT_BUDGET_CHOICE);
   const selectBudget = (key: BudgetKey, idx: number) => setBudgetChoice((prev) => ({ ...prev, [key]: idx }));
+  // v10 — création musicale construite : BPM, structure, featuring.
+  const [projBpm, setProjBpm] = useState<number>(100);
+  const [projStructure, setProjStructure] = useState<SongStructure>("classique");
+  const [projFeaturing, setProjFeaturing] = useState<string>(""); // id d'un autre artiste du roster, "" = aucun
   // Onglet Staff : filtre de rôle + candidat dont le panneau d'offre est ouvert +
   // confirmation de licenciement (double appui).
   const [roleFilter, setRoleFilter] = useState<StaffRole | "tous">("tous");
@@ -545,21 +551,28 @@ export default function ArtistsManagerPage() {
     if (!state || state.project) return;
     const artist = state.roster.find((a) => a.id === projArtist);
     if (!artist) return;
-    const cost = budgetTotalCost(budgetChoice);
+    const featArtist = projFeaturing ? state.roster.find((a) => a.id === projFeaturing) ?? null : null;
+    const featCost = featArtist ? featuringCost(featArtist) : 0;
+    const cost = budgetTotalCost(budgetChoice) + featCost;
     if (state.cash < cost) return;
     sfx.click();
     const meta = TYPE_META[projType];
-    const stats = computeProductionStats(artist, budgetChoice, projType, state.staff);
+    const stats = computeProductionStats(artist, budgetChoice, projType, state.staff, projBpm, projStructure, featArtist);
     const title = PROJECT_TITLES[Math.floor(Math.random() * PROJECT_TITLES.length)];
     update({
       ...state,
       cash: state.cash - cost,
-      project: { artistId: artist.id, type: projType, title, weeksLeft: meta.weeks, ...stats },
+      project: {
+        artistId: artist.id, type: projType, title, weeksLeft: meta.weeks,
+        bpm: projBpm, structure: projStructure, featuringArtistId: featArtist ? featArtist.id : null,
+        ...stats,
+      },
       messages: [{
         id: nextId(), week: state.week, title: `Studio : « ${title} »`,
-        body: `${artist.name} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines). Budget engagé : ${fmt(cost)} €.`,
+        body: `${artist.name}${featArtist ? ` feat. ${featArtist.name}` : ""} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines). Budget engagé : ${fmt(cost)} €${featCost > 0 ? ` (dont ${fmt(featCost)} € de featuring)` : ""}.`,
       }, ...state.messages].slice(0, 16),
     });
+    setProjFeaturing("");
     setTab("label");
   }
 
@@ -582,7 +595,13 @@ export default function ArtistsManagerPage() {
   const nextPayWeek = (Math.floor(state.week / MONTH_WEEKS) + 1) * MONTH_WEEKS;
   const totalCost = budgetTotalCost(budgetChoice);
   const previewArtist = state.roster.find((a) => a.id === projArtist);
-  const preview = previewArtist ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff) : null;
+  const featuringCandidates = state.roster.filter((a) => a.id !== projArtist);
+  const previewFeatArtist = projFeaturing ? state.roster.find((a) => a.id === projFeaturing) ?? null : null;
+  const previewFeatCost = previewFeatArtist ? featuringCost(previewFeatArtist) : 0;
+  const grandTotalCost = totalCost + previewFeatCost;
+  const preview = previewArtist
+    ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff, projBpm, projStructure, previewFeatArtist)
+    : null;
   const accent = profile.color;
 
   const counteredNegos = state.negotiations.filter((n) => n.status === "countered");
@@ -789,9 +808,9 @@ export default function ArtistsManagerPage() {
                         <Mic2 size={13} />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">Concert — {o.artistName}</p>
+                        <p className="text-sm font-medium">{o.dates > 1 ? "Tournée" : "Concert"} — {o.artistName}</p>
                         <p className="text-xs text-ink-muted mt-0.5">
-                          {o.venue}, {o.cityName} · cachet <span className="text-risePos font-semibold">{fmt(o.fee)} €</span> · expire S{o.expiresWeek}
+                          {o.venue}, {o.cityName} · cachet {o.dates > 1 ? "total " : ""}<span className="text-risePos font-semibold">{fmt(o.fee)} €</span> · expire S{o.expiresWeek}
                         </p>
                       </div>
                     </div>
@@ -800,7 +819,7 @@ export default function ArtistsManagerPage() {
                         onClick={() => { sfx.correct(); update(acceptConcert(state, o.id)); }}
                         className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
                       >
-                        Accepter la date
+                        {o.dates > 1 ? "Accepter la tournée" : "Accepter la date"}
                       </button>
                       <button
                         onClick={() => { sfx.click(); update(declineConcert(state, o.id)); }}
@@ -977,16 +996,30 @@ export default function ArtistsManagerPage() {
 
           {state.releases.length > 0 && (
             <SectionCard title="Sorties actives" icon={<Radio size={11} />}>
-              <div className="space-y-2.5">
-                {state.releases.slice(0, 4).map((r) => (
-                  <div key={r.id} className="flex items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">« {r.title} » — {r.artistName}</p>
-                      <p className="font-mono text-[10px] text-ink-faint">{fmt(r.totalStreams)} cumulés · sem. {r.weeksOut}</p>
+              <div className="space-y-3">
+                {state.releases.slice(0, 4).map((r) => {
+                  const canPush = !r.pushed && r.weeksOut <= PUSH_WINDOW_WEEKS;
+                  return (
+                    <div key={r.id}>
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">« {r.title} » — {r.artistName}</p>
+                          <p className="font-mono text-[10px] text-ink-faint">{fmt(r.totalStreams)} cumulés · sem. {r.weeksOut}</p>
+                        </div>
+                        <span className="font-mono text-xs text-gold shrink-0">{fmt(r.weeklyStreams)}/sem</span>
+                      </div>
+                      {canPush && (
+                        <button
+                          onClick={() => { sfx.click(); update(pushRelease(state, r.id)); }}
+                          disabled={state.cash < PUSH_COST}
+                          className="mt-1 text-[10px] font-mono uppercase text-gold hover:text-glow disabled:text-ink-faint disabled:cursor-not-allowed"
+                        >
+                          Relancer la campagne — {fmt(PUSH_COST)} €
+                        </button>
+                      )}
                     </div>
-                    <span className="font-mono text-xs text-gold shrink-0">{fmt(r.weeklyStreams)}/sem</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </SectionCard>
           )}
@@ -1064,6 +1097,10 @@ export default function ArtistsManagerPage() {
                       <StatBar label="Charisme" value={a.charisme} color={accent} />
                       <StatBar label="Hype" value={a.hype} max={100} color={accent} />
                       <RangeBar label="Potentiel" range={a.shownPotential} color={accent} />
+                      <p className={`font-mono text-[10px] ${a.contractWeeksLeft <= CONTRACT_RENEWAL_WINDOW ? "text-glow" : "text-ink-faint"}`}>
+                        Contrat : {a.contractWeeksLeft} semaine{a.contractWeeksLeft > 1 ? "s" : ""} restante{a.contractWeeksLeft > 1 ? "s" : ""}
+                        {a.leaving ? " — partira en fin de contrat" : ""}
+                      </p>
                       {confirmSellArtistId === a.id ? (
                         <div className="flex gap-2 pt-2">
                           <button
@@ -1377,6 +1414,69 @@ export default function ArtistsManagerPage() {
                 </div>
               </SectionCard>
 
+              {/* v10 — création musicale construite : BPM, structure, featuring */}
+              <SectionCard title="3 · BPM" icon={<Sparkles size={11} />}>
+                {previewArtist && (
+                  <p className="text-[11px] text-ink-faint font-mono mb-2">
+                    Plage idéale pour le {previewArtist.style} :{" "}
+                    <span className="text-gold">
+                      {(STYLE_BPM[previewArtist.style] ?? [80, 140])[0]}-{(STYLE_BPM[previewArtist.style] ?? [80, 140])[1]} BPM
+                    </span>{" "}
+                    — coller au tempo du style améliore la qualité, s'en éloigner trop la pénalise.
+                  </p>
+                )}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={BPM_MIN}
+                    max={BPM_MAX}
+                    value={projBpm}
+                    onChange={(e) => setProjBpm(Number(e.target.value))}
+                    className="flex-1 accent-gold"
+                  />
+                  <span className="font-mono text-sm w-16 text-right">{projBpm} BPM</span>
+                </div>
+              </SectionCard>
+
+              <SectionCard title="4 · Structure du morceau" icon={<Disc3 size={11} />}>
+                <div className="space-y-2">
+                  {SONG_STRUCTURES.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setProjStructure(s.id)}
+                      className={`w-full text-left rounded-xl border px-3 py-2.5 transition-colors ${
+                        projStructure === s.id ? "border-gold/50 bg-gold/10" : "border-white/10 bg-white/[0.03] hover:border-white/25"
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${projStructure === s.id ? "text-gold" : ""}`}>{s.label}</p>
+                      <p className="text-[11px] text-ink-muted mt-0.5">{s.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {featuringCandidates.length > 0 && (
+                <SectionCard title="5 · Featuring (optionnel)" icon={<Handshake size={11} />}>
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => setProjFeaturing("")} className={`filter-pill ${projFeaturing === "" ? "is-active" : ""}`}>
+                      Aucun
+                    </button>
+                    {featuringCandidates.map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={() => setProjFeaturing(a.id)}
+                        className={`filter-pill ${projFeaturing === a.id ? "is-active" : ""}`}
+                      >
+                        {a.name} · {fmt(featuringCost(a))} €
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-ink-faint font-mono mt-2">
+                    Croise les deux fanbases — bonus de portée et de hype pour les deux artistes, contre {Math.round(FEATURING_FEE_RATE * 100)} % de la cote du featuré.
+                  </p>
+                </SectionCard>
+              )}
+
               {BUDGET_GROUPS.map((group) => (
                 <SectionCard key={group.title} title={group.title} icon={<Disc3 size={11} />}>
                   <div className="space-y-4">
@@ -1429,12 +1529,15 @@ export default function ArtistsManagerPage() {
               <div className="glass-strong rounded-2xl p-4 flex items-center justify-between">
                 <div>
                   <p className="font-mono text-[10px] uppercase text-ink-faint">Coût total</p>
-                  <p className={`font-impact text-xl ${state.cash >= totalCost ? "" : "text-riseNeg"}`}>{fmt(totalCost)} €</p>
+                  <p className={`font-impact text-xl ${state.cash >= grandTotalCost ? "" : "text-riseNeg"}`}>{fmt(grandTotalCost)} €</p>
+                  {previewFeatCost > 0 && (
+                    <p className="font-mono text-[10px] text-ink-faint">dont {fmt(previewFeatCost)} € de featuring</p>
+                  )}
                 </div>
                 <p className="font-mono text-[10px] text-ink-faint">Dispo : {fmt(state.cash)} €</p>
               </div>
 
-              <BorderMagicButton onClick={startProject} fullWidth size="lg" disabled={!projArtist || state.cash < totalCost}>
+              <BorderMagicButton onClick={startProject} fullWidth size="lg" disabled={!projArtist || state.cash < grandTotalCost}>
                 Lancer la prod
               </BorderMagicButton>
             </>

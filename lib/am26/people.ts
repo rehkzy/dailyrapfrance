@@ -5,7 +5,7 @@
  */
 
 import type { Artist, Person, StaffRole } from "./types";
-import { ARTIST_NAMES, CITIES, FIRSTNAMES, LASTNAMES, PERSONALITIES, STAFF_ROLES, STAFF_ROLE_KEYS, STYLES } from "./data";
+import { ARTIST_NAMES, CITIES, CONTRACT_MAX_WEEKS, CONTRACT_MIN_WEEKS, FIRSTNAMES, LASTNAMES, PERSONALITIES, STAFF_ROLES, STAFF_ROLE_KEYS, STYLES } from "./data";
 
 export const rnd = (min: number, max: number) => min + Math.random() * (max - min);
 export const ri = (min: number, max: number) => Math.round(rnd(min, max));
@@ -38,6 +38,7 @@ export function makeArtist(usedNames: Set<string>, scoutBonus = 0): Artist {
   // (plafond atteint) du niveau actuel — c'est là que vit la prise de risque.
   const currentAvg = (flow + plume) / 2;
   const potential = Math.min(20, Math.round(currentAvg + rnd(0, 6)));
+  const contractWeeks = ri(CONTRACT_MIN_WEEKS, CONTRACT_MAX_WEEKS);
   return {
     id: nextId(),
     name,
@@ -53,6 +54,9 @@ export function makeArtist(usedNames: Set<string>, scoutBonus = 0): Artist {
     signingFee: Math.round(ri(800 + talent * 2200, 1500 + talent * 3500) / 100) * 100,
     potential,
     shownPotential: fuzzyRange(potential, 20),
+    contractWeeksLeft: contractWeeks,
+    contractWeeksTotal: contractWeeks,
+    leaving: false,
   };
 }
 
