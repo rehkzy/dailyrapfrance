@@ -223,7 +223,7 @@ export const START_CASH = 40000;
 export const SEASON_WEEKS = 52;
 export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 13;            // v15 : incertitude, promesses, carrières, patrimoine, crises
+export const SAVE_VERSION = 14;            // v16 : agenda, téléphone, war rooms, réseaux, albums, lieux étagés
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
 export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
 // Droits voisins + édition (SACEM/SDRM, abstraction) : quote-part label sur
@@ -335,12 +335,25 @@ export const SNEP_FREEMIUM_RATIO = 7; // 7 streams freemium = 1 équivalent prem
 export const FRAUD_DETECTION_CHANCE = 0.4;
 export const FRAUD_REPUTATION_PENALTY = 8;
 
-// ---------- v14 : monde physique, marketplace, autonomie des artistes ----------
+// ---------- v14/v16 : monde physique, marketplace, autonomie des artistes ----------
 
-// §2 — Lieu de travail simplifié : un home studio aménagé réduit durablement
-// le coût des sessions d'enregistrement (achat unique, effet permanent).
-export const HOME_STUDIO_COST = 8000;
-export const HOME_STUDIO_DISCOUNT = 0.35; // -35% sur le budget "enregistrement"
+// §2 approfondi — progression immobilière par paliers (v16). Chaque palier
+// s'achète par-dessus le précédent (achat unique par palier, effet permanent
+// et cumulatif) : coût d'enregistrement en baisse, et un petit bonus qualité
+// propre aux paliers supérieurs (meilleur matériel, meilleure acoustique).
+export type LocationTierInfo = {
+  tier: 1 | 2 | 3;
+  name: string;
+  cost: number;
+  enrDiscount: number;  // réduction sur le budget "enregistrement"
+  qualityBonus: number; // bonus multiplicatif de qualité
+  bonusDesc: string;
+};
+export const LOCATION_TIERS: LocationTierInfo[] = [
+  { tier: 1, name: "Home studio", cost: 8000, enrDiscount: 0.35, qualityBonus: 0, bonusDesc: "Coût d'enregistrement -35 %." },
+  { tier: 2, name: "Studio indépendant", cost: 25000, enrDiscount: 0.5, qualityBonus: 0.03, bonusDesc: "Coût d'enregistrement -50 %, +3 % de qualité (meilleur matériel)." },
+  { tier: 3, name: "Siège du label", cost: 70000, enrDiscount: 0.6, qualityBonus: 0.06, bonusDesc: "Coût d'enregistrement -60 %, +6 % de qualité, prestige qui rassure artistes et partenaires." },
+];
 
 // §8 — Marketplace de beatmakers : noms fictifs, pas de vrais artistes/labels.
 export const BEATMAKER_NAMES = [
@@ -389,3 +402,46 @@ export const STAFF_TAKES_CAUTIOUS = [
 // dont un sample n'est pas dédouané — ça se découvre au pire moment.
 export const CLEARANCE_RISK_CHANCE = 0.1;    // chance qu'une prod de marketplace ait ce souci
 export const CLEARANCE_COST_RATE = 0.25;     // coût du dédouanement = 25% du coût de la prod
+
+// ---------- v16 : réseaux sociaux, albums multi-pistes, agenda ----------
+
+// §14 — réseaux sociaux vivants : comptes fictifs génériques, jamais de vraie
+// personne ni de vraie marque.
+export const SOCIAL_HANDLES = [
+  "@RapActualites", "@ScèneFR", "@ClashDuJour", "@RadarRapFR", "@LaSauceMedia",
+  "@FreestyleWatch", "@CharivariRap", "@NouvelleGardeFR",
+];
+export const SOCIAL_AVATARS = ["🎙️", "📻", "🗞️", "🔥", "📀", "🎧", "📣", "🧢"];
+
+// Gabarits de posts par type d'événement — {artist}/{title}/{label} sont
+// substitués au moment de la génération.
+export const SOCIAL_TEMPLATES = {
+  cert: [
+    "{artist} certifié·e sur « {title} » 🔥 mérité ou surcoté ?",
+    "Encore une certif pour {artist}. La machine est lancée.",
+  ],
+  viral: [
+    "Tout le monde a le son de {artist} en tête cette semaine.",
+    "« {title} » de {artist} tourne partout, même chez ceux qui suivent pas le rap FR d'habitude.",
+  ],
+  chart: [
+    "{artist} dans le top de la semaine, {label} confirme sa montée.",
+    "Ça monte fort pour {artist} en ce moment — à suivre.",
+  ],
+  rival: [
+    "{label} qui sort un projet cette semaine, la concurrence chauffe.",
+    "Pendant que tout le monde regarde ailleurs, {label} avance ses pions.",
+  ],
+  momentum: [
+    "Ça fait un moment qu'on a rien vu venir de {artist}... on l'a pas oublié ?",
+    "Silence radio du côté de {artist} depuis un bail. Ça sent le comeback ou l'abandon ?",
+  ],
+  release: [
+    "{artist} sort « {title} » — premiers avis dans les commentaires.",
+    "Nouveau son de {artist} : « {title} ». Vous en pensez quoi ?",
+  ],
+} as const;
+
+// §11 — tracklist réelle pour les albums : nombre de titres et dispersion de
+// qualité autour de la moyenne du projet.
+export const ALBUM_TRACK_COUNT: [number, number] = [7, 11];

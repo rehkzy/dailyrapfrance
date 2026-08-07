@@ -152,6 +152,7 @@ export type Release = {
   platformSplit: Record<string, number>;  // Spotify/Deezer/Apple/Amazon/Autres, somme = 1
   streamSource: Record<string, number>;   // playlists éditoriales/algo/profil/radio/recherche, somme = 1
   certAlerted: "or" | "platine" | "diamant" | null; // dernier palier signalé "proche du seuil"
+  tracks: AlbumTrack[] | null; // v16 — tracklist réelle si type "album", sinon null
 };
 
 // Objectifs de saison — arcs à deadline avec récompense (aides, synchro...).
@@ -291,6 +292,47 @@ export type ArtistIdeaOffer = {
   expiresWeek: number;
 };
 
+// ---------- v16 : lieux, téléphone/agenda, réseaux, albums, war room ----------
+
+// §2 (approfondi) — progression immobilière par paliers. Palier 0 = aucun
+// local dédié. Chaque palier a un coût, une réduction sur l'enregistrement,
+// et un petit bonus additionnel propre au palier.
+export type LocationTier = 0 | 1 | 2 | 3;
+
+// §14 — réseaux sociaux vivants : de vrais posts simulés, générés par les
+// événements réels du jeu (certifications, viralité, classement, rivaux...),
+// jamais des posts gratuits.
+export type SocialPost = {
+  id: string;
+  week: number;
+  handle: string;
+  avatar: string; // emoji
+  text: string;
+  likes: number;
+  comments: number;
+  kind: "cert" | "viral" | "chart" | "rival" | "momentum" | "release";
+};
+
+// §11 (structuré) — un album n'est plus une seule note agrégée : il a une
+// vraie tracklist, avec un titre phare qui porte l'essentiel des streams.
+export type AlbumTrack = {
+  title: string;
+  quality: number;
+  lead: boolean;      // titre phare de l'album
+  streamShare: number; // part des streams de l'album portée par ce titre
+};
+
+// §1 — agenda hebdomadaire : agrège les échéances réelles déjà suivies par le
+// moteur (projet, offres, dilemmes, promesses) en une vraie vue calendrier.
+// Rien de nouveau à maintenir en état — purement dérivé chaque semaine.
+export type AgendaItem = {
+  id: string;
+  week: number;         // semaine de l'échéance
+  label: string;
+  detail: string;
+  kind: "project" | "concert" | "choice" | "promise" | "contract";
+};
+
 // ---------- Divers ----------
 
 export type Message = { id: string; week: number; title: string; body: string };
@@ -330,7 +372,8 @@ export type GameState = {
   advanceDeal: AdvanceDeal | null; // avance distributeur en cours de remboursement
   certifications: Certification[]; // palmarès carrière
   // v14 — monde physique, marketplace, autonomie.
-  hasHomeStudio: boolean;         // §2 — local aménagé, réduit durablement le coût d'enregistrement
+  locationTier: LocationTier;      // v16 — §2 approfondi : progression immobilière par paliers
+  socialFeed: SocialPost[];        // v16 — §14 : fil de posts simulés
   beatmakerMarket: Beatmaker[];   // §8 — marketplace de prods, tourne chaque semaine
   vault: VaultTrack[];            // §9 — chutes de studio en attente
   promises: Promise_[];           // v15 — registre des promesses faites aux artistes
@@ -372,4 +415,4 @@ export type ProjectChartEntry = {
 
 // Onglets de l'interface — vit ici pour que l'UI et d'éventuels helpers du
 // moteur partagent la même source de vérité.
-export type Tab = "label" | "artistes" | "marche" | "staff" | "studio" | "charts" | "messages" | "finances" | "stats";
+export type Tab = "label" | "artistes" | "marche" | "staff" | "studio" | "charts" | "messages" | "finances" | "stats" | "agenda" | "telephone" | "reseaux";

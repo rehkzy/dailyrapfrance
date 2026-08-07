@@ -5,28 +5,29 @@ import {
   ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight,
   RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle,
   MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart, Briefcase,
-  Mic2, AlertCircle, XCircle, Handshake, Sparkles, Target, Trophy,
+  Mic2, AlertCircle, XCircle, Handshake, Sparkles, Target, Trophy, Calendar, Smartphone,
+  Share2, Heart, MessageCircle, ShieldAlert,
 } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
 
-import type { Artist, BudgetKey, GameState, Person, Profile, Project, SongStructure, StaffRole, Tab } from "@/lib/am26/types";
+import type { Artist, BudgetKey, GameState, LocationTier, Person, Profile, Project, SongStructure, StaffRole, Tab } from "@/lib/am26/types";
 import {
   BPM_MAX, BPM_MIN, BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS,
   CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE, DROITS_RATE, FEATURING_FEE_RATE,
-  FREEMIUM_STREAM_RATE, HOME_STUDIO_COST, HOME_STUDIO_DISCOUNT, LIQUIDATION_FLOOR, LOAN_INTEREST,
-  LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS, PREMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST,
+  FREEMIUM_STREAM_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST,
+  LOAN_MONTHS, LOAN_OFFERS, LOCATION_TIERS, LOGOS, MONTH_WEEKS, PREMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST,
   PUSH_WINDOW_WEEKS, RADIO_RATE, SEASON_WEEKS, SONG_STRUCTURES, STAFF_ROLES, STAFF_ROLE_KEYS,
   STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STYLE_BPM, STYLES, TYPE_META, VAULT_RELEASE_COST,
 } from "@/lib/am26/data";
 import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
 import {
   acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistCareerProfile, artistContractValue,
-  budgetTotalCost, buyHomeStudio, catalogValue, computeArtistChart, computeLabelChart,
+  budgetTotalCost, catalogValue, computeAgenda, computeArtistChart, computeLabelChart,
   computeProductionStats, computeProjectChart, declineArtistIdea, declineConcert, declineCounter,
   effectiveBudgetCost, featuringCost, fireStaff, fmt, initialState, labelLegacy, load, makeOffer, persist,
-  pushRelease, releaseLifecycleStage, releaseVaultTrack, releaseWeeklyRevenue, resolveChoice,
-  sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, startProjectFromIdea, takeLoan,
+  projectRiskLevel, pushRelease, releaseLifecycleStage, releaseVaultTrack, releaseWeeklyRevenue, resolveChoice,
+  sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, startProjectFromIdea, takeLoan, upgradeLocation,
 } from "@/lib/am26/engine";
 
 /*
@@ -63,6 +64,9 @@ const MENU: { id: Tab; label: string; Icon: typeof Wallet; mobile: boolean }[] =
   { id: "messages", label: "Messages", Icon: Inbox, mobile: false },
   { id: "finances", label: "Finances", Icon: PiggyBank, mobile: false },
   { id: "stats", label: "Stats", Icon: LineChart, mobile: false },
+  { id: "agenda", label: "Agenda", Icon: Calendar, mobile: false },
+  { id: "telephone", label: "Téléphone", Icon: Smartphone, mobile: false },
+  { id: "reseaux", label: "Réseaux", Icon: Share2, mobile: false },
 ];
 
 // ---------- Petits composants UI ----------
@@ -556,11 +560,11 @@ export default function ArtistsManagerPage() {
     const featArtist = projFeaturing ? state.roster.find((a) => a.id === projFeaturing) ?? null : null;
     const featCost = featArtist ? featuringCost(featArtist) : 0;
     const beatmaker = projBeatmaker ? state.beatmakerMarket.find((b) => b.id === projBeatmaker) ?? null : null;
-    const cost = effectiveBudgetCost(budgetChoice, state.hasHomeStudio, beatmaker) + featCost;
+    const cost = effectiveBudgetCost(budgetChoice, state.locationTier, beatmaker) + featCost;
     if (state.cash < cost) return;
     sfx.click();
     const meta = TYPE_META[projType];
-    const stats = computeProductionStats(artist, budgetChoice, projType, state.staff, projBpm, projStructure, featArtist, beatmaker);
+    const stats = computeProductionStats(artist, budgetChoice, projType, state.staff, projBpm, projStructure, featArtist, beatmaker, state.locationTier);
     const title = PROJECT_TITLES[Math.floor(Math.random() * PROJECT_TITLES.length)];
     update({
       ...state,
@@ -576,7 +580,7 @@ export default function ArtistsManagerPage() {
         : state.beatmakerMarket,
       messages: [{
         id: nextId(), week: state.week, title: `Studio : « ${title} »`,
-        body: `${artist.name}${featArtist ? ` feat. ${featArtist.name}` : ""} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines)${beatmaker ? ` sur une prod de ${beatmaker.name}` : ""}. Budget engagé : ${fmt(cost)} €${featCost > 0 ? ` (dont ${fmt(featCost)} € de featuring)` : ""}${state.hasHomeStudio ? " — home studio déjà déduit" : ""}.`,
+        body: `${artist.name}${featArtist ? ` feat. ${featArtist.name}` : ""} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines)${beatmaker ? ` sur une prod de ${beatmaker.name}` : ""}. Budget engagé : ${fmt(cost)} €${featCost > 0 ? ` (dont ${fmt(featCost)} € de featuring)` : ""}${state.locationTier > 0 ? ` — ${LOCATION_TIERS[state.locationTier - 1].name} déjà déduit` : ""}.`,
       }, ...state.messages].slice(0, 16),
     });
     setProjFeaturing("");
@@ -607,9 +611,9 @@ export default function ArtistsManagerPage() {
   const previewFeatArtist = projFeaturing ? state.roster.find((a) => a.id === projFeaturing) ?? null : null;
   const previewFeatCost = previewFeatArtist ? featuringCost(previewFeatArtist) : 0;
   const previewBeatmaker = projBeatmaker ? state.beatmakerMarket.find((b) => b.id === projBeatmaker) ?? null : null;
-  const grandTotalCost = effectiveBudgetCost(budgetChoice, state.hasHomeStudio, previewBeatmaker) + previewFeatCost;
+  const grandTotalCost = effectiveBudgetCost(budgetChoice, state.locationTier, previewBeatmaker) + previewFeatCost;
   const preview = previewArtist
-    ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff, projBpm, projStructure, previewFeatArtist, previewBeatmaker)
+    ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff, projBpm, projStructure, previewFeatArtist, previewBeatmaker, state.locationTier)
     : null;
   const accent = profile.color;
   const legacy = labelLegacy(state);
@@ -1046,6 +1050,11 @@ export default function ArtistsManagerPage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">« {r.title} » — {r.artistName}</p>
                           <p className="font-mono text-[10px] text-ink-faint">{fmt(r.totalStreams)} cumulés · sem. {r.weeksOut}</p>
+                          {r.tracks && (
+                            <p className="font-mono text-[9px] text-gold mt-0.5">
+                              Album · {r.tracks.length} titres · phare : « {r.tracks.find((t) => t.lead)?.title ?? r.tracks[0].title} »
+                            </p>
+                          )}
                         </div>
                         <span className="font-mono text-xs text-gold shrink-0">{fmt(r.weeklyStreams)}/sem</span>
                       </div>
@@ -1425,27 +1434,42 @@ export default function ArtistsManagerPage() {
       {/* ===== Onglet STUDIO ===== */}
       {tab === "studio" && (
         <div className="pt-4 space-y-4">
-          {/* v14 — home studio (§2) : achat unique, effet permanent, visible
-              quelle que soit la situation (projet en cours ou non). */}
+          {/* v16 — progression immobilière par paliers (§2 approfondi) : achat
+              dans l'ordre, effet cumulatif et permanent à chaque palier. */}
           <SectionCard title="Local de travail" icon={<Building2 size={11} />}>
-            {state.hasHomeStudio ? (
-              <p className="text-sm text-risePos">
-                Home studio aménagé — coût d'enregistrement réduit de {Math.round(HOME_STUDIO_DISCOUNT * 100)} % en permanence.
-              </p>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-ink-muted">
-                  Un local équipé réduit durablement le coût d'enregistrement de chaque prod (-{Math.round(HOME_STUDIO_DISCOUNT * 100)} %).
-                </p>
-                <button
-                  onClick={() => { sfx.click(); update(buyHomeStudio(state)); }}
-                  disabled={state.cash < HOME_STUDIO_COST}
-                  className="shrink-0 rounded-xl px-4 py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 disabled:border-white/8 disabled:text-ink-faint disabled:cursor-not-allowed transition-colors"
-                >
-                  Aménager — {fmt(HOME_STUDIO_COST)} €
-                </button>
-              </div>
-            )}
+            <div className="space-y-2">
+              {LOCATION_TIERS.map((info) => {
+                const owned = state.locationTier >= info.tier;
+                const buyable = state.locationTier === info.tier - 1;
+                return (
+                  <div
+                    key={info.tier}
+                    className={`rounded-xl border px-3 py-2.5 ${owned ? "border-risePos/40 bg-risePos/5" : buyable ? "border-white/10 bg-white/[0.03]" : "border-white/5 opacity-50"}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className={`text-sm font-medium ${owned ? "text-risePos" : ""}`}>
+                          {owned ? "✓ " : ""}{info.name}
+                        </p>
+                        <p className="text-[11px] text-ink-muted mt-0.5">{info.bonusDesc}</p>
+                      </div>
+                      {!owned && buyable && (
+                        <button
+                          onClick={() => { sfx.click(); update(upgradeLocation(state, info.tier)); }}
+                          disabled={state.cash < info.cost}
+                          className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 disabled:border-white/8 disabled:text-ink-faint disabled:cursor-not-allowed transition-colors"
+                        >
+                          {fmt(info.cost)} €
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-ink-faint font-mono mt-3">
+              Chaque palier s'achète dans l'ordre — l'effet du précédent reste acquis. Un siège du label, c'est aussi un signal envoyé aux artistes et aux partenaires.
+            </p>
           </SectionCard>
 
           {/* v14 — vault musicale (§9) : les chutes de studio dorment ici,
@@ -1483,9 +1507,51 @@ export default function ArtistsManagerPage() {
           )}
 
           {state.project ? (
-            <p className="text-sm text-ink-faint glass rounded-2xl p-4">
-              Un projet est déjà en cours — un seul à la fois dans cette version. Avance les semaines pour le terminer.
-            </p>
+            <SectionCard title={`War room — « ${state.project.title} »`} icon={<ShieldAlert size={11} />}>
+              {(() => {
+                const totalWeeks = TYPE_META[state.project!.type].weeks;
+                const risk = projectRiskLevel(state.project!.weeksLeft, totalWeeks, state.cash, monthlyCosts);
+                const riskColor = risk === "élevé" ? "text-riseNeg" : risk === "modéré" ? "text-gold" : "text-risePos";
+                const featGuest = state.project!.featuringArtistId ? state.roster.find((a) => a.id === state.project!.featuringArtistId) : null;
+                const beatmakerUsed = state.project!.beatmakerId ? state.beatmakerMarket.find((b) => b.id === state.project!.beatmakerId) : null;
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Artiste</p>
+                        <p className="text-sm font-medium">{projectArtist ? projectArtist.name : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Avancement</p>
+                        <p className="text-sm font-medium">{totalWeeks - state.project!.weeksLeft} / {totalWeeks} sem.</p>
+                      </div>
+                      <div>
+                        <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Niveau de risque</p>
+                        <p className={`text-sm font-bold uppercase ${riskColor}`}>{risk}</p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${((totalWeeks - state.project!.weeksLeft) / totalWeeks) * 100}%`, background: `linear-gradient(90deg, #7A0F0F, ${accent})` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-ink-faint font-mono">
+                      {state.project!.type === "album" ? "Album" : state.project!.type === "ep" ? "EP" : "Single"} · {state.project!.bpm} BPM · {SONG_STRUCTURES.find((s) => s.id === state.project!.structure)?.label ?? state.project!.structure}
+                      {featGuest ? ` · feat. ${featGuest.name}` : ""}
+                      {beatmakerUsed ? ` · prod ${beatmakerUsed.name}` : ""}
+                    </p>
+                    <p className="text-[11px] text-ink-faint font-mono">
+                      {risk === "élevé"
+                        ? "Trésorerie tendue à l'approche de la sortie — surveille tes charges de fin de mois."
+                        : risk === "modéré"
+                          ? "Rien d'alarmant, mais reste attentif d'ici la sortie."
+                          : "Tout est sous contrôle pour l'instant."}
+                    </p>
+                  </div>
+                );
+              })()}
+            </SectionCard>
           ) : state.roster.length === 0 ? (
             <p className="text-sm text-ink-faint glass rounded-2xl p-4">
               Il te faut d'abord un artiste.{" "}
@@ -2019,6 +2085,15 @@ export default function ArtistsManagerPage() {
                       </p>
                       <span className="font-mono text-xs text-risePos shrink-0">+{fmt(releaseWeeklyRevenue(r))} €/sem</span>
                     </div>
+                    {r.tracks && (
+                      <div className="mt-1.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
+                        {r.tracks.map((t) => (
+                          <p key={t.title} className={`text-[11px] ${t.lead ? "text-gold font-medium" : "text-ink-faint"}`}>
+                            {t.lead ? "★ " : "· "}{t.title} <span className="font-mono text-[9px]">(qualité {t.quality}{t.lead ? `, ${Math.round(t.streamShare * 100)}% du streaming` : ""})</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     {confirmSellReleaseId === r.id ? (
                       <div className="flex gap-2 mt-1.5">
                         <button
@@ -2180,6 +2255,131 @@ export default function ArtistsManagerPage() {
               </div>
             )}
           </SectionCard>
+        </div>
+      )}
+
+      {/* ===== Onglet AGENDA — v16 §1 : le calendrier comme cœur du jeu ===== */}
+      {tab === "agenda" && (
+        <div className="pt-4 space-y-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-1">
+            Semaine {state.week} — ce qui t'attend
+          </p>
+          <p className="text-[11px] text-ink-faint font-mono mb-3">
+            Toutes les échéances réelles en cours, triées par semaine — projet, dates, dilemmes, promesses, fins de contrat.
+          </p>
+          {(() => {
+            const agenda = computeAgenda(state);
+            if (agenda.length === 0) {
+              return (
+                <p className="text-sm text-ink-faint glass rounded-2xl p-4">
+                  Rien de programmé pour l'instant — lance une prod, réponds aux offres, ou attends que le monde bouge.
+                </p>
+              );
+            }
+            const iconFor = (kind: string) =>
+              kind === "project" ? <Disc3 size={13} /> :
+              kind === "concert" ? <Mic2 size={13} /> :
+              kind === "choice" ? <AlertCircle size={13} /> :
+              kind === "promise" ? <Handshake size={13} /> :
+              <Users size={13} />;
+            return (
+              <div className="card divide-y divide-white/8 overflow-hidden">
+                {agenda.map((item) => {
+                  const weeksAway = item.week - state.week;
+                  return (
+                    <div key={item.id} className="flex items-center gap-3 px-4 py-3.5">
+                      <span className="shrink-0 w-9 h-9 rounded-full flex flex-col items-center justify-center font-mono" style={{ background: `${accent}1f`, color: accent }}>
+                        {iconFor(item.kind)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{item.label}</p>
+                        <p className="text-xs text-ink-muted mt-0.5">{item.detail}</p>
+                      </div>
+                      <span className="font-mono text-[10px] text-ink-faint shrink-0 uppercase">
+                        {weeksAway <= 0 ? "cette semaine" : `S${item.week}`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ===== Onglet TÉLÉPHONE — v16 §19 : le smartphone comme interface ===== */}
+      {tab === "telephone" && (
+        <div className="pt-4">
+          <div className="max-w-sm mx-auto">
+            <div className="rounded-[2rem] border border-white/15 bg-black/40 p-3 shadow-xl">
+              <div className="flex items-center justify-between px-2 py-1 mb-2">
+                <span className="font-mono text-[10px] text-ink-faint">Semaine {state.week}</span>
+                <span className="font-mono text-[10px] text-ink-faint">🔋 100%</span>
+              </div>
+              <div className="rounded-2xl overflow-hidden bg-white/[0.02] border border-white/8">
+                <div className="px-4 py-3 border-b border-white/8" style={{ background: `linear-gradient(135deg, ${accent}30, transparent)` }}>
+                  <p className="font-display text-sm font-semibold">Notifications</p>
+                  <p className="font-mono text-[9px] text-ink-faint">{state.messages.length} non lues</p>
+                </div>
+                {state.messages.length === 0 ? (
+                  <p className="text-sm text-ink-faint p-6 text-center">Aucune notification pour l'instant.</p>
+                ) : (
+                  <div className="divide-y divide-white/6 max-h-[60vh] overflow-y-auto">
+                    {state.messages.map((m) => (
+                      <div key={m.id} className="px-4 py-3">
+                        <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                          <p className="text-sm font-semibold truncate">{m.title}</p>
+                          <span className="font-mono text-[9px] text-ink-faint shrink-0">S{m.week}</span>
+                        </div>
+                        <p className="text-xs text-ink-muted leading-relaxed">{m.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] text-ink-faint font-mono text-center mt-4">
+              Le fil de tout ce qui se passe autour du label, format notifications.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Onglet RÉSEAUX — v16 §14 : réseaux sociaux vivants ===== */}
+      {tab === "reseaux" && (
+        <div className="pt-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">
+            Ce qui se dit sur les réseaux
+          </p>
+          {state.socialFeed.length === 0 ? (
+            <p className="text-sm text-ink-faint glass rounded-2xl p-4">
+              Rien pour l'instant — les réseaux réagissent aux vrais événements : certifications, buzz, classement, silence prolongé...
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {state.socialFeed.map((post) => (
+                <div key={post.id} className="glass rounded-2xl p-4">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0" style={{ background: `${accent}1f` }}>
+                      {post.avatar}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{post.handle}</p>
+                      <p className="font-mono text-[9px] text-ink-faint">Semaine {post.week}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-ink-muted leading-relaxed mb-3">{post.text}</p>
+                  <div className="flex items-center gap-4 font-mono text-[10px] text-ink-faint">
+                    <span className="inline-flex items-center gap-1"><Heart size={11} /> {fmt(post.likes)}</span>
+                    <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {fmt(post.comments)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[11px] text-ink-faint font-mono mt-4">
+            Comptes et contenus entièrement fictifs, générés par les événements réels de ta partie — jamais gratuits.
+          </p>
         </div>
       )}
 
