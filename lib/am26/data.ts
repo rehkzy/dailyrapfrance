@@ -223,7 +223,7 @@ export const START_CASH = 40000;
 export const SEASON_WEEKS = 52;
 export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 12;            // v14 : lieux de travail, marketplace, autonomie des artistes, vault, momentum
+export const SAVE_VERSION = 13;            // v15 : incertitude, promesses, carrières, patrimoine, crises
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
 export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
 // Droits voisins + édition (SACEM/SDRM, abstraction) : quote-part label sur
@@ -359,3 +359,33 @@ export const MOMENTUM_LOSS_EXTRA_DECAY = 1.2;
 export const VAULT_CHANCE = 0.22;          // chance qu'une session laisse une chute
 export const VAULT_RELEASE_COST = 400;     // coût pour sortir une chute de vault
 export const VAULT_RELEASE_WEEKS = 1;      // sortie quasi immédiate, pas de vrai studio
+
+// ---------- v15 : incertitude, mémoire, carrières, patrimoine, crises ----------
+
+// §11-12 — registre des promesses. Un seul type de promesse pour l'instant :
+// "tu seras sur mon prochain projet", vérifiable sans ambiguïté.
+export const PROMISE_WINDOW_WEEKS = 10;      // délai laissé pour tenir la promesse
+export const PROMISE_KEPT_HYPE_BONUS = 10;   // bonus si tenue
+export const PROMISE_KEPT_MOTIV_BONUS = 8;
+export const PROMISE_BROKEN_HYPE_PENALTY = 12; // pénalité si rompue — plus lourd qu'un simple oubli
+export const PROMISE_BROKEN_REP_PENALTY = 4;
+export const PROMISE_CHANCE = 0.1;           // chance par semaine qu'un artiste en demande une
+
+// §4-5 — avis contradictoires du staff sur une sortie fraîche (incertitude
+// assumée : jamais de vérité affichée, seulement des interprétations).
+export const STAFF_TAKES_BULLISH = [
+  "Les indicateurs sont excellents. Il faut investir immédiatement.",
+  "Ça peut devenir énorme — fonce là-dessus tant que c'est chaud.",
+  "Le public accroche fort. C'est le moment de pousser.",
+];
+export const STAFF_TAKES_CAUTIOUS = [
+  "Attendons encore un peu avant de tirer des conclusions.",
+  "C'est encourageant, mais rien n'est joué à ce stade.",
+  "Trop tôt pour s'emballer — laissons la courbe se dessiner.",
+];
+
+// §18 — crises de production : un risque concret lié à la préparation, pas un
+// événement gratuit. Un beatmaker du marketplace peut avoir livré une prod
+// dont un sample n'est pas dédouané — ça se découvre au pire moment.
+export const CLEARANCE_RISK_CHANCE = 0.1;    // chance qu'une prod de marketplace ait ce souci
+export const CLEARANCE_COST_RATE = 0.25;     // coût du dédouanement = 25% du coût de la prod

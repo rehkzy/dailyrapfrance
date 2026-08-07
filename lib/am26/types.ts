@@ -171,7 +171,7 @@ export type Objective = {
 // Dilemmes de l'industrie — dossiers à trancher (2 options, vrais arbitrages).
 export type ChoiceEvent = {
   id: string;
-  kind: "brand" | "playlist" | "advance" | "feat" | "renewal" | "fraud";
+  kind: "brand" | "playlist" | "advance" | "feat" | "renewal" | "fraud" | "promise" | "clearance";
   refId: string | null; // id de la sortie ou de l'artiste concerné
   createdWeek: number;
   expiresWeek: number;
@@ -181,6 +181,22 @@ export type ChoiceEvent = {
   optionB: string;      // libellé du choix B (refuser / alternative)
   fraudCost?: number;    // v13 — coût du dilemme "fraud" (streams artificiels)
   fraudStreams?: number; // v13 — streams promis par le prestataire douteux
+  clearanceCost?: number; // v15 — coût du dédouanement d'un sample (dilemme "clearance")
+};
+
+// v15 — registre des promesses (§11-12 du GDD immersion). Une promesse faite à
+// un artiste n'est pas cosmétique : le jeu s'en souvient et vérifie si elle est
+// tenue. Un seul type de promesse pour l'instant, vérifiable sans ambiguïté :
+// "tu seras sur mon prochain projet" — tenue si l'artiste est titulaire ou en
+// featuring sur le prochain projet lancé avant l'échéance ; rompue sinon.
+export type Promise_ = {
+  id: string;
+  artistId: string;
+  artistName: string;
+  text: string;
+  createdWeek: number;
+  dueWeek: number;
+  kept: boolean | null; // null = encore en jeu
 };
 
 // Avance distributeur : cash immédiat contre une part du streaming pendant N semaines.
@@ -317,6 +333,7 @@ export type GameState = {
   hasHomeStudio: boolean;         // §2 — local aménagé, réduit durablement le coût d'enregistrement
   beatmakerMarket: Beatmaker[];   // §8 — marketplace de prods, tourne chaque semaine
   vault: VaultTrack[];            // §9 — chutes de studio en attente
+  promises: Promise_[];           // v15 — registre des promesses faites aux artistes
   artistIdeas: ArtistIdeaOffer[]; // §6 — idées de projet spontanées à traiter
   prevChartOrder: string[];
   totalReleases: number;

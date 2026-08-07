@@ -10,17 +10,20 @@
 
 import type {
   Artist, ArtistIdeaOffer, Beatmaker, BudgetKey, BudgetOption, ChartEntry, ChoiceEvent,
-  ConcertOffer, GameState, LabelChartEntry, Negotiation, Objective, Person, Project,
+  ConcertOffer, GameState, LabelChartEntry, Negotiation, Objective, Person, Project, Promise_,
   ProjectChartEntry, Release, SongStructure, StaffRole, VaultTrack,
 } from "./types";
 import {
-  BUDGET_PRESETS, CERT_LEVELS, CONTRACT_MAX_WEEKS, CONTRACT_MIN_WEEKS, CONTRACT_RENEWAL_RAISE, CONTRACT_RENEWAL_WINDOW,
-  DEFAULT_BUDGET_CHOICE, DROITS_RATE, FEATURING_FEE_RATE, FRAUD_DETECTION_CHANCE, FRAUD_REPUTATION_PENALTY, HOME_STUDIO_COST,
+  BUDGET_PRESETS, CERT_LEVELS, CLEARANCE_COST_RATE, CLEARANCE_RISK_CHANCE, CONTRACT_MAX_WEEKS,
+  CONTRACT_MIN_WEEKS, CONTRACT_RENEWAL_RAISE, CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE,
+  DROITS_RATE, FEATURING_FEE_RATE, FRAUD_DETECTION_CHANCE, FRAUD_REPUTATION_PENALTY, HOME_STUDIO_COST,
   HOME_STUDIO_DISCOUNT, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, MOMENTUM_LOSS_EXTRA_DECAY,
   MOMENTUM_LOSS_WEEKS, MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, PERSONALITY_CLASHES,
-  PLATFORM_BASE_SPLIT, PREMIUM_STREAM_RATE, FREEMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST, PUSH_WINDOW_WEEKS,
-  RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS, SNEP_REAL_THRESHOLDS, STAFF_ROLES, STAFF_ROLE_KEYS,
-  STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STREAM_SOURCE_BASE_SPLIT, STYLE_BPM,
+  PLATFORM_BASE_SPLIT, PREMIUM_STREAM_RATE, FREEMIUM_STREAM_RATE, PROJECT_TITLES, PROMISE_BROKEN_HYPE_PENALTY,
+  PROMISE_BROKEN_REP_PENALTY, PROMISE_CHANCE, PROMISE_KEPT_HYPE_BONUS,
+  PROMISE_WINDOW_WEEKS, PUSH_COST, PUSH_WINDOW_WEEKS, RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS,
+  SNEP_REAL_THRESHOLDS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH, STAFF_TAKES_BULLISH,
+  STAFF_TAKES_CAUTIOUS, STREAM_RATE, STREAM_SOURCE_BASE_SPLIT, STYLE_BPM,
   SUREXPOSITION_PENALTY, SUREXPOSITION_WEEKS, TOUR_MAX_DATES, TOUR_MIN_DATES, TYPE_META,
   VAULT_CHANCE, VAULT_RELEASE_COST, VAULT_RELEASE_WEEKS, VENUES,
 } from "./data";
@@ -338,6 +341,7 @@ export function initialState(): GameState {
     hasHomeStudio: false,
     beatmakerMarket: makeBeatmakerMarket(),
     vault: [],
+    promises: [],
     artistIdeas: [],
     prevChartOrder: [],
     totalReleases: 0,
@@ -525,6 +529,19 @@ export function advanceWeek(prev: GameState): GameState {
           id: nextId(), week: s.week, title: `Sortie : « ${proj.title} »`,
           body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name}${featGuest ? ` feat. ${featGuest.name}` : ""} est dans les bacs${trendMult >= 1.2 ? ` — et le ${artist.style} est en pleine tendance, ça tombe bien` : trendMult <= 0.8 ? ` — mais le ${artist.style} n'a pas le vent en poupe en ce moment` : ""}. Les pros tablent sur ~${fmt(expected)} streams de démarrage. Verdict au premier bilan, la semaine prochaine.`,
         });
+        // v15 §5 — signal faible : une impression qualitative AVANT le chiffre
+        // exact (donné la semaine prochaine). Jamais de vérité assénée — au
+        // joueur d'interpréter.
+        const earlyRatio = expected > 0 ? initialStreams / expected : 1;
+        const signalBody = earlyRatio >= 1.3
+          ? "Les premiers retours de l'entourage sont électriques — mais rien n'est confirmé avant les vrais chiffres."
+          : earlyRatio <= 0.75
+            ? "L'accueil semble tiède pour l'instant, sans qu'on puisse encore en tirer une vraie conclusion."
+            : "Signaux mitigés dans les premières heures — difficile à lire, comme souvent.";
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `Premiers signaux : « ${proj.title} »`,
+          body: signalBody,
+        });
         if (mediaHit) {
           s.messages.unshift({
             id: nextId(), week: s.week, title: "La presse en parle",
@@ -549,6 +566,27 @@ export function advanceWeek(prev: GameState): GameState {
           s.messages.unshift({
             id: nextId(), week: s.week, title: `Chute de studio : « ${vaultTrack.title} »`,
             body: `La session a laissé un morceau inutilisé, « ${vaultTrack.title} » (${artist.name}). Il dort dans la vault — tu peux le sortir plus tard, à moindre coût, depuis le Studio.`,
+          });
+        }
+        // v15 §18 — crise de production : un sample d'une prod du marketplace
+        // peut ne pas être dédouané. Ça se découvre au pire moment — à la sortie.
+        // Un vrai dilemme, pas un malus gratuit : payer pour régulariser, ou
+        // retirer le morceau et perdre le travail.
+        if (proj.beatmakerId && Math.random() < CLEARANCE_RISK_CHANCE) {
+          const droppedRelease = s.releases[0];
+          const clearanceCost = Math.max(300, Math.round((droppedRelease.quality * 12) / 50) * 50);
+          const crisis: ChoiceEvent = {
+            id: nextId(), kind: "clearance", refId: droppedRelease.id,
+            createdWeek: s.week, expiresWeek: s.week + 1, clearanceCost,
+            title: `Sample non dédouané — « ${droppedRelease.title} »`,
+            body: `Mauvaise surprise : la prod de « ${droppedRelease.title} » utilise un sample dont les droits n'ont jamais été réglés. Risque juridique réel si ça sort tel quel.`,
+            optionA: `Régulariser (-${fmt(clearanceCost)} €)`,
+            optionB: "Retirer le morceau des plateformes",
+          };
+          s.pendingChoices.push(crisis);
+          s.messages.unshift({
+            id: nextId(), week: s.week, title: `⚠️ Problème sur « ${droppedRelease.title} »`,
+            body: `Un souci de droits vient d'être détecté sur cette sortie — décision à prendre rapidement dans "À traiter".`,
           });
         }
       }
@@ -622,6 +660,19 @@ export function advanceWeek(prev: GameState): GameState {
         s.messages.unshift({
           id: nextId(), week: s.week, title: `Premier bilan : « ${r.title} »`,
           body: `${fmt(r.weeklyStreams)} streams en première semaine — dans les clous des prévisions (~${fmt(r.expected)}).`,
+        });
+      }
+      // v15 §4 — informations imparfaites : dans la zone ambiguë (résultat correct
+      // à très bon, sans être un raz-de-marée), le staff n'est jamais d'accord sur
+      // la marche à suivre. Aucune vérité affichée — au joueur de trancher.
+      if (ratio > 0.9 && ratio < 1.6 && s.staff.length >= 2) {
+        const bullish = pick(STAFF_TAKES_BULLISH);
+        const cautious = pick(STAFF_TAKES_CAUTIOUS);
+        const voiceA = pick(s.staff);
+        const voiceB = pick(s.staff.filter((p) => p.id !== voiceA.id)) ?? voiceA;
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `Avis partagés sur « ${r.title} »`,
+          body: `${STAFF_ROLES[voiceA.role].label} : « ${bullish} » — ${STAFF_ROLES[voiceB.role].label} : « ${cautious} » Personne ne sait vraiment. À toi de décider.`,
         });
       }
     }
@@ -899,6 +950,24 @@ export function advanceWeek(prev: GameState): GameState {
     }
   }
 
+  // v15 §11-12 — un artiste demande parfois un engagement clair : "tu me mets
+  // sur ton prochain projet". Un artiste ne redemande pas s'il a déjà une
+  // promesse en cours.
+  if (s.pendingChoices.length === 0 && s.roster.length > 0 && Math.random() < PROMISE_CHANCE) {
+    const withoutPromise = s.roster.filter((a) => !s.promises.some((p) => p.artistId === a.id && p.kept === null));
+    const candidate = withoutPromise.length > 0 ? pick(withoutPromise) : null;
+    if (candidate) {
+      const choice = makeChoiceEvent(s, "promise", candidate.id);
+      if (choice) {
+        s.pendingChoices.push(choice);
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `📋 ${choice.title}`,
+          body: `Une décision t'attend sur le dashboard — l'offre expire semaine ${choice.expiresWeek}.`,
+        });
+      }
+    }
+  }
+
   // 8) Le monde vit : rivaux (signatures, sorties, débauchages) + tendances.
   tickWorld(s);
 
@@ -929,6 +998,39 @@ export function advanceWeek(prev: GameState): GameState {
       });
     }
   }
+
+  // 9ter) v15 §11-12 — registre des promesses : vérifie si "tu seras sur mon
+  // prochain projet" a été tenue (l'artiste titulaire ou en featuring d'un
+  // projet lancé cette semaine) ou si le délai est dépassé (promesse rompue).
+  for (const pr of s.promises) {
+    if (pr.kept !== null) continue;
+    const stillSigned = s.roster.some((a) => a.id === pr.artistId);
+    if (!stillSigned) { pr.kept = false; continue; }
+    if (s.project && (s.project.artistId === pr.artistId || s.project.featuringArtistId === pr.artistId)) {
+      pr.kept = true;
+      const a = s.roster.find((x) => x.id === pr.artistId);
+      if (a) {
+        a.hype = Math.min(100, a.hype + PROMISE_KEPT_HYPE_BONUS);
+      }
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `Promesse tenue : ${pr.artistName}`,
+        body: `${pr.artistName} est bien sur le nouveau projet, comme promis. La confiance se construit là-dessus.`,
+      });
+    } else if (s.week > pr.dueWeek) {
+      pr.kept = false;
+      const a = s.roster.find((x) => x.id === pr.artistId);
+      if (a) {
+        a.hype = Math.max(0, a.hype - PROMISE_BROKEN_HYPE_PENALTY);
+      }
+      s.reputation = Math.max(0, s.reputation - PROMISE_BROKEN_REP_PENALTY);
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `Promesse rompue : ${pr.artistName}`,
+        body: `${pr.artistName} n'a jamais vu venir le projet promis. La confiance en prend un coup — et ça se sait dans le milieu (réputation -${PROMISE_BROKEN_REP_PENALTY}).`,
+      });
+    }
+  }
+  s.promises = s.promises.filter((pr) => pr.kept === null || pr.dueWeek >= s.week - 4); // garde un petit historique récent, puis nettoie
+
 
   // 10) Marchés qui tournent : candidats staff (disponibilité limitée) et talents.
   //     v8 : la cellule A&R travaille le marché — estimations affinées, vivier
@@ -1292,6 +1394,31 @@ export function releaseWeeklyRevenue(r: Release): number {
   return (premium + freemium + radio) * (1 + DROITS_RATE);
 }
 
+// v15 §22 — profil de carrière : le succès n'a pas une seule forme. Purement
+// présentationnel, dérivé des données existantes de l'artiste et de son
+// catalogue actif — aucun nouvel état à maintenir.
+export function artistCareerProfile(a: Artist, releases: Release[], certifications: { artistName: string }[]): string {
+  const myReleases = releases.filter((r) => r.artistId === a.id);
+  const certCount = certifications.filter((c) => c.artistName === a.name).length;
+  const totalRadio = myReleases.reduce((sum, r) => sum + r.radioPlays, 0);
+  if (certCount >= 2) return "Star confirmée";
+  if (a.hype >= 75) return "Phénomène viral";
+  if (totalRadio >= 15) return "Valeur sûre radio";
+  if (myReleases.length > 0 && a.hype <= 25) return "Reconstruction en cours";
+  if (myReleases.length === 0) return "Encore à découvrir";
+  return "Artiste en développement";
+}
+
+// v15 §24 — patrimoine du label : un vrai bilan de carrière qui capitalise sur
+// tout ce que le label a construit. "Catalogue actif" = ce qui tourne encore ;
+// le cumul carrière (totalStreamsAllTime, totalReleases) couvre tout l'historique.
+export function labelLegacy(s: GameState): { activeCatalogValue: number; certifCounts: Record<string, number> } {
+  const activeCatalogValue = s.releases.reduce((sum, r) => sum + catalogValue(r), 0);
+  const certifCounts: Record<string, number> = { or: 0, platine: 0, diamant: 0 };
+  for (const c of s.certifications) certifCounts[c.level] = (certifCounts[c.level] ?? 0) + 1;
+  return { activeCatalogValue, certifCounts };
+}
+
 export function sellCatalog(s: GameState, releaseId: string): GameState {
   const next: GameState = JSON.parse(JSON.stringify(s));
   const release = next.releases.find((r) => r.id === releaseId);
@@ -1340,6 +1467,17 @@ export function pushRelease(s: GameState, releaseId: string): GameState {
 // pitch playlist payant, avance distributeur, featuring inter-labels.
 function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"], refIdArg?: string): ChoiceEvent | null {
   const base = { id: nextId(), kind, createdWeek: s.week, expiresWeek: s.week + 2 };
+  if (kind === "promise") {
+    const artist = s.roster.find((a) => a.id === refIdArg);
+    if (!artist) return null;
+    return {
+      ...base, refId: artist.id, expiresWeek: s.week + 2,
+      title: `${artist.name} veut un engagement`,
+      body: `${artist.name} : « Je veux être sur ton prochain projet. Tu me le promets ? » Une promesse tenue construit la confiance — une promesse rompue laisse une vraie trace.`,
+      optionA: "Promettre",
+      optionB: "Rester vague",
+    };
+  }
   if (kind === "renewal") {
     const artist = s.roster.find((a) => a.id === refIdArg);
     if (!artist) return null;
@@ -1515,6 +1653,47 @@ export function resolveChoice(s: GameState, choiceId: string, option: "a" | "b")
         id: nextId(), week: next.week, title: "Offre douteuse écartée",
         body: `Tu refuses le prestataire "streams garantis" — la bonne décision : ce genre de trafic finit presque toujours par se voir.`,
       });
+    }
+  } else if (choice.kind === "promise") {
+    const artist = next.roster.find((a) => a.id === choice.refId);
+    if (artist) {
+      if (option === "a") {
+        const promise: Promise_ = {
+          id: nextId(), artistId: artist.id, artistName: artist.name,
+          text: "Tu me mets sur ton prochain projet.",
+          createdWeek: next.week, dueWeek: next.week + PROMISE_WINDOW_WEEKS, kept: null,
+        };
+        next.promises.push(promise);
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `Promesse faite à ${artist.name}`,
+          body: `Tu t'engages : ${artist.name} sera sur le prochain projet lancé, dans les ${PROMISE_WINDOW_WEEKS} semaines. Le jeu s'en souviendra — tenue ou rompue, ça comptera.`,
+        });
+      } else {
+        artist.hype = Math.max(0, artist.hype - 3);
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `${artist.name} reste sur sa faim`,
+          body: `Tu restes vague — pas d'engagement pris, mais pas de promesse à tenir non plus. ${artist.name} le remarque.`,
+        });
+      }
+    }
+  } else if (choice.kind === "clearance") {
+    const release = next.releases.find((r) => r.id === choice.refId);
+    if (release) {
+      if (option === "a") {
+        const cost = choice.clearanceCost ?? 500;
+        next.cash -= cost;
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `Sample dédouané — « ${release.title} »`,
+          body: `${fmt(cost)} € réglés pour régulariser les droits. La sortie continue tranquillement, en règle.`,
+        });
+      } else {
+        next.releases = next.releases.filter((r) => r.id !== release.id);
+        next.reputation = Math.max(0, next.reputation - 2);
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: `« ${release.title} » retiré des plateformes`,
+          body: `Le morceau est retiré pour éviter le risque juridique — tout le travail sur cette sortie est perdu, et la petite polémique entame un peu la réputation du label.`,
+        });
+      }
     }
   }
   return next;

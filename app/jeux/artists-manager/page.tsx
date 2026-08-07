@@ -21,10 +21,10 @@ import {
 } from "@/lib/am26/data";
 import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
 import {
-  acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistContractValue,
+  acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistCareerProfile, artistContractValue,
   budgetTotalCost, buyHomeStudio, catalogValue, computeArtistChart, computeLabelChart,
   computeProductionStats, computeProjectChart, declineArtistIdea, declineConcert, declineCounter,
-  effectiveBudgetCost, featuringCost, fireStaff, fmt, initialState, load, makeOffer, persist,
+  effectiveBudgetCost, featuringCost, fireStaff, fmt, initialState, labelLegacy, load, makeOffer, persist,
   pushRelease, releaseLifecycleStage, releaseVaultTrack, releaseWeeklyRevenue, resolveChoice,
   sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, startProjectFromIdea, takeLoan,
 } from "@/lib/am26/engine";
@@ -612,6 +612,7 @@ export default function ArtistsManagerPage() {
     ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff, projBpm, projStructure, previewFeatArtist, previewBeatmaker)
     : null;
   const accent = profile.color;
+  const legacy = labelLegacy(state);
 
   const counteredNegos = state.negotiations.filter((n) => n.status === "countered");
   const pendingNegos = state.negotiations.filter((n) => n.status === "pending");
@@ -1130,6 +1131,9 @@ export default function ArtistsManagerPage() {
                       </span>
                       <p className="font-impact text-lg uppercase leading-none">{a.name}</p>
                       <p className="font-mono text-[10px] text-ink-muted mt-1">{a.style} · {fmt(a.salary)} €/mois</p>
+                      <p className="font-mono text-[9px] uppercase tracking-wide text-gold mt-1">
+                        {artistCareerProfile(a, state.releases, state.certifications)}
+                      </p>
                     </div>
                     <div className="p-4 space-y-1.5">
                       <StatBar label="Flow" value={a.flow} color={accent} />
@@ -1146,6 +1150,11 @@ export default function ArtistsManagerPage() {
                           ? "Avance recoupée — rentable"
                           : `Avance : ${fmt(Math.min(a.lifetimeRevenue, a.signingFee))} / ${fmt(a.signingFee)} € recoupés`}
                       </p>
+                      {state.promises.some((pr) => pr.artistId === a.id && pr.kept === null) && (
+                        <p className="font-mono text-[10px] text-gold">
+                          Promesse en cours — le prochain projet lui est dû
+                        </p>
+                      )}
                       {confirmSellArtistId === a.id ? (
                         <div className="flex gap-2 pt-2">
                           <button
@@ -2102,6 +2111,24 @@ export default function ArtistsManagerPage() {
               </div>
             ))}
           </div>
+
+          <SectionCard title="Patrimoine du label" icon={<Trophy size={11} />}>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Valeur du catalogue actif</p>
+                <p className="font-impact text-xl">{fmt(legacy.activeCatalogValue)} €</p>
+              </div>
+              <div>
+                <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Certifications</p>
+                <p className="font-impact text-xl">
+                  🥇{legacy.certifCounts.or ?? 0} 💿{legacy.certifCounts.platine ?? 0} 💎{legacy.certifCounts.diamant ?? 0}
+                </p>
+              </div>
+            </div>
+            <p className="text-[11px] text-ink-faint font-mono">
+              Le catalogue actif, c'est ce qui tourne encore aujourd'hui — la vraie valeur du label si tu devais tout céder d'un coup. {fmt(state.totalStreamsAllTime)} streams cumulés depuis le début, {state.totalReleases} sorties publiées : c'est déjà une histoire.
+            </p>
+          </SectionCard>
 
           <SectionCard title="Palmarès — certifications" icon={<Trophy size={11} />}>
             {state.certifications.length === 0 ? (
