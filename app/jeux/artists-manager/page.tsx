@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle, MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
@@ -41,8 +41,15 @@ type Project = {
   type: "single" | "ep" | "album";
   title: string;
   weeksLeft: number;
-  quality: number;
-  promo: number;
+  // Stats calculées UNE FOIS au lancement (à partir du talent de l'artiste + choix de
+  // budget), puis figées jusqu'à la sortie — comme une vraie prod qu'on ne repense pas
+  // en cours de route.
+  quality: number;      // qualité artistique (instru + enregistrement + mix + mastering + cover)
+  reach: number;        // portée de diffusion (distribution + clip)
+  adsMult: number;      // multiplicateur de démarrage (publicité)
+  mediaChance: number;  // probabilité qu'un média en parle (presse/RP)
+  hypeBoost: number;    // gain de hype de l'artiste à la sortie
+  retention: number;    // % de streams conservés d'une semaine à l'autre
 };
 
 type Release = {
@@ -52,7 +59,7 @@ type Release = {
   title: string;
   type: Project["type"];
   quality: number;
-  promo: number;
+  retention: number;
   weeklyStreams: number;
   totalStreams: number;
   weeksOut: number;
@@ -111,11 +118,124 @@ const TYPE_META = {
   album: { label: "Album", weeks: 7, studioBase: 2.4 },
 } as const;
 
-const BUDGET_PRESETS = {
-  studio: [{ label: "Éco", v: 2000 }, { label: "Standard", v: 5000 }, { label: "Premium", v: 12000 }],
-  clip: [{ label: "Aucun", v: 0 }, { label: "Street", v: 3000 }, { label: "Réalisateur", v: 10000 }],
-  promo: [{ label: "Bouche à oreille", v: 1000 }, { label: "Playlists", v: 4000 }, { label: "Campagne", v: 10000 }],
-} as const;
+// Chaîne de production complète — chaque poste a un effet distinct et cumulable :
+//  - mult (instru/enregistrement/mix/mastering/cover) → QUALITÉ, donc classement et
+//    rétention (une prod mieux finie se maintient mieux dans le temps)
+//  - mult (distribution/clip) → PORTÉE, combien de monde peut tomber dessus
+//  - mult (publicité) → coup de pouce au démarrage (streams jour 1)
+//  - mediaChance (presse/RP) → probabilité qu'un média en parle (bonus réputation +
+//    streams ponctuel), façon retombée presse plutôt qu'un simple chiffre
+//  - hypeBoost (clip) → gain de hype de l'artiste à la sortie
+// Volontairement générique ("plateformes de streaming", "réseaux sociaux") — jamais de
+// nom de plateforme ou de distributeur réel.
+type BudgetOption = { label: string; v: number; mult?: number; add?: number; hypeBoost?: number; mediaChance?: number };
+type BudgetKey = "instru" | "enregistrement" | "mix" | "mastering" | "cover" | "clip" | "distribution" | "publicite" | "presse";
+
+const BUDGET_PRESETS: Record<BudgetKey, BudgetOption[]> = {
+  instru: [
+    { label: "Lease (non-exclusif)", v: 300, mult: 0.85 },
+    { label: "Achat exclusif", v: 1500, mult: 1.0 },
+    { label: "Exclusif prestige", v: 4000, mult: 1.15 },
+  ],
+  enregistrement: [
+    { label: "Home studio", v: 500, add: 2 },
+    { label: "Studio pro", v: 2000, add: 6 },
+    { label: "Résidence studio", v: 6000, add: 12 },
+  ],
+  mix: [
+    { label: "Auto-mix", v: 300, mult: 0.9 },
+    { label: "Ingé son", v: 1500, mult: 1.0 },
+    { label: "Ingé son reconnu", v: 4000, mult: 1.12 },
+  ],
+  mastering: [
+    { label: "Standard", v: 200, mult: 0.92 },
+    { label: "Pro", v: 800, mult: 1.0 },
+    { label: "Broadcast", v: 2500, mult: 1.1 },
+  ],
+  cover: [
+    { label: "Template", v: 0, mult: 0.92 },
+    { label: "Graphiste freelance", v: 600, mult: 1.0 },
+    { label: "DA + shooting", v: 2500, mult: 1.12 },
+  ],
+  clip: [
+    { label: "Aucun", v: 0, mult: 1.0, hypeBoost: 0 },
+    { label: "Clip street", v: 3000, mult: 1.08, hypeBoost: 8 },
+    { label: "Réalisateur", v: 10000, mult: 1.18, hypeBoost: 16 },
+  ],
+  distribution: [
+    { label: "Sélective", v: 500, mult: 0.85 },
+    { label: "Large", v: 2000, mult: 1.0 },
+    { label: "Premium (pitch playlists)", v: 6000, mult: 1.2 },
+  ],
+  publicite: [
+    { label: "Bouche à oreille", v: 500, mult: 1.0 },
+    { label: "Campagne ciblée", v: 3000, mult: 1.35 },
+    { label: "Campagne large", v: 9000, mult: 1.8 },
+  ],
+  presse: [
+    { label: "Aucune", v: 0, mediaChance: 0 },
+    { label: "Relance presse", v: 1500, mediaChance: 0.35 },
+    { label: "Agence RP", v: 5000, mediaChance: 0.7 },
+  ],
+};
+
+const BUDGET_LABELS: Record<BudgetKey, string> = {
+  instru: "Instru", enregistrement: "Enregistrement", mix: "Mix", mastering: "Mastering",
+  cover: "Cover / Artwork", clip: "Clip", distribution: "Distribution", publicite: "Publicité", presse: "Presse / RP",
+};
+
+const BUDGET_GROUPS: { title: string; keys: BudgetKey[] }[] = [
+  { title: "3 · Production", keys: ["instru", "enregistrement", "mix", "mastering"] },
+  { title: "4 · Visuel", keys: ["cover", "clip"] },
+  { title: "5 · Sortie", keys: ["distribution", "publicite", "presse"] },
+];
+
+const DEFAULT_BUDGET_CHOICE: Record<BudgetKey, number> = {
+  instru: 1, enregistrement: 1, mix: 1, mastering: 1, cover: 1, clip: 1, distribution: 1, publicite: 1, presse: 1,
+};
+
+function budgetPreset(key: BudgetKey, choice: Record<BudgetKey, number>): BudgetOption {
+  return BUDGET_PRESETS[key][choice[key]];
+}
+
+function budgetTotalCost(choice: Record<BudgetKey, number>): number {
+  return (Object.keys(BUDGET_PRESETS) as BudgetKey[]).reduce((sum, k) => sum + budgetPreset(k, choice).v, 0);
+}
+
+// Calcule les stats figées d'un projet à partir du talent de l'artiste + des choix de
+// budget — utilisée à la fois pour l'aperçu en direct dans le Studio ET pour les valeurs
+// réellement stockées sur le Project au lancement (une seule formule, pas de divergence).
+function computeProductionStats(
+  artist: Artist,
+  choice: Record<BudgetKey, number>,
+  type: Project["type"]
+): Pick<Project, "quality" | "reach" | "adsMult" | "mediaChance" | "hypeBoost" | "retention"> {
+  const meta = TYPE_META[type];
+  const instru = budgetPreset("instru", choice);
+  const enr = budgetPreset("enregistrement", choice);
+  const mix = budgetPreset("mix", choice);
+  const master = budgetPreset("mastering", choice);
+  const cover = budgetPreset("cover", choice);
+  const clip = budgetPreset("clip", choice);
+  const dist = budgetPreset("distribution", choice);
+  const ads = budgetPreset("publicite", choice);
+  const presse = budgetPreset("presse", choice);
+
+  const skill = (artist.flow + artist.plume) / 2; // 0-20
+  const quality = Math.round(
+    (skill * 3.2 + (enr.add ?? 0)) *
+    (instru.mult ?? 1) * (mix.mult ?? 1) * (master.mult ?? 1) * (cover.mult ?? 1) *
+    meta.studioBase
+  );
+  const reach = (dist.mult ?? 1) * (clip.mult ?? 1);
+  const adsMult = ads.mult ?? 1;
+  const mediaChance = presse.mediaChance ?? 0;
+  const hypeBoost = 12 + (clip.hypeBoost ?? 0);
+  const retention = Math.max(0.55, Math.min(0.9,
+    0.62 + ((master.mult ?? 1) - 1) * 0.5 + (reach - 1) * 0.15 + quality / 1000
+  ));
+  return { quality, reach, adsMult, mediaChance, hypeBoost, retention };
+}
 
 const START_CASH = 30000;
 const SEASON_WEEKS = 52;
@@ -183,6 +303,27 @@ function load(): GameState | null {
     if (typeof s.totalStreamsAllTime !== "number") {
       s.totalStreamsAllTime = (s.releases ?? []).reduce((sum, r) => sum + (r.totalStreams ?? 0), 0);
     }
+    // Compat v4 → v5 (chaîne de production réaliste) : un projet en cours dans l'ancien
+    // format (quality/promo) n'a pas les nouveaux champs (reach, retention...) — on ne
+    // peut pas le migrer proprement, donc on l'annule plutôt que de risquer un calcul
+    // cassé (NaN) à la sortie. Le joueur relance sa prod avec les nouvelles étapes.
+    if (s.project && typeof (s.project as unknown as { reach?: number }).reach !== "number") {
+      s.project = null;
+      s.messages = [
+        {
+          id: `migrate-${Date.now()}`, week: s.week, title: "Chaîne de production mise à jour",
+          body: "Le studio a été enrichi (instru, mix, mastering, presse...). Ta production en cours a été annulée — relance-la avec les nouvelles étapes.",
+        },
+        ...(s.messages ?? []),
+      ].slice(0, 12);
+    }
+    // Anciennes sorties déjà publiées sans `retention` — valeur par défaut raisonnable
+    // pour que le déclin hebdomadaire continue de fonctionner sans NaN.
+    for (const r of s.releases ?? []) {
+      if (typeof (r as unknown as { retention?: number }).retention !== "number") {
+        (r as unknown as { retention: number }).retention = 0.68;
+      }
+    }
     return s;
   } catch {
     return null;
@@ -247,27 +388,39 @@ function advanceWeek(prev: GameState): GameState {
     if (s.project.weeksLeft <= 0) {
       const artist = s.roster.find((a) => a.id === s.project!.artistId);
       if (artist) {
-        const initialStreams = Math.round(
-          s.project.quality * 900 + artist.hype * 700 + s.project.promo * 3 + rnd(0, 15000)
+        const proj = s.project;
+        let initialStreams = Math.round(
+          proj.quality * 900 * proj.reach * proj.adsMult + artist.hype * 700 * proj.reach + rnd(0, 10000)
         );
+        const mediaHit = Math.random() < proj.mediaChance;
+        if (mediaHit) {
+          initialStreams = Math.round(initialStreams * 1.3);
+          s.reputation = Math.min(100, s.reputation + ri(2, 5));
+        }
         s.releases.unshift({
           id: nextId(),
           artistId: artist.id,
           artistName: artist.name,
-          title: s.project.title,
-          type: s.project.type,
-          quality: s.project.quality,
-          promo: s.project.promo,
+          title: proj.title,
+          type: proj.type,
+          quality: proj.quality,
+          retention: proj.retention,
           weeklyStreams: initialStreams,
           totalStreams: 0,
           weeksOut: 0,
         });
-        artist.hype = Math.min(100, artist.hype + 12);
+        artist.hype = Math.min(100, artist.hype + proj.hypeBoost);
         s.totalReleases += 1;
         s.messages.unshift({
-          id: nextId(), week: s.week, title: `Sortie : « ${s.project.title} »`,
-          body: `Le ${TYPE_META[s.project.type].label.toLowerCase()} de ${artist.name} est dans les bacs. Premier bilan de streams la semaine prochaine.`,
+          id: nextId(), week: s.week, title: `Sortie : « ${proj.title} »`,
+          body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name} est dans les bacs. Premier bilan de streams la semaine prochaine.`,
         });
+        if (mediaHit) {
+          s.messages.unshift({
+            id: nextId(), week: s.week, title: "La presse en parle",
+            body: `Un média rap a repéré « ${proj.title} » — coup de projecteur qui dope la sortie et ta réputation.`,
+          });
+        }
       }
       s.project = null;
     }
@@ -279,8 +432,7 @@ function advanceWeek(prev: GameState): GameState {
     r.totalStreams += r.weeklyStreams;
     s.totalStreamsAllTime += r.weeklyStreams;
     weekRevenue += r.weeklyStreams * 0.0032;
-    const decay = 0.68 + Math.min(0.18, r.promo / 60000) + Math.min(0.08, r.quality / 300);
-    r.weeklyStreams = Math.round(r.weeklyStreams * decay);
+    r.weeklyStreams = Math.round(r.weeklyStreams * r.retention);
   }
   s.releases = s.releases.filter((r) => r.weeklyStreams > 200);
   s.cash += weekRevenue;
@@ -621,9 +773,11 @@ export default function ArtistsManagerPage() {
   const [tab, setTab] = useState<Tab>("label");
   const [projArtist, setProjArtist] = useState<string>("");
   const [projType, setProjType] = useState<Project["type"]>("single");
-  const [projStudio, setProjStudio] = useState<number>(BUDGET_PRESETS.studio[1].v);
-  const [projClip, setProjClip] = useState<number>(BUDGET_PRESETS.clip[1].v);
-  const [projPromo, setProjPromo] = useState<number>(BUDGET_PRESETS.promo[1].v);
+  // Choix de budget par poste — on stocke des INDICES (number générique), pas les
+  // objets BudgetOption eux-mêmes, pour ne pas revivre le piège des types littéraux
+  // (l'incident useState(5000) qui refusait ensuite set(0) ou set(12000)).
+  const [budgetChoice, setBudgetChoice] = useState<Record<BudgetKey, number>>(DEFAULT_BUDGET_CHOICE);
+  const selectBudget = (key: BudgetKey, idx: number) => setBudgetChoice((prev) => ({ ...prev, [key]: idx }));
 
   useEffect(() => {
     setState(load() ?? initialState());
@@ -746,19 +900,16 @@ export default function ArtistsManagerPage() {
     if (!state || state.project) return;
     const artist = state.roster.find((a) => a.id === projArtist);
     if (!artist) return;
-    const cost = projStudio + projClip + projPromo;
+    const cost = budgetTotalCost(budgetChoice);
     if (state.cash < cost) return;
     sfx.click();
     const meta = TYPE_META[projType];
-    const skill = (artist.flow + artist.plume) / 2;
-    const quality = Math.round(
-      skill * 3.2 * meta.studioBase * (0.7 + projStudio / 16000) + (projClip > 0 ? 8 : 0) + rnd(0, 10)
-    );
+    const stats = computeProductionStats(artist, budgetChoice, projType);
     const title = PROJECT_TITLES[Math.floor(Math.random() * PROJECT_TITLES.length)];
     update({
       ...state,
       cash: state.cash - cost,
-      project: { artistId: artist.id, type: projType, title, weeksLeft: meta.weeks, quality, promo: projPromo },
+      project: { artistId: artist.id, type: projType, title, weeksLeft: meta.weeks, ...stats },
       messages: [{
         id: nextId(), week: state.week, title: `Studio : « ${title} »`,
         body: `${artist.name} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines). Budget engagé : ${fmt(cost)} €.`,
@@ -775,7 +926,9 @@ export default function ArtistsManagerPage() {
 
   const projectArtist = state.project ? state.roster.find((a) => a.id === state.project!.artistId) : null;
   const weeklyCosts = state.roster.reduce((sum, a) => sum + a.salary, 0);
-  const totalCost = projStudio + projClip + projPromo;
+  const totalCost = budgetTotalCost(budgetChoice);
+  const previewArtist = state.roster.find((a) => a.id === projArtist);
+  const preview = previewArtist ? computeProductionStats(previewArtist, budgetChoice, projType) : null;
   const accent = profile.color;
 
   // Checklist "Premiers pas" — auto-cochée selon la progression réelle
@@ -1151,29 +1304,51 @@ export default function ArtistsManagerPage() {
                 </div>
               </SectionCard>
 
-              <SectionCard title="3 · Budgets" icon={<Wallet size={11} />}>
-                <div className="space-y-4">
-                  {(["studio", "clip", "promo"] as const).map((k) => {
-                    const value = k === "studio" ? projStudio : k === "clip" ? projClip : projPromo;
-                    const set: Dispatch<SetStateAction<number>> =
-                      k === "studio" ? setProjStudio : k === "clip" ? setProjClip : setProjPromo;
-                    return (
+              {BUDGET_GROUPS.map((group) => (
+                <SectionCard key={group.title} title={group.title} icon={<Disc3 size={11} />}>
+                  <div className="space-y-4">
+                    {group.keys.map((k) => (
                       <div key={k}>
-                        <p className="font-mono text-[10px] uppercase text-ink-faint mb-2">
-                          {k === "studio" ? "Studio" : k === "clip" ? "Clip" : "Promo"}
-                        </p>
+                        <p className="font-mono text-[10px] uppercase text-ink-faint mb-2">{BUDGET_LABELS[k]}</p>
                         <div className="flex gap-2 flex-wrap">
-                          {BUDGET_PRESETS[k].map((p) => (
-                            <button key={p.label} onClick={() => set(p.v)} className={`filter-pill ${value === p.v ? "is-active" : ""}`}>
-                              {p.label} · {fmt(p.v)} €
+                          {BUDGET_PRESETS[k].map((opt, idx) => (
+                            <button
+                              key={opt.label}
+                              onClick={() => selectBudget(k, idx)}
+                              className={`filter-pill ${budgetChoice[k] === idx ? "is-active" : ""}`}
+                            >
+                              {opt.label} · {fmt(opt.v)} €
                             </button>
                           ))}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </SectionCard>
+                    ))}
+                  </div>
+                </SectionCard>
+              ))}
+
+              {/* Aperçu en direct — ce que donnent les choix actuels avant de s'engager */}
+              {preview && (
+                <SectionCard title="Aperçu de la sortie" icon={<LineChart size={11} />}>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Qualité</p>
+                      <p className="font-impact text-xl">{preview.quality}</p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Portée</p>
+                      <p className="font-impact text-xl">{Math.round(preview.reach * 100)}%</p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[9px] uppercase text-ink-faint mb-1">Chance presse</p>
+                      <p className="font-impact text-xl">{Math.round(preview.mediaChance * 100)}%</p>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-ink-faint font-mono mt-3">
+                    Qualité = classement + tenue dans le temps. Portée = combien de monde peut tomber dessus. La presse peut déclencher un coup de projecteur (streams + réputation) à la sortie.
+                  </p>
+                </SectionCard>
+              )}
 
               <div className="glass-strong rounded-2xl p-4 flex items-center justify-between">
                 <div>
