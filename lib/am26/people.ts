@@ -57,6 +57,8 @@ export function makeArtist(usedNames: Set<string>, scoutBonus = 0): Artist {
     contractWeeksLeft: contractWeeks,
     contractWeeksTotal: contractWeeks,
     leaving: false,
+    lifetimeRevenue: 0,
+    advanceRecouped: false,
   };
 }
 

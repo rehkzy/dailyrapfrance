@@ -14,10 +14,12 @@ import type {
 } from "./types";
 import {
   BUDGET_PRESETS, CERT_LEVELS, CONTRACT_MAX_WEEKS, CONTRACT_RENEWAL_RAISE, CONTRACT_RENEWAL_WINDOW,
-  DROITS_RATE, FEATURING_FEE_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
-  MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, PERSONALITY_CLASHES, PUSH_COST,
-  PUSH_WINDOW_WEEKS, RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS,
-  STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STYLE_BPM, TOUR_MAX_DATES, TOUR_MIN_DATES, TYPE_META, VENUES,
+  DROITS_RATE, FEATURING_FEE_RATE, FRAUD_DETECTION_CHANCE, FRAUD_REPUTATION_PENALTY, LIQUIDATION_FLOOR,
+  LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES,
+  PERSONALITY_CLASHES, PLATFORM_BASE_SPLIT, PREMIUM_STREAM_RATE, FREEMIUM_STREAM_RATE, PUSH_COST,
+  PUSH_WINDOW_WEEKS, RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS, SNEP_REAL_THRESHOLDS,
+  STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STREAM_SOURCE_BASE_SPLIT,
+  STYLE_BPM, TOUR_MAX_DATES, TOUR_MIN_DATES, TYPE_META, VENUES,
 } from "./data";
 import { fullName, makeArtist, makeInitialStaffMarket, makeStaffCandidate, nextId, pick, ri, rnd } from "./people";
 import { makeRivals, makeTrends, rivalLabelStreams, tickWorld } from "./world";
@@ -121,6 +123,27 @@ export function computeProductionStats(
 // Coût d'un featuring avec un autre artiste du roster — part de sa cote.
 export function featuringCost(a: Artist): number {
   return Math.round((a.signingFee * FEATURING_FEE_RATE) / 50) * 50;
+}
+
+// ---------- v13 : Label Intelligence Center — data réaliste par sortie ----------
+
+function normalizedSplit(base: Record<string, number>, editorialBoost = false): Record<string, number> {
+  const out: Record<string, number> = {};
+  let total = 0;
+  for (const k of Object.keys(base)) {
+    let v = base[k] * rnd(0.8, 1.25);
+    if (editorialBoost && k === "Playlists éditoriales") v *= 1.6;
+    out[k] = v;
+    total += v;
+  }
+  for (const k of Object.keys(out)) out[k] = Math.round((out[k] / total) * 100) / 100;
+  return out;
+}
+
+// Part premium d'une sortie : les artistes avec plus de hype/réputation
+// attirent un public plus qualifié (fans engagés = premium), pas seulement plus large.
+function computePremiumShare(artistHype: number, mediaHit: boolean): number {
+  return Math.max(0.42, Math.min(0.8, 0.5 + artistHype / 400 + (mediaHit ? 0.06 : 0)));
 }
 
 // ---------- Négociations d'embauche ----------
@@ -279,6 +302,7 @@ export function initialState(): GameState {
     trends: makeTrends(),
     loan: null,
     lastWeekIncome: { streaming: 0, droits: 0, radio: 0, concerts: 0 },
+    confirmedIncome: { streaming: 0, droits: 0, radio: 0, concerts: 0 },
     pendingConcertIncome: 0,
     objectives: makeObjectives(),
     pendingChoices: [],
@@ -446,6 +470,10 @@ export function advanceWeek(prev: GameState): GameState {
           expected,
           certified: null,
           pushed: false,
+          premiumShare: computePremiumShare(artist.hype, mediaHit),
+          platformSplit: normalizedSplit(PLATFORM_BASE_SPLIT),
+          streamSource: normalizedSplit(STREAM_SOURCE_BASE_SPLIT, mediaHit),
+          certAlerted: null,
         });
         artist.hype = Math.min(100, artist.hype + proj.hypeBoost);
         s.totalReleases += 1;
@@ -497,8 +525,26 @@ export function advanceWeek(prev: GameState): GameState {
     r.weeksOut += 1;
     r.totalStreams += r.weeklyStreams;
     s.totalStreamsAllTime += r.weeklyStreams;
-    streamingRev += r.weeklyStreams * STREAM_RATE;
+    // v13 — pas de prix fixe au stream : le mix premium/freemium de CETTE
+    // sortie détermine son propre rendement, comme dans la réalité.
+    const premiumStreams = r.weeklyStreams * r.premiumShare;
+    const freemiumStreams = r.weeklyStreams * (1 - r.premiumShare);
+    const releaseStreamingRev = premiumStreams * PREMIUM_STREAM_RATE + freemiumStreams * FREEMIUM_STREAM_RATE;
+    streamingRev += releaseStreamingRev;
     radioRev += r.radioPlays * RADIO_RATE;
+    // Recoupment (§38) : la revenue de l'artiste vient éroder l'avance de
+    // signature avant qu'elle soit "remboursée" au label.
+    const artistForRecoup = s.roster.find((x) => x.id === r.artistId);
+    if (artistForRecoup) {
+      artistForRecoup.lifetimeRevenue += releaseStreamingRev + r.radioPlays * RADIO_RATE;
+      if (!artistForRecoup.advanceRecouped && artistForRecoup.lifetimeRevenue >= artistForRecoup.signingFee) {
+        artistForRecoup.advanceRecouped = true;
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `Avance recoupée : ${artistForRecoup.name}`,
+          body: `Les revenus générés par ${artistForRecoup.name} viennent de dépasser sa prime de signature (${fmt(artistForRecoup.signingFee)} €). L'investissement initial est rentabilisé — tout ce qui vient après est du bénéfice net sur cet artiste.`,
+        });
+      }
+    }
 
     // Premier bilan : la réalité face aux prévisions — le suspense de chaque sortie.
     if (r.weeksOut === 1 && r.expected > 0) {
@@ -523,6 +569,17 @@ export function advanceWeek(prev: GameState): GameState {
       }
     }
 
+    // v13 — alerte "proche du seuil" (§34) : signale le prochain palier de
+    // certification avant qu'il soit atteint, pour créer l'attente.
+    const nextTier = CERT_LEVELS.find((c) => CERT_LEVELS.findIndex((x) => x.level === c.level) > CERT_LEVELS.findIndex((x) => x.level === r.certified));
+    if (nextTier && r.certAlerted !== nextTier.level && r.totalStreams >= nextTier.at * 0.85 && r.totalStreams < nextTier.at) {
+      r.certAlerted = nextTier.level;
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `${nextTier.emoji} « ${r.title} » proche du seuil ${nextTier.level}`,
+        body: `${fmt(r.totalStreams)} / ${fmt(nextTier.at)} streams cumulés — la certification ${nextTier.level} approche pour ${r.artistName}.`,
+      });
+    }
+
     // Certifications : chaque palier franchi entre au palmarès du label.
     for (const cert of CERT_LEVELS) {
       const already = CERT_LEVELS.findIndex((c) => c.level === r.certified);
@@ -535,8 +592,18 @@ export function advanceWeek(prev: GameState): GameState {
         if (a) a.hype = Math.min(100, a.hype + 8);
         s.messages.unshift({
           id: nextId(), week: s.week, title: `${cert.emoji} « ${r.title} » certifié single ${cert.level === "or" ? "d'or" : cert.level === "platine" ? "de platine" : "de diamant"} !`,
-          body: `${fmt(cert.at)} streams cumulés — ${r.artistName} entre au palmarès du label. (En vrai, en France : or = 15 M d'équivalents streams — l'échelle du jeu est adaptée.) Réputation +${cert.rep}.`,
+          body: `${fmt(cert.at)} streams cumulés — ${r.artistName} entre au palmarès du label. (Vrai seuil SNEP en France : ${SNEP_REAL_THRESHOLDS[cert.level]} — l'échelle du jeu est adaptée.) Réputation +${cert.rep}.`,
         });
+        // v13 — effet catalogue (§57) : un hit fait remonter les anciens
+        // titres du même artiste. Une carrière, pas une suite de coups isolés.
+        const backCatalog = s.releases.filter((other) => other.artistId === r.artistId && other.id !== r.id);
+        if (backCatalog.length > 0) {
+          for (const old of backCatalog) old.weeklyStreams = Math.round(old.weeklyStreams * rnd(1.12, 1.28));
+          s.messages.unshift({
+            id: nextId(), week: s.week, title: `Effet catalogue sur ${r.artistName}`,
+            body: `Le succès de « ${r.title} » fait remonter les anciens titres de ${r.artistName} dans les écoutes — une carrière se construit aussi sur le catalogue.`,
+          });
+        }
       }
     }
 
@@ -569,6 +636,16 @@ export function advanceWeek(prev: GameState): GameState {
     droits: Math.round(droitsRev),
     radio: Math.round(radioRev),
     concerts: Math.round(concertRev),
+  };
+  // v13 — §36 du GDD : décalage de reporting. Les chiffres de la semaine qui
+  // vient de s'écouler sont une ESTIMATION ; les chiffres "confirmés" ne
+  // tombent que la semaine suivante, consolidés avec un léger ajustement —
+  // comme un vrai relevé distributeur qui arrive en retard.
+  s.confirmedIncome = {
+    streaming: Math.round(prev.lastWeekIncome.streaming * rnd(0.96, 1.04)),
+    droits: Math.round(prev.lastWeekIncome.droits * rnd(0.96, 1.04)),
+    radio: Math.round(prev.lastWeekIncome.radio * rnd(0.97, 1.03)),
+    concerts: prev.lastWeekIncome.concerts,
   };
   // Les cachets sont déjà encaissés à l'acceptation — on ne crédite ici que
   // streaming, droits et radio.
@@ -737,7 +814,7 @@ export function advanceWeek(prev: GameState): GameState {
   if (s.pendingChoices.length === 0 && Math.random() < 0.22) {
     const kinds: ChoiceEvent["kind"][] = [];
     if (s.releases.length > 0) {
-      kinds.push("brand", "playlist");
+      kinds.push("brand", "playlist", "fraud");
       if (!s.advanceDeal) kinds.push("advance"); // pas deux avances en même temps
     }
     if (s.roster.length > 0) kinds.push("feat");
@@ -1000,6 +1077,26 @@ export function catalogValue(r: Release): number {
   return Math.max(300, Math.round((r.weeklyStreams * STREAM_RATE * (8 + r.quality / 20)) / 100) * 100);
 }
 
+// v13 — cycle de vie d'un titre (§56 du GDD) : purement présentationnel, dérivé
+// des données existantes, sans état supplémentaire à maintenir.
+export function releaseLifecycleStage(r: Release): string {
+  if (r.certified) return "Hit certifié";
+  if (r.weeksOut <= 1) return "Découverte";
+  const avg = r.totalStreams / Math.max(1, r.weeksOut);
+  if (r.weeklyStreams > avg * 1.15) return "Croissance";
+  if (r.weeksOut > 20) return "Catalogue";
+  if (r.weeklyStreams < avg * 0.4) return "Déclin";
+  return "Stabilisation";
+}
+
+// Revenu hebdo réaliste d'une sortie (mix premium/freemium propre à la sortie).
+export function releaseWeeklyRevenue(r: Release): number {
+  const premium = r.weeklyStreams * r.premiumShare * PREMIUM_STREAM_RATE;
+  const freemium = r.weeklyStreams * (1 - r.premiumShare) * FREEMIUM_STREAM_RATE;
+  const radio = r.radioPlays * RADIO_RATE;
+  return (premium + freemium + radio) * (1 + DROITS_RATE);
+}
+
 export function sellCatalog(s: GameState, releaseId: string): GameState {
   const next: GameState = JSON.parse(JSON.stringify(s));
   const release = next.releases.find((r) => r.id === releaseId);
@@ -1058,6 +1155,19 @@ function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"], refIdArg?: str
       body: `Le contrat de ${artist.name} arrive à échéance dans ${artist.contractWeeksLeft} semaines. Il/elle demande une revalorisation à ${fmt(newSalary)} €/mois (contre ${fmt(artist.salary)} € aujourd'hui) pour rester.`,
       optionA: `Renouveler à ${fmt(newSalary)} €/mois`,
       optionB: "Le laisser partir en fin de contrat",
+    };
+  }
+  if (kind === "fraud") {
+    const release = s.releases[0];
+    if (!release) return null;
+    const streamsOffered = ri(20000, 60000);
+    const cost = Math.round((300 + streamsOffered * 0.015) / 50) * 50;
+    return {
+      ...base, refId: release.id, fraudCost: cost, fraudStreams: streamsOffered,
+      title: `Prestataire "streams garantis" pour « ${release.title} »`,
+      body: `Un prestataire douteux propose ${fmt(streamsOffered)} streams "garantis" pour ${fmt(cost)} €. Trafic frauduleux, bots, playlists suspectes — les plateformes détectent parfois ce genre d'anomalie, avec de vraies conséquences.`,
+      optionA: `Accepter (-${fmt(cost)} €, risqué)`,
+      optionB: "Refuser (rester propre)",
     };
   }
   if (kind === "brand" || kind === "playlist" || kind === "advance") {
@@ -1183,6 +1293,33 @@ export function resolveChoice(s: GameState, choiceId: string, option: "a" | "b")
           body: `Pas de renouvellement — ${artist.name} quittera le label dans ${artist.contractWeeksLeft} semaines. Ses sorties actuelles continuent de tourner d'ici là.`,
         });
       }
+    }
+  } else if (choice.kind === "fraud") {
+    if (option === "a") {
+      const cost = choice.fraudCost ?? 500;
+      const streamsOffered = choice.fraudStreams ?? 30000;
+      next.cash -= cost;
+      const release = next.releases.find((r) => r.id === choice.refId);
+      if (Math.random() < FRAUD_DETECTION_CHANCE) {
+        // Détecté : la plateforme retire des streams, la réputation trinque.
+        if (release) release.weeklyStreams = Math.max(0, Math.round(release.weeklyStreams - streamsOffered * 0.6));
+        next.reputation = Math.max(0, next.reputation - FRAUD_REPUTATION_PENALTY);
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: "⚠️ Trafic frauduleux détecté",
+          body: `La plateforme a repéré l'anomalie sur ${release ? `« ${release.title} »` : "la sortie"} — streams retirés, réputation entamée (${FRAUD_REPUTATION_PENALTY} points). ${fmt(cost)} € dépensés pour rien. La leçon coûte cher : ce genre de prestataire est presque toujours une mauvaise idée.`,
+        });
+      } else if (release) {
+        release.weeklyStreams = Math.round(release.weeklyStreams + streamsOffered);
+        next.messages.unshift({
+          id: nextId(), week: next.week, title: "Streams livrés, sans anicroche cette fois",
+          body: `${fmt(streamsOffered)} streams ajoutés à « ${release.title} » pour ${fmt(cost)} €. Passé inaperçu cette fois — mais le risque reste entier à chaque nouvelle commande.`,
+        });
+      }
+    } else {
+      next.messages.unshift({
+        id: nextId(), week: next.week, title: "Offre douteuse écartée",
+        body: `Tu refuses le prestataire "streams garantis" — la bonne décision : ce genre de trafic finit presque toujours par se voir.`,
+      });
     }
   }
   return next;

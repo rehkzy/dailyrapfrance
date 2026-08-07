@@ -223,7 +223,7 @@ export const START_CASH = 40000;
 export const SEASON_WEEKS = 52;
 export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 10;            // v10 : création musicale, clips détaillés, campagne, tournées, contrats
+export const SAVE_VERSION = 11;            // v13 : Label Intelligence Center — data réaliste, recoupment, fraude
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
 export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
 // Droits voisins + édition (SACEM/SDRM, abstraction) : quote-part label sur
@@ -298,3 +298,39 @@ export const PERSONALITY_CLASHES: [string, string][] = [
   ["Instable", "Perfectionniste"],
   ["Carriériste", "Loyal"],
 ];
+
+// ---------- v13 : Label Intelligence Center (data réaliste) ----------
+
+// §35 du GDD data-réalisme : pas de prix fixe au stream. Le premium paie
+// nettement plus que le freemium (publicitaire) — écart réaliste ~5-6x.
+export const PREMIUM_STREAM_RATE = 0.0044;
+export const FREEMIUM_STREAM_RATE = 0.0008;
+
+// §20-23 : répartition plateformes du marché FR (Deezer, français, y est
+// structurellement plus fort qu'à l'international — ordre de grandeur réaliste).
+export const PLATFORM_BASE_SPLIT: Record<string, number> = {
+  Spotify: 0.52, Deezer: 0.22, "Apple Music": 0.14, "Amazon Music": 0.07, Autres: 0.05,
+};
+
+// §20, §52 : source des streams — d'où vient l'écoute.
+export const STREAM_SOURCE_BASE_SPLIT: Record<string, number> = {
+  "Playlists éditoriales": 0.16, "Algorithmique / recommandé": 0.30,
+  "Profil & catalogue": 0.26, "Radio / autoplay": 0.18, "Recherche": 0.10,
+};
+
+// §31 du GDD : seuils SNEP RÉELS 2026 pour référence pédagogique (affichés
+// dans les messages). Le jeu certifie sur une échelle adaptée à son économie
+// (CERT_LEVELS ci-dessus) car reproduire 15M de streams littéralement casserait
+// l'équilibre — mais le joueur voit toujours le vrai seuil français.
+export const SNEP_REAL_THRESHOLDS = {
+  or: "15 000 000 équivalents streams",
+  platine: "30 000 000 équivalents streams",
+  diamant: "50 000 000 équivalents streams",
+};
+// §32.3 : conversion freemium → équivalent premium pour les charts/certifs officiels.
+export const SNEP_FREEMIUM_RATIO = 7; // 7 streams freemium = 1 équivalent premium
+
+// §51 : streaming artificiel — un prestataire douteux propose des streams
+// garantis. Risque de détection réel, sanction sévère si pris.
+export const FRAUD_DETECTION_CHANCE = 0.4;
+export const FRAUD_REPUTATION_PENALTY = 8;

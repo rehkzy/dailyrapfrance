@@ -36,6 +36,12 @@ export type Artist = {
   contractWeeksLeft: number;
   contractWeeksTotal: number;
   leaving: boolean; // renouvellement refusé — partira en fin de contrat
+  // v13 — recoupment (Label Intelligence Center) : la prime de signature est
+  // une avance récupérable sur les revenus générés par l'artiste, comme dans
+  // un vrai contrat. Tant qu'elle n'est pas recoupée, c'est le label qui
+  // porte le risque financier.
+  lifetimeRevenue: number;
+  advanceRecouped: boolean;
 };
 
 // ---------- Staff (personnes simulées) ----------
@@ -135,6 +141,12 @@ export type Release = {
   expected: number;   // prévision de démarrage annoncée à la sortie (suspense S+1)
   certified: "or" | "platine" | "diamant" | null; // dernier palier atteint
   pushed: boolean;    // v11 — boost de campagne post-sortie déjà utilisé ?
+  // v13 — Label Intelligence Center : pas de prix fixe au stream, la réalité
+  // de la donnée streaming (§19, §35 du GDD data-réalisme).
+  premiumShare: number;              // 0-1, part d'écoutes premium (vs freemium)
+  platformSplit: Record<string, number>;  // Spotify/Deezer/Apple/Amazon/Autres, somme = 1
+  streamSource: Record<string, number>;   // playlists éditoriales/algo/profil/radio/recherche, somme = 1
+  certAlerted: "or" | "platine" | "diamant" | null; // dernier palier signalé "proche du seuil"
 };
 
 // Objectifs de saison — arcs à deadline avec récompense (aides, synchro...).
@@ -154,7 +166,7 @@ export type Objective = {
 // Dilemmes de l'industrie — dossiers à trancher (2 options, vrais arbitrages).
 export type ChoiceEvent = {
   id: string;
-  kind: "brand" | "playlist" | "advance" | "feat" | "renewal";
+  kind: "brand" | "playlist" | "advance" | "feat" | "renewal" | "fraud";
   refId: string | null; // id de la sortie ou de l'artiste concerné
   createdWeek: number;
   expiresWeek: number;
@@ -162,6 +174,8 @@ export type ChoiceEvent = {
   body: string;
   optionA: string;      // libellé du choix A (l'accepter)
   optionB: string;      // libellé du choix B (refuser / alternative)
+  fraudCost?: number;    // v13 — coût du dilemme "fraud" (streams artificiels)
+  fraudStreams?: number; // v13 — streams promis par le prestataire douteux
 };
 
 // Avance distributeur : cash immédiat contre une part du streaming pendant N semaines.
@@ -247,7 +261,8 @@ export type GameState = {
   worldReleases: WorldRelease[];  // sorties rivales (Top Projets)
   trends: Trends;
   loan: Loan | null;
-  lastWeekIncome: IncomeBreakdown;
+  lastWeekIncome: IncomeBreakdown;    // estimation de la semaine qui vient de s'écouler
+  confirmedIncome: IncomeBreakdown;   // v13 — chiffres consolidés de la semaine PRÉCÉDENTE (décalage de reporting réel)
   pendingConcertIncome: number;   // cachets encaissés depuis la dernière avancée
   objectives: Objective[];        // arcs de saison (aides, synchro, bonus)
   pendingChoices: ChoiceEvent[];  // dilemmes à trancher (max 1 actif)

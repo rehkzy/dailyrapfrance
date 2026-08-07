@@ -14,18 +14,18 @@ import type { Artist, BudgetKey, GameState, Person, Profile, Project, SongStruct
 import {
   BPM_MAX, BPM_MIN, BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS,
   CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE, DROITS_RATE, FEATURING_FEE_RATE,
-  LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS,
-  PROJECT_TITLES, PUSH_COST, PUSH_WINDOW_WEEKS, RADIO_RATE, SEASON_WEEKS, SONG_STRUCTURES,
-  STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STYLE_BPM,
-  STYLES, TYPE_META,
+  FREEMIUM_STREAM_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS,
+  MONTH_WEEKS, PREMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST, PUSH_WINDOW_WEEKS, RADIO_RATE,
+  SEASON_WEEKS, SONG_STRUCTURES, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS,
+  START_CASH, STREAM_RATE, STYLE_BPM, STYLES, TYPE_META,
 } from "@/lib/am26/data";
 import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
 import {
   acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistContractValue,
   budgetTotalCost, catalogValue, computeArtistChart, computeLabelChart, computeProductionStats,
   computeProjectChart, declineConcert, declineCounter, featuringCost, fireStaff, fmt,
-  initialState, load, makeOffer, persist, pushRelease, resolveChoice, sellArtistContract,
-  sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
+  initialState, load, makeOffer, persist, pushRelease, releaseLifecycleStage, releaseWeeklyRevenue,
+  resolveChoice, sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
 } from "@/lib/am26/engine";
 
 /*
@@ -1101,6 +1101,11 @@ export default function ArtistsManagerPage() {
                         Contrat : {a.contractWeeksLeft} semaine{a.contractWeeksLeft > 1 ? "s" : ""} restante{a.contractWeeksLeft > 1 ? "s" : ""}
                         {a.leaving ? " — partira en fin de contrat" : ""}
                       </p>
+                      <p className={`font-mono text-[10px] ${a.advanceRecouped ? "text-risePos" : "text-ink-faint"}`}>
+                        {a.advanceRecouped
+                          ? "Avance recoupée — rentable"
+                          : `Avance : ${fmt(Math.min(a.lifetimeRevenue, a.signingFee))} / ${fmt(a.signingFee)} € recoupés`}
+                      </p>
                       {confirmSellArtistId === a.id ? (
                         <div className="flex gap-2 pt-2">
                           <button
@@ -1727,12 +1732,12 @@ export default function ArtistsManagerPage() {
 
           {/* Détail des revenus de la semaine écoulée — comme un vrai relevé de
               répartition : chaque source d'exploitation a sa ligne. */}
-          <SectionCard title="Revenus de la semaine passée" icon={<LineChart size={11} />}>
+          <SectionCard title="Revenus — estimation de la semaine" icon={<LineChart size={11} />}>
             {(() => {
               const inc = state.lastWeekIncome;
               const total = inc.streaming + inc.droits + inc.radio + inc.concerts;
               const rows = [
-                { label: "Streaming (plateformes)", v: inc.streaming, hint: "~3,20 € / 1 000 streams" },
+                { label: "Streaming (plateformes)", v: inc.streaming, hint: "premium + freemium, mix propre à chaque sortie" },
                 { label: "Droits voisins & édition", v: inc.droits, hint: `${Math.round(DROITS_RATE * 100)} % de l'exploitation` },
                 { label: "Radio (rémunération équitable)", v: inc.radio, hint: `${fmt(RADIO_RATE)} € / passage` },
                 { label: "Concerts (cachets)", v: inc.concerts, hint: "encaissés à l'acceptation" },
@@ -1751,7 +1756,7 @@ export default function ArtistsManagerPage() {
                     ))}
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/8">
-                    <p className="font-mono text-[10px] uppercase text-ink-faint">Total semaine</p>
+                    <p className="font-mono text-[10px] uppercase text-ink-faint">Total semaine (estimé)</p>
                     <span className="font-impact text-lg text-risePos">+{fmt(total)} €</span>
                   </div>
                   {state.advanceDeal && (
@@ -1762,6 +1767,29 @@ export default function ArtistsManagerPage() {
                 </div>
               );
             })()}
+          </SectionCard>
+
+          {/* v13 — décalage de reporting (§36) : les chiffres définitifs de la
+              semaine PRÉCÉDENTE arrivent maintenant, consolidés. Comme un vrai
+              relevé distributeur qui met du temps à tomber. */}
+          <SectionCard title="Revenus — chiffres confirmés (semaine précédente)" icon={<CheckCircle2 size={11} />}>
+            {(() => {
+              const c = state.confirmedIncome;
+              const total = c.streaming + c.droits + c.radio + c.concerts;
+              return total === 0 ? (
+                <p className="text-sm text-ink-faint">Pas encore de relevé consolidé — reviens après la prochaine semaine.</p>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-ink-faint font-mono">
+                    Streaming {fmt(c.streaming)} € · Droits {fmt(c.droits)} € · Radio {fmt(c.radio)} € · Concerts {fmt(c.concerts)} €
+                  </p>
+                  <span className="font-impact text-lg">{fmt(total)} €</span>
+                </div>
+              );
+            })()}
+            <p className="text-[11px] text-ink-faint font-mono mt-3">
+              Les plateformes ne reportent jamais tout instantanément — ce relevé consolide (avec un léger ajustement) l'estimation de la semaine passée, comme un vrai relevé distributeur.
+            </p>
           </SectionCard>
 
           {/* Banque : prêt en cours ou offres disponibles — la bouée de sauvetage
@@ -1859,7 +1887,7 @@ export default function ArtistsManagerPage() {
                         « {r.title} » — {r.artistName}
                         {r.radioPlays > 0 && <span className="block font-mono text-[9px] text-ink-faint">{r.radioPlays} passage{r.radioPlays > 1 ? "s" : ""} radio / sem</span>}
                       </p>
-                      <span className="font-mono text-xs text-risePos shrink-0">+{fmt((r.weeklyStreams * STREAM_RATE + r.radioPlays * RADIO_RATE) * (1 + DROITS_RATE))} €/sem</span>
+                      <span className="font-mono text-xs text-risePos shrink-0">+{fmt(releaseWeeklyRevenue(r))} €/sem</span>
                     </div>
                     {confirmSellReleaseId === r.id ? (
                       <div className="flex gap-2 mt-1.5">
@@ -1890,8 +1918,49 @@ export default function ArtistsManagerPage() {
             )}
           </SectionCard>
 
+          {/* v13 — "Label Intelligence Center" : la donnée derrière chaque
+              sortie, comme un vrai dashboard Spotify/Deezer/Apple/Amazon
+              simplifié. Chaque sortie a SON mix, pas une moyenne générale. */}
+          {state.releases.length > 0 && (
+            <SectionCard title="Data label — par sortie" icon={<BarChart3 size={11} />}>
+              <div className="space-y-4">
+                {state.releases.map((r) => {
+                  const topSource = Object.entries(r.streamSource).sort((a, b) => b[1] - a[1])[0];
+                  const stage = releaseLifecycleStage(r);
+                  const stageColor = stage === "Hit certifié" ? "text-gold" : stage === "Croissance" ? "text-risePos" : stage === "Déclin" ? "text-riseNeg" : "text-ink-muted";
+                  return (
+                    <div key={r.id}>
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <p className="text-sm font-medium truncate min-w-0">« {r.title} » — {r.artistName}</p>
+                        <span className={`font-mono text-[10px] uppercase shrink-0 ${stageColor}`}>{stage}</span>
+                      </div>
+                      <div className="flex h-2 rounded-full overflow-hidden bg-white/8">
+                        {Object.entries(r.platformSplit).map(([name, pct]) => (
+                          <span
+                            key={name}
+                            style={{ width: `${pct * 100}%`, background: name === "Spotify" ? "#1DB954" : name === "Deezer" ? "#A238FF" : name === "Apple Music" ? "#FA586A" : name === "Amazon Music" ? "#00A8E1" : "#666" }}
+                            title={`${name} : ${Math.round(pct * 100)}%`}
+                          />
+                        ))}
+                      </div>
+                      <p className="font-mono text-[9px] text-ink-faint mt-1">
+                        {Object.entries(r.platformSplit).map(([name, pct]) => `${name} ${Math.round(pct * 100)}%`).join(" · ")}
+                      </p>
+                      <p className="font-mono text-[10px] text-ink-muted mt-1.5">
+                        {Math.round(r.premiumShare * 100)}% premium · source principale : {topSource[0]} ({Math.round(topSource[1] * 100)}%)
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-ink-faint font-mono mt-3">
+                Le premium paie nettement plus que le freemium (publicitaire) — le mix change d'une sortie à l'autre selon l'audience touchée. Répartition plateformes calée sur le marché streaming français (Deezer y pèse plus qu'ailleurs).
+              </p>
+            </SectionCard>
+          )}
+
           <p className="text-[11px] text-ink-faint font-mono">
-            Sources : streaming (~3,20 €/1 000), droits voisins & édition ({Math.round(DROITS_RATE * 100)} % de l'exploitation), radio ({fmt(RADIO_RATE)} €/passage — la rotation entretient aussi les streams), cachets de concert. Paie (salaires + prêt) toutes les {MONTH_WEEKS} semaines. Indemnité de licenciement = {STAFF_SEVERANCE_MONTHS} mois. Découvert autorisé avec agios — liquidation sous {fmt(LIQUIDATION_FLOOR)} €.
+            Streaming : mix premium (~{fmt(PREMIUM_STREAM_RATE * 1000)} €/1 000) et freemium (~{fmt(FREEMIUM_STREAM_RATE * 1000)} €/1 000) propre à chaque sortie — pas de taux fixe. Droits voisins & édition ({Math.round(DROITS_RATE * 100)} % de l'exploitation), radio ({fmt(RADIO_RATE)} €/passage), cachets de concert. Paie (salaires + prêt) toutes les {MONTH_WEEKS} semaines. Indemnité de licenciement = {STAFF_SEVERANCE_MONTHS} mois. Découvert autorisé avec agios — liquidation sous {fmt(LIQUIDATION_FLOOR)} €.
           </p>
         </div>
       )}
