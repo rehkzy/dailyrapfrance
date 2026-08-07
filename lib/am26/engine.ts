@@ -9,18 +9,18 @@
  */
 
 import type {
-  AgendaItem, AlbumTrack, Artist, ArtistIdeaOffer, Beatmaker, BudgetKey, BudgetOption, ChartEntry,
-  ChoiceEvent, ConcertOffer, GameState, LabelChartEntry, LocationTier, Negotiation, Objective, Person,
-  Project, Promise_, ProjectChartEntry, Release, SocialPost, SongStructure, StaffRole, VaultTrack,
+  AgendaItem, AlbumTrack, ArtistDialogueEvent, Artist, ArtistIdeaOffer, Beatmaker, BudgetKey, BudgetOption,
+  ChartEntry, ChoiceEvent, ConcertOffer, GameState, LabelChartEntry, LocationTier, Negotiation, Objective,
+  Person, ProKnowledgeId, Project, Promise_, ProjectChartEntry, Release, SocialPost, SongStructure, StaffRole, VaultTrack,
 } from "./types";
 import {
-  ALBUM_TRACK_COUNT, BUDGET_PRESETS, CERT_LEVELS, CLEARANCE_COST_RATE, CLEARANCE_RISK_CHANCE, CONTRACT_MAX_WEEKS,
-  CONTRACT_MIN_WEEKS, CONTRACT_RENEWAL_RAISE, CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE,
+  ALBUM_TRACK_COUNT, ARTIST_DIALOGUE_PROMPTS, BUDGET_PRESETS, CERT_LEVELS, CLEARANCE_COST_RATE, CLEARANCE_RISK_CHANCE,
+  CONTRACT_MAX_WEEKS, CONTRACT_MIN_WEEKS, CONTRACT_RENEWAL_RAISE, CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE,
   DROITS_RATE, FEATURING_FEE_RATE, FRAUD_DETECTION_CHANCE, FRAUD_REPUTATION_PENALTY,
   LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOCATION_TIERS, MOMENTUM_LOSS_EXTRA_DECAY,
   MOMENTUM_LOSS_WEEKS, MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, PERSONALITY_CLASHES,
   PLATFORM_BASE_SPLIT, PREMIUM_STREAM_RATE, FREEMIUM_STREAM_RATE, PROJECT_TITLES, PROMISE_BROKEN_HYPE_PENALTY,
-  PROMISE_BROKEN_REP_PENALTY, PROMISE_CHANCE, PROMISE_KEPT_HYPE_BONUS,
+  PROMISE_BROKEN_REP_PENALTY, PROMISE_CHANCE, PROMISE_KEPT_HYPE_BONUS, PRO_KNOWLEDGE,
   PROMISE_WINDOW_WEEKS, PUSH_COST, PUSH_WINDOW_WEEKS, RADIO_RATE, SAVE_KEY, SAVE_VERSION, SEASON_WEEKS,
   SNEP_REAL_THRESHOLDS, SOCIAL_AVATARS, SOCIAL_HANDLES, SOCIAL_TEMPLATES, STAFF_ROLES, STAFF_ROLE_KEYS,
   STAFF_SEVERANCE_MONTHS, START_CASH, STAFF_TAKES_BULLISH,
@@ -221,6 +221,19 @@ function pushSocialPost(s: GameState, kind: SocialPost["kind"], vars: { artist?:
   s.socialFeed = s.socialFeed.slice(0, 30); // garde un fil raisonnable
 }
 
+// v17 §17 — Pro Knowledge : la première fois qu'une notion réelle du métier
+// est rencontrée, une explication contextualisée s'affiche — une seule fois.
+function revealConcept(s: GameState, id: ProKnowledgeId) {
+  if (s.seenConcepts.includes(id)) return;
+  s.seenConcepts.push(id);
+  const entry = PRO_KNOWLEDGE[id];
+  if (!entry) return;
+  s.messages.unshift({
+    id: nextId(), week: s.week, title: `📚 Pro Knowledge — ${entry.title}`,
+    body: entry.body,
+  });
+}
+
 // ---------- Négociations d'embauche ----------
 
 // Probabilité qu'un candidat accepte une offre — dépend du ratio offre/demande,
@@ -390,6 +403,8 @@ export function initialState(): GameState {
     certifications: [],
     locationTier: 0,
     socialFeed: [],
+    artistDialogue: null,
+    seenConcepts: [],
     beatmakerMarket: makeBeatmakerMarket(),
     vault: [],
     promises: [],
@@ -562,6 +577,26 @@ export function advanceWeek(prev: GameState): GameState {
   // 1) Résolution des négociations d'embauche lancées la semaine passée.
   resolveNegotiations(s);
 
+  // 1bis) v17 §6 — vraie discussion en pleine production : l'artiste peut
+  // exprimer un doute une fois le projet bien entamé (formats multi-semaines
+  // uniquement — un single ne laisse pas le temps de douter).
+  if (s.project && s.artistDialogue === null) {
+    const meta = TYPE_META[s.project.type];
+    if (meta.weeks > 1 && s.project.weeksLeft === meta.weeks && Math.random() < 0.28) {
+      const artist = s.roster.find((a) => a.id === s.project!.artistId);
+      if (artist) {
+        s.artistDialogue = {
+          id: nextId(), artistId: artist.id, artistName: artist.name, projectTitle: s.project.title,
+          prompt: pick(ARTIST_DIALOGUE_PROMPTS),
+        };
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `${artist.name} veut te parler`,
+          body: `Une vraie discussion t'attend à propos de « ${s.project.title} » — direction le dashboard.`,
+        });
+      }
+    }
+  }
+
   // 2) Progression de la prod en cours → sortie.
   if (s.project) {
     s.project.weeksLeft -= 1;
@@ -657,6 +692,7 @@ export function advanceWeek(prev: GameState): GameState {
             id: nextId(), week: s.week, title: `« ${proj.title} » entre en rotation radio`,
             body: `${radioPlays} passages programmés cette semaine — chaque diffusion rapporte des droits et entretient les streams.`,
           });
+          revealConcept(s, "radio_equitable");
         }
         // v14 — vault musicale (§9) : la session peut laisser une chute
         // exploitable plus tard, à moindre coût.
@@ -692,6 +728,7 @@ export function advanceWeek(prev: GameState): GameState {
             id: nextId(), week: s.week, title: `⚠️ Problème sur « ${droppedRelease.title} »`,
             body: `Un souci de droits vient d'être détecté sur cette sortie — décision à prendre rapidement dans "À traiter".`,
           });
+          revealConcept(s, "clearance");
         }
       }
       s.project = null;
@@ -743,6 +780,7 @@ export function advanceWeek(prev: GameState): GameState {
           id: nextId(), week: s.week, title: `Avance recoupée : ${artistForRecoup.name}`,
           body: `Les revenus générés par ${artistForRecoup.name} viennent de dépasser sa prime de signature (${fmt(artistForRecoup.signingFee)} €). L'investissement initial est rentabilisé — tout ce qui vient après est du bénéfice net sur cet artiste.`,
         });
+        revealConcept(s, "recoupment");
       }
     }
 
@@ -808,6 +846,7 @@ export function advanceWeek(prev: GameState): GameState {
           body: `${fmt(cert.at)} streams cumulés — ${r.artistName} entre au palmarès du label. (Vrai seuil SNEP en France : ${SNEP_REAL_THRESHOLDS[cert.level]} — l'échelle du jeu est adaptée.) Réputation +${cert.rep}.`,
         });
         pushSocialPost(s, "cert", { artist: r.artistName, title: r.title });
+        revealConcept(s, "certification");
         // v13 — effet catalogue (§57) : un hit fait remonter les anciens
         // titres du même artiste. Une carrière, pas une suite de coups isolés.
         const backCatalog = s.releases.filter((other) => other.artistId === r.artistId && other.id !== r.id);
@@ -825,6 +864,20 @@ export function advanceWeek(prev: GameState): GameState {
     // puis la rotation s'érode naturellement.
     r.weeklyStreams = Math.round(r.weeklyStreams * r.retention) + r.radioPlays * 250;
     r.radioPlays = Math.floor(r.radioPlays * 0.78);
+  }
+
+  // v17 §12 — bonne surprise : un vieux titre qui repart sans raison
+  // apparente (playlist oubliée qui refait surface, nouvelle génération qui
+  // le découvre...). Le moteur ne doit pas être qu'une machine à problèmes.
+  const oldCatalog = s.releases.filter((r) => r.weeksOut > 15 && r.weeklyStreams > 500);
+  if (oldCatalog.length > 0 && Math.random() < 0.06) {
+    const revived = pick(oldCatalog);
+    const bump = rnd(1.4, 2.1);
+    revived.weeklyStreams = Math.round(revived.weeklyStreams * bump);
+    s.messages.unshift({
+      id: nextId(), week: s.week, title: `🎉 « ${revived.title} » repart de nulle part`,
+      body: `Sans raison évidente, « ${revived.title} » (${revived.artistName}) regagne du terrain — une playlist qui le redécouvre, une nouvelle génération d'auditeurs... Streams de la semaine en hausse de ${Math.round((bump - 1) * 100)} %.`,
+    });
   }
   s.releases = s.releases.filter((r) => r.weeklyStreams > 200);
   // Avance distributeur : une part du streaming part au distributeur.
@@ -1029,12 +1082,36 @@ export function advanceWeek(prev: GameState): GameState {
   // 7bis) Dilemmes de l'industrie : parfois, une opportunité à double tranchant
   //       se présente — placement de marque, pitch playlist, avance, feat.
   //       Un seul dossier à la fois, il expire si tu ne tranches pas.
+  //       v17 §5 — l'absence de décision EST une décision : certains dilemmes
+  //       ont une vraie conséquence s'ils expirent sans réponse, pas juste un
+  //       message neutre.
   s.pendingChoices = s.pendingChoices.filter((c) => {
     if (c.expiresWeek >= s.week) return true;
-    s.messages.unshift({
-      id: nextId(), week: s.week, title: "Opportunité expirée",
-      body: `« ${c.title} » n'a pas eu de réponse à temps — dans cette industrie, les portes ne restent pas ouvertes.`,
-    });
+    if (c.kind === "clearance") {
+      // Ignorer un risque juridique, c'est choisir de le prendre — le pire
+      // scénario s'applique par défaut : le morceau est retiré.
+      const release = s.releases.find((r) => r.id === c.refId);
+      if (release) {
+        s.releases = s.releases.filter((r) => r.id !== release.id);
+        s.reputation = Math.max(0, s.reputation - 4);
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `« ${release.title} » retiré faute de décision`,
+          body: `Le problème de droits n'a pas été traité à temps — la plateforme a tranché à ta place et retiré le morceau. Ignorer un risque juridique ne le fait pas disparaître.`,
+        });
+      }
+    } else if (c.kind === "promise") {
+      const artist = s.roster.find((a) => a.id === c.refId);
+      if (artist) artist.hype = Math.max(0, artist.hype - 2);
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: "Demande restée sans réponse",
+        body: `« ${c.title} » — le silence a valu une réponse. ${artist ? `${artist.name} l'a remarqué.` : ""}`,
+      });
+    } else {
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: "Opportunité expirée",
+        body: `« ${c.title} » n'a pas eu de réponse à temps — dans cette industrie, les portes ne restent pas ouvertes.`,
+      });
+    }
     return false;
   });
   if (s.pendingChoices.length === 0 && Math.random() < 0.22) {
@@ -1370,6 +1447,7 @@ export function upgradeLocation(s: GameState, tier: LocationTier): GameState {
     id: nextId(), week: next.week, title: `${info.name} — nouveau palier`,
     body: `${fmt(info.cost)} € investis. ${info.bonusDesc} L'effet est permanent.`,
   });
+  revealConcept(next, "location_tiers");
   return next;
 }
 
@@ -1618,6 +1696,7 @@ function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"], refIdArg?: str
     const artist = s.roster.find((a) => a.id === refIdArg);
     if (!artist) return null;
     const newSalary = Math.round((artist.salary * (1 + CONTRACT_RENEWAL_RAISE)) / 50) * 50;
+    revealConcept(s, "contract_renewal");
     return {
       ...base, refId: artist.id, expiresWeek: s.week + artist.contractWeeksLeft,
       title: `Renouvellement de contrat — ${artist.name}`,
@@ -1631,6 +1710,7 @@ function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"], refIdArg?: str
     if (!release) return null;
     const streamsOffered = ri(20000, 60000);
     const cost = Math.round((300 + streamsOffered * 0.015) / 50) * 50;
+    revealConcept(s, "fraud");
     return {
       ...base, refId: release.id, fraudCost: cost, fraudStreams: streamsOffered,
       title: `Prestataire "streams garantis" pour « ${release.title} »`,
@@ -1679,6 +1759,51 @@ function makeChoiceEvent(s: GameState, kind: ChoiceEvent["kind"], refIdArg?: str
     optionA: "Financer le feat (-1 200 €, hype)",
     optionB: "Passer son tour",
   };
+}
+
+// v17 §6 — résolution de la vraie discussion avec l'artiste. Quatre options,
+// quatre conséquences réellement différentes — pas un menu décoratif.
+export function resolveArtistDialogue(
+  s: GameState,
+  optionId: "defend" | "control" | "compromise" | "postpone"
+): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  const dialogue = next.artistDialogue;
+  if (!dialogue) return next;
+  const artist = next.roster.find((a) => a.id === dialogue.artistId);
+  next.artistDialogue = null;
+  if (!next.project || !artist) return next;
+
+  if (optionId === "defend") {
+    next.project.quality = Math.round(next.project.quality * 1.04);
+    artist.hype = Math.min(100, artist.hype + 3);
+    next.messages.unshift({
+      id: nextId(), week: next.week, title: `Tu défends la stratégie`,
+      body: `Tu argumentes avec les données en main. ${artist.name} n'est pas totalement convaincu·e, mais respecte la fermeté — le projet continue sur sa lancée (qualité en légère hausse).`,
+    });
+  } else if (optionId === "control") {
+    next.project.quality = Math.round(next.project.quality * 0.98);
+    artist.hype = Math.min(100, artist.hype + 7);
+    next.messages.unshift({
+      id: nextId(), week: next.week, title: `Tu donnes le contrôle à ${artist.name}`,
+      body: `Tu laisses ${artist.name} reprendre la main sur la direction. Moins optimisé sur le papier, mais l'artiste se sent enfin écouté·e — la confiance grimpe nettement.`,
+    });
+  } else if (optionId === "compromise") {
+    next.project.quality = Math.round(next.project.quality * 1.01);
+    artist.hype = Math.min(100, artist.hype + 4);
+    next.messages.unshift({
+      id: nextId(), week: next.week, title: `Compromis trouvé avec ${artist.name}`,
+      body: `Vous trouvez un terrain d'entente. Rien de spectaculaire, mais personne n'a le sentiment d'avoir perdu — le projet avance dans de meilleures conditions.`,
+    });
+  } else {
+    next.project.weeksLeft += 1;
+    artist.hype = Math.min(100, artist.hype + 2);
+    next.messages.unshift({
+      id: nextId(), week: next.week, title: `Discussion reportée avec l'équipe`,
+      body: `Tu prends le temps d'en reparler avec le DA et le marketing avant de trancher. Le projet prend une semaine de retard, mais ${artist.name} apprécie qu'on ne décide pas sans lui/elle.`,
+    });
+  }
+  return next;
 }
 
 export function resolveChoice(s: GameState, choiceId: string, option: "a" | "b"): GameState {
@@ -1804,6 +1929,7 @@ export function resolveChoice(s: GameState, choiceId: string, option: "a" | "b")
           id: nextId(), week: next.week, title: `Promesse faite à ${artist.name}`,
           body: `Tu t'engages : ${artist.name} sera sur le prochain projet lancé, dans les ${PROMISE_WINDOW_WEEKS} semaines. Le jeu s'en souviendra — tenue ou rompue, ça comptera.`,
         });
+        revealConcept(next, "promise");
       } else {
         artist.hype = Math.max(0, artist.hype - 3);
         next.messages.unshift({

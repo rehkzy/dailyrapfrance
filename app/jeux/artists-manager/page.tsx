@@ -6,7 +6,7 @@ import {
   RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle,
   MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart, Briefcase,
   Mic2, AlertCircle, XCircle, Handshake, Sparkles, Target, Trophy, Calendar, Smartphone,
-  Share2, Heart, MessageCircle, ShieldAlert,
+  Share2, Heart, MessageCircle, ShieldAlert, BookOpen, Lock,
 } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
@@ -16,7 +16,7 @@ import {
   BPM_MAX, BPM_MIN, BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS,
   CONTRACT_RENEWAL_WINDOW, DEFAULT_BUDGET_CHOICE, DROITS_RATE, FEATURING_FEE_RATE,
   FREEMIUM_STREAM_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST,
-  LOAN_MONTHS, LOAN_OFFERS, LOCATION_TIERS, LOGOS, MONTH_WEEKS, PREMIUM_STREAM_RATE, PROJECT_TITLES, PUSH_COST,
+  LOAN_MONTHS, LOAN_OFFERS, LOCATION_TIERS, LOGOS, MONTH_WEEKS, PREMIUM_STREAM_RATE, PROJECT_TITLES, PRO_KNOWLEDGE, PUSH_COST,
   PUSH_WINDOW_WEEKS, RADIO_RATE, SEASON_WEEKS, SONG_STRUCTURES, STAFF_ROLES, STAFF_ROLE_KEYS,
   STAFF_SEVERANCE_MONTHS, START_CASH, STREAM_RATE, STYLE_BPM, STYLES, TYPE_META, VAULT_RELEASE_COST,
 } from "@/lib/am26/data";
@@ -26,8 +26,8 @@ import {
   budgetTotalCost, catalogValue, computeAgenda, computeArtistChart, computeLabelChart,
   computeProductionStats, computeProjectChart, declineArtistIdea, declineConcert, declineCounter,
   effectiveBudgetCost, featuringCost, fireStaff, fmt, initialState, labelLegacy, load, makeOffer, persist,
-  projectRiskLevel, pushRelease, releaseLifecycleStage, releaseVaultTrack, releaseWeeklyRevenue, resolveChoice,
-  sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, startProjectFromIdea, takeLoan, upgradeLocation,
+  projectRiskLevel, pushRelease, releaseLifecycleStage, releaseVaultTrack, releaseWeeklyRevenue, resolveArtistDialogue,
+  resolveChoice, sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, startProjectFromIdea, takeLoan, upgradeLocation,
 } from "@/lib/am26/engine";
 
 /*
@@ -377,6 +377,28 @@ function Tutorial({ profile, onDone }: { profile: Profile; onDone: () => void })
 
 // ---------- Écran de reset (sauvegarde < v6) ----------
 
+// v17 §4 — "Continuer" devient intelligent : impossible d'avancer tant qu'une
+// discussion critique avec un artiste n'est pas tranchée.
+function BlockedContinueNotice({ artistName, onDismiss }: { artistName: string; onDismiss: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-4">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" aria-hidden="true" />
+      <div className="relative nav-panel rounded-3xl p-6 max-w-sm w-full solved-pop">
+        <p className="font-mono text-[10px] uppercase tracking-wide text-glow mb-3 flex items-center gap-1.5">
+          <Lock size={11} /> Impossible d'avancer
+        </p>
+        <h2 className="font-impact text-xl uppercase mb-2">Une discussion t'attend</h2>
+        <p className="text-sm text-ink-muted leading-relaxed mb-6">
+          {artistName} a besoin d'une vraie réponse avant que la semaine puisse continuer — direction "À traiter" sur le dashboard.
+        </p>
+        <BorderMagicButton onClick={onDismiss} fullWidth size="lg">
+          Voir la discussion <ArrowRight size={16} />
+        </BorderMagicButton>
+      </div>
+    </div>
+  );
+}
+
 function ResetNotice({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-4">
@@ -427,6 +449,9 @@ export default function ArtistsManagerPage() {
   // Ventes (survie financière) — double confirmation pour éviter les fausses manips.
   const [confirmSellArtistId, setConfirmSellArtistId] = useState<string | null>(null);
   const [confirmSellReleaseId, setConfirmSellReleaseId] = useState<string | null>(null);
+  // v17 §4 — "Continuer" devient intelligent : bloqué tant qu'une discussion
+  // d'artiste critique n'est pas résolue.
+  const [showBlockedContinue, setShowBlockedContinue] = useState(false);
   // Sous-onglet des classements (Artistes / Labels / Projets).
   const [chartView, setChartView] = useState<"artistes" | "labels" | "projets">("artistes");
 
@@ -590,12 +615,24 @@ export default function ArtistsManagerPage() {
 
   function continueWeek() {
     if (!state) return;
+    if (state.artistDialogue) {
+      sfx.click();
+      setShowBlockedContinue(true);
+      return;
+    }
     sfx.click();
     setConfirmFireId(null);
     setOfferFor(null);
     setConfirmSellArtistId(null);
     setConfirmSellReleaseId(null);
     update(advanceWeek(state));
+  }
+
+  function resolveDialogue(optionId: "defend" | "control" | "compromise" | "postpone") {
+    if (!state) return;
+    sfx.click();
+    setShowBlockedContinue(false);
+    update(resolveArtistDialogue(state, optionId));
   }
 
   const projectArtist = state.project ? state.roster.find((a) => a.id === state.project!.artistId) : null;
@@ -620,7 +657,7 @@ export default function ArtistsManagerPage() {
 
   const counteredNegos = state.negotiations.filter((n) => n.status === "countered");
   const pendingNegos = state.negotiations.filter((n) => n.status === "pending");
-  const todoCount = state.concertOffers.length + counteredNegos.length + state.pendingChoices.length + state.artistIdeas.length;
+  const todoCount = state.concertOffers.length + counteredNegos.length + state.pendingChoices.length + state.artistIdeas.length + (state.artistDialogue ? 1 : 0);
   // Objectif de saison en cours (le premier encore actif) — le fil rouge.
   const activeObjective = state.objectives.find((o) => o.status === "active") ?? null;
   const objectiveValue = activeObjective
@@ -652,6 +689,14 @@ export default function ArtistsManagerPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-44 lg:pb-16">
       {showResetNotice && <ResetNotice onDismiss={() => setShowResetNotice(false)} />}
+
+      {/* v17 §4 — bouton Continuer intelligent */}
+      {showBlockedContinue && state.artistDialogue && (
+        <BlockedContinueNotice
+          artistName={state.artistDialogue.artistName}
+          onDismiss={() => { setShowBlockedContinue(false); setTab("label"); }}
+        />
+      )}
 
       {/* Tutoriel — une seule fois, après l'onboarding */}
       {!state.tutorialDone && !showResetNotice && (
@@ -787,6 +832,50 @@ export default function ArtistsManagerPage() {
           {todoCount > 0 && (
             <SectionCard title={`À traiter (${todoCount})`} icon={<AlertCircle size={11} />}>
               <div className="space-y-3">
+                {state.artistDialogue && (
+                  <div className="rounded-xl border border-gold/40 bg-gold/5 p-3">
+                    <div className="flex items-start gap-2.5 mb-1">
+                      <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
+                        <MessageCircle size={13} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{state.artistDialogue.artistName} veut te parler</p>
+                        <p className="font-mono text-[9px] text-ink-faint uppercase mt-0.5">
+                          À propos de « {state.artistDialogue.projectTitle} »
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-ink-muted italic leading-relaxed my-3 pl-1 border-l-2 border-gold/30">
+                      « {state.artistDialogue.prompt} »
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => resolveDialogue("defend")}
+                        className="rounded-xl px-3 py-2.5 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors text-left"
+                      >
+                        Défendre la stratégie
+                      </button>
+                      <button
+                        onClick={() => resolveDialogue("control")}
+                        className="rounded-xl px-3 py-2.5 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors text-left"
+                      >
+                        Donner le contrôle
+                      </button>
+                      <button
+                        onClick={() => resolveDialogue("compromise")}
+                        className="rounded-xl px-3 py-2.5 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors text-left"
+                      >
+                        Chercher un compromis
+                      </button>
+                      <button
+                        onClick={() => resolveDialogue("postpone")}
+                        className="rounded-xl px-3 py-2.5 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors text-left"
+                      >
+                        Reporter (+1 semaine)
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {state.pendingChoices.map((c) => (
                   <div key={c.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                     <div className="flex items-start gap-2.5">
@@ -2202,6 +2291,32 @@ export default function ArtistsManagerPage() {
             </div>
             <p className="text-[11px] text-ink-faint font-mono">
               Le catalogue actif, c'est ce qui tourne encore aujourd'hui — la vraie valeur du label si tu devais tout céder d'un coup. {fmt(state.totalStreamsAllTime)} streams cumulés depuis le début, {state.totalReleases} sorties publiées : c'est déjà une histoire.
+            </p>
+          </SectionCard>
+
+          {/* v17 §23 — encyclopédie professionnelle : les notions réelles du
+              métier débloquées au fil de la partie, toujours consultables. */}
+          <SectionCard title="Encyclopédie pro" icon={<BookOpen size={11} />}>
+            {state.seenConcepts.length === 0 ? (
+              <p className="text-sm text-ink-faint">
+                Les vraies notions du métier (recoupment, dédouanement de samples, certifications...) se débloquent ici au fil de ta partie, la première fois que tu y es confronté.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {state.seenConcepts.map((id) => {
+                  const entry = PRO_KNOWLEDGE[id];
+                  if (!entry) return null;
+                  return (
+                    <div key={id} className="border-l-2 border-gold/30 pl-3">
+                      <p className="text-sm font-medium text-gold">{entry.title}</p>
+                      <p className="text-xs text-ink-muted leading-relaxed mt-0.5">{entry.body}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-[11px] text-ink-faint font-mono mt-3">
+              {state.seenConcepts.length} / {Object.keys(PRO_KNOWLEDGE).length} notions débloquées.
             </p>
           </SectionCard>
 

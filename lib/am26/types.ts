@@ -333,6 +333,25 @@ export type AgendaItem = {
   kind: "project" | "concert" | "choice" | "promise" | "contract";
 };
 
+// ---------- v17 : discussions réelles, Pro Knowledge ----------
+
+// §6 — vraie discussion, pas un menu artificiel : un artiste exprime un doute
+// en pleine production, avec 4 vraies options aux conséquences différentes.
+export type ArtistDialogueEvent = {
+  id: string;
+  artistId: string;
+  artistName: string;
+  projectTitle: string;
+  prompt: string; // ce que dit l'artiste, mot pour mot
+};
+
+// §17 — Pro Knowledge : la première fois qu'une mécanique réelle du métier
+// apparaît, une explication contextualisée s'affiche — une seule fois par
+// notion, jamais scolaire, toujours liée à ce qui vient de se passer.
+export type ProKnowledgeId =
+  | "recoupment" | "clearance" | "certification" | "location_tiers"
+  | "promise" | "fraud" | "contract_renewal" | "radio_equitable";
+
 // ---------- Divers ----------
 
 export type Message = { id: string; week: number; title: string; body: string };
@@ -374,6 +393,8 @@ export type GameState = {
   // v14 — monde physique, marketplace, autonomie.
   locationTier: LocationTier;      // v16 — §2 approfondi : progression immobilière par paliers
   socialFeed: SocialPost[];        // v16 — §14 : fil de posts simulés
+  artistDialogue: ArtistDialogueEvent | null; // v17 — §6 : discussion en cours, bloque "Continuer"
+  seenConcepts: ProKnowledgeId[];              // v17 — §17 : notions déjà expliquées au joueur
   beatmakerMarket: Beatmaker[];   // §8 — marketplace de prods, tourne chaque semaine
   vault: VaultTrack[];            // §9 — chutes de studio en attente
   promises: Promise_[];           // v15 — registre des promesses faites aux artistes

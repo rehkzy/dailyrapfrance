@@ -223,7 +223,7 @@ export const START_CASH = 40000;
 export const SEASON_WEEKS = 52;
 export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 14;            // v16 : agenda, téléphone, war rooms, réseaux, albums, lieux étagés
+export const SAVE_VERSION = 15;            // v17 : discussions réelles, Pro Knowledge, encyclopédie, Continuer intelligent
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
 export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
 // Droits voisins + édition (SACEM/SDRM, abstraction) : quote-part label sur
@@ -445,3 +445,49 @@ export const SOCIAL_TEMPLATES = {
 // §11 — tracklist réelle pour les albums : nombre de titres et dispersion de
 // qualité autour de la moyenne du projet.
 export const ALBUM_TRACK_COUNT: [number, number] = [7, 11];
+
+// ---------- v17 : discussions réelles, Pro Knowledge ----------
+
+// §6 — ce que l'artiste dit vraiment quand il doute du projet en cours.
+export const ARTIST_DIALOGUE_PROMPTS = [
+  "J'ai écouté la dernière version toute la nuit. Franchement je sens pas ce single. J'ai l'impression que vous cherchez à tout prix le morceau qui marche sur les réseaux, alors que c'est pas moi.",
+  "Je sais que c'est le titre sur lequel vous comptez le plus, mais moi j'y crois pas à fond. Je préfère qu'on en reparle avant d'aller plus loin.",
+  "On avance vite, trop vite peut-être. Je veux qu'on prenne le temps de vérifier qu'on part dans la bonne direction.",
+];
+
+// §17 — Pro Knowledge : chaque notion, expliquée une seule fois, au moment où
+// elle vient d'être rencontrée pour la première fois. Jamais scolaire.
+export const PRO_KNOWLEDGE: Record<string, { title: string; body: string }> = {
+  recoupment: {
+    title: "Le recoupment",
+    body: "La prime de signature versée à un artiste n'est pas un cadeau : c'est une avance. Tant que les revenus qu'il génère n'ont pas remboursé cette avance, le label porte seul le risque financier. Une fois l'avance « recoupée », tout ce qui vient après est du bénéfice net sur cet artiste — c'est un des mécanismes financiers les plus centraux du secteur.",
+  },
+  clearance: {
+    title: "Le dédouanement des samples",
+    body: "Utiliser un extrait d'un morceau existant (un « sample ») sans en avoir réglé les droits est un vrai risque juridique — pas un détail administratif. Tant que l'ayant droit n'a pas donné son accord (et souvent une part de royalties), le titre peut être bloqué, retiré, voire donner lieu à des poursuites. Les gros labels ont des équipes dédiées rien que pour ça.",
+  },
+  certification: {
+    title: "Les certifications SNEP",
+    body: "En France, les certifications (Or, Platine, Diamant) sont attribuées par le SNEP sur la base d'un volume d'« équivalents streams » cumulés — le streaming, les téléchargements et les ventes physiques sont convertis puis additionnés selon une méthodologie précise. Les seuils sont réévalués régulièrement pour suivre l'évolution du marché.",
+  },
+  location_tiers: {
+    title: "Investir dans un local",
+    body: "Un local dédié n'est pas qu'une question de confort : il réduit durablement le coût de chaque session (plus besoin de louer un studio à l'heure) et, à partir d'un certain niveau, améliore la qualité du rendu (meilleure acoustique, meilleur matériel). C'est un investissement qui se rentabilise sur la durée, pas un luxe.",
+  },
+  promise: {
+    title: "Le poids de la parole donnée",
+    body: "Dans une industrie qui repose autant sur la confiance et le bouche-à-oreille, un engagement pris auprès d'un artiste compte autant qu'une clause contractuelle. Le tenir construit une réputation de label fiable ; le rompre laisse une trace qui circule vite dans un milieu où tout le monde se connaît.",
+  },
+  fraud: {
+    title: "Le streaming artificiel",
+    body: "Les plateformes détectent de mieux en mieux les schémas de trafic anormal (bots, fermes de clics, playlists suspectes). Un label pris à acheter des streams risque le retrait pur et simple des chiffres gonflés, une dégradation de sa réputation auprès des plateformes, et parfois des sanctions plus lourdes. Le jeu à court terme coûte cher à long terme.",
+  },
+  contract_renewal: {
+    title: "Le renouvellement de contrat",
+    body: "Un contrat d'artiste a une durée limitée — ni le label ni l'artiste ne sont liés éternellement. À l'approche de l'échéance, chacun évalue si la relation reste avantageuse : l'artiste peut demander une revalorisation, changer de structure, ou repartir en indépendant. Anticiper ces négociations évite de perdre un artiste par simple inattention.",
+  },
+  radio_equitable: {
+    title: "La rémunération équitable",
+    body: "Chaque passage radio d'un titre génère des droits, versés via un système de rémunération équitable qui répartit les recettes entre artistes et producteurs. C'est un revenu distinct du streaming — plus modeste par diffusion, mais cumulatif, et qui entretient aussi l'exposition du titre.",
+  },
+};
