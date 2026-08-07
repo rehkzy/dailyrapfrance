@@ -1,489 +1,65 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight, RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle, MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart } from "lucide-react";
+import {
+  ArrowLeft, ArrowRight, Wallet, Star, Users, Disc3, BarChart3, Inbox, ChevronRight,
+  RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle,
+  MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart, Briefcase,
+  Mic2, AlertCircle, XCircle, Handshake, Sparkles,
+} from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
 
+import type { Artist, BudgetKey, GameState, Person, Profile, Project, StaffRole, Tab } from "@/lib/am26/types";
+import {
+  BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS, DEFAULT_BUDGET_CHOICE,
+  LOGOS, PROJECT_TITLES, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_WEEKS,
+  START_CASH, STREAM_RATE, STYLES, TYPE_META,
+} from "@/lib/am26/data";
+import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
+import {
+  acceptConcert, acceptCounter, acceptanceHint, advanceWeek, budgetTotalCost, computeChart,
+  computeProductionStats, declineConcert, declineCounter, fireStaff, fmt, initialState,
+  load, makeOffer, persist, staffByRole, staffWeeklyCost,
+} from "@/lib/am26/engine";
+
 /*
- * ARTISTS MANAGER 2026 — v3 : onboarding façon "création de carrière" FM + tutoriel.
+ * ARTISTS MANAGER 2026 — v6 : refonte "simulation systémique".
  *
- * Nouveautés :
- *  - Wizard de personnalisation en 3 étapes au premier lancement (comme la création de
- *    manager dans FM) : identité (prénom, pseudo), label (nom, ville, logo, couleur),
- *    récap avant de lancer la carrière. Tout est réutilisé dans l'interface (barre du
- *    haut, messages, écran de fin).
- *  - Tutoriel guidé en 4 écrans après l'onboarding (survol des onglets, le bouton
- *    Continuer, l'objectif) — affiché une seule fois.
- *  - Checklist "Premiers pas" sur le dashboard (façon tâches FM), auto-cochée selon la
- *    progression réelle, disparaît une fois les 3 actions faites.
+ * Le moteur vit désormais dans lib/am26/ (types, data, people, world, engine) —
+ * ce fichier ne contient plus que l'interface. Nouveautés v6 :
+ *  - Onglet STAFF : recruter de vraies personnes simulées (âge, ville, expérience,
+ *    réputation, personnalité, niveau estimé en fourchette — le vrai niveau est
+ *    caché), négocier le salaire (réponse à la semaine suivante, contre-offres),
+ *    licencier (indemnité). Chaque poste a un effet mécanique distinct.
+ *  - MONDE VIVANT : les labels rivaux signent des talents sur TON marché,
+ *    débauchent des candidats, sortent des projets. Les tendances de styles
+ *    montent et descendent (visibles dans Charts, impact réel sur les sorties).
+ *  - DOSSIERS À TRAITER sur le dashboard : offres de concert à accepter/refuser,
+ *    contre-propositions salariales — plus d'événements aléatoires scriptés.
+ *  - Les artistes ont un POTENTIEL CACHÉ (fourchette affichée) et peuvent
+ *    progresser — signer, c'est parier.
  *
- * Les sauvegardes v1/v2 sont conservées : au chargement, si le profil manque, seul
- * l'onboarding s'affiche — la partie en cours n'est PAS réinitialisée.
+ * Sauvegardes < v6 : reset propre (structure du moteur incompatible), ancienne
+ * sauvegarde archivée dans une clé de secours, écran d'explication au premier
+ * chargement.
  */
 
-// ---------- Types ----------
+// ---------- Navigation ----------
 
-type Artist = {
-  id: string;
-  name: string;
-  style: string;
-  flow: number;
-  plume: number;
-  charisme: number;
-  hype: number;
-  salary: number;
-  signingFee: number;
-};
-
-type Project = {
-  artistId: string;
-  type: "single" | "ep" | "album";
-  title: string;
-  weeksLeft: number;
-  // Stats calculées UNE FOIS au lancement (à partir du talent de l'artiste + choix de
-  // budget), puis figées jusqu'à la sortie — comme une vraie prod qu'on ne repense pas
-  // en cours de route.
-  quality: number;      // qualité artistique (instru + enregistrement + mix + mastering + cover)
-  reach: number;        // portée de diffusion (distribution + clip)
-  adsMult: number;      // multiplicateur de démarrage (publicité)
-  mediaChance: number;  // probabilité qu'un média en parle (presse/RP)
-  hypeBoost: number;    // gain de hype de l'artiste à la sortie
-  retention: number;    // % de streams conservés d'une semaine à l'autre
-};
-
-type Release = {
-  id: string;
-  artistId: string;
-  artistName: string;
-  title: string;
-  type: Project["type"];
-  quality: number;
-  retention: number;
-  weeklyStreams: number;
-  totalStreams: number;
-  weeksOut: number;
-};
-
-type Message = { id: string; week: number; title: string; body: string };
-type Rival = { name: string; streams: number };
-
-type Profile = {
-  firstName: string;
-  pseudo: string;
-  labelName: string;
-  city: string;
-  logo: string;   // emoji du label
-  color: string;  // accent hexa (variations charte)
-};
-
-type GameState = {
-  week: number;
-  cash: number;
-  reputation: number;
-  roster: Artist[];
-  market: Artist[];
-  project: Project | null;
-  releases: Release[];
-  messages: Message[];
-  rivals: Rival[];
-  prevChartOrder: string[];
-  totalReleases: number;        // sorties publiées depuis le début (cumul carrière)
-  totalStreamsAllTime: number;  // streams cumulés toutes sorties confondues
-  profile: Profile | null;
-  tutorialDone: boolean;
-  gameOver: null | "bankrupt" | "season_end";
-  scoreSaved: boolean;
-};
-
-// ---------- Données ----------
-
-const FIRST = ["Zeyko", "Diako", "Sirem", "Kaira", "Noxx", "Tismé", "Rakelm", "Melza", "Solda K", "Ylane", "Braska", "Numen", "Vexo", "Damsa", "Kliff", "Orya"];
-const STYLES = ["Drill", "Mélo", "Boom bap", "Trap", "Cloud", "Afro"];
-const RIVAL_NAMES = ["Wesko", "Lynka", "7ID", "Marzo", "Selva", "KMR", "Dosia", "Priam"];
-const PROJECT_TITLES = ["Minuit", "Zone 7", "Éclipse", "Sans retour", "Or noir", "Antidote", "Mirage", "Balafre", "Horizon", "Vertige", "Cendres", "Apnée"];
-
-const CITIES = ["Paris", "Marseille", "Lyon", "Lille", "Seine-Saint-Denis", "Toulouse", "Strasbourg", "Bruxelles"];
-const LOGOS = ["🎤", "💿", "🔥", "🐺", "🦅", "💎", "👑", "🌙"];
-const COLORS = [
-  { label: "Rouge signal", v: "#F0001C" },
-  { label: "Braise", v: "#FF3B4E" },
-  { label: "Bordeaux", v: "#A3121B" },
-  { label: "Or", v: "#D4A017" },
-];
-
-const TYPE_META = {
-  single: { label: "Single", weeks: 2, studioBase: 1 },
-  ep: { label: "EP", weeks: 4, studioBase: 1.6 },
-  album: { label: "Album", weeks: 7, studioBase: 2.4 },
-} as const;
-
-// Chaîne de production complète — chaque poste a un effet distinct et cumulable :
-//  - mult (instru/enregistrement/mix/mastering/cover) → QUALITÉ, donc classement et
-//    rétention (une prod mieux finie se maintient mieux dans le temps)
-//  - mult (distribution/clip) → PORTÉE, combien de monde peut tomber dessus
-//  - mult (publicité) → coup de pouce au démarrage (streams jour 1)
-//  - mediaChance (presse/RP) → probabilité qu'un média en parle (bonus réputation +
-//    streams ponctuel), façon retombée presse plutôt qu'un simple chiffre
-//  - hypeBoost (clip) → gain de hype de l'artiste à la sortie
-// Volontairement générique ("plateformes de streaming", "réseaux sociaux") — jamais de
-// nom de plateforme ou de distributeur réel.
-type BudgetOption = { label: string; v: number; mult?: number; add?: number; hypeBoost?: number; mediaChance?: number };
-type BudgetKey = "instru" | "enregistrement" | "mix" | "mastering" | "cover" | "clip" | "distribution" | "publicite" | "presse";
-
-const BUDGET_PRESETS: Record<BudgetKey, BudgetOption[]> = {
-  instru: [
-    { label: "Lease (non-exclusif)", v: 300, mult: 0.85 },
-    { label: "Achat exclusif", v: 1500, mult: 1.0 },
-    { label: "Exclusif prestige", v: 4000, mult: 1.15 },
-  ],
-  enregistrement: [
-    { label: "Home studio", v: 500, add: 2 },
-    { label: "Studio pro", v: 2000, add: 6 },
-    { label: "Résidence studio", v: 6000, add: 12 },
-  ],
-  mix: [
-    { label: "Auto-mix", v: 300, mult: 0.9 },
-    { label: "Ingé son", v: 1500, mult: 1.0 },
-    { label: "Ingé son reconnu", v: 4000, mult: 1.12 },
-  ],
-  mastering: [
-    { label: "Standard", v: 200, mult: 0.92 },
-    { label: "Pro", v: 800, mult: 1.0 },
-    { label: "Broadcast", v: 2500, mult: 1.1 },
-  ],
-  cover: [
-    { label: "Template", v: 0, mult: 0.92 },
-    { label: "Graphiste freelance", v: 600, mult: 1.0 },
-    { label: "DA + shooting", v: 2500, mult: 1.12 },
-  ],
-  clip: [
-    { label: "Aucun", v: 0, mult: 1.0, hypeBoost: 0 },
-    { label: "Clip street", v: 3000, mult: 1.08, hypeBoost: 8 },
-    { label: "Réalisateur", v: 10000, mult: 1.18, hypeBoost: 16 },
-  ],
-  distribution: [
-    { label: "Sélective", v: 500, mult: 0.85 },
-    { label: "Large", v: 2000, mult: 1.0 },
-    { label: "Premium (pitch playlists)", v: 6000, mult: 1.2 },
-  ],
-  publicite: [
-    { label: "Bouche à oreille", v: 500, mult: 1.0 },
-    { label: "Campagne ciblée", v: 3000, mult: 1.35 },
-    { label: "Campagne large", v: 9000, mult: 1.8 },
-  ],
-  presse: [
-    { label: "Aucune", v: 0, mediaChance: 0 },
-    { label: "Relance presse", v: 1500, mediaChance: 0.35 },
-    { label: "Agence RP", v: 5000, mediaChance: 0.7 },
-  ],
-};
-
-const BUDGET_LABELS: Record<BudgetKey, string> = {
-  instru: "Instru", enregistrement: "Enregistrement", mix: "Mix", mastering: "Mastering",
-  cover: "Cover / Artwork", clip: "Clip", distribution: "Distribution", publicite: "Publicité", presse: "Presse / RP",
-};
-
-const BUDGET_GROUPS: { title: string; keys: BudgetKey[] }[] = [
-  { title: "3 · Production", keys: ["instru", "enregistrement", "mix", "mastering"] },
-  { title: "4 · Visuel", keys: ["cover", "clip"] },
-  { title: "5 · Sortie", keys: ["distribution", "publicite", "presse"] },
-];
-
-const DEFAULT_BUDGET_CHOICE: Record<BudgetKey, number> = {
-  instru: 1, enregistrement: 1, mix: 1, mastering: 1, cover: 1, clip: 1, distribution: 1, publicite: 1, presse: 1,
-};
-
-function budgetPreset(key: BudgetKey, choice: Record<BudgetKey, number>): BudgetOption {
-  return BUDGET_PRESETS[key][choice[key]];
-}
-
-function budgetTotalCost(choice: Record<BudgetKey, number>): number {
-  return (Object.keys(BUDGET_PRESETS) as BudgetKey[]).reduce((sum, k) => sum + budgetPreset(k, choice).v, 0);
-}
-
-// Calcule les stats figées d'un projet à partir du talent de l'artiste + des choix de
-// budget — utilisée à la fois pour l'aperçu en direct dans le Studio ET pour les valeurs
-// réellement stockées sur le Project au lancement (une seule formule, pas de divergence).
-function computeProductionStats(
-  artist: Artist,
-  choice: Record<BudgetKey, number>,
-  type: Project["type"]
-): Pick<Project, "quality" | "reach" | "adsMult" | "mediaChance" | "hypeBoost" | "retention"> {
-  const meta = TYPE_META[type];
-  const instru = budgetPreset("instru", choice);
-  const enr = budgetPreset("enregistrement", choice);
-  const mix = budgetPreset("mix", choice);
-  const master = budgetPreset("mastering", choice);
-  const cover = budgetPreset("cover", choice);
-  const clip = budgetPreset("clip", choice);
-  const dist = budgetPreset("distribution", choice);
-  const ads = budgetPreset("publicite", choice);
-  const presse = budgetPreset("presse", choice);
-
-  const skill = (artist.flow + artist.plume) / 2; // 0-20
-  const quality = Math.round(
-    (skill * 3.2 + (enr.add ?? 0)) *
-    (instru.mult ?? 1) * (mix.mult ?? 1) * (master.mult ?? 1) * (cover.mult ?? 1) *
-    meta.studioBase
-  );
-  const reach = (dist.mult ?? 1) * (clip.mult ?? 1);
-  const adsMult = ads.mult ?? 1;
-  const mediaChance = presse.mediaChance ?? 0;
-  const hypeBoost = 12 + (clip.hypeBoost ?? 0);
-  const retention = Math.max(0.55, Math.min(0.9,
-    0.62 + ((master.mult ?? 1) - 1) * 0.5 + (reach - 1) * 0.15 + quality / 1000
-  ));
-  return { quality, reach, adsMult, mediaChance, hypeBoost, retention };
-}
-
-const START_CASH = 30000;
-const SEASON_WEEKS = 52;
-const SAVE_KEY = "drf-am26";
-
-// ---------- Helpers ----------
-
-const rnd = (min: number, max: number) => min + Math.random() * (max - min);
-const ri = (min: number, max: number) => Math.round(rnd(min, max));
-const fmt = (n: number) => Math.round(n).toLocaleString("fr-FR");
-
-let uid = 0;
-const nextId = () => `${Date.now().toString(36)}-${uid++}`;
-
-function makeArtist(usedNames: Set<string>): Artist {
-  const available = FIRST.filter((n) => !usedNames.has(n));
-  const name = available[Math.floor(Math.random() * available.length)] ?? `MC ${ri(10, 99)}`;
-  usedNames.add(name);
-  const talent = rnd(0.35, 0.95);
-  return {
-    id: nextId(),
-    name,
-    style: STYLES[Math.floor(Math.random() * STYLES.length)],
-    flow: ri(6 + talent * 8, 10 + talent * 10),
-    plume: ri(6 + talent * 8, 10 + talent * 10),
-    charisme: ri(5 + talent * 8, 10 + talent * 10),
-    hype: ri(5, 30),
-    salary: ri(250 + talent * 400, 400 + talent * 600),
-    signingFee: ri(1500 + talent * 3000, 3000 + talent * 5000),
-  };
-}
-
-function initialState(): GameState {
-  const used = new Set<string>();
-  return {
-    week: 1,
-    cash: START_CASH,
-    reputation: 10,
-    roster: [],
-    market: [makeArtist(used), makeArtist(used), makeArtist(used)],
-    project: null,
-    releases: [],
-    messages: [],
-    rivals: RIVAL_NAMES.map((name) => ({ name, streams: ri(60000, 380000) })),
-    prevChartOrder: [],
-    totalReleases: 0,
-    totalStreamsAllTime: 0,
-    profile: null,
-    tutorialDone: false,
-    gameOver: null,
-    scoreSaved: false,
-  };
-}
-
-function load(): GameState | null {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return null;
-    const s = JSON.parse(raw) as GameState;
-    // Compat v1/v2 — champs ajoutés depuis
-    if (!Array.isArray(s.prevChartOrder)) s.prevChartOrder = [];
-    if (s.profile === undefined) s.profile = null;
-    if (typeof s.tutorialDone !== "boolean") s.tutorialDone = false;
-    if (typeof s.totalReleases !== "number") s.totalReleases = s.releases?.length ?? 0;
-    if (typeof s.totalStreamsAllTime !== "number") {
-      s.totalStreamsAllTime = (s.releases ?? []).reduce((sum, r) => sum + (r.totalStreams ?? 0), 0);
-    }
-    // Compat v4 → v5 (chaîne de production réaliste) : un projet en cours dans l'ancien
-    // format (quality/promo) n'a pas les nouveaux champs (reach, retention...) — on ne
-    // peut pas le migrer proprement, donc on l'annule plutôt que de risquer un calcul
-    // cassé (NaN) à la sortie. Le joueur relance sa prod avec les nouvelles étapes.
-    if (s.project && typeof (s.project as unknown as { reach?: number }).reach !== "number") {
-      s.project = null;
-      s.messages = [
-        {
-          id: `migrate-${Date.now()}`, week: s.week, title: "Chaîne de production mise à jour",
-          body: "Le studio a été enrichi (instru, mix, mastering, presse...). Ta production en cours a été annulée — relance-la avec les nouvelles étapes.",
-        },
-        ...(s.messages ?? []),
-      ].slice(0, 12);
-    }
-    // Anciennes sorties déjà publiées sans `retention` — valeur par défaut raisonnable
-    // pour que le déclin hebdomadaire continue de fonctionner sans NaN.
-    for (const r of s.releases ?? []) {
-      if (typeof (r as unknown as { retention?: number }).retention !== "number") {
-        (r as unknown as { retention: number }).retention = 0.68;
-      }
-    }
-    return s;
-  } catch {
-    return null;
-  }
-}
-
-function persist(s: GameState) {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(s));
-  } catch {
-    // stockage indisponible — la partie vivra en mémoire seulement
-  }
-}
-
-type ChartEntry = { key: string; name: string; title: string | null; streams: number; mine: boolean };
-
-function computeChart(s: GameState): ChartEntry[] {
-  const entries: ChartEntry[] = [
-    ...s.rivals.map((r) => ({ key: `rival:${r.name}`, name: r.name, title: null, streams: r.streams, mine: false })),
-    ...s.releases.map((r) => ({ key: `rel:${r.id}`, name: r.artistName, title: r.title, streams: r.weeklyStreams, mine: true })),
-  ];
-  return entries.sort((a, b) => b.streams - a.streams).slice(0, 10);
-}
-
-// ---------- Simulation ----------
-
-const EVENTS: { title: string; body: () => string; apply: (s: GameState) => void }[] = [
-  {
-    title: "Offre de concert",
-    body: () => "Une salle propose une date à ton artiste principal. Cachet encaissé.",
-    apply: (s) => { s.cash += ri(1500, 4500); },
-  },
-  {
-    title: "Placement en playlist",
-    body: () => "Un curateur ajoute ta dernière sortie en playlist — les streams décollent.",
-    apply: (s) => { const r = s.releases[0]; if (r) r.weeklyStreams = Math.round(r.weeklyStreams * 1.5); },
-  },
-  {
-    title: "Clash sur les réseaux",
-    body: () => "Un de tes artistes s'embrouille en ligne. La hype prend un coup.",
-    apply: (s) => { const a = s.roster[Math.floor(Math.random() * s.roster.length)]; if (a) a.hype = Math.max(0, a.hype - ri(8, 18)); },
-  },
-  {
-    title: "Buzz TikTok",
-    body: () => "Un extrait tourne en boucle sur TikTok — la hype grimpe.",
-    apply: (s) => { const a = s.roster[Math.floor(Math.random() * s.roster.length)]; if (a) a.hype = Math.min(100, a.hype + ri(10, 22)); },
-  },
-  {
-    title: "Frais imprévus",
-    body: () => "Matériel studio à remplacer. La facture pique.",
-    apply: (s) => { s.cash -= ri(800, 2500); },
-  },
-];
-
-function advanceWeek(prev: GameState): GameState {
-  const s: GameState = JSON.parse(JSON.stringify(prev));
-  s.prevChartOrder = computeChart(prev).map((e) => e.key);
-  s.week += 1;
-
-  if (s.project) {
-    s.project.weeksLeft -= 1;
-    if (s.project.weeksLeft <= 0) {
-      const artist = s.roster.find((a) => a.id === s.project!.artistId);
-      if (artist) {
-        const proj = s.project;
-        let initialStreams = Math.round(
-          proj.quality * 900 * proj.reach * proj.adsMult + artist.hype * 700 * proj.reach + rnd(0, 10000)
-        );
-        const mediaHit = Math.random() < proj.mediaChance;
-        if (mediaHit) {
-          initialStreams = Math.round(initialStreams * 1.3);
-          s.reputation = Math.min(100, s.reputation + ri(2, 5));
-        }
-        s.releases.unshift({
-          id: nextId(),
-          artistId: artist.id,
-          artistName: artist.name,
-          title: proj.title,
-          type: proj.type,
-          quality: proj.quality,
-          retention: proj.retention,
-          weeklyStreams: initialStreams,
-          totalStreams: 0,
-          weeksOut: 0,
-        });
-        artist.hype = Math.min(100, artist.hype + proj.hypeBoost);
-        s.totalReleases += 1;
-        s.messages.unshift({
-          id: nextId(), week: s.week, title: `Sortie : « ${proj.title} »`,
-          body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name} est dans les bacs. Premier bilan de streams la semaine prochaine.`,
-        });
-        if (mediaHit) {
-          s.messages.unshift({
-            id: nextId(), week: s.week, title: "La presse en parle",
-            body: `Un média rap a repéré « ${proj.title} » — coup de projecteur qui dope la sortie et ta réputation.`,
-          });
-        }
-      }
-      s.project = null;
-    }
-  }
-
-  let weekRevenue = 0;
-  for (const r of s.releases) {
-    r.weeksOut += 1;
-    r.totalStreams += r.weeklyStreams;
-    s.totalStreamsAllTime += r.weeklyStreams;
-    weekRevenue += r.weeklyStreams * 0.0032;
-    r.weeklyStreams = Math.round(r.weeklyStreams * r.retention);
-  }
-  s.releases = s.releases.filter((r) => r.weeklyStreams > 200);
-  s.cash += weekRevenue;
-
-  const salaries = s.roster.reduce((sum, a) => sum + a.salary, 0);
-  s.cash -= salaries;
-
-  for (const a of s.roster) a.hype = Math.max(0, a.hype - 2);
-
-  for (const r of s.rivals) {
-    r.streams = Math.max(20000, Math.round(r.streams * rnd(0.85, 1.18)));
-  }
-
-  const best = s.releases[0]?.weeklyStreams ?? 0;
-  const beaten = s.rivals.filter((r) => best > r.streams).length;
-  s.reputation = Math.max(0, Math.min(100, s.reputation + (beaten >= 5 ? 3 : beaten >= 2 ? 1 : best > 0 ? 0 : -1)));
-
-  if (s.roster.length > 0 && Math.random() < 0.4) {
-    const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)];
-    ev.apply(s);
-    s.messages.unshift({ id: nextId(), week: s.week, title: ev.title, body: ev.body() });
-  }
-
-  if (Math.random() < 0.3) {
-    const used = new Set([...s.roster, ...s.market].map((a) => a.name));
-    s.market = [...s.market.slice(1), makeArtist(used)];
-  }
-
-  s.messages = s.messages.slice(0, 12);
-
-  if (s.cash < 0) s.gameOver = "bankrupt";
-  else if (s.week > SEASON_WEEKS) s.gameOver = "season_end";
-
-  return s;
-}
-
-// ---------- Petits composants UI ----------
-
-type Tab = "label" | "artistes" | "marche" | "studio" | "charts" | "messages" | "finances" | "stats";
-
-// Menu unique — la sidebar desktop (façon FM) et la tab bar mobile piochent dedans.
 const MENU: { id: Tab; label: string; Icon: typeof Wallet; mobile: boolean }[] = [
   { id: "label", label: "Dashboard", Icon: LayoutDashboard, mobile: true },
   { id: "artistes", label: "Artistes", Icon: Users, mobile: true },
   { id: "marche", label: "Marché", Icon: UserPlus, mobile: false },
+  { id: "staff", label: "Staff", Icon: Briefcase, mobile: false },
   { id: "studio", label: "Studio", Icon: Disc3, mobile: true },
   { id: "charts", label: "Charts", Icon: BarChart3, mobile: true },
   { id: "messages", label: "Messages", Icon: Inbox, mobile: false },
   { id: "finances", label: "Finances", Icon: PiggyBank, mobile: false },
   { id: "stats", label: "Stats", Icon: LineChart, mobile: false },
 ];
+
+// ---------- Petits composants UI ----------
 
 function Movement({ delta }: { delta: number | null }) {
   if (delta === null) return <span className="font-mono text-[9px] uppercase text-gold">New</span>;
@@ -503,6 +79,27 @@ function StatBar({ label, value, max = 20, color = "#F0001C" }: { label: string;
         />
       </div>
       <span className="font-mono text-[11px] text-ink-muted w-6 text-right">{value}</span>
+    </div>
+  );
+}
+
+// Fourchette (potentiel/niveau estimé) — matérialise l'incertitude du scouting.
+function RangeBar({ label, range, max = 20, color = "#F0001C" }: { label: string; range: [number, number]; max?: number; color?: string }) {
+  const [lo, hi] = range;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] font-mono uppercase text-ink-faint w-16 shrink-0">{label}</span>
+      <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden relative">
+        <div
+          className="absolute inset-y-0 rounded-full opacity-90"
+          style={{
+            left: `${(lo / max) * 100}%`,
+            width: `${Math.max(4, ((hi - lo) / max) * 100)}%`,
+            background: `linear-gradient(90deg, ${color}55, ${color})`,
+          }}
+        />
+      </div>
+      <span className="font-mono text-[11px] text-ink-muted w-10 text-right">{lo}-{hi}</span>
     </div>
   );
 }
@@ -548,7 +145,6 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
       <h1 className="font-impact text-3xl uppercase mb-1">Nouvelle carrière</h1>
       <p className="text-sm text-ink-muted mb-6">Crée ton identité de manager avant de te lancer — comme dans FM.</p>
 
-      {/* Indicateur d'étapes */}
       <div className="flex items-center gap-2 mb-8">
         {STEPS.map((label, i) => (
           <div key={label} className="flex items-center gap-2">
@@ -666,7 +262,6 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
 
       {step === 2 && (
         <div className="solved-pop">
-          {/* Carte récap façon fiche FM */}
           <div className="glass-strong rounded-2xl overflow-hidden mb-5">
             <div className="px-5 py-4" style={{ background: `linear-gradient(135deg, ${color}55, transparent)` }}>
               <p className="text-3xl mb-1">{logo}</p>
@@ -713,24 +308,28 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   );
 }
 
-// ---------- Tutoriel (coach marks, 4 écrans) ----------
+// ---------- Tutoriel (5 écrans, v6) ----------
 
 const TUTO_STEPS = [
   {
     title: "Bienvenue au label 👋",
-    body: (p: Profile) => `${p.pseudo}, te voilà à la tête de ${p.labelName} (${p.city}). Le principe : chaque semaine compte — tes décisions font vivre ou couler le label.`,
+    body: (p: Profile) => `${p.pseudo}, te voilà à la tête de ${p.labelName} (${p.city}). Ici, tout est simulé : les gens, la concurrence, les tendances. Tes décisions font vivre ou couler le label.`,
+  },
+  {
+    title: "Un monde qui vit sans toi",
+    body: () => "Les labels rivaux scoutent, signent et sortent des projets pendant que tu réfléchis. Un talent que tu hésites à signer peut partir chez eux. Les styles montent et descendent — surveille les tendances dans Charts.",
+  },
+  {
+    title: "Ton staff, tes armes",
+    body: () => "Dans l'onglet Staff, recrute de vraies personnes simulées : DA, attaché de presse, booker... Leur niveau exact est caché (fourchette estimée), leur salaire se négocie, et chaque poste a un effet concret sur le jeu.",
   },
   {
     title: "Le bouton Continuer",
-    body: () => "C'est le cœur du jeu, comme dans FM : il fait avancer d'une semaine. Streams, trésorerie, hype et classement bougent à chaque pression. Il est toujours en haut à droite.",
-  },
-  {
-    title: "Le menu du label",
-    body: () => "Dashboard = ta vue d'ensemble. Artistes = ton roster. Marché = le recrutement. Studio = lancer une prod. Charts, Messages, Finances et Stats complètent le tout — menu à gauche sur ordi, barre du bas + raccourcis sur mobile.",
+    body: () => "Il fait avancer d'une semaine — mais il ne fait qu'exécuter ce que tu as préparé : réponses aux offres, prods qui avancent, négos qui se résolvent. Les dossiers à traiter t'attendent sur le dashboard.",
   },
   {
     title: "Ton objectif",
-    body: () => "Signe, produis, sors des projets pour battre les rivaux et faire grimper ta réputation. Trésorerie négative = faillite. Tiens les 52 semaines — ta checklist \"Premiers pas\" t'attend sur le dashboard.",
+    body: () => "Signe, produis, entoure-toi, encaisse les concerts, bats les rivaux. Trésorerie négative = faillite. Tiens les 52 semaines — ta checklist \"Premiers pas\" t'attend sur le dashboard.",
   },
 ];
 
@@ -766,21 +365,55 @@ function Tutorial({ profile, onDone }: { profile: Profile; onDone: () => void })
   );
 }
 
+// ---------- Écran de reset (sauvegarde < v6) ----------
+
+function ResetNotice({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-4">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" aria-hidden="true" />
+      <div className="relative nav-panel rounded-3xl p-6 max-w-sm w-full solved-pop">
+        <p className="font-mono text-[10px] uppercase tracking-wide text-gold mb-3 flex items-center gap-1.5">
+          <Sparkles size={11} /> Mise à jour majeure
+        </p>
+        <h2 className="font-impact text-xl uppercase mb-2">Le jeu a changé de dimension</h2>
+        <p className="text-sm text-ink-muted leading-relaxed mb-3">
+          Artists Manager est devenu une vraie simulation : staff à recruter et à négocier,
+          labels rivaux qui agissent, tendances qui évoluent, potentiels cachés...
+        </p>
+        <p className="text-sm text-ink-muted leading-relaxed mb-6">
+          Ton ancienne partie n'était pas compatible avec ce nouveau moteur — une nouvelle
+          carrière démarre. Bonne nouvelle : tout ce que tu vas construire ici compte vraiment.
+        </p>
+        <BorderMagicButton onClick={onDismiss} fullWidth size="lg">
+          Découvrir la nouvelle version <ArrowRight size={16} />
+        </BorderMagicButton>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Page ----------
 
 export default function ArtistsManagerPage() {
   const [state, setState] = useState<GameState | null>(null);
+  const [showResetNotice, setShowResetNotice] = useState(false);
   const [tab, setTab] = useState<Tab>("label");
   const [projArtist, setProjArtist] = useState<string>("");
   const [projType, setProjType] = useState<Project["type"]>("single");
-  // Choix de budget par poste — on stocke des INDICES (number générique), pas les
-  // objets BudgetOption eux-mêmes, pour ne pas revivre le piège des types littéraux
-  // (l'incident useState(5000) qui refusait ensuite set(0) ou set(12000)).
+  // Choix de budget stockés comme INDICES (number générique) — jamais les objets
+  // BudgetOption ni des littéraux `as const` (piège des types littéraux déjà vécu).
   const [budgetChoice, setBudgetChoice] = useState<Record<BudgetKey, number>>(DEFAULT_BUDGET_CHOICE);
   const selectBudget = (key: BudgetKey, idx: number) => setBudgetChoice((prev) => ({ ...prev, [key]: idx }));
+  // Onglet Staff : filtre de rôle + candidat dont le panneau d'offre est ouvert +
+  // confirmation de licenciement (double appui).
+  const [roleFilter, setRoleFilter] = useState<StaffRole | "tous">("tous");
+  const [offerFor, setOfferFor] = useState<string | null>(null);
+  const [confirmFireId, setConfirmFireId] = useState<string | null>(null);
 
   useEffect(() => {
-    setState(load() ?? initialState());
+    const { state: loaded, resetFromOldSave } = load();
+    setState(loaded ?? initialState());
+    if (resetFromOldSave) setShowResetNotice(true);
   }, []);
 
   const update = useCallback((next: GameState) => {
@@ -814,19 +447,22 @@ export default function ArtistsManagerPage() {
   // ----- Onboarding (pas encore de profil) -----
   if (!state.profile) {
     return (
-      <Onboarding
-        onDone={(p) => {
-          sfx.victory();
-          update({
-            ...state,
-            profile: p,
-            messages: [{
-              id: nextId(), week: state.week, title: `${p.labelName} ouvre ses portes`,
-              body: `${p.pseudo}, tu démarres à ${p.city} avec ${fmt(START_CASH)} €. Signe ton premier artiste, produis un projet, et fais grimper ta réputation. Faillite = fin de partie.`,
-            }, ...state.messages].slice(0, 12),
-          });
-        }}
-      />
+      <>
+        {showResetNotice && <ResetNotice onDismiss={() => setShowResetNotice(false)} />}
+        <Onboarding
+          onDone={(p) => {
+            sfx.victory();
+            update({
+              ...state,
+              profile: p,
+              messages: [{
+                id: nextId(), week: state.week, title: `${p.labelName} ouvre ses portes`,
+                body: `${p.pseudo}, tu démarres à ${p.city} avec ${fmt(START_CASH)} €. Signe, produis, recrute ton staff — et garde un œil sur les rivaux : eux n'attendront pas. Faillite = fin de partie.`,
+              }, ...state.messages].slice(0, 16),
+            });
+          }}
+        />
+      </>
     );
   }
 
@@ -854,8 +490,8 @@ export default function ArtistsManagerPage() {
             <p className="font-impact text-3xl text-gold">{state.week}</p>
           </div>
           <div className="glass rounded-2xl p-4">
-            <p className="font-mono text-[10px] uppercase text-ink-faint mb-1">Artistes signés</p>
-            <p className="font-impact text-3xl">{state.roster.length}</p>
+            <p className="font-mono text-[10px] uppercase text-ink-faint mb-1">Streams carrière</p>
+            <p className="font-impact text-3xl">{fmt(state.totalStreamsAllTime)}</p>
           </div>
           <div className="glass rounded-2xl p-4">
             <p className="font-mono text-[10px] uppercase text-ink-faint mb-1">Trésorerie finale</p>
@@ -883,16 +519,15 @@ export default function ArtistsManagerPage() {
     if (!state) return;
     if (state.cash < artist.signingFee) return;
     sfx.correct();
-    const used = new Set([...state.roster, ...state.market].map((a) => a.name));
     update({
       ...state,
       cash: state.cash - artist.signingFee,
       roster: [...state.roster, artist],
-      market: [...state.market.filter((a) => a.id !== artist.id), makeArtist(used)],
+      market: state.market.filter((a) => a.id !== artist.id),
       messages: [{
         id: nextId(), week: state.week, title: `${artist.name} rejoint ${state.profile!.labelName}`,
-        body: `Prime de signature : ${fmt(artist.signingFee)} €. Salaire : ${fmt(artist.salary)} €/semaine. Au travail.`,
-      }, ...state.messages].slice(0, 12),
+        body: `Prime de signature : ${fmt(artist.signingFee)} €. Salaire : ${fmt(artist.salary)} €/semaine. Potentiel estimé : ${artist.shownPotential[0]}-${artist.shownPotential[1]} — le vrai plafond, tu le découvriras au travail.`,
+      }, ...state.messages].slice(0, 16),
     });
   }
 
@@ -904,7 +539,7 @@ export default function ArtistsManagerPage() {
     if (state.cash < cost) return;
     sfx.click();
     const meta = TYPE_META[projType];
-    const stats = computeProductionStats(artist, budgetChoice, projType);
+    const stats = computeProductionStats(artist, budgetChoice, projType, state.staff);
     const title = PROJECT_TITLES[Math.floor(Math.random() * PROJECT_TITLES.length)];
     update({
       ...state,
@@ -913,7 +548,7 @@ export default function ArtistsManagerPage() {
       messages: [{
         id: nextId(), week: state.week, title: `Studio : « ${title} »`,
         body: `${artist.name} entre en studio (${meta.label.toLowerCase()}, ${meta.weeks} semaines). Budget engagé : ${fmt(cost)} €.`,
-      }, ...state.messages].slice(0, 12),
+      }, ...state.messages].slice(0, 16),
     });
     setTab("label");
   }
@@ -921,28 +556,50 @@ export default function ArtistsManagerPage() {
   function continueWeek() {
     if (!state) return;
     sfx.click();
+    setConfirmFireId(null);
+    setOfferFor(null);
     update(advanceWeek(state));
   }
 
   const projectArtist = state.project ? state.roster.find((a) => a.id === state.project!.artistId) : null;
-  const weeklyCosts = state.roster.reduce((sum, a) => sum + a.salary, 0);
+  const rosterCosts = state.roster.reduce((sum, a) => sum + a.salary, 0);
+  const staffCosts = staffWeeklyCost(state.staff);
+  const weeklyCosts = rosterCosts + staffCosts;
   const totalCost = budgetTotalCost(budgetChoice);
   const previewArtist = state.roster.find((a) => a.id === projArtist);
-  const preview = previewArtist ? computeProductionStats(previewArtist, budgetChoice, projType) : null;
+  const preview = previewArtist ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff) : null;
   const accent = profile.color;
+
+  const counteredNegos = state.negotiations.filter((n) => n.status === "countered");
+  const pendingNegos = state.negotiations.filter((n) => n.status === "pending");
+  const todoCount = state.concertOffers.length + counteredNegos.length;
 
   // Checklist "Premiers pas" — auto-cochée selon la progression réelle
   const firstSteps = [
     { label: "Signer ton premier artiste", done: state.roster.length > 0, go: () => setTab("marche") },
+    { label: "Recruter un premier membre du staff", done: state.staff.length > 0 || state.negotiations.length > 0, go: () => setTab("staff") },
     { label: "Lancer une première prod", done: state.project !== null || state.releases.length > 0, go: () => setTab("studio") },
     { label: "Passer ta première semaine", done: state.week > 1, go: continueWeek },
   ];
   const allStepsDone = firstSteps.every((s) => s.done);
 
+  // Candidats affichés (filtre de rôle) + rôles occupés
+  const filteredCandidates = state.staffMarket.filter((p) => roleFilter === "tous" || p.role === roleFilter);
+  const filledRoles = new Set(state.staff.map((p) => p.role));
+
+  const offerOptionsFor = (p: Person) => [
+    { label: "Serré", v: Math.max(50, Math.round((p.askSalary * 0.85) / 10) * 10) },
+    { label: "Demandé", v: p.askSalary },
+    { label: "Généreux", v: Math.round((p.askSalary * 1.15) / 10) * 10 },
+  ];
+  const hintLabel = (p: number) => (p < 0.25 ? "faible" : p < 0.6 ? "moyenne" : "élevée");
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-44 lg:pb-16">
+      {showResetNotice && <ResetNotice onDismiss={() => setShowResetNotice(false)} />}
+
       {/* Tutoriel — une seule fois, après l'onboarding */}
-      {!state.tutorialDone && (
+      {!state.tutorialDone && !showResetNotice && (
         <Tutorial profile={profile} onDone={() => update({ ...state, tutorialDone: true })} />
       )}
 
@@ -977,7 +634,6 @@ export default function ArtistsManagerPage() {
                   tab === id ? "text-ink bg-white/5" : "text-ink-muted hover:text-ink hover:bg-white/[0.03]"
                 }`}
               >
-                {/* Barre d'accent à gauche de l'item actif — la signature sidebar FM */}
                 {tab === id && (
                   <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r" style={{ background: accent }} />
                 )}
@@ -989,6 +645,11 @@ export default function ArtistsManagerPage() {
                     style={{ background: accent }}
                   >
                     {state.messages.length}
+                  </span>
+                )}
+                {id === "staff" && counteredNegos.length > 0 && (
+                  <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center" style={{ background: accent }}>
+                    {counteredNegos.length}
                   </span>
                 )}
               </button>
@@ -1032,6 +693,11 @@ export default function ArtistsManagerPage() {
                 {state.messages.length}
               </span>
             )}
+            {id === "staff" && counteredNegos.length > 0 && (
+              <span className="min-w-4 h-4 px-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={{ background: accent }}>
+                {counteredNegos.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1039,6 +705,77 @@ export default function ArtistsManagerPage() {
       {/* ===== Onglet LABEL ===== */}
       {tab === "label" && (
         <div className="pt-4 space-y-4">
+          {/* Dossiers à traiter — le cœur de la boucle v6 : de vraies décisions,
+              pas des événements subis. */}
+          {todoCount > 0 && (
+            <SectionCard title={`À traiter (${todoCount})`} icon={<AlertCircle size={11} />}>
+              <div className="space-y-3">
+                {state.concertOffers.map((o) => (
+                  <div key={o.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="flex items-start gap-2.5">
+                      <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
+                        <Mic2 size={13} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">Concert — {o.artistName}</p>
+                        <p className="text-xs text-ink-muted mt-0.5">
+                          {o.venue}, {o.cityName} · cachet <span className="text-risePos font-semibold">{fmt(o.fee)} €</span> · expire S{o.expiresWeek}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2.5">
+                      <button
+                        onClick={() => { sfx.correct(); update(acceptConcert(state, o.id)); }}
+                        className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
+                      >
+                        Accepter la date
+                      </button>
+                      <button
+                        onClick={() => { sfx.click(); update(declineConcert(state, o.id)); }}
+                        className="rounded-xl px-4 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors"
+                      >
+                        Refuser
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {counteredNegos.map((n) => {
+                  const person = state.staffMarket.find((p) => p.id === n.personId);
+                  if (!person || n.counter === null) return null;
+                  return (
+                    <div key={n.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="flex items-start gap-2.5">
+                        <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${accent}1f`, color: accent }}>
+                          <Handshake size={13} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">Contre-proposition — {fullName(person)}</p>
+                          <p className="text-xs text-ink-muted mt-0.5">
+                            {STAFF_ROLES[person.role].label} · demande <span className="text-gold font-semibold">{fmt(n.counter)} €/sem</span> (ton offre : {fmt(n.offer)} €)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-2.5">
+                        <button
+                          onClick={() => { sfx.correct(); update(acceptCounter(state, n.id)); }}
+                          className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
+                        >
+                          Accepter — {fmt(n.counter)} €/sem
+                        </button>
+                        <button
+                          onClick={() => { sfx.click(); update(declineCounter(state, n.id)); }}
+                          className="rounded-xl px-4 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink transition-colors"
+                        >
+                          Abandonner
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
+          )}
+
           {/* Checklist premiers pas — façon tâches FM, disparaît une fois complétée */}
           {!allStepsDone && (
             <SectionCard title="Premiers pas" icon={<CheckCircle2 size={11} />}>
@@ -1096,11 +833,17 @@ export default function ArtistsManagerPage() {
                     Semaine {state.week + state.project.weeksLeft}
                   </span>
                 </p>
+              ) : pendingNegos.length > 0 ? (
+                <p className="text-sm">
+                  {pendingNegos.length} négociation{pendingNegos.length > 1 ? "s" : ""} d'embauche en attente
+                  <span className="block font-mono text-[11px] text-gold mt-1">Réponse à la prochaine semaine</span>
+                </p>
               ) : (
                 <p className="text-sm text-ink-faint">Rien de planifié.</p>
               )}
               <p className="font-mono text-[10px] text-ink-faint mt-3 pt-3 border-t border-white/8">
                 Salaires hebdo : <span className="text-riseNeg">-{fmt(weeklyCosts)} €</span>
+                {staffCosts > 0 && <span className="block mt-0.5">dont staff : -{fmt(staffCosts)} €</span>}
               </p>
             </SectionCard>
           </div>
@@ -1123,7 +866,7 @@ export default function ArtistsManagerPage() {
                     <span className="font-impact text-sm w-4 text-center text-ink-faint">{i + 1}</span>
                     <Movement delta={delta} />
                     <p className={`text-sm flex-1 min-w-0 truncate ${e.mine ? "text-gold font-medium" : ""}`}>
-                      {e.name}{e.title ? ` — « ${e.title} »` : ""}
+                      {e.name}{e.title ? ` — ${e.title}` : ""}
                     </p>
                     <span className="font-mono text-[11px] text-ink-muted shrink-0">{fmt(e.streams)}</span>
                   </div>
@@ -1220,16 +963,20 @@ export default function ArtistsManagerPage() {
                       <StatBar label="Plume" value={a.plume} color={accent} />
                       <StatBar label="Charisme" value={a.charisme} color={accent} />
                       <StatBar label="Hype" value={a.hype} max={100} color={accent} />
+                      <RangeBar label="Potentiel" range={a.shownPotential} color={accent} />
                     </div>
                   </div>
                 ))}
               </div>
             )}
+            <p className="text-[11px] text-ink-faint font-mono mt-4">
+              Le potentiel affiché est une estimation — le vrai plafond de chaque artiste est caché. Le travail (et le temps) le révèlent.
+            </p>
           </div>
         </div>
       )}
 
-      {/* ===== Onglet MARCHÉ (recrutement, façon Transfer FM) ===== */}
+      {/* ===== Onglet MARCHÉ (recrutement d'artistes) ===== */}
       {tab === "marche" && (
         <div className="pt-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Talents disponibles</p>
@@ -1247,6 +994,7 @@ export default function ArtistsManagerPage() {
                       <StatBar label="Flow" value={a.flow} color={accent} />
                       <StatBar label="Plume" value={a.plume} color={accent} />
                       <StatBar label="Charisme" value={a.charisme} color={accent} />
+                      <RangeBar label="Potentiel" range={a.shownPotential} color={accent} />
                     </div>
                     <button
                       onClick={() => sign(a)}
@@ -1265,8 +1013,197 @@ export default function ArtistsManagerPage() {
             })}
           </div>
           <p className="text-[11px] text-ink-faint font-mono mt-4">
-            Le marché tourne au fil des semaines — un talent parti ne revient pas.
+            Les labels rivaux scoutent le même marché que toi — un talent qui traîne ici peut signer ailleurs. Le potentiel est une fourchette : signer, c'est parier.
           </p>
+        </div>
+      )}
+
+      {/* ===== Onglet STAFF (v6 — recrutement de personnes simulées) ===== */}
+      {tab === "staff" && (
+        <div className="pt-4 space-y-5">
+          {/* Mon équipe : les 6 postes, occupés ou vacants */}
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Mon équipe</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {STAFF_ROLE_KEYS.map((role) => {
+                const person = staffByRole(state.staff, role);
+                const meta = STAFF_ROLES[role];
+                if (!person) {
+                  return (
+                    <div key={role} className="glass rounded-2xl p-4 border border-dashed border-white/12">
+                      <p className="font-mono text-[10px] uppercase text-ink-faint">{meta.label}</p>
+                      <p className="text-xs text-ink-faint mt-1.5 leading-relaxed">{meta.effect}</p>
+                      <button
+                        onClick={() => { setRoleFilter(role); sfx.click(); }}
+                        className="mt-3 text-xs font-semibold text-gold hover:text-glow"
+                      >
+                        Voir les candidats →
+                      </button>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={role} className="glass-strong rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3" style={{ background: `linear-gradient(135deg, ${accent}45, ${accent}10)` }}>
+                      <p className="font-mono text-[9px] uppercase text-ink-muted">{meta.label}</p>
+                      <p className="font-impact text-base uppercase leading-tight mt-0.5">{fullName(person)}</p>
+                      <p className="font-mono text-[10px] text-ink-muted mt-1">
+                        {person.age} ans · {person.city} · {fmt(person.askSalary)} €/sem
+                      </p>
+                    </div>
+                    <div className="p-4">
+                      <div className="space-y-1.5 mb-3">
+                        <RangeBar label="Niveau" range={person.shownSkill} color={accent} />
+                        <StatBar label="Réput." value={person.reputation} max={100} color={accent} />
+                      </div>
+                      <p className="text-[11px] text-ink-muted leading-relaxed mb-1">{meta.effect}</p>
+                      <p className="text-[11px] text-ink-faint mb-3">
+                        {person.personality} — {personalityDesc(person.personality)}
+                        {person.styleAffinity ? ` Affinité : ${person.styleAffinity}.` : ""}
+                      </p>
+                      {confirmFireId === person.id ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { sfx.click(); setConfirmFireId(null); update(fireStaff(state, person.id)); }}
+                            className="flex-1 rounded-xl py-2 text-xs font-semibold border border-signal/60 bg-signal/15 text-glow hover:bg-signal/25 transition-colors"
+                          >
+                            Confirmer — {fmt(person.askSalary * STAFF_SEVERANCE_WEEKS)} € d'indemnité
+                          </button>
+                          <button
+                            onClick={() => setConfirmFireId(null)}
+                            className="rounded-xl px-3 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmFireId(person.id)}
+                          className="text-[11px] font-mono uppercase text-ink-faint hover:text-glow inline-flex items-center gap-1"
+                        >
+                          <XCircle size={11} /> Licencier
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Recrutement : filtres par rôle + candidats */}
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Candidats sur le marché</p>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap" style={{ scrollbarWidth: "none" }}>
+              <button onClick={() => setRoleFilter("tous")} className={`filter-pill shrink-0 ${roleFilter === "tous" ? "is-active" : ""}`}>
+                Tous
+              </button>
+              {STAFF_ROLE_KEYS.map((role) => (
+                <button key={role} onClick={() => setRoleFilter(role)} className={`filter-pill shrink-0 ${roleFilter === role ? "is-active" : ""}`}>
+                  {STAFF_ROLES[role].short}
+                </button>
+              ))}
+            </div>
+
+            {filteredCandidates.length === 0 ? (
+              <p className="text-sm text-ink-faint glass rounded-2xl p-4 mt-3">
+                Aucun candidat {roleFilter !== "tous" ? `${STAFF_ROLES[roleFilter].short} ` : ""}disponible cette semaine — le marché tourne, reviens plus tard.
+              </p>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-3 mt-3">
+                {filteredCandidates.map((p) => {
+                  const nego = state.negotiations.find((n) => n.personId === p.id);
+                  const roleTaken = filledRoles.has(p.role);
+                  const meta = STAFF_ROLES[p.role];
+                  return (
+                    <div key={p.id} className="glass rounded-2xl overflow-hidden">
+                      <div className="px-4 py-3 border-b border-white/8">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className="font-impact text-base uppercase leading-tight">{fullName(p)}</p>
+                          <span className="font-mono text-[9px] uppercase text-ink-faint shrink-0">
+                            dispo {p.availabilityWeeks} sem
+                          </span>
+                        </div>
+                        <p className="font-mono text-[10px] text-ink-muted mt-1">
+                          {meta.label} · {p.age} ans · {p.city} · {p.expYears} ans d'exp.
+                        </p>
+                      </div>
+                      <div className="p-4">
+                        <div className="space-y-1.5 mb-3">
+                          <RangeBar label="Niveau" range={p.shownSkill} color={accent} />
+                          <StatBar label="Réput." value={p.reputation} max={100} color={accent} />
+                        </div>
+                        <p className="text-[11px] text-ink-muted leading-relaxed mb-1">{meta.effect}</p>
+                        <p className="text-[11px] text-ink-faint mb-3">
+                          {p.personality} — {personalityDesc(p.personality)}
+                          {p.styleAffinity ? ` Affinité : ${p.styleAffinity}.` : ""}
+                        </p>
+                        <p className="font-mono text-[11px] text-ink-muted mb-3">
+                          Salaire demandé : <span className="text-gold font-semibold">{fmt(p.askSalary)} €/sem</span>
+                        </p>
+
+                        {roleTaken ? (
+                          <p className="text-[11px] text-ink-faint font-mono">
+                            Poste déjà occupé — libère-le pour recruter ici.
+                          </p>
+                        ) : nego && nego.status === "pending" ? (
+                          <p className="text-xs text-gold font-medium flex items-center gap-1.5">
+                            <Handshake size={13} /> Offre envoyée ({fmt(nego.offer)} €/sem) — réponse à la prochaine semaine.
+                          </p>
+                        ) : nego && nego.status === "countered" && nego.counter !== null ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { sfx.correct(); update(acceptCounter(state, nego.id)); }}
+                              className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
+                            >
+                              Accepter {fmt(nego.counter)} €/sem
+                            </button>
+                            <button
+                              onClick={() => { sfx.click(); update(declineCounter(state, nego.id)); }}
+                              className="rounded-xl px-3 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink"
+                            >
+                              Non
+                            </button>
+                          </div>
+                        ) : offerFor === p.id ? (
+                          <div>
+                            <p className="font-mono text-[9px] uppercase text-ink-faint mb-2">Ton offre (€/semaine)</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {offerOptionsFor(p).map((opt) => (
+                                <button
+                                  key={opt.label}
+                                  onClick={() => { sfx.click(); setOfferFor(null); update(makeOffer(state, p.id, opt.v)); }}
+                                  className="filter-pill"
+                                >
+                                  {opt.label} · {fmt(opt.v)} €
+                                  <span className="ml-1 text-[9px] text-ink-faint">
+                                    ({hintLabel(acceptanceHint(p, opt.v, state.reputation))})
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                            <button onClick={() => setOfferFor(null)} className="mt-2 text-[10px] font-mono uppercase text-ink-faint hover:text-ink">
+                              Annuler
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { sfx.click(); setOfferFor(p.id); }}
+                            className="w-full rounded-xl py-2.5 text-sm font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
+                          >
+                            Faire une offre
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-[11px] text-ink-faint font-mono mt-4">
+              Le niveau affiché est une fourchette — le vrai se découvre en poste. Les candidats ont une disponibilité limitée, et les rivaux recrutent aussi. Entre parenthèses : chance estimée que l'offre soit acceptée.
+            </p>
+          </div>
         </div>
       )}
 
@@ -1292,6 +1229,18 @@ export default function ArtistsManagerPage() {
                     </button>
                   ))}
                 </div>
+                {previewArtist && (
+                  <p className="font-mono text-[10px] text-ink-faint mt-3">
+                    Tendance {previewArtist.style} :{" "}
+                    <span className={
+                      (state.trends[previewArtist.style] ?? 1) >= 1.15 ? "text-risePos" :
+                      (state.trends[previewArtist.style] ?? 1) <= 0.85 ? "text-riseNeg" : "text-ink-muted"
+                    }>
+                      {Math.round((state.trends[previewArtist.style] ?? 1) * 100)} %
+                    </span>{" "}
+                    — impact direct sur le démarrage de la sortie.
+                  </p>
+                )}
               </SectionCard>
 
               <SectionCard title="2 · Format" icon={<Disc3 size={11} />}>
@@ -1327,7 +1276,7 @@ export default function ArtistsManagerPage() {
                 </SectionCard>
               ))}
 
-              {/* Aperçu en direct — ce que donnent les choix actuels avant de s'engager */}
+              {/* Aperçu en direct — inclut désormais les effets du staff en poste */}
               {preview && (
                 <SectionCard title="Aperçu de la sortie" icon={<LineChart size={11} />}>
                   <div className="grid grid-cols-3 gap-3">
@@ -1345,7 +1294,10 @@ export default function ArtistsManagerPage() {
                     </div>
                   </div>
                   <p className="text-[11px] text-ink-faint font-mono mt-3">
-                    Qualité = classement + tenue dans le temps. Portée = combien de monde peut tomber dessus. La presse peut déclencher un coup de projecteur (streams + réputation) à la sortie.
+                    Qualité = classement + tenue dans le temps. Portée = combien de monde peut tomber dessus.
+                    {state.staff.length > 0
+                      ? " Ton staff en poste (DA, ingé son, marketing, presse) est déjà compté dans ces chiffres."
+                      : " Un staff en poste (DA, ingé son, marketing, presse) améliorerait ces chiffres."}
                   </p>
                 </SectionCard>
               )}
@@ -1368,30 +1320,67 @@ export default function ArtistsManagerPage() {
 
       {/* ===== Onglet CHARTS ===== */}
       {tab === "charts" && (
-        <div className="pt-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Top streams — semaine {state.week}</p>
-          <div className="card divide-y divide-white/8 overflow-hidden">
-            {chart.map((e, i) => {
-              const prevIdx = state.prevChartOrder.indexOf(e.key);
-              const delta = state.prevChartOrder.length === 0 ? 0 : prevIdx === -1 ? null : prevIdx - i;
-              return (
-                <div key={e.key} className={`flex items-center gap-3 py-3 px-4 ${e.mine ? "bg-gold/8" : ""}`}>
-                  <span className="font-impact text-lg w-6 text-center text-ink-faint">{i + 1}</span>
-                  <Movement delta={delta} />
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-medium truncate ${e.mine ? "text-gold" : ""}`}>
-                      {e.name}{e.title ? ` — « ${e.title} »` : ""}
-                    </p>
-                    {e.mine && <p className="font-mono text-[9px] text-gold/70 uppercase">{profile.labelName}</p>}
+        <div className="pt-4 space-y-4">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Top streams — semaine {state.week}</p>
+            <div className="card divide-y divide-white/8 overflow-hidden">
+              {chart.map((e, i) => {
+                const prevIdx = state.prevChartOrder.indexOf(e.key);
+                const delta = state.prevChartOrder.length === 0 ? 0 : prevIdx === -1 ? null : prevIdx - i;
+                return (
+                  <div key={e.key} className={`flex items-center gap-3 py-3 px-4 ${e.mine ? "bg-gold/8" : ""}`}>
+                    <span className="font-impact text-lg w-6 text-center text-ink-faint">{i + 1}</span>
+                    <Movement delta={delta} />
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium truncate ${e.mine ? "text-gold" : ""}`}>
+                        {e.name}{e.title ? ` — ${e.title}` : ""}
+                      </p>
+                      {e.mine && <p className="font-mono text-[9px] text-gold/70 uppercase">{profile.labelName}</p>}
+                    </div>
+                    <span className="font-mono text-xs text-ink-muted shrink-0">{fmt(e.streams)}</span>
                   </div>
-                  <span className="font-mono text-xs text-ink-muted shrink-0">{fmt(e.streams)}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-ink-faint font-mono mt-4">
+              ▲▼ = mouvement vs semaine passée. Bats les rivaux pour faire grimper ta réputation. Artistes et chiffres simulés.
+            </p>
           </div>
-          <p className="text-[11px] text-ink-faint font-mono mt-4">
-            ▲▼ = mouvement vs semaine passée. Bats les rivaux pour faire grimper ta réputation. Artistes et chiffres simulés.
-          </p>
+
+          {/* Tendances de styles — le monde évolue, adapte ta stratégie */}
+          <SectionCard title="Tendances par style" icon={<TrendingUp size={11} />}>
+            <div className="space-y-1.5">
+              {[...STYLES]
+                .sort((a, b) => (state.trends[b] ?? 1) - (state.trends[a] ?? 1))
+                .map((style) => {
+                  const t = state.trends[style] ?? 1;
+                  return (
+                    <div key={style} className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono uppercase text-ink-faint w-16 shrink-0">{style}</span>
+                      <div className="flex-1 h-1.5 bg-white/8 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, (t / 1.5) * 100)}%`,
+                            background: t >= 1.15
+                              ? "linear-gradient(90deg, #1d5c40, #4CC38A)"
+                              : t <= 0.85
+                                ? "linear-gradient(90deg, #7A3A16, #E8894A)"
+                                : `linear-gradient(90deg, #7A0F0F, ${accent})`,
+                          }}
+                        />
+                      </div>
+                      <span className={`font-mono text-[11px] w-10 text-right ${t >= 1.15 ? "text-risePos" : t <= 0.85 ? "text-riseNeg" : "text-ink-muted"}`}>
+                        {Math.round(t * 100)}%
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+            <p className="text-[11px] text-ink-faint font-mono mt-3">
+              Multiplicateur appliqué au démarrage des sorties selon le style. Les tendances dérivent chaque semaine — un style en feu aujourd'hui peut s'essouffler demain.
+            </p>
+          </SectionCard>
         </div>
       )}
 
@@ -1422,13 +1411,12 @@ export default function ArtistsManagerPage() {
         </div>
       )}
 
-      {/* ===== Onglet FINANCES (façon Finance FM) ===== */}
+      {/* ===== Onglet FINANCES ===== */}
       {tab === "finances" && (
         <div className="pt-4 space-y-4">
-          {/* Bilan hebdo estimé */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {(() => {
-              const revenue = weeklyStreams * 0.0032;
+              const revenue = weeklyStreams * STREAM_RATE;
               const net = revenue - weeklyCosts;
               return [
                 { label: "Revenus / sem", value: `+${fmt(revenue)} €`, cls: "text-risePos" },
@@ -1443,7 +1431,7 @@ export default function ArtistsManagerPage() {
             })()}
           </div>
 
-          <SectionCard title="Masse salariale" icon={<Users size={11} />}>
+          <SectionCard title="Masse salariale — artistes" icon={<Users size={11} />}>
             {state.roster.length === 0 ? (
               <p className="text-sm text-ink-faint">Aucun artiste sous contrat.</p>
             ) : (
@@ -1458,6 +1446,24 @@ export default function ArtistsManagerPage() {
             )}
           </SectionCard>
 
+          <SectionCard title="Masse salariale — staff" icon={<Briefcase size={11} />}>
+            {state.staff.length === 0 ? (
+              <p className="text-sm text-ink-faint">
+                Aucun staff en poste —{" "}
+                <button onClick={() => setTab("staff")} className="text-gold hover:text-glow">recruter →</button>
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {state.staff.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-3">
+                    <p className="text-sm truncate min-w-0">{fullName(p)} <span className="text-ink-faint">· {STAFF_ROLES[p.role].short}</span></p>
+                    <span className="font-mono text-xs text-riseNeg shrink-0">-{fmt(p.askSalary)} €/sem</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
           <SectionCard title="Revenus par sortie" icon={<Radio size={11} />}>
             {state.releases.length === 0 ? (
               <p className="text-sm text-ink-faint">Aucune sortie active — les streams paient tes factures.</p>
@@ -1466,7 +1472,7 @@ export default function ArtistsManagerPage() {
                 {state.releases.map((r) => (
                   <div key={r.id} className="flex items-center justify-between gap-3">
                     <p className="text-sm truncate min-w-0">« {r.title} » — {r.artistName}</p>
-                    <span className="font-mono text-xs text-risePos shrink-0">+{fmt(r.weeklyStreams * 0.0032)} €/sem</span>
+                    <span className="font-mono text-xs text-risePos shrink-0">+{fmt(r.weeklyStreams * STREAM_RATE)} €/sem</span>
                   </div>
                 ))}
               </div>
@@ -1474,20 +1480,20 @@ export default function ArtistsManagerPage() {
           </SectionCard>
 
           <p className="text-[11px] text-ink-faint font-mono">
-            ~3,20 € pour 1 000 streams. Les budgets studio/clip/promo sont débités au lancement de la prod.
+            ~3,20 € pour 1 000 streams. Budgets studio débités au lancement, cachets de concert encaissés à l'acceptation, indemnité de licenciement = {STAFF_SEVERANCE_WEEKS} semaines de salaire.
           </p>
         </div>
       )}
 
-      {/* ===== Onglet STATS (carrière, façon Statistic FM) ===== */}
+      {/* ===== Onglet STATS ===== */}
       {tab === "stats" && (
         <div className="pt-4 space-y-4">
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
             {[
               { label: "Streams carrière", value: fmt(state.totalStreamsAllTime) },
               { label: "Sorties publiées", value: `${state.totalReleases}` },
-              { label: "Artistes au roster", value: `${state.roster.length}` },
-              { label: "Semaines en poste", value: `${state.week}` },
+              { label: "Concerts joués", value: `${state.totalConcerts}` },
+              { label: "Équipe (staff)", value: `${state.staff.length}/${STAFF_ROLE_KEYS.length}` },
             ].map(({ label, value }) => (
               <div key={label} className="glass-strong rounded-2xl p-4">
                 <p className="font-mono text-[10px] uppercase tracking-wide text-ink-faint mb-1">{label}</p>
@@ -1507,7 +1513,7 @@ export default function ArtistsManagerPage() {
               <span className="font-impact text-xl">{Math.round(state.reputation)}<span className="text-ink-faint text-sm">/100</span></span>
             </div>
             <p className="text-[11px] text-ink-faint font-mono mt-3">
-              Monte en battant les labels rivaux au classement hebdo.
+              Monte en battant les rivaux au classement, via les retombées presse... et un(e) bon(ne) attaché(e) de presse l'entretient chaque semaine.
             </p>
           </SectionCard>
 
