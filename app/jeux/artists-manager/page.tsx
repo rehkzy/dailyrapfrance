@@ -1467,7 +1467,11 @@ export default function ArtistsManagerPage() {
                       <p className="font-mono text-[10px] uppercase text-ink-faint">{meta.label}</p>
                       <p className="text-xs text-ink-faint mt-1.5 leading-relaxed">{meta.effect}</p>
                       <button
-                        onClick={() => { setRoleFilter(role); sfx.click(); }}
+                        onClick={() => {
+                          setRoleFilter(role); sfx.click();
+                          // Scroll fluide vers la liste des candidats
+                          setTimeout(() => document.getElementById("am-candidats")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+                        }}
                         className="mt-3 text-xs font-semibold text-gold hover:text-glow"
                       >
                         Voir les candidats →
@@ -1526,7 +1530,7 @@ export default function ArtistsManagerPage() {
           </div>
 
           {/* Recrutement : filtres par rôle + candidats */}
-          <div>
+          <div id="am-candidats" style={{ scrollMarginTop: "9rem" }}>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Candidats sur le marché</p>
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap" style={{ scrollbarWidth: "none" }}>
               <button onClick={() => setRoleFilter("tous")} className={`filter-pill shrink-0 ${roleFilter === "tous" ? "is-active" : ""}`}>
@@ -2626,6 +2630,23 @@ export default function ArtistsManagerPage() {
 
         </div>{/* /colonne de contenu */}
       </div>{/* /flex sidebar + contenu */}
+
+      {/* ===== TÉLÉPHONE FLOTTANT (façon GTA) — toujours accessible, en bas à droite ===== */}
+      <button
+        onClick={() => { sfx.click(); setTab("telephone"); }}
+        aria-label="Ouvrir le téléphone"
+        className={`am-phone ${tab === "telephone" ? "is-open" : ""}`}
+        title="Téléphone"
+      >
+        <span className="am-phone-notch" />
+        <span className="am-phone-screen">
+          <Smartphone size={22} />
+        </span>
+        <span className="am-phone-btn" />
+        {state.messages.length > 0 && (
+          <span className="am-phone-badge">{state.messages.length > 9 ? "9+" : state.messages.length}</span>
+        )}
+      </button>
 
       {/* ===== Tab bar (mobile uniquement — la sidebar prend le relais sur desktop) ===== */}
       <nav className="fixed bottom-0 inset-x-0 z-40 nav-panel lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>

@@ -1532,3 +1532,104 @@ input[type="range"].brand-slider::-moz-range-track {
   outline: none;
   box-shadow: 0 0 0 3px rgba(240, 0, 28, 0.14);
 }
+
+/* --- Téléphone flottant façon GTA (§12) : toujours visible en bas à droite --- */
+.fm-skin .am-phone {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 45;
+  width: 58px;
+  height: 104px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1c1d24, #0d0e13);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 30px rgba(0, 0, 0, 0.65),
+    0 0 24px rgba(240, 0, 28, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: am-phone-idle 4s ease-in-out infinite;
+}
+.fm-skin .am-phone:hover {
+  transform: translateY(-4px) rotate(-2deg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 16px 40px rgba(0, 0, 0, 0.7),
+    0 0 32px rgba(240, 0, 28, 0.3);
+}
+.fm-skin .am-phone.is-open {
+  border-color: rgba(240, 0, 28, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 30px rgba(0, 0, 0, 0.65),
+    0 0 28px rgba(240, 0, 28, 0.45);
+}
+/* Léger balancement d'attente, comme une invite à cliquer */
+@keyframes am-phone-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.fm-skin .am-phone-notch {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.fm-skin .am-phone-screen {
+  flex: 1;
+  width: 100%;
+  margin: 5px 0;
+  border-radius: 8px;
+  background:
+    radial-gradient(60px 40px at 50% 0%, rgba(240, 0, 28, 0.25), transparent 70%),
+    linear-gradient(180deg, #15161d, #0a0b10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.85);
+}
+.fm-skin .am-phone-btn {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+}
+.fm-skin .am-phone-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--am-red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(240, 0, 28, 0.6);
+  animation: am-badge-pulse 2s ease-in-out infinite;
+}
+@keyframes am-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+/* Mobile : au-dessus de la tab bar basse */
+@media (max-width: 1023px) {
+  .fm-skin .am-phone {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    right: 12px;
+    width: 52px;
+    height: 94px;
+  }
+}
