@@ -58,7 +58,7 @@ const MENU: { id: Tab; label: string; Icon: typeof Wallet; mobile: boolean; grou
   // §10 — sidebar restructurée en sections professionnelles
   { id: "label", label: "Accueil", Icon: LayoutDashboard, mobile: true, group: "Principal" },
   { id: "artistes", label: "Artistes", Icon: Users, mobile: true, group: "Principal" },
-  { id: "marche", label: "Scouting", Icon: UserPlus, mobile: false, group: "Principal" },
+  { id: "marche", label: "Repérage", Icon: UserPlus, mobile: false, group: "Principal" },
   { id: "studio", label: "Studio", Icon: Disc3, mobile: true, group: "Principal" },
   { id: "agenda", label: "Planning", Icon: Calendar, mobile: false, group: "Principal" },
   { id: "staff", label: "Équipe", Icon: Briefcase, mobile: false, group: "Business" },
@@ -1324,10 +1324,16 @@ export default function ArtistsManagerPage() {
               </button>
             </div>
             {state.roster.length === 0 ? (
-              <p className="text-sm text-ink-faint glass rounded-2xl p-4">
-                Personne pour l'instant —{" "}
-                <button onClick={() => setTab("marche")} className="text-gold hover:text-glow">va voir le marché →</button>
-              </p>
+              <div className="glass rounded-2xl p-5 text-center">
+                <p className="text-sm text-ink-muted mb-1">Ton roster est vide.</p>
+                <p className="font-mono text-[10px] text-ink-faint mb-3">Signe ton premier artiste pour lancer ton label.</p>
+                <button
+                  onClick={() => { sfx.click(); setTab("marche"); }}
+                  className="game-btn game-btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-1.5"
+                >
+                  <UserPlus size={14} /> Découvrir les artistes disponibles <ChevronRight size={14} />
+                </button>
+              </div>
             ) : (
               <div className="grid sm:grid-cols-2 gap-3">
                 {state.roster.map((a, idx) => (
@@ -1757,10 +1763,15 @@ export default function ArtistsManagerPage() {
               })()}
             </SectionCard>
           ) : state.roster.length === 0 ? (
-            <p className="text-sm text-ink-faint glass rounded-2xl p-4">
-              Il te faut d'abord un artiste.{" "}
-              <button onClick={() => setTab("marche")} className="text-gold hover:text-glow">Voir le marché →</button>
-            </p>
+            <div className="glass rounded-2xl p-5 text-center">
+              <p className="text-sm text-ink-muted mb-1">Il te faut d'abord un artiste pour lancer une prod.</p>
+              <button
+                onClick={() => { sfx.click(); setTab("marche"); }}
+                className="game-btn game-btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-1.5 mt-2"
+              >
+                <UserPlus size={14} /> Aller au repérage <ChevronRight size={14} />
+              </button>
+            </div>
           ) : (
             <>
               <SectionCard title="1 · Artiste" icon={<Users size={11} />}>
