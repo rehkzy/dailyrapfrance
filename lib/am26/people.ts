@@ -44,8 +44,10 @@ export function makeArtist(usedNames: Set<string>): Artist {
     plume,
     charisme: ri(5 + talent * 8, 10 + talent * 10),
     hype: ri(5, 30),
-    salary: ri(250 + talent * 400, 400 + talent * 600),
-    signingFee: ri(1500 + talent * 3000, 3000 + talent * 5000),
+    // Avance mensuelle (€/mois) et prime de signature — ordres de grandeur d'un
+    // label indé français pour un artiste en développement.
+    salary: Math.round(ri(700 + talent * 900, 1100 + talent * 1600) / 50) * 50,
+    signingFee: Math.round(ri(2000 + talent * 5000, 4000 + talent * 9000) / 100) * 100,
     potential,
     shownPotential: fuzzyRange(potential, 20),
   };
@@ -73,7 +75,8 @@ export function makeStaffCandidate(role: StaffRole, usedNames: Set<string>): Per
   // Salaire demandé : dépend du rôle, du niveau perçu et de la réputation.
   const [lo, hi] = meta.baseSalary;
   const reputation = Math.max(5, Math.min(95, Math.round(skill * 4 + expYears * 1.5 + rnd(-10, 10))));
-  const askSalary = Math.round((lo + (hi - lo) * (skill / 20)) * rnd(0.9, 1.15) / 10) * 10;
+  // Salaire mensuel demandé (€/mois), arrondi à 50 €.
+  const askSalary = Math.round(((lo + (hi - lo) * (skill / 20)) * rnd(0.9, 1.15)) / 50) * 50;
 
   return {
     id: nextId(),

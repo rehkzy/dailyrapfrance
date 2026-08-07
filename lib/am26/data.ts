@@ -81,37 +81,37 @@ export const STAFF_ROLES: Record<StaffRole, { label: string; short: string; effe
     label: "Directeur artistique",
     short: "DA",
     effect: "Améliore la qualité des productions (jusqu'à +20 %). Bonus supplémentaire si son style de prédilection correspond à l'artiste.",
-    baseSalary: [450, 1100],
+    baseSalary: [2500, 4500],
   },
   presse: {
     label: "Attaché(e) de presse",
     short: "Presse",
     effect: "Augmente la chance qu'un média parle de chaque sortie, et entretient ta réputation chaque semaine.",
-    baseSalary: [350, 850],
+    baseSalary: [2000, 3500],
   },
   marketing: {
     label: "Responsable marketing",
     short: "Marketing",
     effect: "Rend chaque euro de publicité plus efficace : meilleur démarrage de streams à la sortie.",
-    baseSalary: [400, 950],
+    baseSalary: [2200, 4000],
   },
   inge: {
     label: "Ingénieur(e) son maison",
     short: "Ingé son",
     effect: "Améliore le rendu mix/mastering de toutes les prods (qualité et tenue dans le temps).",
-    baseSalary: [380, 900],
+    baseSalary: [2200, 3800],
   },
   cm: {
     label: "Community manager",
     short: "CM",
     effect: "Ralentit la perte de hype du roster et fait remonter la hype des artistes délaissés.",
-    baseSalary: [300, 700],
+    baseSalary: [1800, 2800],
   },
   booker: {
     label: "Booker",
     short: "Booker",
     effect: "Décroche des offres de concert (cachets à accepter ou refuser). Meilleur booker = meilleures salles, meilleurs cachets.",
-    baseSalary: [350, 800],
+    baseSalary: [2000, 3200],
   },
 };
 
@@ -136,51 +136,56 @@ export const TYPE_META = {
   album: { label: "Album", weeks: 7, studioBase: 2.4 },
 } as const;
 
+// Tarifs calés sur les prix réels du milieu en France (ordres de grandeur indé) :
+// lease d'instru ~30-70 €, exclu 500-2000 €, prod prestige 3000-8000 € ; studio
+// 300-600 €/jour ; mix 150-400 €/titre (800-2500 € pour un ingé reconnu à
+// l'échelle d'un projet) ; mastering 80-150 €/titre ; clip street 1500-4000 €,
+// réalisateur 8000-25000 € ; agence RP 2000-5000 € la campagne.
 export const BUDGET_PRESETS: Record<BudgetKey, BudgetOption[]> = {
   instru: [
-    { label: "Lease (non-exclusif)", v: 300, mult: 0.85 },
-    { label: "Achat exclusif", v: 1500, mult: 1.0 },
+    { label: "Lease (non-exclusif)", v: 50, mult: 0.85 },
+    { label: "Achat exclusif", v: 800, mult: 1.0 },
     { label: "Exclusif prestige", v: 4000, mult: 1.15 },
   ],
   enregistrement: [
-    { label: "Home studio", v: 500, add: 2 },
-    { label: "Studio pro", v: 2000, add: 6 },
-    { label: "Résidence studio", v: 6000, add: 12 },
+    { label: "Home studio", v: 300, add: 2 },
+    { label: "Studio pro", v: 1500, add: 6 },
+    { label: "Résidence studio", v: 5000, add: 12 },
   ],
   mix: [
-    { label: "Auto-mix", v: 300, mult: 0.9 },
-    { label: "Ingé son", v: 1500, mult: 1.0 },
-    { label: "Ingé son reconnu", v: 4000, mult: 1.12 },
+    { label: "Auto-mix", v: 150, mult: 0.9 },
+    { label: "Ingé son", v: 800, mult: 1.0 },
+    { label: "Ingé son reconnu", v: 2500, mult: 1.12 },
   ],
   mastering: [
-    { label: "Standard", v: 200, mult: 0.92 },
-    { label: "Pro", v: 800, mult: 1.0 },
-    { label: "Broadcast", v: 2500, mult: 1.1 },
+    { label: "Standard", v: 100, mult: 0.92 },
+    { label: "Pro", v: 400, mult: 1.0 },
+    { label: "Broadcast", v: 1200, mult: 1.1 },
   ],
   cover: [
     { label: "Template", v: 0, mult: 0.92 },
-    { label: "Graphiste freelance", v: 600, mult: 1.0 },
+    { label: "Graphiste freelance", v: 500, mult: 1.0 },
     { label: "DA + shooting", v: 2500, mult: 1.12 },
   ],
   clip: [
     { label: "Aucun", v: 0, mult: 1.0, hypeBoost: 0 },
-    { label: "Clip street", v: 3000, mult: 1.08, hypeBoost: 8 },
-    { label: "Réalisateur", v: 10000, mult: 1.18, hypeBoost: 16 },
+    { label: "Clip street", v: 2500, mult: 1.08, hypeBoost: 8 },
+    { label: "Réalisateur", v: 12000, mult: 1.18, hypeBoost: 16 },
   ],
   distribution: [
-    { label: "Sélective", v: 500, mult: 0.85 },
-    { label: "Large", v: 2000, mult: 1.0 },
-    { label: "Premium (pitch playlists)", v: 6000, mult: 1.2 },
+    { label: "Sélective", v: 100, mult: 0.85 },
+    { label: "Large", v: 500, mult: 1.0 },
+    { label: "Premium (pitch playlists)", v: 2500, mult: 1.2 },
   ],
   publicite: [
-    { label: "Bouche à oreille", v: 500, mult: 1.0 },
-    { label: "Campagne ciblée", v: 3000, mult: 1.35 },
-    { label: "Campagne large", v: 9000, mult: 1.8 },
+    { label: "Bouche à oreille", v: 200, mult: 1.0 },
+    { label: "Campagne ciblée", v: 2000, mult: 1.35 },
+    { label: "Campagne large", v: 7000, mult: 1.8 },
   ],
   presse: [
     { label: "Aucune", v: 0, mediaChance: 0 },
-    { label: "Relance presse", v: 1500, mediaChance: 0.35 },
-    { label: "Agence RP", v: 5000, mediaChance: 0.7 },
+    { label: "Relance presse", v: 1000, mediaChance: 0.35 },
+    { label: "Agence RP", v: 3500, mediaChance: 0.7 },
   ],
 };
 
@@ -201,10 +206,22 @@ export const DEFAULT_BUDGET_CHOICE: Record<BudgetKey, number> = {
 
 // ---------- Constantes de partie ----------
 
-export const START_CASH = 30000;
+export const START_CASH = 35000;
 export const SEASON_WEEKS = 52;
+export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;             // v7 : économie mensuelle réaliste + banque
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
-export const STREAM_RATE = 0.0032; // € pour 1 stream
-export const STAFF_SEVERANCE_WEEKS = 4; // indemnité de licenciement (semaines de salaire)
+export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
+export const STAFF_SEVERANCE_MONTHS = 2;   // indemnité de licenciement (mois de salaire)
+
+// Banque : découvert autorisé avec agios, liquidation seulement sous le plancher.
+export const OVERDRAFT_RATE = 0.015;       // agios hebdo sur le montant à découvert
+export const LIQUIDATION_FLOOR = -20000;   // en dessous → liquidation judiciaire
+export const LOAN_INTEREST = 0.10;         // intérêts totaux du prêt
+export const LOAN_MONTHS = 12;             // remboursé sur 12 échéances mensuelles
+export const LOAN_OFFERS: { amount: number; minRep: number }[] = [
+  { amount: 10000, minRep: 0 },
+  { amount: 25000, minRep: 30 },
+  { amount: 50000, minRep: 55 },
+];

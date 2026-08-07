@@ -13,14 +13,16 @@ import { sfx } from "@/lib/sfx";
 import type { Artist, BudgetKey, GameState, Person, Profile, Project, StaffRole, Tab } from "@/lib/am26/types";
 import {
   BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS, DEFAULT_BUDGET_CHOICE,
-  LOGOS, PROJECT_TITLES, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_WEEKS,
+  LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS,
+  PROJECT_TITLES, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS,
   START_CASH, STREAM_RATE, STYLES, TYPE_META,
 } from "@/lib/am26/data";
 import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
 import {
-  acceptConcert, acceptCounter, acceptanceHint, advanceWeek, budgetTotalCost, computeChart,
-  computeProductionStats, declineConcert, declineCounter, fireStaff, fmt, initialState,
-  load, makeOffer, persist, staffByRole, staffWeeklyCost,
+  acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistContractValue,
+  budgetTotalCost, catalogValue, computeChart, computeProductionStats, declineConcert,
+  declineCounter, fireStaff, fmt, initialState, load, makeOffer, persist, sellArtistContract,
+  sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
 } from "@/lib/am26/engine";
 
 /*
@@ -329,7 +331,7 @@ const TUTO_STEPS = [
   },
   {
     title: "Ton objectif",
-    body: () => "Signe, produis, entoure-toi, encaisse les concerts, bats les rivaux. Trésorerie négative = faillite. Tiens les 52 semaines — ta checklist \"Premiers pas\" t'attend sur le dashboard.",
+    body: () => "Signe, produis, entoure-toi, encaisse les concerts, bats les rivaux. La paie tombe chaque fin de mois — le découvert est possible (agios !) mais sous -20 000 €, c'est la liquidation. Prêt, ventes de contrats et cessions de catalogue peuvent te sauver. Tiens les 52 semaines.",
   },
 ];
 
@@ -409,6 +411,9 @@ export default function ArtistsManagerPage() {
   const [roleFilter, setRoleFilter] = useState<StaffRole | "tous">("tous");
   const [offerFor, setOfferFor] = useState<string | null>(null);
   const [confirmFireId, setConfirmFireId] = useState<string | null>(null);
+  // Ventes (survie financière) — double confirmation pour éviter les fausses manips.
+  const [confirmSellArtistId, setConfirmSellArtistId] = useState<string | null>(null);
+  const [confirmSellReleaseId, setConfirmSellReleaseId] = useState<string | null>(null);
 
   useEffect(() => {
     const { state: loaded, resetFromOldSave } = load();
@@ -474,10 +479,10 @@ export default function ArtistsManagerPage() {
     return (
       <section className="max-w-md mx-auto px-6 pt-16 pb-24 text-center">
         <p className="text-4xl mb-4">{bankrupt ? "💸" : "🏆"}</p>
-        <h1 className="font-impact text-3xl uppercase mb-2">{bankrupt ? "Faillite" : "Fin de saison"}</h1>
+        <h1 className="font-impact text-3xl uppercase mb-2">{bankrupt ? "Liquidation judiciaire" : "Fin de saison"}</h1>
         <p className="text-sm text-ink-muted mb-8">
           {bankrupt
-            ? `${profile.labelName} a coulé à la semaine ${state.week}. La rue n'oublie pas — mais elle pardonne : retente ta chance, ${profile.pseudo}.`
+            ? `Le tribunal a prononcé la liquidation de ${profile.labelName} à la semaine ${state.week} — le découvert a dépassé le point de non-retour. La rue n'oublie pas, mais elle pardonne : retente ta chance, ${profile.pseudo}.`
             : `52 semaines à la tête de ${profile.labelName}. Voici ton bilan, ${profile.pseudo}.`}
         </p>
         <div className="grid grid-cols-2 gap-3 mb-10 text-left">
@@ -526,7 +531,7 @@ export default function ArtistsManagerPage() {
       market: state.market.filter((a) => a.id !== artist.id),
       messages: [{
         id: nextId(), week: state.week, title: `${artist.name} rejoint ${state.profile!.labelName}`,
-        body: `Prime de signature : ${fmt(artist.signingFee)} €. Salaire : ${fmt(artist.salary)} €/semaine. Potentiel estimé : ${artist.shownPotential[0]}-${artist.shownPotential[1]} — le vrai plafond, tu le découvriras au travail.`,
+        body: `Prime de signature : ${fmt(artist.signingFee)} €. Avance mensuelle : ${fmt(artist.salary)} €/mois (versée à chaque fin de mois). Potentiel estimé : ${artist.shownPotential[0]}-${artist.shownPotential[1]} — le vrai plafond, tu le découvriras au travail.`,
       }, ...state.messages].slice(0, 16),
     });
   }
@@ -558,13 +563,18 @@ export default function ArtistsManagerPage() {
     sfx.click();
     setConfirmFireId(null);
     setOfferFor(null);
+    setConfirmSellArtistId(null);
+    setConfirmSellReleaseId(null);
     update(advanceWeek(state));
   }
 
   const projectArtist = state.project ? state.roster.find((a) => a.id === state.project!.artistId) : null;
   const rosterCosts = state.roster.reduce((sum, a) => sum + a.salary, 0);
-  const staffCosts = staffWeeklyCost(state.staff);
-  const weeklyCosts = rosterCosts + staffCosts;
+  const staffCosts = staffMonthlyCost(state.staff);
+  const loanPayment = state.loan ? state.loan.monthlyPayment : 0;
+  const monthlyCosts = rosterCosts + staffCosts + loanPayment;
+  // Prochaine fin de mois (la paie tombe aux semaines 4, 8, 12...).
+  const nextPayWeek = (Math.floor(state.week / MONTH_WEEKS) + 1) * MONTH_WEEKS;
   const totalCost = budgetTotalCost(budgetChoice);
   const previewArtist = state.roster.find((a) => a.id === projArtist);
   const preview = previewArtist ? computeProductionStats(previewArtist, budgetChoice, projType, state.staff) : null;
@@ -588,9 +598,9 @@ export default function ArtistsManagerPage() {
   const filledRoles = new Set(state.staff.map((p) => p.role));
 
   const offerOptionsFor = (p: Person) => [
-    { label: "Serré", v: Math.max(50, Math.round((p.askSalary * 0.85) / 10) * 10) },
+    { label: "Serré", v: Math.max(500, Math.round((p.askSalary * 0.85) / 50) * 50) },
     { label: "Demandé", v: p.askSalary },
-    { label: "Généreux", v: Math.round((p.askSalary * 1.15) / 10) * 10 },
+    { label: "Généreux", v: Math.round((p.askSalary * 1.15) / 50) * 50 },
   ];
   const hintLabel = (p: number) => (p < 0.25 ? "faible" : p < 0.6 ? "moyenne" : "élevée");
 
@@ -665,7 +675,7 @@ export default function ArtistsManagerPage() {
       {/* ===== KPI cards ===== */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-4">
         {[
-          { label: "Trésorerie", value: `${fmt(state.cash)} €`, Icon: Wallet, alert: state.cash < weeklyCosts * 3 },
+          { label: "Trésorerie", value: `${fmt(state.cash)} €`, Icon: Wallet, alert: state.cash < monthlyCosts },
           { label: "Réputation", value: `${Math.round(state.reputation)}`, Icon: Star, alert: false },
           { label: "Streams / sem", value: fmt(weeklyStreams), Icon: Radio, alert: false },
         ].map(({ label, value, Icon, alert }) => (
@@ -705,6 +715,28 @@ export default function ArtistsManagerPage() {
       {/* ===== Onglet LABEL ===== */}
       {tab === "label" && (
         <div className="pt-4 space-y-4">
+          {/* Découvert — pression réaliste : agios chaque semaine, liquidation
+              seulement sous le plancher, et des options pour s'en sortir. */}
+          {state.cash < 0 && (
+            <div className="rounded-2xl border border-signal/60 bg-signal/10 p-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-glow flex items-center gap-1.5 mb-2">
+                <AlertCircle size={11} /> Compte à découvert
+              </p>
+              <p className="text-sm text-ink-muted leading-relaxed">
+                La banque prélève des agios chaque semaine. En dessous de{" "}
+                <span className="text-glow font-semibold">{fmt(LIQUIDATION_FLOOR)} €</span>, c'est la
+                liquidation judiciaire. Tu peux encore t'en sortir : prêt bancaire, vente d'un contrat
+                d'artiste, cession de catalogue.
+              </p>
+              <button
+                onClick={() => { sfx.click(); setTab("finances"); }}
+                className="mt-3 text-xs font-semibold text-gold hover:text-glow"
+              >
+                Voir les options de survie →
+              </button>
+            </div>
+          )}
+
           {/* Dossiers à traiter — le cœur de la boucle v6 : de vraies décisions,
               pas des événements subis. */}
           {todoCount > 0 && (
@@ -751,7 +783,7 @@ export default function ArtistsManagerPage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">Contre-proposition — {fullName(person)}</p>
                           <p className="text-xs text-ink-muted mt-0.5">
-                            {STAFF_ROLES[person.role].label} · demande <span className="text-gold font-semibold">{fmt(n.counter)} €/sem</span> (ton offre : {fmt(n.offer)} €)
+                            {STAFF_ROLES[person.role].label} · demande <span className="text-gold font-semibold">{fmt(n.counter)} €/mois</span> (ton offre : {fmt(n.offer)} €)
                           </p>
                         </div>
                       </div>
@@ -760,7 +792,7 @@ export default function ArtistsManagerPage() {
                           onClick={() => { sfx.correct(); update(acceptCounter(state, n.id)); }}
                           className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
                         >
-                          Accepter — {fmt(n.counter)} €/sem
+                          Accepter — {fmt(n.counter)} €/mois
                         </button>
                         <button
                           onClick={() => { sfx.click(); update(declineCounter(state, n.id)); }}
@@ -842,8 +874,9 @@ export default function ArtistsManagerPage() {
                 <p className="text-sm text-ink-faint">Rien de planifié.</p>
               )}
               <p className="font-mono text-[10px] text-ink-faint mt-3 pt-3 border-t border-white/8">
-                Salaires hebdo : <span className="text-riseNeg">-{fmt(weeklyCosts)} €</span>
+                Prochaine paie (S{nextPayWeek}) : <span className="text-riseNeg">-{fmt(monthlyCosts)} €</span>
                 {staffCosts > 0 && <span className="block mt-0.5">dont staff : -{fmt(staffCosts)} €</span>}
+                {loanPayment > 0 && <span className="block mt-0.5">dont prêt : -{fmt(loanPayment)} €</span>}
               </p>
             </SectionCard>
           </div>
@@ -956,7 +989,7 @@ export default function ArtistsManagerPage() {
                         {String(idx + 1).padStart(2, "0")}
                       </span>
                       <p className="font-impact text-lg uppercase leading-none">{a.name}</p>
-                      <p className="font-mono text-[10px] text-ink-muted mt-1">{a.style} · {fmt(a.salary)} €/sem</p>
+                      <p className="font-mono text-[10px] text-ink-muted mt-1">{a.style} · {fmt(a.salary)} €/mois</p>
                     </div>
                     <div className="p-4 space-y-1.5">
                       <StatBar label="Flow" value={a.flow} color={accent} />
@@ -964,13 +997,36 @@ export default function ArtistsManagerPage() {
                       <StatBar label="Charisme" value={a.charisme} color={accent} />
                       <StatBar label="Hype" value={a.hype} max={100} color={accent} />
                       <RangeBar label="Potentiel" range={a.shownPotential} color={accent} />
+                      {confirmSellArtistId === a.id ? (
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            onClick={() => { sfx.click(); setConfirmSellArtistId(null); update(sellArtistContract(state, a.id)); }}
+                            className="flex-1 rounded-xl py-2 text-xs font-semibold border border-signal/60 bg-signal/15 text-glow hover:bg-signal/25 transition-colors"
+                          >
+                            Confirmer la vente — {fmt(artistContractValue(a))} €
+                          </button>
+                          <button
+                            onClick={() => setConfirmSellArtistId(null)}
+                            className="rounded-xl px-3 py-2 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmSellArtistId(a.id)}
+                          className="pt-2 text-[11px] font-mono uppercase text-ink-faint hover:text-glow inline-flex items-center gap-1"
+                        >
+                          <Handshake size={11} /> Vendre le contrat — {fmt(artistContractValue(a))} €
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
             <p className="text-[11px] text-ink-faint font-mono mt-4">
-              Le potentiel affiché est une estimation — le vrai plafond de chaque artiste est caché. Le travail (et le temps) le révèlent.
+              Le potentiel affiché est une estimation — le vrai plafond de chaque artiste est caché. La valeur de revente d'un contrat dépend surtout de la hype : développe avant de vendre, sinon c'est à perte.
             </p>
           </div>
         </div>
@@ -1048,7 +1104,7 @@ export default function ArtistsManagerPage() {
                       <p className="font-mono text-[9px] uppercase text-ink-muted">{meta.label}</p>
                       <p className="font-impact text-base uppercase leading-tight mt-0.5">{fullName(person)}</p>
                       <p className="font-mono text-[10px] text-ink-muted mt-1">
-                        {person.age} ans · {person.city} · {fmt(person.askSalary)} €/sem
+                        {person.age} ans · {person.city} · {fmt(person.askSalary)} €/mois
                       </p>
                     </div>
                     <div className="p-4">
@@ -1067,7 +1123,7 @@ export default function ArtistsManagerPage() {
                             onClick={() => { sfx.click(); setConfirmFireId(null); update(fireStaff(state, person.id)); }}
                             className="flex-1 rounded-xl py-2 text-xs font-semibold border border-signal/60 bg-signal/15 text-glow hover:bg-signal/25 transition-colors"
                           >
-                            Confirmer — {fmt(person.askSalary * STAFF_SEVERANCE_WEEKS)} € d'indemnité
+                            Confirmer — {fmt(person.askSalary * STAFF_SEVERANCE_MONTHS)} € d'indemnité
                           </button>
                           <button
                             onClick={() => setConfirmFireId(null)}
@@ -1139,7 +1195,7 @@ export default function ArtistsManagerPage() {
                           {p.styleAffinity ? ` Affinité : ${p.styleAffinity}.` : ""}
                         </p>
                         <p className="font-mono text-[11px] text-ink-muted mb-3">
-                          Salaire demandé : <span className="text-gold font-semibold">{fmt(p.askSalary)} €/sem</span>
+                          Salaire demandé : <span className="text-gold font-semibold">{fmt(p.askSalary)} €/mois</span>
                         </p>
 
                         {roleTaken ? (
@@ -1148,7 +1204,7 @@ export default function ArtistsManagerPage() {
                           </p>
                         ) : nego && nego.status === "pending" ? (
                           <p className="text-xs text-gold font-medium flex items-center gap-1.5">
-                            <Handshake size={13} /> Offre envoyée ({fmt(nego.offer)} €/sem) — réponse à la prochaine semaine.
+                            <Handshake size={13} /> Offre envoyée ({fmt(nego.offer)} €/mois) — réponse à la prochaine semaine.
                           </p>
                         ) : nego && nego.status === "countered" && nego.counter !== null ? (
                           <div className="flex gap-2">
@@ -1156,7 +1212,7 @@ export default function ArtistsManagerPage() {
                               onClick={() => { sfx.correct(); update(acceptCounter(state, nego.id)); }}
                               className="flex-1 rounded-xl py-2 text-xs font-semibold border border-gold/50 bg-gold/10 text-gold hover:bg-gold/20 transition-colors"
                             >
-                              Accepter {fmt(nego.counter)} €/sem
+                              Accepter {fmt(nego.counter)} €/mois
                             </button>
                             <button
                               onClick={() => { sfx.click(); update(declineCounter(state, nego.id)); }}
@@ -1167,7 +1223,7 @@ export default function ArtistsManagerPage() {
                           </div>
                         ) : offerFor === p.id ? (
                           <div>
-                            <p className="font-mono text-[9px] uppercase text-ink-faint mb-2">Ton offre (€/semaine)</p>
+                            <p className="font-mono text-[9px] uppercase text-ink-faint mb-2">Ton offre (€/mois)</p>
                             <div className="flex gap-2 flex-wrap">
                               {offerOptionsFor(p).map((opt) => (
                                 <button
@@ -1416,12 +1472,12 @@ export default function ArtistsManagerPage() {
         <div className="pt-4 space-y-4">
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {(() => {
-              const revenue = weeklyStreams * STREAM_RATE;
-              const net = revenue - weeklyCosts;
+              const monthlyRevenue = weeklyStreams * STREAM_RATE * MONTH_WEEKS;
+              const net = monthlyRevenue - monthlyCosts;
               return [
-                { label: "Revenus / sem", value: `+${fmt(revenue)} €`, cls: "text-risePos" },
-                { label: "Salaires / sem", value: `-${fmt(weeklyCosts)} €`, cls: "text-riseNeg" },
-                { label: "Net estimé", value: `${net >= 0 ? "+" : ""}${fmt(net)} €`, cls: net >= 0 ? "text-risePos" : "text-riseNeg" },
+                { label: "Revenus / mois (est.)", value: `+${fmt(monthlyRevenue)} €`, cls: "text-risePos" },
+                { label: "Charges / mois", value: `-${fmt(monthlyCosts)} €`, cls: "text-riseNeg" },
+                { label: "Net mensuel estimé", value: `${net >= 0 ? "+" : ""}${fmt(net)} €`, cls: net >= 0 ? "text-risePos" : "text-riseNeg" },
               ].map(({ label, value, cls }) => (
                 <div key={label} className="glass-strong rounded-2xl p-3 sm:p-4">
                   <p className="font-mono text-[9px] sm:text-[10px] uppercase tracking-wide text-ink-faint mb-1">{label}</p>
@@ -1431,6 +1487,56 @@ export default function ArtistsManagerPage() {
             })()}
           </div>
 
+          {/* Banque : prêt en cours ou offres disponibles — la bouée de sauvetage
+              (et un levier de croissance pour les ambitieux). */}
+          <SectionCard title="Banque & prêt" icon={<PiggyBank size={11} />}>
+            {state.loan ? (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium">Prêt de {fmt(state.loan.amount)} € en cours</p>
+                  <span className="font-mono text-xs text-riseNeg">-{fmt(state.loan.monthlyPayment)} €/mois</span>
+                </div>
+                <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.max(3, Math.round((1 - state.loan.remaining / (state.loan.amount * (1 + LOAN_INTEREST))) * 100))}%`,
+                      background: `linear-gradient(90deg, #7A0F0F, ${accent})`,
+                    }}
+                  />
+                </div>
+                <p className="font-mono text-[10px] text-ink-faint mt-2">
+                  Reste à rembourser : {fmt(state.loan.remaining)} € — prélevé à chaque fin de mois. Nouveau prêt possible une fois celui-ci soldé.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <div className="flex gap-2 flex-wrap">
+                  {LOAN_OFFERS.map((o) => {
+                    const ok = state.reputation >= o.minRep;
+                    return (
+                      <button
+                        key={o.amount}
+                        onClick={() => { if (ok) { sfx.correct(); update(takeLoan(state, o.amount)); } }}
+                        disabled={!ok}
+                        className={`rounded-xl px-4 py-2.5 text-sm font-semibold border transition-colors ${
+                          ok
+                            ? "border-gold/50 bg-gold/10 text-gold hover:bg-gold/20"
+                            : "border-white/8 text-ink-faint cursor-not-allowed"
+                        }`}
+                      >
+                        Emprunter {fmt(o.amount)} €{!ok && ` (réput. ${o.minRep})`}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="font-mono text-[10px] text-ink-faint mt-3">
+                  Intérêts {Math.round(LOAN_INTEREST * 100)} %, remboursé sur {LOAN_MONTHS} mois à chaque fin de mois. Un seul prêt à la fois — les gros montants exigent de la réputation.
+                </p>
+              </div>
+            )}
+          </SectionCard>
+
           <SectionCard title="Masse salariale — artistes" icon={<Users size={11} />}>
             {state.roster.length === 0 ? (
               <p className="text-sm text-ink-faint">Aucun artiste sous contrat.</p>
@@ -1439,7 +1545,7 @@ export default function ArtistsManagerPage() {
                 {state.roster.map((a) => (
                   <div key={a.id} className="flex items-center justify-between">
                     <p className="text-sm">{a.name}</p>
-                    <span className="font-mono text-xs text-riseNeg">-{fmt(a.salary)} €/sem</span>
+                    <span className="font-mono text-xs text-riseNeg">-{fmt(a.salary)} €/mois</span>
                   </div>
                 ))}
               </div>
@@ -1457,22 +1563,47 @@ export default function ArtistsManagerPage() {
                 {state.staff.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-3">
                     <p className="text-sm truncate min-w-0">{fullName(p)} <span className="text-ink-faint">· {STAFF_ROLES[p.role].short}</span></p>
-                    <span className="font-mono text-xs text-riseNeg shrink-0">-{fmt(p.askSalary)} €/sem</span>
+                    <span className="font-mono text-xs text-riseNeg shrink-0">-{fmt(p.askSalary)} €/mois</span>
                   </div>
                 ))}
               </div>
             )}
           </SectionCard>
 
-          <SectionCard title="Revenus par sortie" icon={<Radio size={11} />}>
+          <SectionCard title="Catalogue & revenus par sortie" icon={<Radio size={11} />}>
             {state.releases.length === 0 ? (
               <p className="text-sm text-ink-faint">Aucune sortie active — les streams paient tes factures.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {state.releases.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between gap-3">
-                    <p className="text-sm truncate min-w-0">« {r.title} » — {r.artistName}</p>
-                    <span className="font-mono text-xs text-risePos shrink-0">+{fmt(r.weeklyStreams * STREAM_RATE)} €/sem</span>
+                  <div key={r.id}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm truncate min-w-0">« {r.title} » — {r.artistName}</p>
+                      <span className="font-mono text-xs text-risePos shrink-0">+{fmt(r.weeklyStreams * STREAM_RATE)} €/sem</span>
+                    </div>
+                    {confirmSellReleaseId === r.id ? (
+                      <div className="flex gap-2 mt-1.5">
+                        <button
+                          onClick={() => { sfx.click(); setConfirmSellReleaseId(null); update(sellCatalog(state, r.id)); }}
+                          className="flex-1 rounded-xl py-1.5 text-xs font-semibold border border-signal/60 bg-signal/15 text-glow hover:bg-signal/25 transition-colors"
+                        >
+                          Confirmer la cession — {fmt(catalogValue(r))} €
+                        </button>
+                        <button
+                          onClick={() => setConfirmSellReleaseId(null)}
+                          className="rounded-xl px-3 py-1.5 text-xs font-semibold border border-white/10 text-ink-muted hover:text-ink"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmSellReleaseId(r.id)}
+                        className="mt-1 text-[10px] font-mono uppercase text-ink-faint hover:text-glow"
+                      >
+                        Céder les droits — {fmt(catalogValue(r))} €
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1480,7 +1611,7 @@ export default function ArtistsManagerPage() {
           </SectionCard>
 
           <p className="text-[11px] text-ink-faint font-mono">
-            ~3,20 € pour 1 000 streams. Budgets studio débités au lancement, cachets de concert encaissés à l'acceptation, indemnité de licenciement = {STAFF_SEVERANCE_WEEKS} semaines de salaire.
+            ~3,20 € pour 1 000 streams. Paie (salaires + prêt) prélevée toutes les {MONTH_WEEKS} semaines. Budgets studio débités au lancement, cachets encaissés à l'acceptation, indemnité de licenciement = {STAFF_SEVERANCE_MONTHS} mois de salaire. Découvert autorisé avec agios — liquidation sous {fmt(LIQUIDATION_FLOOR)} €.
           </p>
         </div>
       )}

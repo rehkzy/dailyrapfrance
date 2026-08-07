@@ -10,12 +10,13 @@
 
 import type {
   Artist, BudgetKey, BudgetOption, ChartEntry, ConcertOffer, GameState,
-  Negotiation, Person, Project, StaffRole,
+  Negotiation, Person, Project, Release, StaffRole,
 } from "./types";
 import {
-  BUDGET_PRESETS, OLD_SAVE_BACKUP_KEY, PERSONALITIES, SAVE_KEY, SAVE_VERSION,
-  SEASON_WEEKS, STAFF_ROLE_KEYS, STAFF_SEVERANCE_WEEKS, START_CASH, STREAM_RATE,
-  TYPE_META, VENUES,
+  BUDGET_PRESETS, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
+  MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, SAVE_KEY,
+  SAVE_VERSION, SEASON_WEEKS, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH,
+  STREAM_RATE, TYPE_META, VENUES,
 } from "./data";
 import { fullName, makeArtist, makeInitialStaffMarket, makeStaffCandidate, nextId, pick, ri, rnd } from "./people";
 import { makeRivals, makeTrends, tickWorld } from "./world";
@@ -38,7 +39,7 @@ export function staffByRole(staff: Person[], role: StaffRole): Person | null {
   return staff.find((p) => p.role === role) ?? null;
 }
 
-export function staffWeeklyCost(staff: Person[]): number {
+export function staffMonthlyCost(staff: Person[]): number {
   return staff.reduce((sum, p) => sum + p.askSalary, 0);
 }
 
@@ -127,16 +128,16 @@ function resolveNegotiations(s: GameState) {
       s.messages.unshift({
         id: nextId(), week: s.week,
         title: `${fullName(person)} rejoint l'équipe`,
-        body: `Ton offre à ${fmt(nego.offer)} €/sem est acceptée. Son effet de poste s'applique dès maintenant.`,
+        body: `Ton offre à ${fmt(nego.offer)} €/mois est acceptée. Son effet de poste s'applique dès maintenant — premier salaire à la prochaine fin de mois.`,
       });
     } else if (Math.random() < 0.55) {
       // Contre-proposition plutôt que refus sec — à toi de trancher.
       nego.status = "countered";
-      nego.counter = Math.round((person.askSalary * rnd(1.02, 1.12)) / 10) * 10;
+      nego.counter = Math.round((person.askSalary * rnd(1.02, 1.12)) / 50) * 50;
       s.messages.unshift({
         id: nextId(), week: s.week,
         title: `${fullName(person)} fait une contre-proposition`,
-        body: `Ton offre à ${fmt(nego.offer)} €/sem ne suffit pas — il/elle demande ${fmt(nego.counter)} €/sem. Réponds depuis l'onglet Staff avant que l'offre expire.`,
+        body: `Ton offre à ${fmt(nego.offer)} €/mois ne suffit pas — il/elle demande ${fmt(nego.counter)} €/mois. Réponds depuis l'onglet Staff avant que l'offre expire.`,
       });
     } else {
       nego.status = "refused";
@@ -144,7 +145,7 @@ function resolveNegotiations(s: GameState) {
       s.messages.unshift({
         id: nextId(), week: s.week,
         title: `${fullName(person)} décline ton offre`,
-        body: `${fmt(nego.offer)} €/sem, c'était trop bas (demande : ${fmt(person.askSalary)} €/sem). Le candidat reste sur le marché... pour l'instant.`,
+        body: `${fmt(nego.offer)} €/mois, c'était trop bas (demande : ${fmt(person.askSalary)} €/mois). Le candidat reste sur le marché... pour l'instant.`,
       });
     }
   }
@@ -166,7 +167,9 @@ function generateConcertOffers(s: GameState) {
 
   const artist = pick(eligible);
   const skill = booker ? booker.skill : 4;
-  const fee = Math.round((600 + artist.hype * rnd(45, 90) + skill * rnd(80, 160)) / 50) * 50;
+  // Cachet réaliste pour un artiste en développement : ~300-1500 € sans hype,
+  // 2000-6000 € avec une vraie hype et un bon booker.
+  const fee = Math.round((300 + artist.hype * rnd(25, 60) + skill * rnd(40, 90)) / 50) * 50;
   const offer: ConcertOffer = {
     id: nextId(),
     artistId: artist.id,
@@ -204,6 +207,7 @@ export function initialState(): GameState {
     messages: [],
     rivals: makeRivals(),
     trends: makeTrends(),
+    loan: null,
     prevChartOrder: [],
     totalReleases: 0,
     totalStreamsAllTime: 0,
@@ -334,9 +338,31 @@ export function advanceWeek(prev: GameState): GameState {
   s.releases = s.releases.filter((r) => r.weeklyStreams > 200);
   s.cash += weekRevenue;
 
-  // 4) Salaires : artistes + staff.
-  s.cash -= s.roster.reduce((sum, a) => sum + a.salary, 0);
-  s.cash -= staffWeeklyCost(s.staff);
+  // 4) Fin de mois (toutes les 4 semaines) : salaires artistes + staff, et
+  //    échéance de prêt le cas échéant. Comme dans la vraie vie : la paie tombe
+  //    d'un coup — anticipe ta trésorerie.
+  if (s.week % MONTH_WEEKS === 0) {
+    const rosterPay = s.roster.reduce((sum, a) => sum + a.salary, 0);
+    const staffPay = staffMonthlyCost(s.staff);
+    s.cash -= rosterPay + staffPay;
+    let loanNote = "";
+    if (s.loan) {
+      const payment = Math.min(s.loan.monthlyPayment, s.loan.remaining);
+      s.cash -= payment;
+      s.loan.remaining = Math.round(s.loan.remaining - payment);
+      loanNote = ` Échéance de prêt prélevée : ${fmt(payment)} €.`;
+      if (s.loan.remaining <= 0) {
+        s.loan = null;
+        loanNote += " Prêt intégralement remboursé — la banque te fait à nouveau confiance.";
+      }
+    }
+    if (rosterPay + staffPay > 0 || loanNote !== "") {
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: "Fin de mois : la paie est tombée",
+        body: `Salaires versés : ${fmt(rosterPay + staffPay)} € (artistes : ${fmt(rosterPay)} €, staff : ${fmt(staffPay)} €).${loanNote}`,
+      });
+    }
+  }
 
   // 5) Vie du roster : hype (le CM ralentit la chute et relance les délaissés),
   //    progression vers le potentiel caché.
@@ -413,7 +439,21 @@ export function advanceWeek(prev: GameState): GameState {
 
   s.messages = s.messages.slice(0, 16);
 
-  if (s.cash < 0) s.gameOver = "bankrupt";
+  // 11) Banque : le découvert est autorisé (agios hebdo), la liquidation ne
+  //     tombe qu'au-delà du plancher. D'ici là, des options de survie existent :
+  //     prêt bancaire, vente de contrat d'artiste, cession de catalogue.
+  if (s.cash < 0) {
+    const agios = Math.round(-s.cash * OVERDRAFT_RATE);
+    if (agios > 0) {
+      s.cash -= agios;
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: "Compte à découvert",
+        body: `La banque prélève ${fmt(agios)} € d'agios. Liquidation judiciaire si le découvert dépasse ${fmt(-LIQUIDATION_FLOOR)} €. Options de survie dans Finances : prêt bancaire, vente d'un contrat d'artiste, cession de catalogue.`,
+      });
+    }
+  }
+
+  if (s.cash < LIQUIDATION_FLOOR) s.gameOver = "bankrupt";
   else if (s.week > SEASON_WEEKS) s.gameOver = "season_end";
 
   return s;
@@ -455,7 +495,7 @@ export function makeOffer(s: GameState, personId: string, offer: number): GameSt
   next.negotiations.push(nego);
   next.messages.unshift({
     id: nextId(), week: next.week, title: `Offre envoyée à ${fullName(person)}`,
-    body: `Proposition : ${fmt(offer)} €/sem (demande : ${fmt(person.askSalary)} €/sem). Réponse à la prochaine avancée de semaine.`,
+    body: `Proposition : ${fmt(offer)} €/mois (demande : ${fmt(person.askSalary)} €/mois). Réponse à la prochaine avancée de semaine.`,
   });
   return next;
 }
@@ -475,7 +515,7 @@ export function acceptCounter(s: GameState, negoId: string): GameState {
   next.negotiations = next.negotiations.filter((n) => n.id !== negoId);
   next.messages.unshift({
     id: nextId(), week: next.week, title: `${fullName(person)} rejoint l'équipe`,
-    body: `Contre-proposition acceptée : ${fmt(person.askSalary)} €/sem. Son effet de poste s'applique dès maintenant.`,
+    body: `Contre-proposition acceptée : ${fmt(person.askSalary)} €/mois. Son effet de poste s'applique dès maintenant — premier salaire à la prochaine fin de mois.`,
   });
   return next;
 }
@@ -490,13 +530,84 @@ export function fireStaff(s: GameState, personId: string): GameState {
   const next: GameState = JSON.parse(JSON.stringify(s));
   const person = next.staff.find((p) => p.id === personId);
   if (!person) return next;
-  const severance = person.askSalary * STAFF_SEVERANCE_WEEKS;
+  const severance = person.askSalary * STAFF_SEVERANCE_MONTHS;
   next.staff = next.staff.filter((p) => p.id !== personId);
   next.cash -= severance;
   next.reputation = Math.max(0, next.reputation - 1);
   next.messages.unshift({
     id: nextId(), week: next.week, title: `${fullName(person)} quitte le label`,
-    body: `Licenciement acté — indemnité de ${STAFF_SEVERANCE_WEEKS} semaines de salaire (${fmt(severance)} €). Le poste est vacant, son effet disparaît immédiatement.`,
+    body: `Licenciement acté — indemnité de ${STAFF_SEVERANCE_MONTHS} mois de salaire (${fmt(severance)} €). Le poste est vacant, son effet disparaît immédiatement.`,
+  });
+  return next;
+}
+
+// ---------- Banque & options de survie ----------
+
+export function takeLoan(s: GameState, amount: number): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  if (next.loan) return next; // un seul prêt à la fois
+  const offer = LOAN_OFFERS.find((o) => o.amount === amount);
+  if (!offer || next.reputation < offer.minRep) return next;
+  const total = Math.round(amount * (1 + LOAN_INTEREST));
+  const monthlyPayment = Math.ceil(total / LOAN_MONTHS / 10) * 10;
+  next.loan = { amount, remaining: total, monthlyPayment, takenWeek: next.week };
+  next.cash += amount;
+  next.messages.unshift({
+    id: nextId(), week: next.week, title: `Prêt accordé : ${fmt(amount)} €`,
+    body: `La banque débloque les fonds. À rembourser : ${fmt(total)} € (intérêts ${Math.round(LOAN_INTEREST * 100)} %) sur ${LOAN_MONTHS} mois, soit ${fmt(monthlyPayment)} € prélevés à chaque fin de mois.`,
+  });
+  return next;
+}
+
+// Valeur de rachat d'un contrat d'artiste — basée sur ce que le marché VOIT
+// (fourchette de potentiel, hype), pas sur le potentiel caché. Un artiste
+// fraîchement signé sans hype se vend à perte : développer d'abord, vendre ensuite.
+export function artistContractValue(a: Artist): number {
+  const mid = (a.shownPotential[0] + a.shownPotential[1]) / 2;
+  const base = a.signingFee * 0.5 + mid * 450;
+  return Math.max(500, Math.round((base * (0.4 + a.hype / 100)) / 100) * 100);
+}
+
+export function sellArtistContract(s: GameState, artistId: string): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  const artist = next.roster.find((a) => a.id === artistId);
+  if (!artist) return next;
+  const value = artistContractValue(artist);
+  next.roster = next.roster.filter((a) => a.id !== artistId);
+  next.cash += value;
+  const buyer = pick(next.rivals);
+  buyer.rosterNames.push(artist.name);
+  if (next.project && next.project.artistId === artistId) {
+    next.project = null;
+    next.messages.unshift({
+      id: nextId(), week: next.week, title: "Prod annulée",
+      body: `Le projet en cours de ${artist.name} est abandonné — le budget engagé est perdu.`,
+    });
+  }
+  next.messages.unshift({
+    id: nextId(), week: next.week, title: `${buyer.name} rachète le contrat de ${artist.name}`,
+    body: `Cession du contrat : ${fmt(value)} € encaissés. ${artist.name} poursuivra sa carrière chez ${buyer.name} — ses sorties déjà publiées restent dans ton catalogue.`,
+  });
+  return next;
+}
+
+// Cession des droits d'une sortie : un acheteur valorise le catalogue sur un
+// multiple des revenus hebdo actuels (meilleure qualité = meilleur multiple).
+// Tu encaisses tout de suite, mais la sortie et ses revenus futurs sortent du label.
+export function catalogValue(r: Release): number {
+  return Math.max(300, Math.round((r.weeklyStreams * STREAM_RATE * (8 + r.quality / 20)) / 100) * 100);
+}
+
+export function sellCatalog(s: GameState, releaseId: string): GameState {
+  const next: GameState = JSON.parse(JSON.stringify(s));
+  const release = next.releases.find((r) => r.id === releaseId);
+  if (!release) return next;
+  const value = catalogValue(release);
+  next.releases = next.releases.filter((r) => r.id !== releaseId);
+  next.cash += value;
+  next.messages.unshift({
+    id: nextId(), week: next.week, title: `Catalogue cédé : « ${release.title} »`,
+    body: `Les droits de « ${release.title} » (${release.artistName}) sont vendus ${fmt(value)} €. Les revenus futurs de cette sortie ne te reviennent plus.`,
   });
   return next;
 }

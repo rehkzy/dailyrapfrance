@@ -24,7 +24,7 @@ export type Artist = {
   plume: number;     // 0-20
   charisme: number;  // 0-20
   hype: number;      // 0-100
-  salary: number;    // €/semaine
+  salary: number;    // avance mensuelle (€/mois)
   signingFee: number;
   // v6 — potentiel caché : jamais montré tel quel, seulement une fourchette
   // estimée par le scouting. Un artiste peut progresser vers son potentiel
@@ -49,7 +49,7 @@ export type Person = {
   skill: number;                  // 0-20, CACHÉ — le vrai niveau
   shownSkill: [number, number];   // fourchette visible (scouting imparfait)
   personality: string;            // trait de personnalité (influence les négos)
-  askSalary: number;              // €/semaine demandé
+  askSalary: number;              // salaire mensuel demandé (€/mois)
   availabilityWeeks: number;      // encore dispo X semaines sur le marché
   styleAffinity: string | null;   // style de prédilection (bonus avec artiste assorti)
   motivation: number;             // 0-100
@@ -135,6 +135,14 @@ export type RivalLabel = {
 // Tendances par style — multiplicateur autour de 1, qui dérive chaque semaine.
 export type Trends = Record<string, number>;
 
+// Prêt bancaire — un seul à la fois, remboursé par échéances mensuelles.
+export type Loan = {
+  amount: number;         // capital débloqué
+  remaining: number;      // capital + intérêts restant à rembourser
+  monthlyPayment: number; // prélevé à chaque fin de mois
+  takenWeek: number;
+};
+
 // ---------- Divers ----------
 
 export type Message = { id: string; week: number; title: string; body: string };
@@ -164,6 +172,7 @@ export type GameState = {
   messages: Message[];
   rivals: RivalLabel[];
   trends: Trends;
+  loan: Loan | null;
   prevChartOrder: string[];
   totalReleases: number;
   totalStreamsAllTime: number;
