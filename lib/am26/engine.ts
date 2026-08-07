@@ -10,16 +10,16 @@
 
 import type {
   Artist, BudgetKey, BudgetOption, ChartEntry, ConcertOffer, GameState,
-  Negotiation, Person, Project, Release, StaffRole,
+  LabelChartEntry, Negotiation, Person, Project, ProjectChartEntry, Release, StaffRole,
 } from "./types";
 import {
-  BUDGET_PRESETS, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
-  MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, SAVE_KEY,
-  SAVE_VERSION, SEASON_WEEKS, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH,
+  BUDGET_PRESETS, DROITS_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS,
+  MONTH_WEEKS, OLD_SAVE_BACKUP_KEY, OVERDRAFT_RATE, PERSONALITIES, RADIO_RATE, SAVE_KEY,
+  SAVE_VERSION, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS, START_CASH,
   STREAM_RATE, TYPE_META, VENUES,
 } from "./data";
 import { fullName, makeArtist, makeInitialStaffMarket, makeStaffCandidate, nextId, pick, ri, rnd } from "./people";
-import { makeRivals, makeTrends, tickWorld } from "./world";
+import { makeRivals, makeTrends, rivalLabelStreams, tickWorld } from "./world";
 
 export const fmt = (n: number) => Math.round(n).toLocaleString("fr-FR");
 
@@ -206,8 +206,11 @@ export function initialState(): GameState {
     releases: [],
     messages: [],
     rivals: makeRivals(),
+    worldReleases: [],
     trends: makeTrends(),
     loan: null,
+    lastWeekIncome: { streaming: 0, droits: 0, radio: 0, concerts: 0 },
+    pendingConcertIncome: 0,
     prevChartOrder: [],
     totalReleases: 0,
     totalStreamsAllTime: 0,
@@ -248,34 +251,81 @@ export function persist(s: GameState) {
   }
 }
 
-// ---------- Classement ----------
+// ---------- Classements ----------
 
-export function computeChart(s: GameState): ChartEntry[] {
-  const entries: ChartEntry[] = [
+// 1) Classement ARTISTES : streams hebdo par artiste (tes artistes = somme de
+// leurs sorties actives ; artistes rivaux = leurs streams propres).
+export function computeArtistChart(s: GameState): ChartEntry[] {
+  const mine: Record<string, number> = {};
+  for (const r of s.releases) {
+    mine[r.artistName] = (mine[r.artistName] ?? 0) + r.weeklyStreams;
+  }
+  const entries: ChartEntry[] = [];
+  for (const name of Object.keys(mine)) {
+    if (mine[name] > 0) entries.push({ key: `me:${name}`, name, title: null, streams: mine[name], mine: true });
+  }
+  for (const r of s.rivals) {
+    for (const a of r.roster) {
+      entries.push({ key: `rival:${r.name}:${a.name}`, name: a.name, title: r.name, streams: a.weeklyStreams, mine: false });
+    }
+  }
+  return entries.sort((a, b) => b.streams - a.streams).slice(0, 10);
+}
+
+// 2) Classement LABELS : streams hebdo agrégés par écurie.
+export function computeLabelChart(s: GameState): LabelChartEntry[] {
+  const myStreams = s.releases.reduce((sum, r) => sum + r.weeklyStreams, 0);
+  const entries: LabelChartEntry[] = [
+    {
+      key: "label:me",
+      name: s.profile ? s.profile.labelName : "Ton label",
+      streams: myStreams,
+      reputation: Math.round(s.reputation),
+      mine: true,
+    },
     ...s.rivals.map((r) => ({
-      key: `rival:${r.name}`,
+      key: `label:${r.name}`,
       name: r.name,
-      title: r.lastRelease,
-      streams: r.streams,
+      streams: rivalLabelStreams(r),
+      reputation: Math.round(r.reputation),
       mine: false,
     })),
+  ];
+  return entries.sort((a, b) => b.streams - a.streams);
+}
+
+// 3) Top PROJETS de la saison : streams cumulés des sorties, toutes écuries
+// confondues — façon top albums de fin d'année.
+export function computeProjectChart(s: GameState): ProjectChartEntry[] {
+  const entries: ProjectChartEntry[] = [
     ...s.releases.map((r) => ({
-      key: `rel:${r.id}`,
-      name: r.artistName,
-      title: `« ${r.title} »`,
-      streams: r.weeklyStreams,
+      key: `proj:me:${r.id}`,
+      labelName: s.profile ? s.profile.labelName : "Ton label",
+      artistName: r.artistName,
+      title: r.title,
+      totalStreams: r.totalStreams + r.weeklyStreams,
       mine: true,
     })),
+    ...s.worldReleases.map((w) => ({
+      key: `proj:${w.id}`,
+      labelName: w.labelName,
+      artistName: w.artistName,
+      title: w.title,
+      totalStreams: w.totalStreams + w.weeklyStreams,
+      mine: false,
+    })),
   ];
-  return entries.sort((a, b) => b.streams - a.streams).slice(0, 10);
+  return entries.sort((a, b) => b.totalStreams - a.totalStreams).slice(0, 10);
 }
 
 // ---------- La semaine ----------
 
 export function advanceWeek(prev: GameState): GameState {
   const s: GameState = JSON.parse(JSON.stringify(prev));
-  s.prevChartOrder = computeChart(prev).map((e) => e.key);
+  s.prevChartOrder = computeArtistChart(prev).map((e) => e.key);
   s.week += 1;
+
+  const pressePerso = staffByRole(s.staff, "presse");
 
   // 1) Résolution des négociations d'embauche lancées la semaine passée.
   resolveNegotiations(s);
@@ -296,6 +346,13 @@ export function advanceWeek(prev: GameState): GameState {
           initialStreams = Math.round(initialStreams * 1.3);
           s.reputation = Math.min(100, s.reputation + ri(2, 5));
         }
+        // Passages radio de départ : la presse et la qualité ouvrent les portes
+        // des programmateurs — chaque passage rapporte (rémunération équitable)
+        // et entretient les streams.
+        const radioPlays =
+          (mediaHit ? ri(5, 14) : 0) +
+          (proj.quality >= 65 ? ri(1, 5) : 0) +
+          (pressePerso ? Math.round(pressePerso.skill / 4) : 0);
         s.releases.unshift({
           id: nextId(),
           artistId: artist.id,
@@ -308,6 +365,7 @@ export function advanceWeek(prev: GameState): GameState {
           weeklyStreams: initialStreams,
           totalStreams: 0,
           weeksOut: 0,
+          radioPlays,
         });
         artist.hype = Math.min(100, artist.hype + proj.hypeBoost);
         s.totalReleases += 1;
@@ -318,7 +376,13 @@ export function advanceWeek(prev: GameState): GameState {
         if (mediaHit) {
           s.messages.unshift({
             id: nextId(), week: s.week, title: "La presse en parle",
-            body: `Un média rap a repéré « ${proj.title} » — coup de projecteur qui dope la sortie et ta réputation.`,
+            body: `Un média rap a repéré « ${proj.title} » — coup de projecteur qui dope la sortie, ta réputation, et ouvre les playlists radio.`,
+          });
+        }
+        if (radioPlays >= 8) {
+          s.messages.unshift({
+            id: nextId(), week: s.week, title: `« ${proj.title} » entre en rotation radio`,
+            body: `${radioPlays} passages programmés cette semaine — chaque diffusion rapporte des droits et entretient les streams.`,
           });
         }
       }
@@ -326,17 +390,34 @@ export function advanceWeek(prev: GameState): GameState {
     }
   }
 
-  // 3) Vie des sorties : streams, revenus, déclin.
-  let weekRevenue = 0;
+  // 3) Vie des sorties : streams, radio, revenus détaillés, déclin.
+  let streamingRev = 0;
+  let radioRev = 0;
   for (const r of s.releases) {
     r.weeksOut += 1;
     r.totalStreams += r.weeklyStreams;
     s.totalStreamsAllTime += r.weeklyStreams;
-    weekRevenue += r.weeklyStreams * STREAM_RATE;
-    r.weeklyStreams = Math.round(r.weeklyStreams * r.retention);
+    streamingRev += r.weeklyStreams * STREAM_RATE;
+    radioRev += r.radioPlays * RADIO_RATE;
+    // La radio entretient les streams (chaque passage expose la sortie),
+    // puis la rotation s'érode naturellement.
+    r.weeklyStreams = Math.round(r.weeklyStreams * r.retention) + r.radioPlays * 250;
+    r.radioPlays = Math.floor(r.radioPlays * 0.78);
   }
   s.releases = s.releases.filter((r) => r.weeklyStreams > 200);
-  s.cash += weekRevenue;
+  // Droits voisins + édition : quote-part sur l'exploitation (streaming + radio).
+  const droitsRev = (streamingRev + radioRev) * DROITS_RATE;
+  const concertRev = s.pendingConcertIncome;
+  s.pendingConcertIncome = 0;
+  s.lastWeekIncome = {
+    streaming: Math.round(streamingRev),
+    droits: Math.round(droitsRev),
+    radio: Math.round(radioRev),
+    concerts: Math.round(concertRev),
+  };
+  // Les cachets sont déjà encaissés à l'acceptation — on ne crédite ici que
+  // streaming, droits et radio.
+  s.cash += streamingRev + droitsRev + radioRev;
 
   // 4) Fin de mois (toutes les 4 semaines) : salaires artistes + staff, et
   //    échéance de prêt le cas échéant. Comme dans la vraie vie : la paie tombe
@@ -360,6 +441,48 @@ export function advanceWeek(prev: GameState): GameState {
       s.messages.unshift({
         id: nextId(), week: s.week, title: "Fin de mois : la paie est tombée",
         body: `Salaires versés : ${fmt(rosterPay + staffPay)} € (artistes : ${fmt(rosterPay)} €, staff : ${fmt(staffPay)} €).${loanNote}`,
+      });
+    }
+
+    // Dynamique mensuelle du staff — v8 : ton équipe est faite d'humains.
+    //  - La motivation évolue : un label qui rayonne motive, un salaire sous le
+    //    marché démotive (les Instables décrochent plus vite).
+    //  - Motivation au fond = risque de démission (sans indemnité, poste vacant).
+    //  - Chacun peut progresser en compétence... et toi, tu apprends à les
+    //    connaître : la fourchette de niveau affichée se resserre vers le vrai.
+    const resigning: Person[] = [];
+    for (const p of s.staff) {
+      const [lo, hi] = STAFF_ROLES[p.role].baseSalary;
+      const marketExpected = lo + (hi - lo) * (p.skill / 20);
+      let delta = s.reputation >= 50 ? 2 : s.reputation <= 25 ? -2 : 0;
+      if (p.askSalary < marketExpected * 0.9) delta -= 3;
+      if (p.personality === "Instable") delta -= 1;
+      if (p.personality === "Loyal") delta += 1;
+      p.motivation = Math.max(0, Math.min(100, p.motivation + delta));
+
+      const quitThreshold = p.personality === "Instable" ? 35 : 20;
+      if (p.motivation <= quitThreshold && Math.random() < 0.3) {
+        resigning.push(p);
+        continue;
+      }
+      if (p.motivation <= 30) {
+        s.messages.unshift({
+          id: nextId(), week: s.week, title: `${fullName(p)} broie du noir`,
+          body: `Ta/ton ${STAFF_ROLES[p.role].label.toLowerCase()} perd la motivation${p.askSalary < marketExpected * 0.9 ? " — son salaire est sous le marché" : ""}. Si ça continue, il/elle partira.`,
+        });
+      }
+      if (p.skill < 20 && Math.random() < 0.1) p.skill += 1;
+      // Resserrer la fourchette autour du vrai niveau (sans jamais l'exclure).
+      if (p.shownSkill[1] - p.shownSkill[0] > 1) {
+        if (p.shownSkill[1] > p.skill) p.shownSkill[1] -= 1;
+        else if (p.shownSkill[0] < p.skill) p.shownSkill[0] += 1;
+      }
+    }
+    for (const p of resigning) {
+      s.staff = s.staff.filter((x) => x.id !== p.id);
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `${fullName(p)} démissionne`,
+        body: `Démotivé(e), ta/ton ${STAFF_ROLES[p.role].label.toLowerCase()} claque la porte. Le poste est vacant — son effet disparaît immédiatement.`,
       });
     }
   }
@@ -386,7 +509,6 @@ export function advanceWeek(prev: GameState): GameState {
   }
 
   // 6) Attaché(e) de presse : entretien de réputation hebdo.
-  const pressePerso = staffByRole(s.staff, "presse");
   if (pressePerso) s.reputation = Math.min(100, s.reputation + pressePerso.skill / 40);
 
   // 7) Concerts : nouvelles offres + expiration des anciennes.
@@ -403,12 +525,25 @@ export function advanceWeek(prev: GameState): GameState {
   // 8) Le monde vit : rivaux (signatures, sorties, débauchages) + tendances.
   tickWorld(s);
 
-  // 9) Réputation vs concurrence (comme avant : battre les rivaux paie).
-  const best = s.releases[0]?.weeklyStreams ?? 0;
-  const beaten = s.rivals.filter((r) => best > r.streams).length;
-  s.reputation = Math.max(0, Math.min(100, s.reputation + (beaten >= 5 ? 3 : beaten >= 2 ? 1 : best > 0 ? 0 : -1)));
+  // 9) Réputation vs concurrence : bats les autres LABELS (streams agrégés).
+  const myLabelStreams = s.releases.reduce((sum, r) => sum + r.weeklyStreams, 0);
+  const beaten = s.rivals.filter((r) => myLabelStreams > rivalLabelStreams(r)).length;
+  s.reputation = Math.max(0, Math.min(100, s.reputation + (beaten >= 5 ? 3 : beaten >= 2 ? 1 : myLabelStreams > 0 ? 0 : -1)));
 
   // 10) Marchés qui tournent : candidats staff (disponibilité limitée) et talents.
+  //     v8 : la cellule A&R travaille le marché — estimations affinées, vivier
+  //     élargi, pépites repérées.
+  const ar = staffByRole(s.staff, "ar");
+  const scoutBonus = ar ? ar.skill / 20 : 0;
+  if (ar) {
+    for (const a of s.market) {
+      // Chaque semaine, l'A&R resserre la fourchette de potentiel vers le vrai.
+      if (a.shownPotential[1] - a.shownPotential[0] > 1) {
+        if (a.shownPotential[1] > a.potential) a.shownPotential[1] -= 1;
+        else if (a.shownPotential[0] < a.potential) a.shownPotential[0] += 1;
+      }
+    }
+  }
   for (const p of s.staffMarket) p.availabilityWeeks -= 1;
   const leaving = s.staffMarket.filter((p) => p.availabilityWeeks <= 0);
   for (const p of leaving) {
@@ -430,11 +565,19 @@ export function advanceWeek(prev: GameState): GameState {
   }
   if (Math.random() < 0.3) {
     const used = new Set([...s.roster, ...s.market].map((a) => a.name));
-    s.market = [...s.market.slice(1), makeArtist(used)];
+    s.market = [...s.market.slice(1), makeArtist(used, scoutBonus)];
   }
-  while (s.market.length < 3) {
+  const marketTarget = ar ? 4 : 3; // un A&R élargit le vivier visible
+  while (s.market.length < marketTarget) {
     const used = new Set([...s.roster, ...s.market].map((a) => a.name));
-    s.market.push(makeArtist(used));
+    const rookie = makeArtist(used, scoutBonus);
+    s.market.push(rookie);
+    if (ar && rookie.potential >= 17) {
+      s.messages.unshift({
+        id: nextId(), week: s.week, title: `Ton A&R a flairé une pépite`,
+        body: `${fullName(ar)} te signale ${rookie.name} (${rookie.style}) sur le marché — « crois-moi, celui-là, il ne faut pas le laisser passer ». Les rivaux scoutent aussi.`,
+      });
+    }
   }
 
   s.messages = s.messages.slice(0, 16);
@@ -467,6 +610,7 @@ export function acceptConcert(s: GameState, offerId: string): GameState {
   if (!offer) return next;
   next.concertOffers = next.concertOffers.filter((o) => o.id !== offerId);
   next.cash += offer.fee;
+  next.pendingConcertIncome += offer.fee;
   next.totalConcerts += 1;
   const artist = next.roster.find((a) => a.id === offer.artistId);
   if (artist) artist.hype = Math.min(100, artist.hype + ri(3, 8));
@@ -576,7 +720,7 @@ export function sellArtistContract(s: GameState, artistId: string): GameState {
   next.roster = next.roster.filter((a) => a.id !== artistId);
   next.cash += value;
   const buyer = pick(next.rivals);
-  buyer.rosterNames.push(artist.name);
+  buyer.roster.push({ name: artist.name, weeklyStreams: ri(8000, 25000) + artist.hype * 900 });
   if (next.project && next.project.artistId === artistId) {
     next.project = null;
     next.messages.unshift({

@@ -35,7 +35,7 @@ export type Artist = {
 
 // ---------- Staff (personnes simulées) ----------
 
-export type StaffRole = "da" | "presse" | "marketing" | "inge" | "cm" | "booker";
+export type StaffRole = "ar" | "da" | "presse" | "marketing" | "inge" | "cm" | "booker";
 
 export type Person = {
   id: string;
@@ -117,23 +117,46 @@ export type Release = {
   weeklyStreams: number;
   totalStreams: number;
   weeksOut: number;
+  radioPlays: number; // passages radio hebdo (rémunération équitable + boost de streams)
 };
 
 // ---------- Monde vivant ----------
 
 export type RivalStrategy = "agressif" | "prudent" | "opportuniste";
 
+// v8 : chaque artiste rival a ses propres streams — nécessaires aux classements
+// par artiste et pour que les sorties rivales soient crédibles.
+export type RivalArtist = { name: string; weeklyStreams: number };
+
 export type RivalLabel = {
   name: string;
-  streams: number;                // streams hebdo de leur sortie phare
   reputation: number;             // 0-100
   strategy: RivalStrategy;
-  rosterNames: string[];          // artistes qu'ils ont signés (dont ceux volés au joueur)
-  lastRelease: string | null;     // titre de leur dernière sortie
+  roster: RivalArtist[];          // artistes signés (dont ceux volés au joueur)
+  lastRelease: string | null;     // libellé de leur dernière sortie
+};
+
+// Sorties du monde (rivaux) — alimentent le Top Projets de la saison.
+export type WorldRelease = {
+  id: string;
+  labelName: string;
+  artistName: string;
+  title: string;
+  weeklyStreams: number;
+  totalStreams: number;
+  weeksOut: number;
 };
 
 // Tendances par style — multiplicateur autour de 1, qui dérive chaque semaine.
 export type Trends = Record<string, number>;
+
+// Détail des revenus de la semaine écoulée — affiché dans Finances.
+export type IncomeBreakdown = {
+  streaming: number;  // plateformes de streaming
+  droits: number;     // droits voisins + édition (SACEM & co, abstraction)
+  radio: number;      // rémunération équitable des passages radio
+  concerts: number;   // cachets encaissés cette semaine
+};
 
 // Prêt bancaire — un seul à la fois, remboursé par échéances mensuelles.
 export type Loan = {
@@ -171,8 +194,11 @@ export type GameState = {
   releases: Release[];
   messages: Message[];
   rivals: RivalLabel[];
+  worldReleases: WorldRelease[];  // sorties rivales (Top Projets)
   trends: Trends;
   loan: Loan | null;
+  lastWeekIncome: IncomeBreakdown;
+  pendingConcertIncome: number;   // cachets encaissés depuis la dernière avancée
   prevChartOrder: string[];
   totalReleases: number;
   totalStreamsAllTime: number;
@@ -188,6 +214,23 @@ export type ChartEntry = {
   name: string;
   title: string | null;
   streams: number;
+  mine: boolean;
+};
+
+export type LabelChartEntry = {
+  key: string;
+  name: string;
+  streams: number;      // streams hebdo agrégés du label
+  reputation: number;
+  mine: boolean;
+};
+
+export type ProjectChartEntry = {
+  key: string;
+  labelName: string;
+  artistName: string;
+  title: string;
+  totalStreams: number;
   mine: boolean;
 };
 

@@ -13,16 +13,16 @@ import { sfx } from "@/lib/sfx";
 import type { Artist, BudgetKey, GameState, Person, Profile, Project, StaffRole, Tab } from "@/lib/am26/types";
 import {
   BUDGET_GROUPS, BUDGET_LABELS, BUDGET_PRESETS, CITIES, COLORS, DEFAULT_BUDGET_CHOICE,
-  LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS,
-  PROJECT_TITLES, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS,
+  DROITS_RATE, LIQUIDATION_FLOOR, LOAN_INTEREST, LOAN_MONTHS, LOAN_OFFERS, LOGOS, MONTH_WEEKS,
+  PROJECT_TITLES, RADIO_RATE, SEASON_WEEKS, STAFF_ROLES, STAFF_ROLE_KEYS, STAFF_SEVERANCE_MONTHS,
   START_CASH, STREAM_RATE, STYLES, TYPE_META,
 } from "@/lib/am26/data";
 import { fullName, nextId, personalityDesc } from "@/lib/am26/people";
 import {
   acceptConcert, acceptCounter, acceptanceHint, advanceWeek, artistContractValue,
-  budgetTotalCost, catalogValue, computeChart, computeProductionStats, declineConcert,
-  declineCounter, fireStaff, fmt, initialState, load, makeOffer, persist, sellArtistContract,
-  sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
+  budgetTotalCost, catalogValue, computeArtistChart, computeLabelChart, computeProductionStats,
+  computeProjectChart, declineConcert, declineCounter, fireStaff, fmt, initialState, load,
+  makeOffer, persist, sellArtistContract, sellCatalog, staffByRole, staffMonthlyCost, takeLoan,
 } from "@/lib/am26/engine";
 
 /*
@@ -414,6 +414,8 @@ export default function ArtistsManagerPage() {
   // Ventes (survie financière) — double confirmation pour éviter les fausses manips.
   const [confirmSellArtistId, setConfirmSellArtistId] = useState<string | null>(null);
   const [confirmSellReleaseId, setConfirmSellReleaseId] = useState<string | null>(null);
+  // Sous-onglet des classements (Artistes / Labels / Projets).
+  const [chartView, setChartView] = useState<"artistes" | "labels" | "projets">("artistes");
 
   useEffect(() => {
     const { state: loaded, resetFromOldSave } = load();
@@ -439,7 +441,9 @@ export default function ArtistsManagerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.gameOver]);
 
-  const chart = useMemo(() => (state ? computeChart(state) : []), [state]);
+  const artistChart = useMemo(() => (state ? computeArtistChart(state) : []), [state]);
+  const labelChart = useMemo(() => (state ? computeLabelChart(state) : []), [state]);
+  const projectChart = useMemo(() => (state ? computeProjectChart(state) : []), [state]);
   const weeklyStreams = useMemo(
     () => (state ? state.releases.reduce((sum, r) => sum + r.weeklyStreams, 0) : 0),
     [state]
@@ -882,7 +886,7 @@ export default function ArtistsManagerPage() {
           </div>
 
           <SectionCard
-            title="Classement"
+            title="Classement artistes"
             icon={<BarChart3 size={11} />}
             action={
               <button onClick={() => setTab("charts")} className="font-mono text-[10px] uppercase text-gold hover:text-glow">
@@ -891,7 +895,7 @@ export default function ArtistsManagerPage() {
             }
           >
             <div className="space-y-1.5">
-              {chart.slice(0, 5).map((e, i) => {
+              {artistChart.slice(0, 5).map((e, i) => {
                 const prevIdx = state.prevChartOrder.indexOf(e.key);
                 const delta = state.prevChartOrder.length === 0 ? 0 : prevIdx === -1 ? null : prevIdx - i;
                 return (
@@ -899,7 +903,7 @@ export default function ArtistsManagerPage() {
                     <span className="font-impact text-sm w-4 text-center text-ink-faint">{i + 1}</span>
                     <Movement delta={delta} />
                     <p className={`text-sm flex-1 min-w-0 truncate ${e.mine ? "text-gold font-medium" : ""}`}>
-                      {e.name}{e.title ? ` — ${e.title}` : ""}
+                      {e.name}{e.title ? <span className="text-ink-faint"> · {e.title}</span> : null}
                     </p>
                     <span className="font-mono text-[11px] text-ink-muted shrink-0">{fmt(e.streams)}</span>
                   </div>
@@ -1069,7 +1073,7 @@ export default function ArtistsManagerPage() {
             })}
           </div>
           <p className="text-[11px] text-ink-faint font-mono mt-4">
-            Les labels rivaux scoutent le même marché que toi — un talent qui traîne ici peut signer ailleurs. Le potentiel est une fourchette : signer, c'est parier.
+            Les labels rivaux scoutent le même marché que toi — un talent qui traîne ici peut signer ailleurs. Le potentiel est une fourchette : signer, c'est parier. Un(e) responsable A&R affine ces fourchettes semaine après semaine, élargit le vivier et repère les pépites.
           </p>
         </div>
       )}
@@ -1111,6 +1115,7 @@ export default function ArtistsManagerPage() {
                       <div className="space-y-1.5 mb-3">
                         <RangeBar label="Niveau" range={person.shownSkill} color={accent} />
                         <StatBar label="Réput." value={person.reputation} max={100} color={accent} />
+                        <StatBar label="Motiv." value={Math.round(person.motivation)} max={100} color={accent} />
                       </div>
                       <p className="text-[11px] text-ink-muted leading-relaxed mb-1">{meta.effect}</p>
                       <p className="text-[11px] text-ink-faint mb-3">
@@ -1257,7 +1262,7 @@ export default function ArtistsManagerPage() {
               </div>
             )}
             <p className="text-[11px] text-ink-faint font-mono mt-4">
-              Le niveau affiché est une fourchette — le vrai se découvre en poste. Les candidats ont une disponibilité limitée, et les rivaux recrutent aussi. Entre parenthèses : chance estimée que l'offre soit acceptée.
+              Le niveau affiché est une fourchette — elle se resserre avec le temps passé ensemble. Motivation basse (salaire sous le marché, label en berne) = risque de démission. Les candidats ont une disponibilité limitée, et les rivaux recrutent aussi. Entre parenthèses : chance estimée que l'offre soit acceptée.
             </p>
           </div>
         </div>
@@ -1374,34 +1379,99 @@ export default function ArtistsManagerPage() {
         </div>
       )}
 
-      {/* ===== Onglet CHARTS ===== */}
+      {/* ===== Onglet CHARTS — trois classements + tendances ===== */}
       {tab === "charts" && (
         <div className="pt-4 space-y-4">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Top streams — semaine {state.week}</p>
-            <div className="card divide-y divide-white/8 overflow-hidden">
-              {chart.map((e, i) => {
-                const prevIdx = state.prevChartOrder.indexOf(e.key);
-                const delta = state.prevChartOrder.length === 0 ? 0 : prevIdx === -1 ? null : prevIdx - i;
-                return (
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
+            {([
+              { id: "artistes", label: "Artistes" },
+              { id: "labels", label: "Labels" },
+              { id: "projets", label: "Projets de la saison" },
+            ] as { id: "artistes" | "labels" | "projets"; label: string }[]).map((v) => (
+              <button
+                key={v.id}
+                onClick={() => { sfx.click(); setChartView(v.id); }}
+                className={`filter-pill shrink-0 ${chartView === v.id ? "is-active" : ""}`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+
+          {/* --- Classement ARTISTES (streams hebdo) --- */}
+          {chartView === "artistes" && (
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Top artistes — streams hebdo · semaine {state.week}</p>
+              <div className="card divide-y divide-white/8 overflow-hidden">
+                {artistChart.length === 0 ? (
+                  <p className="text-sm text-ink-faint p-4">Personne dans les charts — sors un projet pour exister.</p>
+                ) : artistChart.map((e, i) => {
+                  const prevIdx = state.prevChartOrder.indexOf(e.key);
+                  const delta = state.prevChartOrder.length === 0 ? 0 : prevIdx === -1 ? null : prevIdx - i;
+                  return (
+                    <div key={e.key} className={`flex items-center gap-3 py-3 px-4 ${e.mine ? "bg-gold/8" : ""}`}>
+                      <span className="font-impact text-lg w-6 text-center text-ink-faint">{i + 1}</span>
+                      <Movement delta={delta} />
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-medium truncate ${e.mine ? "text-gold" : ""}`}>{e.name}</p>
+                        <p className="font-mono text-[9px] text-ink-faint uppercase">{e.mine ? profile.labelName : e.title}</p>
+                      </div>
+                      <span className="font-mono text-xs text-ink-muted shrink-0">{fmt(e.streams)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-ink-faint font-mono mt-3">
+                ▲▼ = mouvement vs semaine passée. Tes artistes comptent la somme de leurs sorties actives.
+              </p>
+            </div>
+          )}
+
+          {/* --- Classement LABELS (streams agrégés + réputation) --- */}
+          {chartView === "labels" && (
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Top labels — puissance hebdo · semaine {state.week}</p>
+              <div className="card divide-y divide-white/8 overflow-hidden">
+                {labelChart.map((e, i) => (
                   <div key={e.key} className={`flex items-center gap-3 py-3 px-4 ${e.mine ? "bg-gold/8" : ""}`}>
                     <span className="font-impact text-lg w-6 text-center text-ink-faint">{i + 1}</span>
-                    <Movement delta={delta} />
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium truncate ${e.mine ? "text-gold" : ""}`}>
-                        {e.name}{e.title ? ` — ${e.title}` : ""}
-                      </p>
-                      {e.mine && <p className="font-mono text-[9px] text-gold/70 uppercase">{profile.labelName}</p>}
+                      <p className={`text-sm font-medium truncate ${e.mine ? "text-gold" : ""}`}>{e.name}</p>
+                      <p className="font-mono text-[9px] text-ink-faint uppercase">Réputation {e.reputation}</p>
                     </div>
                     <span className="font-mono text-xs text-ink-muted shrink-0">{fmt(e.streams)}</span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+              <p className="text-[11px] text-ink-faint font-mono mt-3">
+                Streams hebdo agrégés de chaque écurie. Battre au moins 2 labels fait grimper ta réputation chaque semaine (3 points si tu en bats 5+).
+              </p>
             </div>
-            <p className="text-[11px] text-ink-faint font-mono mt-4">
-              ▲▼ = mouvement vs semaine passée. Bats les rivaux pour faire grimper ta réputation. Artistes et chiffres simulés.
-            </p>
-          </div>
+          )}
+
+          {/* --- Top PROJETS de la saison (cumulés) --- */}
+          {chartView === "projets" && (
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Top projets de la saison — streams cumulés</p>
+              <div className="card divide-y divide-white/8 overflow-hidden">
+                {projectChart.length === 0 ? (
+                  <p className="text-sm text-ink-faint p-4">Aucun projet marquant pour l'instant — la saison est jeune.</p>
+                ) : projectChart.map((e, i) => (
+                  <div key={e.key} className={`flex items-center gap-3 py-3 px-4 ${e.mine ? "bg-gold/8" : ""}`}>
+                    <span className="font-impact text-lg w-6 text-center text-ink-faint">{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium truncate ${e.mine ? "text-gold" : ""}`}>« {e.title} » — {e.artistName}</p>
+                      <p className="font-mono text-[9px] text-ink-faint uppercase">{e.labelName}</p>
+                    </div>
+                    <span className="font-mono text-xs text-ink-muted shrink-0">{fmt(e.totalStreams)}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-ink-faint font-mono mt-3">
+                Le palmarès de l'année, toutes écuries confondues — c'est ici qu'on écrit l'histoire. Streams cumulés depuis la sortie.
+              </p>
+            </div>
+          )}
 
           {/* Tendances de styles — le monde évolue, adapte ta stratégie */}
           <SectionCard title="Tendances par style" icon={<TrendingUp size={11} />}>
@@ -1472,7 +1542,9 @@ export default function ArtistsManagerPage() {
         <div className="pt-4 space-y-4">
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {(() => {
-              const monthlyRevenue = weeklyStreams * STREAM_RATE * MONTH_WEEKS;
+              const radioWeekly = state.releases.reduce((sum, r) => sum + r.radioPlays * RADIO_RATE, 0);
+              const weeklyGross = weeklyStreams * STREAM_RATE + radioWeekly;
+              const monthlyRevenue = weeklyGross * (1 + DROITS_RATE) * MONTH_WEEKS;
               const net = monthlyRevenue - monthlyCosts;
               return [
                 { label: "Revenus / mois (est.)", value: `+${fmt(monthlyRevenue)} €`, cls: "text-risePos" },
@@ -1486,6 +1558,40 @@ export default function ArtistsManagerPage() {
               ));
             })()}
           </div>
+
+          {/* Détail des revenus de la semaine écoulée — comme un vrai relevé de
+              répartition : chaque source d'exploitation a sa ligne. */}
+          <SectionCard title="Revenus de la semaine passée" icon={<LineChart size={11} />}>
+            {(() => {
+              const inc = state.lastWeekIncome;
+              const total = inc.streaming + inc.droits + inc.radio + inc.concerts;
+              const rows = [
+                { label: "Streaming (plateformes)", v: inc.streaming, hint: "~3,20 € / 1 000 streams" },
+                { label: "Droits voisins & édition", v: inc.droits, hint: `${Math.round(DROITS_RATE * 100)} % de l'exploitation` },
+                { label: "Radio (rémunération équitable)", v: inc.radio, hint: `${fmt(RADIO_RATE)} € / passage` },
+                { label: "Concerts (cachets)", v: inc.concerts, hint: "encaissés à l'acceptation" },
+              ];
+              return (
+                <div>
+                  <div className="space-y-2">
+                    {rows.map((r) => (
+                      <div key={r.label} className="flex items-baseline justify-between gap-3">
+                        <p className="text-sm min-w-0">
+                          {r.label}
+                          <span className="block font-mono text-[9px] text-ink-faint">{r.hint}</span>
+                        </p>
+                        <span className={`font-mono text-xs shrink-0 ${r.v > 0 ? "text-risePos" : "text-ink-faint"}`}>+{fmt(r.v)} €</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/8">
+                    <p className="font-mono text-[10px] uppercase text-ink-faint">Total semaine</p>
+                    <span className="font-impact text-lg text-risePos">+{fmt(total)} €</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </SectionCard>
 
           {/* Banque : prêt en cours ou offres disponibles — la bouée de sauvetage
               (et un levier de croissance pour les ambitieux). */}
@@ -1578,8 +1684,11 @@ export default function ArtistsManagerPage() {
                 {state.releases.map((r) => (
                   <div key={r.id}>
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm truncate min-w-0">« {r.title} » — {r.artistName}</p>
-                      <span className="font-mono text-xs text-risePos shrink-0">+{fmt(r.weeklyStreams * STREAM_RATE)} €/sem</span>
+                      <p className="text-sm truncate min-w-0">
+                        « {r.title} » — {r.artistName}
+                        {r.radioPlays > 0 && <span className="block font-mono text-[9px] text-ink-faint">{r.radioPlays} passage{r.radioPlays > 1 ? "s" : ""} radio / sem</span>}
+                      </p>
+                      <span className="font-mono text-xs text-risePos shrink-0">+{fmt((r.weeklyStreams * STREAM_RATE + r.radioPlays * RADIO_RATE) * (1 + DROITS_RATE))} €/sem</span>
                     </div>
                     {confirmSellReleaseId === r.id ? (
                       <div className="flex gap-2 mt-1.5">
@@ -1611,7 +1720,7 @@ export default function ArtistsManagerPage() {
           </SectionCard>
 
           <p className="text-[11px] text-ink-faint font-mono">
-            ~3,20 € pour 1 000 streams. Paie (salaires + prêt) prélevée toutes les {MONTH_WEEKS} semaines. Budgets studio débités au lancement, cachets encaissés à l'acceptation, indemnité de licenciement = {STAFF_SEVERANCE_MONTHS} mois de salaire. Découvert autorisé avec agios — liquidation sous {fmt(LIQUIDATION_FLOOR)} €.
+            Sources : streaming (~3,20 €/1 000), droits voisins & édition ({Math.round(DROITS_RATE * 100)} % de l'exploitation), radio ({fmt(RADIO_RATE)} €/passage — la rotation entretient aussi les streams), cachets de concert. Paie (salaires + prêt) toutes les {MONTH_WEEKS} semaines. Indemnité de licenciement = {STAFF_SEVERANCE_MONTHS} mois. Découvert autorisé avec agios — liquidation sous {fmt(LIQUIDATION_FLOOR)} €.
           </p>
         </div>
       )}

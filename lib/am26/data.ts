@@ -77,6 +77,12 @@ export const RIVAL_ARTIST_NAMES = [
 // "est-ce que cette fonctionnalité donne une vraie capacité d'action et crée
 // des conséquences simulées ?" — ici, oui pour chacun.
 export const STAFF_ROLES: Record<StaffRole, { label: string; short: string; effect: string; baseSalary: [number, number] }> = {
+  ar: {
+    label: "Responsable A&R",
+    short: "A&R",
+    effect: "Affine les estimations de potentiel des talents du marché semaine après semaine, élargit le vivier, et déniche des pépites que les autres ne voient pas.",
+    baseSalary: [2300, 4200],
+  },
   da: {
     label: "Directeur artistique",
     short: "DA",
@@ -115,7 +121,7 @@ export const STAFF_ROLES: Record<StaffRole, { label: string; short: string; effe
   },
 };
 
-export const STAFF_ROLE_KEYS: StaffRole[] = ["da", "presse", "marketing", "inge", "cm", "booker"];
+export const STAFF_ROLE_KEYS: StaffRole[] = ["ar", "da", "presse", "marketing", "inge", "cm", "booker"];
 
 // Traits de personnalité — influencent les négociations (et poseront les bases
 // des relations humaines du point 15 en v10).
@@ -210,9 +216,14 @@ export const START_CASH = 35000;
 export const SEASON_WEEKS = 52;
 export const MONTH_WEEKS = 4;              // 1 mois de jeu = 4 semaines (paie en fin de mois)
 export const SAVE_KEY = "drf-am26";
-export const SAVE_VERSION = 7;             // v7 : économie mensuelle réaliste + banque
+export const SAVE_VERSION = 8;             // v8 : charts multiples, revenus détaillés, A&R
 export const OLD_SAVE_BACKUP_KEY = "drf-am26-v5-backup";
 export const STREAM_RATE = 0.0032;         // € pour 1 stream (~3,20 € / 1000)
+// Droits voisins + édition (SACEM/SDRM, abstraction) : quote-part label sur
+// l'exploitation, en plus des revenus streaming/radio directs.
+export const DROITS_RATE = 0.12;
+// Rémunération équitable & droits voisins par passage radio (abstraction).
+export const RADIO_RATE = 9;
 export const STAFF_SEVERANCE_MONTHS = 2;   // indemnité de licenciement (mois de salaire)
 
 // Banque : découvert autorisé avec agios, liquidation seulement sous le plancher.

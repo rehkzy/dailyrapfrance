@@ -25,11 +25,13 @@ function fuzzyRange(real: number, max: number): [number, number] {
 
 // ---------- Artistes ----------
 
-export function makeArtist(usedNames: Set<string>): Artist {
+// scoutBonus (0-1, issu du niveau de l'A&R) : relève le plancher de talent du
+// vivier — un bon A&R ne fait pas signer des stars, il évite les tocards.
+export function makeArtist(usedNames: Set<string>, scoutBonus = 0): Artist {
   const available = ARTIST_NAMES.filter((n) => !usedNames.has(n));
   const name = available.length > 0 ? pick(available) : `MC ${ri(10, 99)}`;
   usedNames.add(name);
-  const talent = rnd(0.35, 0.95);
+  const talent = rnd(0.35 + Math.min(0.3, scoutBonus * 0.3), 0.95);
   const flow = ri(6 + talent * 8, 10 + talent * 10);
   const plume = ri(6 + talent * 8, 10 + talent * 10);
   // Potentiel caché : peut être bien au-dessus (pépite) ou à peine au-dessus
