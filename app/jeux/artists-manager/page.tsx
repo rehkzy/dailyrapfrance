@@ -165,6 +165,113 @@ function TrendsPanel({ trends, compact, note }: { trends: Record<string, number>
   );
 }
 
+/* §4-§11, §19 (GDD Personnel) — méta visuelle des postes : problème résolu,
+   impacts chiffrés en barres, quand recruter, synergies. Pure couche UI. */
+const ROLE_META: Record<string, {
+  emoji: string;
+  probleme: string;
+  impacts: { label: string; force: number }[]; // force sur 5
+  utileSi: string[];
+  synergie: string;
+}> = {
+  ar: {
+    emoji: "🔭",
+    probleme: "Sans A&R, tu risques de passer à côté des meilleurs talents : vivier limité, estimations floues, pépites signées ailleurs.",
+    impacts: [
+      { label: "Vivier marché", force: 5 },
+      { label: "Précision des rapports", force: 4 },
+      { label: "Détection de pépites", force: 4 },
+    ],
+    utileSi: ["tu veux signer avant les rivaux", "les fourchettes de potentiel te semblent trop larges"],
+    synergie: "A&R + DA : tu trouves mieux, tu développes mieux.",
+  },
+  da: {
+    emoji: "🎧",
+    probleme: "Sans DA, tes morceaux sortent irréguliers : bonnes sessions gâchées par de mauvais choix de prods et de singles.",
+    impacts: [
+      { label: "Qualité des morceaux", force: 5 },
+      { label: "Cohérence de projet", force: 4 },
+      { label: "Choix des singles", force: 3 },
+    ],
+    utileSi: ["tu prépares un EP ou un album", "tes sorties manquent d'identité sonore"],
+    synergie: "DA + Ingé son : meilleurs morceaux, meilleur rendu final.",
+  },
+  presse: {
+    emoji: "📰",
+    probleme: "Sans presse, tes sorties passent sous silence : pas de couverture média, réputation qui stagne.",
+    impacts: [
+      { label: "Couverture média", force: 4 },
+      { label: "Réputation hebdo", force: 3 },
+      { label: "Gestion d'image", force: 3 },
+    ],
+    utileSi: ["ta réputation plafonne", "une grosse sortie approche"],
+    synergie: "Presse + Booker : visibilité live + couverture média.",
+  },
+  marketing: {
+    emoji: "🎯",
+    probleme: "Sans marketing, ta pub coûte cher pour peu de résultats : lancements mous, budget mal alloué.",
+    impacts: [
+      { label: "Efficacité publicitaire", force: 5 },
+      { label: "Démarrage des sorties", force: 4 },
+      { label: "Allocation budget", force: 3 },
+    ],
+    utileSi: ["tu enchaînes les sorties", "tes budgets pub grossissent"],
+    synergie: "Marketing + CM : meilleur lancement, meilleure rétention de hype.",
+  },
+  inge: {
+    emoji: "🎚️",
+    probleme: "Sans ingé maison, le rendu dépend de prestataires : qualité audio inégale, morceaux qui vieillissent mal.",
+    impacts: [
+      { label: "Qualité audio", force: 4 },
+      { label: "Longévité des morceaux", force: 4 },
+      { label: "Cohérence technique", force: 3 },
+    ],
+    utileSi: ["ton volume de prods augmente", "tes mix te semblent inégaux"],
+    synergie: "Ingé son + DA : direction claire, exécution propre.",
+  },
+  cm: {
+    emoji: "📱",
+    probleme: "Sans CM, la hype retombe entre les sorties : fanbase qui s'endort, artistes délaissés invisibles.",
+    impacts: [
+      { label: "Hype du roster", force: 4 },
+      { label: "Engagement fanbase", force: 4 },
+      { label: "Présence hors sortie", force: 3 },
+    ],
+    utileSi: ["ton roster compte plusieurs artistes", "un artiste est en creux de cycle"],
+    synergie: "CM + Marketing : hype entretenue puis convertie au lancement.",
+  },
+  booker: {
+    emoji: "🎤",
+    probleme: "Sans booker, le live rapporte peu : offres rares, petites salles, cachets au rabais.",
+    impacts: [
+      { label: "Offres de concert", force: 5 },
+      { label: "Qualité des salles", force: 4 },
+      { label: "Cachets négociés", force: 4 },
+    ],
+    utileSi: ["un artiste prend de l'ampleur", "tu veux convertir la notoriété en revenus live"],
+    synergie: "Booker + Presse : chaque date devient un événement médiatique.",
+  },
+};
+
+/* §14-15 — recommandation contextuelle : quel poste vacant serait le plus
+   rentable MAINTENANT, d'après l'état réel de la partie. Suggère, n'impose pas. */
+function recommendedRole(s: GameState): { role: string; reason: string } | null {
+  const hired = new Set(s.staff.map((p) => p.role));
+  const rosterSize = s.roster.length;
+  const avgHype = rosterSize ? s.roster.reduce((t, a) => t + a.hype, 0) / rosterSize : 0;
+  const picks: { role: string; score: number; reason: string }[] = [];
+  if (!hired.has("ar")) picks.push({ role: "ar", score: rosterSize === 0 ? 90 : 55, reason: rosterSize === 0 ? "ton roster est vide — il faut trouver les bons profils avant les rivaux" : "élargir le vivier prépare tes prochaines signatures" });
+  if (!hired.has("da") && rosterSize > 0) picks.push({ role: "da", score: 70, reason: "chaque session gagnerait jusqu'à +20 % de qualité" });
+  if (!hired.has("marketing") && s.releases.length >= 2) picks.push({ role: "marketing", score: 65, reason: `${s.releases.length} sorties au catalogue — chaque euro de pub doit rapporter plus` });
+  if (!hired.has("cm") && rosterSize >= 2) picks.push({ role: "cm", score: 60, reason: `${rosterSize} artistes à faire vivre entre les sorties` });
+  if (!hired.has("booker") && avgHype >= 35) picks.push({ role: "booker", score: 62, reason: "la hype de ton roster peut se convertir en cachets live" });
+  if (!hired.has("presse") && s.reputation >= 20) picks.push({ role: "presse", score: 50, reason: "ta réputation mérite une vraie couverture média" });
+  if (!hired.has("inge") && s.releases.length >= 3) picks.push({ role: "inge", score: 45, reason: "ton volume de prods justifie un rendu maison" });
+  if (picks.length === 0) return null;
+  picks.sort((a, b) => b.score - a.score);
+  return { role: picks[0].role, reason: picks[0].reason };
+}
+
 function SectionCard({ title, icon, action, children }: { title: string; icon: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="glass-strong rounded-2xl p-4">
@@ -1512,6 +1619,50 @@ export default function ArtistsManagerPage() {
       {/* ===== Onglet STAFF (v6 — recrutement de personnes simulées) ===== */}
       {tab === "staff" && (
         <div className="pt-4 space-y-5">
+          {/* §20 — le staff travaille réellement : activité de la semaine, tirée de l'état du jeu */}
+          {state.staff.length > 0 && (
+            <SectionCard title="Cette semaine dans l'équipe" icon={<Briefcase size={11} />}>
+              <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+                {state.staff.map((p) => {
+                  const line =
+                    p.role === "ar" ? `${state.market.length} profils suivis sur le marché` :
+                    p.role === "booker" ? (state.concertOffers.length > 0 ? `${state.concertOffers.length} offre${state.concertOffers.length > 1 ? "s" : ""} de concert décrochée${state.concertOffers.length > 1 ? "s" : ""}` : "en prospection auprès des salles") :
+                    p.role === "cm" ? (state.roster.length > 0 ? `hype moyenne du roster : ${Math.round(state.roster.reduce((t, a) => t + a.hype, 0) / state.roster.length)}/100` : "en attente d'artistes à animer") :
+                    p.role === "presse" ? `réputation entretenue : ${Math.round(state.reputation)}/100` :
+                    p.role === "marketing" ? (state.releases.length > 0 ? `${state.releases.length} sortie${state.releases.length > 1 ? "s" : ""} sous surveillance` : "prêt(e) pour ton premier lancement") :
+                    p.role === "inge" ? "console calibrée, prêt(e) pour les sessions" :
+                    "supervision des projets en cours";
+                  return (
+                    <div key={p.id} className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm shrink-0">{ROLE_META[p.role]?.emoji ?? "👤"}</span>
+                      <p className="text-xs min-w-0 truncate">
+                        <span className="font-semibold">{p.name}</span>
+                        <span className="text-ink-faint"> — {line}</span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* §12 — synergies actives entre postes recrutés */}
+              {(() => {
+                const has = (r: string) => state.staff.some((p) => p.role === r);
+                const synergies = [
+                  has("ar") && has("da") && "🔭+🎧 A&R + DA : tu trouves mieux, tu développes mieux",
+                  has("da") && has("inge") && "🎧+🎚️ DA + Ingé son : meilleurs morceaux, meilleur rendu",
+                  has("marketing") && has("cm") && "🎯+📱 Marketing + CM : lancement fort, hype qui tient",
+                  has("booker") && has("presse") && "🎤+📰 Booker + Presse : chaque date devient un événement",
+                ].filter(Boolean) as string[];
+                return synergies.length > 0 ? (
+                  <div className="mt-3 pt-3 border-t border-white/8">
+                    <p className="font-mono text-[9px] uppercase tracking-wide text-gold mb-1.5">Synergies actives</p>
+                    {synergies.map((s2) => (
+                      <p key={s2} className="text-[11px] text-ink-muted leading-relaxed">{s2}</p>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+            </SectionCard>
+          )}
           {/* Mon équipe : les 6 postes, occupés ou vacants */}
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-3">Mon équipe</p>
@@ -1519,18 +1670,54 @@ export default function ArtistsManagerPage() {
               {STAFF_ROLE_KEYS.map((role) => {
                 const person = staffByRole(state.staff, role);
                 const meta = STAFF_ROLES[role];
+                const vis = ROLE_META[role];
+                const reco = recommendedRole(state);
                 if (!person) {
+                  const isReco = reco?.role === role;
                   return (
-                    <div key={role} className="glass rounded-2xl p-4 border border-dashed border-white/12">
-                      <p className="font-mono text-[10px] uppercase text-ink-faint">{meta.label}</p>
-                      <p className="text-xs text-ink-faint mt-1.5 leading-relaxed">{meta.effect}</p>
+                    <div key={role} className={`glass rounded-2xl p-4 border ${isReco ? "border-gold/50" : "border-dashed border-white/12"} relative overflow-hidden`}>
+                      {isReco && (
+                        <span className="absolute top-0 right-0 text-[9px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-bl-xl" style={{ background: `${accent}30`, color: accent }}>
+                          ★ Recommandé maintenant
+                        </span>
+                      )}
+                      <p className="font-mono text-[10px] uppercase text-ink-faint flex items-center gap-1.5">
+                        <span className="text-sm">{vis?.emoji}</span> {meta.label} <span className="text-ink-faint/60">· vacant</span>
+                      </p>
+                      {/* §6 — le problème que le poste résout, pas une fiche encyclopédie */}
+                      <p className="text-xs text-ink-muted mt-2 leading-relaxed">{vis?.probleme ?? meta.effect}</p>
+                      {/* §8 — impacts en barres, lisibles d'un coup d'œil */}
+                      {vis && (
+                        <div className="mt-3 space-y-1.5">
+                          {vis.impacts.map((imp) => (
+                            <div key={imp.label} className="flex items-center gap-2">
+                              <span className="font-mono text-[9px] uppercase text-ink-faint w-36 shrink-0 truncate">{imp.label}</span>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                  <span key={i} className="w-3.5 h-1.5 rounded-full" style={{ background: i <= imp.force ? accent : "rgba(255,255,255,0.1)" }} />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* §11 — quand ce poste devient précieux */}
+                      {vis && (
+                        <p className="font-mono text-[9px] text-ink-faint mt-2.5 leading-relaxed">
+                          Utile si : {vis.utileSi.join(" · ")}
+                        </p>
+                      )}
+                      {isReco && reco && (
+                        <p className="text-[11px] mt-2 leading-relaxed" style={{ color: accent }}>
+                          Pourquoi maintenant ? {reco.reason}.
+                        </p>
+                      )}
                       <button
                         onClick={() => {
                           setRoleFilter(role); sfx.click();
-                          // Scroll fluide vers la liste des candidats
                           setTimeout(() => document.getElementById("am-candidats")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
                         }}
-                        className="mt-3 text-xs font-semibold text-gold hover:text-glow"
+                        className={`mt-3 text-xs font-semibold ${isReco ? "game-btn game-btn-primary px-4 py-2 inline-flex items-center gap-1" : "text-gold hover:text-glow"}`}
                       >
                         Voir les candidats →
                       </button>
