@@ -204,7 +204,7 @@ export type Promise_ = {
 export type AdvanceDeal = { weeksLeft: number; share: number };
 
 // Certification obtenue (palmarès carrière — survit à la vente du catalogue).
-export type Certification = { title: string; artistName: string; level: "or" | "platine" | "diamant"; week: number };
+export type Certification = { title: string; artistName: string; level: "or" | "platine" | "diamant"; week: number; format?: "single" | "ep" | "album" };
 
 // ---------- Monde vivant ----------
 

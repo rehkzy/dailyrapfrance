@@ -6,7 +6,7 @@ import {
   RotateCcw, TrendingUp, TrendingDown, Minus, Radio, CalendarClock, CheckCircle2, Circle,
   MapPin, User, Building2, LayoutDashboard, UserPlus, PiggyBank, LineChart, Briefcase,
   Mic2, AlertCircle, XCircle, Handshake, Sparkles, Target, Trophy, Calendar, Smartphone,
-  Share2, Heart, MessageCircle, ShieldAlert, BookOpen, Lock,
+  Share2, Heart, MessageCircle, ShieldAlert, BookOpen, Lock, Flame,
 } from "lucide-react";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
 import { sfx } from "@/lib/sfx";
@@ -111,6 +111,56 @@ function RangeBar({ label, range, max = 20, color = "#F0001C" }: { label: string
         />
       </div>
       <span className="font-mono text-[11px] text-ink-muted w-10 text-right">{lo}-{hi}</span>
+    </div>
+  );
+}
+
+/* §1-§3 — TENDANCES DU MOMENT : lecture permanente du marché.
+   Branché sur state.trends (multiplicateurs par style, mis à jour chaque semaine
+   par le monde vivant). États : 🔥 explosion · ↗ hausse · ➖ stable · ↘ baisse · 🧊 saturé. */
+function trendMeta(mult: number) {
+  if (mult >= 1.3) return { icon: "🔥", label: "Explosion", cls: "text-riseNeg", bar: "#f0001c" };
+  if (mult >= 1.12) return { icon: "↗", label: "En hausse", cls: "text-risePos", bar: "#22c55e" };
+  if (mult > 0.92) return { icon: "➖", label: "Stable", cls: "text-ink-muted", bar: "#6b7280" };
+  if (mult > 0.78) return { icon: "↘", label: "En baisse", cls: "text-ink-faint", bar: "#f97316" };
+  return { icon: "🧊", label: "Saturé", cls: "text-ink-faint", bar: "#3b82f6" };
+}
+
+function TrendsPanel({ trends, compact, note }: { trends: Record<string, number>; compact?: boolean; note?: string }) {
+  const sorted = Object.entries(trends).sort((a, b) => b[1] - a[1]);
+  if (sorted.length === 0) return null;
+  return (
+    <div className={`glass-strong rounded-2xl ${compact ? "p-3" : "p-4"}`}>
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold mb-2 flex items-center gap-1.5">
+        <Flame size={11} /> Tendances du moment
+      </p>
+      <div className={compact ? "flex flex-wrap gap-x-4 gap-y-1.5" : "space-y-2"}>
+        {sorted.map(([style, mult]) => {
+          const m = trendMeta(mult);
+          return compact ? (
+            <span key={style} className="text-xs inline-flex items-center gap-1">
+              <span>{m.icon}</span>
+              <span className="font-semibold">{style}</span>
+              <span className={`font-mono text-[10px] ${m.cls}`}>{mult >= 1 ? "+" : ""}{Math.round((mult - 1) * 100)}%</span>
+            </span>
+          ) : (
+            <div key={style} className="flex items-center gap-3">
+              <span className="w-4 text-center shrink-0">{m.icon}</span>
+              <span className="text-sm font-semibold w-20 shrink-0">{style}</span>
+              <div className="flex-1 h-1.5 rounded-full bg-white/8 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(100, Math.max(6, ((mult - 0.6) / 0.9) * 100))}%`, background: m.bar }}
+                />
+              </div>
+              <span className={`font-mono text-[10px] w-24 text-right shrink-0 ${m.cls}`}>
+                {m.label} · {mult >= 1 ? "+" : ""}{Math.round((mult - 1) * 100)}%
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {note && <p className="font-mono text-[9px] text-ink-faint mt-2.5 leading-relaxed">{note}</p>}
     </div>
   );
 }
@@ -893,6 +943,14 @@ export default function ArtistsManagerPage() {
         ))}
       </div>
 
+      {/* §1 — Tendances du moment, visibles en permanence depuis le dashboard */}
+      <div className="pt-3">
+        <TrendsPanel
+          trends={state.trends}
+          note="Multiplicateur appliqué au lancement d'une sortie dans ce style. Le marché bouge chaque semaine — un style en explosion paie, mais la concurrence s'y engouffre aussi."
+        />
+      </div>
+
       {/* Raccourcis mobile vers les sections absentes de la tab bar basse */}
       <div className="flex gap-2 overflow-x-auto pt-3 lg:hidden -mx-4 px-4" style={{ scrollbarWidth: "none" }}>
         {MENU.filter((m) => !m.mobile).map(({ id, label, Icon }) => (
@@ -1648,6 +1706,12 @@ export default function ArtistsManagerPage() {
       {/* ===== Onglet STUDIO ===== */}
       {tab === "studio" && (
         <div className="pt-4 space-y-4">
+          {/* §5 — tendances consultables pendant la création : informations, pas recettes */}
+          <TrendsPanel
+            compact
+            trends={state.trends}
+            note="Les tendances sont des informations, pas des recettes — tu peux les suivre ou les ignorer. Un style saturé peut renaître, un style en explosion peut retomber."
+          />
           {/* v16 — progression immobilière par paliers (§2 approfondi) : achat
               dans l'ordre, effet cumulatif et permanent à chaque palier. */}
           <SectionCard title="Local de travail" icon={<Building2 size={11} />}>
@@ -2463,7 +2527,7 @@ export default function ArtistsManagerPage() {
                       {c.level === "or" ? "🥇" : c.level === "platine" ? "💿" : "💎"} « {c.title} » — {c.artistName}
                     </p>
                     <span className="font-mono text-[10px] text-ink-faint uppercase shrink-0">
-                      {c.level} · S{c.week}
+                      {(c.format ?? "single") === "single" ? "Single" : "Disque"} {c.level === "or" ? "d'or" : c.level === "platine" ? "de platine" : "de diamant"} · S{c.week}
                     </span>
                   </div>
                 ))}

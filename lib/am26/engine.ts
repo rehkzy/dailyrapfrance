@@ -665,6 +665,25 @@ export function advanceWeek(prev: GameState): GameState {
           id: nextId(), week: s.week, title: `Sortie : « ${proj.title} »`,
           body: `Le ${TYPE_META[proj.type].label.toLowerCase()} de ${artist.name}${featGuest ? ` feat. ${featGuest.name}` : ""} est dans les bacs${trendMult >= 1.2 ? ` — et le ${artist.style} est en pleine tendance, ça tombe bien` : trendMult <= 0.8 ? ` — mais le ${artist.style} n'a pas le vent en poupe en ce moment` : ""}. Les pros tablent sur ~${fmt(expected)} streams de démarrage. Verdict au premier bilan, la semaine prochaine.`,
         });
+        // §10-11 — collision de titres : plusieurs morceaux peuvent porter le même
+        // nom. Le jeu le signale (confusion possible, memes, comparaisons) mais ne
+        // pénalise jamais automatiquement — parfois c'est même une opportunité.
+        {
+          const norm = (t: string) => t.toLowerCase().replace(/[-\s']/g, "");
+          const sameLabel = s.releases.find((r) => norm(r.title) === norm(proj.title) && r.artistId !== artist.id);
+          const rivalHit = s.worldReleases.find((w) => norm(w.title) === norm(proj.title));
+          if (sameLabel) {
+            s.messages.unshift({
+              id: nextId(), week: s.week, title: `Doublon maison : deux « ${proj.title} » au label`,
+              body: `${sameLabel.artistName} a déjà un morceau du même nom au catalogue. Confusion possible dans les recherches — mais certains y verront un clin d'œil interne. Aucun impact automatique : c'est ta communication qui décidera.`,
+            });
+          } else if (rivalHit) {
+            s.messages.unshift({
+              id: nextId(), week: s.week, title: `Collision de titres : « ${proj.title} »`,
+              body: `${rivalHit.artistName} (${rivalHit.labelName}) a sorti un morceau du même nom récemment. Les médias pourraient comparer les deux — ça peut créer de la confusion... ou du buzz gratuit si ta version prend le dessus.`,
+            });
+          }
+        }
         // v15 §5 — signal faible : une impression qualitative AVANT le chiffre
         // exact (donné la semaine prochaine). Jamais de vérité assénée — au
         // joueur d'interpréter.
@@ -837,12 +856,15 @@ export function advanceWeek(prev: GameState): GameState {
       const target = CERT_LEVELS.findIndex((c) => c.level === cert.level);
       if (target > already && r.totalStreams >= cert.at) {
         r.certified = cert.level;
-        s.certifications.push({ title: r.title, artistName: r.artistName, level: cert.level, week: s.week });
+        s.certifications.push({ title: r.title, artistName: r.artistName, level: cert.level, week: s.week, format: r.type });
         s.reputation = Math.min(100, s.reputation + cert.rep);
         const a = s.roster.find((x) => x.id === r.artistId);
         if (a) a.hype = Math.min(100, a.hype + 8);
+        // §12 — terminologie SNEP correcte : un morceau est un Single, un projet (EP/album) est un Disque.
+        const certNoun = r.type === "single" ? "single" : "disque";
+        const certAdj = cert.level === "or" ? "d'or" : cert.level === "platine" ? "de platine" : "de diamant";
         s.messages.unshift({
-          id: nextId(), week: s.week, title: `${cert.emoji} « ${r.title} » certifié single ${cert.level === "or" ? "d'or" : cert.level === "platine" ? "de platine" : "de diamant"} !`,
+          id: nextId(), week: s.week, title: `${cert.emoji} « ${r.title} » certifié ${certNoun} ${certAdj} !`,
           body: `${fmt(cert.at)} streams cumulés — ${r.artistName} entre au palmarès du label. (Vrai seuil SNEP en France : ${SNEP_REAL_THRESHOLDS[cert.level]} — l'échelle du jeu est adaptée.) Réputation +${cert.rep}.`,
         });
         pushSocialPost(s, "cert", { artist: r.artistName, title: r.title });
