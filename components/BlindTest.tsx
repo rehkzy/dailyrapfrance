@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Play, Zap, RotateCcw, Users, User, Disc, Clock,
+  Zap, RotateCcw, Users, User, Disc, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   Sliders, Gamepad2, Maximize, Minimize, X, VolumeX, Volume2, Lightbulb, Target,
   ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper,
@@ -103,11 +103,11 @@ export default function BlindTest() {
   const [hintsEnabled, setHintsEnabled] = useState(false);
   const [trackVolume, setTrackVolume] = useState(1);
   const [sfxEnabled, setSfxEnabled] = useState(true);
-  // Lancement auto du son — désactivé par défaut (comportement historique inchangé).
-  // Une fois activé, l'extrait démarre tout seul à chaque manche à partir de la 2e — la
-  // toute première manche de la partie demande encore un clic (contrainte navigateur :
-  // aucun <audio>.play() programmatique n'est autorisé avant une interaction utilisateur).
-  const [autoPlayEnabled, setAutoPlayEnabled] = useState(false);
+  // Lancement auto du son — comportement de base, plus un réglage. L'extrait démarre
+  // tout seul à chaque manche à partir de la 2e — la toute première manche demande
+  // encore un clic (contrainte navigateur : aucun <audio>.play() programmatique
+  // n'est autorisé avant une interaction utilisateur).
+  const autoPlayEnabled = true;
   const audioUnlockedRef = useRef(false);
   const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
   const [setupError, setSetupError] = useState<string | null>(null);
@@ -1108,15 +1108,6 @@ export default function BlindTest() {
                     sfx.setMuted(!v);
                   }}
                 />
-                <div className="mt-2.5">
-                  <SettingToggle
-                    Icon={Play}
-                    label="Lancement automatique du son"
-                    description="L'extrait démarre tout seul à chaque manche, sans clic (à partir de la 2e — la première demande toujours un clic, contrainte du navigateur)."
-                    checked={autoPlayEnabled}
-                    onChange={setAutoPlayEnabled}
-                  />
-                </div>
               </div>
 
               <div className="glass rounded-xl p-4">
@@ -1457,6 +1448,26 @@ export default function BlindTest() {
           )}
         </div>
 
+        {/* Volume ajustable en pleine partie — clic sur l'icône = mute, slider au survol/focus */}
+        <div className="group shrink-0 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTrackVolume(trackVolume === 0 ? 1 : 0)}
+            aria-label={trackVolume === 0 ? "Rétablir le son" : "Couper le son"}
+            className="tap-press w-8 h-8 flex items-center justify-center rounded-full glass text-ink-muted hover:text-gold transition-colors"
+          >
+            {trackVolume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={trackVolume * 100}
+            onChange={(e) => setTrackVolume(Number(e.target.value) / 100)}
+            aria-label="Volume de l'extrait"
+            className="w-0 opacity-0 group-hover:w-20 group-hover:opacity-100 focus:w-20 focus:opacity-100 transition-all duration-200 accent-[#f0001c] cursor-pointer"
+          />
+        </div>
         <button
           onClick={toggleFullscreen}
           aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
@@ -1528,11 +1539,15 @@ export default function BlindTest() {
               </div>
             )}
 
-            {bonusFlash !== null && (
-              <span className="solved-pop inline-flex items-center gap-1 rounded-full bg-gold/15 text-gold px-3 py-1 text-xs font-bold mb-2">
-                ⚡ +{bonusFlash} rapidité
-              </span>
-            )}
+            {/* Emplacement à hauteur fixe : le badge apparaît/disparaît SANS décaler
+                le chrono ni les blocs de réponse en dessous (anti mis-click). */}
+            <div className="h-7 mb-2 flex items-center justify-center" aria-live="polite">
+              {bonusFlash !== null && (
+                <span className="solved-pop inline-flex items-center gap-1 rounded-full bg-gold/15 text-gold px-3 py-1 text-xs font-bold">
+                  ⚡ +{bonusFlash} rapidité
+                </span>
+              )}
+            </div>
             <span className={`font-display text-3xl text-gold block mb-4 transition-colors ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>
               {timeLeft}
             </span>
@@ -1543,23 +1558,30 @@ export default function BlindTest() {
               />
             </div>
 
-            {hintsEnabled && timeLeft <= 6 && timeLeft > 0 && !solved.title && (
-              <p className="solved-pop inline-flex items-center gap-1.5 font-mono text-xs text-gold bg-gold/10 border border-gold/25 rounded-full px-3 py-1.5 mb-4">
-                <Lightbulb size={12} />
-                Le titre commence par « {track.title.charAt(0).toUpperCase()} »
-              </p>
+            {hintsEnabled && (
+              <div className="h-8 mb-4 flex items-center justify-center" aria-live="polite">
+                {timeLeft <= 6 && timeLeft > 0 && !solved.title && (
+                  <p className="solved-pop inline-flex items-center gap-1.5 font-mono text-xs text-gold bg-gold/10 border border-gold/25 rounded-full px-3 py-1.5">
+                    <Lightbulb size={12} />
+                    Le titre commence par « {track.title.charAt(0).toUpperCase()} »
+                  </p>
+                )}
+              </div>
             )}
 
-            {!buzzedBy && (
-              <button
-                type="button"
-                onClick={revealRound}
-                className="mb-6 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
-              >
-                <SkipForward size={13} />
-                Personne ne trouve — passer
-              </button>
-            )}
+            {/* Slot fixe : le bouton "passer" disparaît au buzz sans décaler les réponses */}
+            <div className="h-9 mb-6 flex items-center justify-center">
+              {!buzzedBy && (
+                <button
+                  type="button"
+                  onClick={revealRound}
+                  className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
+                >
+                  <SkipForward size={13} />
+                  Personne ne trouve — passer
+                </button>
+              )}
+            </div>
 
             {mode === "local" ? (
               buzzedBy && answerMode === "qcm" ? (
