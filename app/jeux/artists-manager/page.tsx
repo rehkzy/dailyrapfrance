@@ -1636,7 +1636,7 @@ export default function ArtistsManagerPage() {
                     <div key={p.id} className="flex items-center gap-2 min-w-0">
                       <span className="text-sm shrink-0">{ROLE_META[p.role]?.emoji ?? "👤"}</span>
                       <p className="text-xs min-w-0 truncate">
-                        <span className="font-semibold">{p.name}</span>
+                        <span className="font-semibold">{p.firstName} {p.lastName}</span>
                         <span className="text-ink-faint"> — {line}</span>
                       </p>
                     </div>
