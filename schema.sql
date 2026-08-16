@@ -126,7 +126,9 @@ create table if not exists public.room_round_solves (
   field text not null, -- title | artist | feat
   user_id uuid not null references public.profiles(id) on delete cascade,
   solved_at timestamptz not null default now(),
-  primary key (room_id, round_index, field)
+  -- Chaque joueur qui trouve un champ marque ses points : la clé inclut user_id.
+  -- (Avant : PK (room, round, field) → seul le PREMIER marquait.)
+  primary key (room_id, round_index, field, user_id)
 );
 
 alter table public.rooms enable row level security;

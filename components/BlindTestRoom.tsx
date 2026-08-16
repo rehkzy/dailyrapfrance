@@ -531,10 +531,10 @@ function BlindTestRoom({
   // (ou n'importe qui) trouvait un champ, l'étape suivante s'affichait instantanément chez
   // tous les autres joueurs, sans même leur laisser le temps de cliquer sur l'étape en
   // cours — "les autres joueurs ne peuvent plus répondre". Chaque joueur avance maintenant
-  // à son propre rythme, sur ses propres bonnes réponses uniquement ; les points restent
-  // attribués au premier qui valide vraiment en base (insertSolve, contrainte d'unicité),
-  // mais tout le monde peut toujours essayer de trouver, même après que quelqu'un d'autre
-  // a déjà eu le point sur ce champ.
+  // à son propre rythme, sur ses propres bonnes réponses uniquement. Depuis la migration
+  // "solves par joueur", CHAQUE joueur qui trouve un champ marque ses points (la clé en
+  // base est par joueur) — trouver après quelqu'un d'autre rapporte autant, seul le bonus
+  // de rapidité récompense les plus vifs.
   const [myCorrectFields, setMyCorrectFields] = useState<Set<FieldKey>>(new Set());
   useEffect(() => {
     setMyCorrectFields(new Set());
@@ -721,8 +721,8 @@ function BlindTestRoom({
         </div>
         {confirmingQuit ? (
           <div className="flex items-center gap-2 mb-6 text-xs font-mono uppercase tracking-wide">
-            <span className="text-ink-muted">Fermer le salon pour tout le monde ?</span>
-            <button onClick={leaveRoom} disabled={busy} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1 transition-colors">
+            <span className="text-ink-muted">{isHost ? "Fermer le salon pour tout le monde ?" : "Quitter le salon ?"}</span>
+            <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} disabled={busy} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1 transition-colors">
               Confirmer
             </button>
             <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1 transition-colors">
@@ -731,7 +731,7 @@ function BlindTestRoom({
           </div>
         ) : (
           <button
-            onClick={() => (isHost ? setConfirmingQuit(true) : leaveIndividually())}
+            onClick={() => setConfirmingQuit(true)}
             className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink mb-6 font-mono uppercase tracking-wide"
           >
             <ArrowLeft size={14} /> Quitter le salon
@@ -929,8 +929,8 @@ function BlindTestRoom({
           )}
           {confirmingQuit ? (
             <span className="inline-flex items-center gap-2 text-xs font-mono uppercase">
-              <span className="text-ink-muted">Fermer le salon ?</span>
-              <button onClick={leaveRoom} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1.5 transition-colors">
+              <span className="text-ink-muted">{isHost ? "Fermer le salon ?" : "Quitter le salon ?"}</span>
+              <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1.5 transition-colors">
                 Confirmer
               </button>
               <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1.5 transition-colors">
@@ -939,7 +939,7 @@ function BlindTestRoom({
             </span>
           ) : (
             <button
-              onClick={() => (isHost ? setConfirmingQuit(true) : leaveIndividually())}
+              onClick={() => setConfirmingQuit(true)}
               className="inline-flex items-center gap-2 glass text-ink-muted hover:text-ink rounded-full px-6 py-3 font-medium transition-colors"
             >
               <LogOut size={16} />
@@ -1045,7 +1045,7 @@ function BlindTestRoom({
           </div>
         ) : (
           <button
-            onClick={() => (isHost ? setConfirmingQuit(true) : leaveIndividually())}
+            onClick={() => setConfirmingQuit(true)}
             title={isHost ? "Quitter le salon (le ferme pour tout le monde)" : "Quitter le salon"}
             className="tap-press shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-ink-faint hover:text-riseNeg transition-colors"
           >

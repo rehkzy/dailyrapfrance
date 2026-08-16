@@ -127,9 +127,23 @@ button, a, [role="button"], input, select, .tap-target {
    les faire défiler hors champ : impression d'app plein écran, pas de site web autour. */
 body.game-immersive header,
 body.game-immersive footer,
+body.game-immersive #site-announcement,
 body.game-immersive #seo-editorial,
 body.game-immersive #game-intro {
   display: none !important;
+}
+
+/* Mobile : sur tout le blind test (setup compris), la bannière d'annonce et le header
+   mangent un tiers de l'écran entre la barre du navigateur et la double barre basse
+   (wizard + dock). On libère cette hauteur — le jeu redevient respirable sur téléphone. */
+@media (max-width: 768px) {
+  body:has(.blindtest-shell) #site-announcement,
+  body:has(.blindtest-shell) header {
+    display: none !important;
+  }
+  body:has(.blindtest-shell) .blindtest-shell {
+    padding-top: max(env(safe-area-inset-top), 14px);
+  }
 }
 
 /* Sans le header (masqué ci-dessus), le contenu du jeu se retrouvait collé au bord supérieur

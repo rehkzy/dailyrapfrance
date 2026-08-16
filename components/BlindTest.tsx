@@ -128,6 +128,9 @@ export default function BlindTest() {
   const gainCounter = useRef(0);
   const [wrongFlash, setWrongFlash] = useState(false);
   const [qcmLockedFor, setQcmLockedFor] = useState<string | null>(null);
+  // Confirmation avant les actions sensibles : quitter en pleine partie efface la progression.
+  const [confirmQuit, setConfirmQuit] = useState(false);
+  const [confirmSkip, setConfirmSkip] = useState(false);
   const extractStartedAtRef = useRef<number | null>(null);
   const [bonusFlash, setBonusFlash] = useState<number | null>(null);
   const [qcmWrongId, setQcmWrongId] = useState<string | null>(null);
@@ -487,6 +490,14 @@ export default function BlindTest() {
       const values = { title: "", artist: "", feat: "" };
       values[currentQcmField] = qcmCorrectLabel(currentQcmField, track);
       checkFields(playerId, values);
+      // En local : le champ trouvé est crédité au joueur, puis le buzz est rendu —
+      // TOUT LE MONDE peut buzzer pour les champs restants et marquer des points.
+      if (mode === "local") {
+        setBuzzedBy(null);
+        deadlineRef.current = Date.now() + timeLeft * 1000;
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(tick, 1000);
+      }
       return;
     }
     sfx.wrong();
@@ -501,6 +512,10 @@ export default function BlindTest() {
     nextLocked.add(playerId);
     setLocked(nextLocked);
     setBuzzedBy(null);
+    // Le verrou QCM ne doit bloquer QUE le joueur qui vient de se tromper (déjà géré
+    // par `locked`) — pas geler les boutons pour toute la manche. Sans ce reset, les
+    // autres joueurs buzzaient mais ne pouvaient plus répondre ni marquer.
+    setQcmLockedFor(null);
     if (nextLocked.size >= players.length) {
       revealRound();
       return;
@@ -727,7 +742,10 @@ export default function BlindTest() {
 
   if (phase === "setup" || phase === "loading") {
     return (
-      <div className="max-w-2xl mx-auto pt-6 sm:pt-8 pb-28 blindtest-shell">
+      <div
+        className="max-w-2xl mx-auto pt-6 sm:pt-8 blindtest-shell"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 236px)" }}
+      >
         <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1 flex-wrap">
           {[
             { label: "Mode", Icon: Gamepad2 },
@@ -1210,7 +1228,7 @@ export default function BlindTest() {
     const ranked = [...players].sort((a, b) => b.score - a.score);
     return (
       <>
-      <div className="max-w-xl mx-auto text-center pb-44">
+      <div className="max-w-xl mx-auto text-center" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 188px)" }}>
         {showConfetti && <Confetti />}
         <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Partie terminée</p>
         {mode === "solo" ? (
@@ -1404,8 +1422,8 @@ export default function BlindTest() {
 
   return (
     <div
-      className="max-w-2xl mx-auto pb-40 blindtest-shell overflow-y-auto overscroll-contain"
-      style={{ maxHeight: "100dvh" }}
+      className="max-w-2xl mx-auto blindtest-shell overflow-y-auto overscroll-contain"
+      style={{ maxHeight: "100dvh", paddingBottom: "calc(env(safe-area-inset-bottom) + 172px)" }}
     >
       <audio
         key={track.id}
@@ -1418,13 +1436,38 @@ export default function BlindTest() {
       <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={playAgain}
+            onClick={() => setConfirmQuit(true)}
             aria-label="Quitter la partie"
             title="Quitter la partie"
             className="tap-press w-8 h-8 flex items-center justify-center rounded-full glass text-ink-faint hover:text-riseNeg transition-colors"
           >
             <X size={15} />
           </button>
+          {/* Confirmation — quitter efface la progression de la partie en cours */}
+          {confirmQuit && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true">
+              <div className="glass-strong rounded-2xl p-6 max-w-sm w-full text-center">
+                <p className="font-display text-lg font-semibold mb-1.5">Quitter la partie ?</p>
+                <p className="text-sm text-ink-muted mb-5">
+                  Manche {roundIndex + 1} / {tracks.length} — la progression et les scores de cette partie seront perdus.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => setConfirmQuit(false)}
+                    className="min-h-[44px] rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors"
+                  >
+                    Continuer à jouer
+                  </button>
+                  <button
+                    onClick={() => { setConfirmQuit(false); playAgain(); }}
+                    className="min-h-[44px] rounded-full glass text-ink-muted hover:text-riseNeg text-sm font-medium transition-colors"
+                  >
+                    Quitter quand même
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
             Manche {roundIndex + 1} / {tracks.length}
           </span>
@@ -1569,17 +1612,29 @@ export default function BlindTest() {
               </div>
             )}
 
-            {/* Slot fixe : le bouton "passer" disparaît au buzz sans décaler les réponses */}
-            <div className="h-9 mb-6 flex items-center justify-center">
-              {!buzzedBy && (
+            {/* Slot fixe : le bouton "passer" disparaît au buzz sans décaler les réponses.
+                En local (à plusieurs), passer prive tout le monde de la manche → confirmation. */}
+            <div className="h-9 mb-6 flex items-center justify-center gap-2">
+              {!buzzedBy && !confirmSkip && (
                 <button
                   type="button"
-                  onClick={revealRound}
+                  onClick={() => (mode === "local" ? setConfirmSkip(true) : revealRound())}
                   className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
                 >
                   <SkipForward size={13} />
                   Personne ne trouve — passer
                 </button>
+              )}
+              {!buzzedBy && confirmSkip && (
+                <span className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wide">
+                  <span className="text-ink-muted">Révéler la réponse ?</span>
+                  <button type="button" onClick={() => { setConfirmSkip(false); revealRound(); }} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1.5 transition-colors">
+                    Oui, passer
+                  </button>
+                  <button type="button" onClick={() => setConfirmSkip(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1.5 transition-colors">
+                    Annuler
+                  </button>
+                </span>
               )}
             </div>
 
