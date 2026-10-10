@@ -13,8 +13,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: base, lastModified: now, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/a-propos`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${base}/jouer`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${base}/blindtest`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
+    // /jouer est volontairement absent : son canonical pointe vers /blindtest,
+    // l'URL canonique du jeu — un sitemap ne liste que des canoniques.
+    { url: `${base}/blindtest`, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${base}/blindtest/classement`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
   ];
 }
