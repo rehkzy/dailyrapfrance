@@ -1647,3 +1647,99 @@ input[type="range"].brand-slider::-moz-range-track {
     height: 94px;
   }
 }
+
+/* ============================================================
+   BLIND TEST — COUCHE RESPONSIVE UNIVERSELLE + POLISH JEU
+   Principes : (1) le scroll interne du jeu fonctionne TOUJOURS
+   quand le contenu dépasse, le verrou ne bloque que la page
+   derrière ; (2) l'interface se compacte par paliers de HAUTEUR
+   d'écran (c'est elle qui varie le plus entre téléphones) ;
+   (3) ergonomie mobile native : cibles 44px, inputs 16px (zéro
+   zoom iOS), pas de surlignage de tap, pas de sélection de texte
+   accidentelle sur les contrôles.
+   ============================================================ */
+
+/* --- Zone de jeu scrollable : le tactile passe toujours --- */
+.game-scroll-area {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.game-scroll-area::-webkit-scrollbar { width: 5px; }
+.game-scroll-area::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 999px; }
+.game-scroll-area::-webkit-scrollbar-track { background: transparent; }
+
+/* --- Carte de manche : haute sur desktop, adaptative sur mobile --- */
+.game-round-card {
+  padding: 2rem;
+  min-height: min(400px, 52dvh);
+}
+
+/* --- Ergonomie tactile sur tout le blind test --- */
+.blindtest-shell button,
+.blindtest-shell a,
+.blindtest-shell [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* 16px minimum sur les champs : en dessous, iOS zoome automatiquement au focus
+   et désaxe tout le layout du jeu — cause classique de "responsive cassé". */
+.blindtest-shell input[type="text"],
+.blindtest-shell input[type="search"],
+.blindtest-shell input:not([type]) {
+  font-size: 16px;
+}
+
+/* --- Paliers de compactage par HAUTEUR d'écran ---------------------
+   ~740px : iPhone SE/mini, petits Android, grands tels avec barres
+   navigateur dépliées. ~620px : paysage téléphone, très petits écrans. */
+@media (max-height: 740px) {
+  .game-round-card {
+    padding: 1.25rem 1rem;
+    min-height: min(320px, 48dvh);
+  }
+  .blindtest-shell .mb-10 { margin-bottom: 1.25rem; }
+  .blindtest-shell .mb-6 { margin-bottom: 0.875rem; }
+  .blindtest-shell .mb-5 { margin-bottom: 0.75rem; }
+  body.game-immersive .blindtest-shell { padding-top: max(env(safe-area-inset-top), 8px); }
+}
+@media (max-height: 620px) {
+  .game-round-card {
+    padding: 1rem 0.875rem;
+    min-height: 0;
+  }
+  /* En paysage téléphone, les réserves anti-décalage se resserrent mais restent
+     des hauteurs FIXES — la stabilité des clics est conservée. */
+  .blindtest-shell .h-9 { height: 2rem; }
+  .blindtest-shell .h-8 { height: 1.75rem; }
+  .blindtest-shell .h-7 { height: 1.5rem; }
+}
+
+/* --- Petites largeurs (≤ 390px : iPhone mini/SE, Android compacts) --- */
+@media (max-width: 390px) {
+  .blindtest-shell .filter-pill { padding-left: 0.7rem; padding-right: 0.7rem; font-size: 0.72rem; }
+  .game-round-card { border-radius: 1rem; }
+  .blindtest-shell .card { border-radius: 1rem; }
+}
+
+/* --- Très grands écrans : le jeu respire au centre, jamais étiré --- */
+@media (min-width: 1536px) {
+  .blindtest-shell { max-width: 46rem; }
+}
+
+/* --- Accessibilité : focus visible au clavier, animations réduites respectées --- */
+.blindtest-shell :focus-visible {
+  outline: 2px solid rgba(240, 0, 28, 0.8);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .blindtest-shell *,
+  .blindtest-shell *::before,
+  .blindtest-shell *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

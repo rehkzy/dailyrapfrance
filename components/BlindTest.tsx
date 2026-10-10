@@ -680,6 +680,12 @@ export default function BlindTest() {
     const locked = phase === "playing";
     if (!locked) return; // rien à verrouiller, rien à nettoyer
 
+    // Le "ghost scroll" (page décalée par le clavier iOS) ne concerne que le WINDOW,
+    // jamais la zone de jeu interne — et uniquement à la fermeture du clavier. L'ancien
+    // listener sur visualViewport.resize remettait tout en haut à CHAQUE variation du
+    // viewport (barre d'URL qui se replie, rotation...) : sur les petits téléphones, un
+    // scroll légitime dans le jeu était annulé dans la foulée. On ne garde que le cas
+    // clavier (focusout), et on ne touche qu'au scroll du document, pas à la zone de jeu.
     const resetGhostScroll = () => {
       const ae = document.activeElement as HTMLElement | null;
       const typing = !!ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
@@ -694,11 +700,20 @@ export default function BlindTest() {
       setTimeout(resetGhostScroll, 60);
     };
 
+    // Clavier ouvert (mode saisie) : le viewport visible rétrécit — on recentre le champ
+    // dans la zone scrollable du jeu pour qu'il ne finisse pas caché sous le clavier.
+    const onFocusIn = (e: FocusEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA") && t.closest(".blindtest-shell")) {
+        setTimeout(() => t.scrollIntoView({ block: "center", behavior: "smooth" }), 180);
+      }
+    };
+
     document.body.classList.add("game-scroll-lock");
     lockScroll();
     window.__lenis?.stop();
     window.addEventListener("focusout", onFocusOut);
-    window.visualViewport?.addEventListener("resize", resetGhostScroll);
+    window.addEventListener("focusin", onFocusIn);
 
     // Un seul chemin de nettoyage — appelé automatiquement par React à la fois quand
     // `phase` change ET au démontage, donc un unlockScroll() pour un lockScroll(),
@@ -706,7 +721,7 @@ export default function BlindTest() {
     // "else" ET le cleanup pouvaient tous deux se déclencher pour le même verrou).
     return () => {
       window.removeEventListener("focusout", onFocusOut);
-      window.visualViewport?.removeEventListener("resize", resetGhostScroll);
+      window.removeEventListener("focusin", onFocusIn);
       document.body.classList.remove("game-scroll-lock");
       unlockScroll();
       window.__lenis?.start();
@@ -1422,8 +1437,8 @@ export default function BlindTest() {
 
   return (
     <div
-      className="max-w-2xl mx-auto blindtest-shell overflow-y-auto overscroll-contain"
-      style={{ maxHeight: "100dvh", paddingBottom: "calc(env(safe-area-inset-bottom) + 172px)" }}
+      className="max-w-2xl mx-auto blindtest-shell game-scroll-area overflow-y-auto overscroll-contain"
+      style={{ height: "100dvh", paddingBottom: "calc(env(safe-area-inset-bottom) + 172px)" }}
     >
       <audio
         key={track.id}
@@ -1521,7 +1536,7 @@ export default function BlindTest() {
         </button>
       </div>
 
-      <div className="card p-8 text-center relative overflow-hidden min-h-[400px] flex flex-col justify-center transition-[height] duration-300">
+      <div className="card game-round-card text-center relative overflow-hidden flex flex-col justify-center transition-[height] duration-300">
         {revealed && <div className="brand-glow" aria-hidden="true" />}
 
         {roundGain && (
@@ -1956,10 +1971,10 @@ function QcmChoices({
             key={label}
             onClick={() => onPick(label)}
             disabled={disabled}
-            className={`solved-pop w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
+            className={`solved-pop tap-press w-full text-left rounded-xl px-4 py-3 min-h-[48px] text-sm font-medium border transition-colors disabled:opacity-50 active:scale-[0.985] ${
               wrongId === label
                 ? "border-riseNeg bg-riseNeg/10 shake-wrong"
-                : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
+                : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07] active:bg-white/10"
             }`}
           >
             {label}

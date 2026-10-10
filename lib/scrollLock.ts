@@ -31,6 +31,12 @@ export function lockScroll() {
     document.body.style.left = "0";
     document.body.style.right = "0";
     document.body.style.width = "100%";
+    // Hauteur explicite : sans elle, un body fixed prend la hauteur de son CONTENU,
+    // les conteneurs internes en max-height ne débordent jamais (content == container)
+    // et le scroll interne devient impossible — le bas de l'écran était coupé et
+    // inatteignable sur les petits téléphones. 100dvh suit la barre d'URL mobile.
+    document.body.style.height = "100dvh";
+    document.body.style.overflow = "hidden";
   }
   lockCount++;
 }
@@ -44,6 +50,8 @@ export function unlockScroll() {
     document.body.style.left = "";
     document.body.style.right = "";
     document.body.style.width = "";
+    document.body.style.height = "";
+    document.body.style.overflow = "";
     window.scrollTo(0, savedScrollY);
   }
 }
