@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2, Headphones, Briefcase, ChevronDown, CalendarDays, TrendingUp, Scale, Sparkles, Mic2, Ghost } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Info, Home, Gamepad2 } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
-import { Menu, MenuItem, MenuLink, ProductItem } from "@/components/ui/navbar-menu";
+import { Menu, MenuLink } from "@/components/ui/navbar-menu";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 // Liens simples du tiroir mobile (hors jeux, qui sont regroupés à part ci-dessous).
@@ -15,42 +15,9 @@ const SIMPLE_LINKS = [
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
-// Jeux du tiroir mobile — regroupés dans une section repliable "Jouer" (accordéon),
-// même logique que le menu déroulant desktop, plutôt qu'une liste à plat de 8 pages :
-// avoir chaque jeu comme item de menu séparé au même niveau que "Accueil"/"À propos"
-// noyait la nav et donnait l'impression de se perdre parmi trop de pages.
-const MOBILE_GAMES = [
-  { href: "/jouer", label: "Tous les jeux", Icon: Gamepad2, soon: false },
-  { href: "/jouer?play=1", label: "Blind Test", Icon: Headphones, soon: false },
-  { href: "/jeux/artists-manager", label: "Artists Manager 26", Icon: Briefcase, soon: false },
-  { href: "/jeux/bientot?titre=La%20Tracklist", label: "La Tracklist", Icon: CalendarDays, soon: true },
-  { href: "/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas", label: "Plus Haut, Plus Bas", Icon: TrendingUp, soon: true },
-  { href: "/jeux/bientot?titre=Le%20Tribunal", label: "Le Tribunal", Icon: Scale, soon: true },
-  { href: "/jeux/bientot?titre=Coach%20A%26R", label: "Coach A&R", Icon: Sparkles, soon: true },
-  { href: "/jeux/bientot?titre=La%20Punchline", label: "La Punchline", Icon: Mic2, soon: true },
-  { href: "/jeux/bientot?titre=Ghostwriter", label: "Ghostwriter", Icon: Ghost, soon: true },
-];
-
-// Vignette pour "Tous les jeux" dans le menu — pas de screenshot du hub, donc une petite
-// grille 2x2 en dégradé (couleurs de la charte) générée en SVG inline, zéro fichier à gérer.
-const ALL_GAMES_PREVIEW =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%232a0509'/%3E%3Cstop offset='100%25' stop-color='%230a0707'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='16' fill='url(%23g)'/%3E%3Crect x='30' y='30' width='60' height='60' rx='8' fill='%23F0001C'/%3E%3Crect x='110' y='30' width='60' height='60' rx='8' fill='%237A0F0F'/%3E%3Crect x='30' y='110' width='60' height='60' rx='8' fill='%23A3121B'/%3E%3Crect x='110' y='110' width='60' height='60' rx='8' fill='%23F0001C' opacity='0.6'/%3E%3C/svg%3E";
-
-// Menu déroulant desktop "Jouer" — regroupe désormais TOUT : le hub ("Tous les jeux",
-// preview grille 2x2 ci-dessus) + l'accès direct à chaque jeu, preview image façon
-// Aceternity ProductItem.
-const GAME_PREVIEWS = [
-  { title: "Tous les jeux", href: "/jouer", src: ALL_GAMES_PREVIEW, description: "Le hub avec l'arcade complète" },
-  { title: "Artists Manager 26", href: "/jeux/artists-manager", src: "/jeux/artists-manager.png", description: "Gère ton label, signe des talents" },
-  { title: "Blind Test", href: "/jouer?play=1", src: "/jeux/blind-test.png", description: "Reconnais les sons du rap français" },
-  { title: "La Tracklist", href: "/jeux/bientot?titre=La%20Tracklist", src: "/jeux/tracklist.png", description: "Bientôt disponible" },
-  { title: "Plus Haut, Plus Bas", href: "/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas", src: "/jeux/plus-haut.png", description: "Bientôt disponible" },
-  { title: "Le Tribunal", href: "/jeux/bientot?titre=Le%20Tribunal", src: "/jeux/tribunal.png", description: "Bientôt disponible" },
-  { title: "Coach A&R", href: "/jeux/bientot?titre=Coach%20A%26R", src: "/jeux/coach-ar.png", description: "Bientôt disponible" },
-  { title: "La Punchline", href: "/jeux/bientot?titre=La%20Punchline", src: "/jeux/punchline.png", description: "Bientôt disponible" },
-  { title: "Ghostwriter", href: "/jeux/bientot?titre=Ghostwriter", src: "/jeux/ghostwriter.png", description: "Bientôt disponible" },
-];
-
+// Un seul jeu pour le moment (le blind test) : "Jouer" est un lien direct, plus
+// un menu-catalogue. Les listes MOBILE_GAMES / GAME_PREVIEWS sont dans l'historique
+// git pour le jour où l'arcade rouvre.
 const socials = [
   { label: "Instagram", href: "https://www.instagram.com/dailyrapfrance/", Icon: InstagramIcon },
   { label: "TikTok", href: "https://www.tiktok.com/@dailyrapfrance", Icon: TikTokIcon },
@@ -109,7 +76,6 @@ function MobileMenu({
   const onGamePage = !!pathname && (pathname === "/jouer" || pathname.startsWith("/jeux/"));
   // Replié par défaut, sauf si on est déjà sur une page jeu — pas la peine de forcer un
   // tap supplémentaire pour retrouver où on est.
-  const [gamesOpen, setGamesOpen] = useState(onGamePage);
 
   if (!mounted) return null;
 
@@ -172,45 +138,17 @@ function MobileMenu({
               );
             })()}
 
-            {/* Jouer — accordéon regroupant tous les jeux, comme le déroulant desktop */}
-            <div>
-              <button
-                type="button"
-                onClick={() => setGamesOpen((v) => !v)}
-                aria-expanded={gamesOpen}
-                className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors ${
-                  onGamePage ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"
-                }`}
-              >
-                <Gamepad2 size={18} className={onGamePage ? "text-gold" : "text-ink-faint"} />
-                <span className="text-base font-medium flex-1 text-left">Jouer</span>
-                <ChevronDown size={16} className={`transition-transform ${gamesOpen ? "rotate-180" : ""}`} />
-              </button>
-              {gamesOpen && (
-                <div className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1 solved-pop">
-                  {MOBILE_GAMES.map((item) => {
-                    const active = pathname === item.href.split("?")[0] && (item.href === "/jouer" ? pathname === "/jouer" : true);
-                    return (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
-                          active ? "bg-gold/12 text-gold" : "text-ink-muted hover:text-ink hover:bg-white/5"
-                        }`}
-                      >
-                        <item.Icon size={16} className={active ? "text-gold" : "text-ink-faint"} />
-                        <span className="text-sm font-medium flex-1">{item.label}</span>
-                        {item.soon && (
-                          <span className="shrink-0 font-mono text-[9px] uppercase tracking-wide text-ink-faint bg-white/8 rounded-full px-2 py-0.5">
-                            Bientôt
-                          </span>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {/* Jouer — lien direct vers le blind test, seul jeu du site pour le moment
+                (l'accordéon multi-jeux reviendra avec le catalogue). */}
+            <a
+              href="/jouer"
+              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 transition-colors ${
+                onGamePage ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"
+              }`}
+            >
+              <Gamepad2 size={18} className={onGamePage ? "text-gold" : "text-ink-faint"} />
+              <span className="text-base font-medium flex-1 text-left">Jouer</span>
+            </a>
 
             {/* À propos */}
             {(() => {
@@ -294,13 +232,9 @@ export default function Header() {
             <MenuLink href="/" active={pathname === "/"} setActive={setActiveMenu}>
               Accueil
             </MenuLink>
-            <MenuItem setActive={setActiveMenu} active={activeMenu} item="Jouer">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[440px] max-w-[calc(100vw-3rem)]">
-                {GAME_PREVIEWS.map((g) => (
-                  <ProductItem key={g.href} title={g.title} href={g.href} src={g.src} description={g.description} />
-                ))}
-              </div>
-            </MenuItem>
+            <MenuLink href="/jouer" active={pathname === "/jouer"} setActive={setActiveMenu}>
+              Jouer
+            </MenuLink>
             <MenuLink href="/a-propos" active={pathname === "/a-propos"} setActive={setActiveMenu}>
               À propos
             </MenuLink>
