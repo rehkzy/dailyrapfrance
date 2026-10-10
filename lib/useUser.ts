@@ -10,10 +10,15 @@ export function useUser() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        setUser(data.user);
+        setLoading(false);
+      })
+      // Réseau coupé ou Supabase injoignable : on continue en invité plutôt que de
+      // laisser le joueur bloqué sur un loader infini (fréquent sur mobile).
+      .catch(() => setLoading(false));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });

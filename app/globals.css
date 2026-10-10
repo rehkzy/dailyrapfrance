@@ -1743,3 +1743,13 @@ input[type="range"].brand-slider::-moz-range-track {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Barre du wizard sur petits écrans : "Lancer la partie" tient sur UNE ligne. */
+@media (max-width: 430px) {
+  .blindtest-shell .game-btn {
+    white-space: nowrap;
+    font-size: 0.82rem;
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+}

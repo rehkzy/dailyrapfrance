@@ -98,7 +98,9 @@ export default function BlindTest() {
   const [roundSeconds, setRoundSeconds] = useState(DEFAULT_ROUND_SECONDS);
   const [jokerCount, setJokerCount] = useState(1);
   const jokersEnabled = jokerCount > 0;
-  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
+  // "Facile" (QCM) présélectionné : l'écran Réglages n'a plus d'état bloquant caché —
+  // un joueur pressé peut taper "Lancer la partie" sans jamais avoir vu ce choix.
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>("qcm");
   const [strictMode, setStrictMode] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(false);
   const [trackVolume, setTrackVolume] = useState(1);
@@ -131,6 +133,8 @@ export default function BlindTest() {
   // Confirmation avant les actions sensibles : quitter en pleine partie efface la progression.
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [confirmSkip, setConfirmSkip] = useState(false);
+  // Mode invité : affichage volontaire de l'écran de connexion depuis le setup.
+  const [showAuth, setShowAuth] = useState(false);
   const extractStartedAtRef = useRef<number | null>(null);
   const [bonusFlash, setBonusFlash] = useState<number | null>(null);
   const [qcmWrongId, setQcmWrongId] = useState<string | null>(null);
@@ -740,11 +744,19 @@ export default function BlindTest() {
     );
   }
 
-  if (!user) {
-    return <SignInGate />;
-  }
-
+  // Mode invité : solo et local se jouent SANS compte (le compte ne sert qu'à
+  // sauvegarder les scores et créer des salons). Le mur de connexion ne se dresse
+  // qu'au moment où il est réellement nécessaire : salon en ligne / soirée.
   if (mode === "online" || mode === "party") {
+    if (!user) {
+      return (
+        <SignInGate
+          title={mode === "party" ? "Un compte pour lancer la soirée" : "Un compte pour le salon en ligne"}
+          description="Les salons privés demandent un compte — c'est lui qui relie les joueurs entre eux. Solo et Local restent jouables sans."
+          onBack={() => setMode(null)}
+        />
+      );
+    }
     return (
       <BlindTestRoom
         user={user}
@@ -755,12 +767,31 @@ export default function BlindTest() {
     );
   }
 
+  if (showAuth && !user) {
+    return (
+      <div className="pt-8 blindtest-shell">
+        <SignInGate onBack={() => setShowAuth(false)} />
+      </div>
+    );
+  }
+
   if (phase === "setup" || phase === "loading") {
     return (
       <div
         className="max-w-2xl mx-auto pt-6 sm:pt-8 blindtest-shell"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 236px)" }}
+        style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${wizardStep > 0 || mode === "local" ? 236 : 150}px)` }}
       >
+        {!user && (
+          <div className="flex justify-center mb-3">
+            <button
+              onClick={() => setShowAuth(true)}
+              className="inline-flex items-center gap-1.5 text-[11px] text-ink-faint hover:text-ink glass rounded-full px-3.5 py-1.5 transition-colors"
+            >
+              <LogIn size={11} className="text-gold" />
+              Mode invité · <span className="text-gold font-semibold">se connecter</span>
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1 flex-wrap">
           {[
             { label: "Mode", Icon: Gamepad2 },
@@ -849,6 +880,11 @@ export default function BlindTest() {
                         sfx.click();
                         setMode(m.id);
                         setSetupError(null);
+                        // Auto-avance : choisir Solo répond à la seule question de l'étape,
+                        // on passe direct au thème (zéro clic "Suivant"). Local reste sur
+                        // place : il faut saisir les pseudos. Online/Soirée quittent le
+                        // wizard d'eux-mêmes (rendu Room / gate connexion).
+                        if (m.id === "solo") setTimeout(() => setWizardStep(1), 220);
                       }}
                       className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
                         isActive
@@ -941,6 +977,8 @@ export default function BlindTest() {
               onSelect={(id) => {
                 sfx.click();
                 setThemeId(id);
+                // Auto-avance : un thème choisi = l'étape est finie, direction Réglages.
+                setTimeout(() => setWizardStep(2), 220);
               }}
               dailyTheme={dailyTheme}
             />
@@ -1185,6 +1223,10 @@ export default function BlindTest() {
         <div className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/95 to-transparent -z-10" aria-hidden="true" />
           <div className="max-w-2xl mx-auto pointer-events-auto">
+            {/* La barre Précédent/Suivant n'apparaît que quand elle sert : jamais à
+                l'étape Mode (l'auto-avance fait le travail), sauf en Local où il faut
+                valider les pseudos. Une barre de moins = un écran qui respire. */}
+            {(wizardStep > 0 || mode === "local") && (
             <div className="px-4 pt-4">
               <div className="flex items-center gap-3 glass-strong rounded-2xl p-2">
                 <button
@@ -1229,6 +1271,7 @@ export default function BlindTest() {
                 )}
               </div>
             </div>
+            )}
 
             <div className="pt-2.5">
               <GameTabBarContent />
@@ -1322,7 +1365,13 @@ export default function BlindTest() {
               </>
             )}
             {scoreSaveStatus === "guest" && (
-              <p className="text-xs font-mono text-ink-faint">Connecte-toi pour sauvegarder ce score.</p>
+              <button
+                onClick={() => setShowAuth(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold hover:text-glow glass rounded-full px-4 py-2 transition-colors"
+              >
+                <LogIn size={12} />
+                Connecte-toi pour sauvegarder ce score
+              </button>
             )}
           </div>
         )}
@@ -2034,7 +2083,15 @@ function ResultPill({ ok, label, points }: { ok: boolean; label: string; points:
 }
 
 // Verrou de connexion — il faut un compte pour jouer (scores, salons privés).
-function SignInGate() {
+function SignInGate({
+  title = "Connecte-toi",
+  description = "Ton compte sert à sauvegarder tes scores et à créer des salons privés entre potes.",
+  onBack,
+}: {
+  title?: string;
+  description?: string;
+  onBack?: () => void;
+}) {
   async function signIn() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -2048,10 +2105,16 @@ function SignInGate() {
       <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4">
         <LogIn size={20} />
       </div>
-      <p className="font-display text-xl font-medium mb-2">Connecte-toi pour jouer</p>
-      <p className="text-sm text-ink-muted mb-6">
-        Ton compte sert à sauvegarder tes scores et à créer des salons privés entre potes.
-      </p>
+      <p className="font-display text-xl font-medium mb-2">{title}</p>
+      <p className="text-sm text-ink-muted mb-6">{description}</p>
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="mb-5 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink transition-colors"
+        >
+          <ChevronLeft size={13} /> Revenir aux modes de jeu
+        </button>
+      )}
       <button
         onClick={signIn}
         className="w-full bg-gold hover:bg-glow text-white rounded-full py-3 text-sm font-medium transition-colors"
