@@ -23,6 +23,8 @@ export const VARIANTS: { id: Variant; label: string; desc: string }[] = [
   { id: "survival", label: "Survie", desc: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
   { id: "sprint", label: "Sprint", desc: "20 extraits, 8 secondes chacun, sans joker." },
 ];
+// Source des manches : extrait audio Deezer (30 s) ou clip YouTube (image + son, intro évitée).
+export type Media = "audio" | "clip";
 export const SPRINT_SECONDS = 8;
 export const SPRINT_ROUNDS = 20;
 export const SURVIVAL_POOL = 30;
@@ -36,6 +38,7 @@ export type GameConfig = {
   jokers: number;
   players: string[];
   variant: Variant;
+  media?: Media;
 };
 
 export type Preset = GameConfig & {
@@ -119,6 +122,7 @@ export function deletePreset(id: string) {
 export function describeConfig(c: GameConfig, themeLabel: string) {
   const modeLabel = { solo: "Solo", local: "Entre potes", online: "Salon en ligne", party: "Soirée TV" }[c.mode];
   const parts = [modeLabel, themeLabel];
+  if (c.media === "clip") parts.push("Clips");
   if (c.variant && c.variant !== "classic") parts.push(VARIANTS.find((v) => v.id === c.variant)?.label ?? c.variant);
   else parts.push(`${c.rounds} manches`);
   if (c.mode === "local" && c.players.length) parts.push(`${c.players.length} joueurs`);
@@ -136,6 +140,7 @@ export function configToSearch(c: GameConfig, extra?: Record<string, string>): s
   if (c.jokers !== DEFAULT_CONFIG.jokers) p.set("jokers", String(c.jokers));
   if (c.mode === "local" && c.players.length) p.set("players", c.players.join("|"));
   if (c.variant && c.variant !== "classic") p.set("v", c.variant);
+  if (c.media === "clip") p.set("media", "clip");
   if (extra) for (const [k, v] of Object.entries(extra)) if (v) p.set(k, v);
   return p.toString();
 }
@@ -153,6 +158,8 @@ export function parseConfig(params: URLSearchParams, validTheme: (id: string) =>
   if (theme && (theme === "random" || validTheme(theme))) out.theme = theme;
   const v = params.get("v");
   if (v === "classic" || v === "survival" || v === "sprint") out.variant = v;
+  const media = params.get("media");
+  if (media === "clip" || media === "audio") out.media = media;
   const rounds = Number(params.get("rounds"));
   if ((ROUND_OPTIONS as readonly number[]).includes(rounds)) out.rounds = rounds;
   const secs = Number(params.get("secs"));

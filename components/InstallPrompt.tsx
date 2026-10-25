@@ -121,7 +121,7 @@ export default function InstallPrompt() {
             <p className="font-display font-bold text-sm leading-tight">Garde le blind test sous la main</p>
             <p className="text-[11px] text-ink-muted mt-0.5">
               {platform === "ios"
-                ? "Sur ton écran d'accueil : le défi du jour en un tap, plein écran, sans Safari."
+                ? "Trois touches dans Safari et le défi du jour est sur ton écran d'accueil, plein écran."
                 : "Sur ton écran d'accueil en un tap — idéal pour lancer une soirée."}
             </p>
           </div>
@@ -161,8 +161,8 @@ export default function InstallPrompt() {
                   Icon: Share,
                   text: (
                     <>
-                      Touche le bouton <strong className="text-ink">Partager</strong>{" "}
-                      <Share size={13} className="inline -mt-0.5 text-glow" /> en bas de Safari
+                      Touche <strong className="text-ink">⋯</strong> à droite de la barre d&apos;adresse, puis{" "}
+                      <strong className="text-ink">Partager</strong> <Share size={13} className="inline -mt-0.5 text-glow" />
                     </>
                   ),
                 },
@@ -170,7 +170,7 @@ export default function InstallPrompt() {
                   Icon: SquarePlus,
                   text: (
                     <>
-                      Fais défiler et choisis <strong className="text-ink">« Sur l'écran d'accueil »</strong>
+                      Fais défiler et touche <strong className="text-ink">Ajouter à l&apos;écran d&apos;accueil</strong>
                     </>
                   ),
                 },
@@ -178,7 +178,7 @@ export default function InstallPrompt() {
                   Icon: Smartphone,
                   text: (
                     <>
-                      Touche <strong className="text-ink">Ajouter</strong> — l'app est posée, plein écran, avec le logo
+                      Touche <strong className="text-ink">Ajouter</strong> en haut à droite — l&apos;icône rouge DailyRap est posée
                     </>
                   ),
                 },

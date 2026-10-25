@@ -32,6 +32,7 @@ import BrandMark, { BrandTile } from "@/components/BrandMark";
 import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
 import { markPlayedToday, bumpGamesPlayed, dailyNumber, getStreak, recordDailyScore } from "@/lib/dailyStreak";
 import type { RoundOutcome } from "@/lib/share";
+import ClipPlayer, { type ClipHandle } from "@/components/ClipPlayer";
 
 // Icône "salon" harmonisée avec la page d'accueil (Untitled UI) — remplace Globe (lucide)
 // qui donnait un symbole différent ("planète") de celui utilisé ailleurs pour le même
@@ -61,6 +62,7 @@ type Track = {
   previewUrl: string;
   coverUrl: string | null;
   feats: string[];
+  clip?: { videoId: string; duration: number; start: number } | null;
 };
 type Mode = "solo" | "local" | "online" | "party";
 type Phase = "setup" | "loading" | "playing" | "final";
@@ -119,6 +121,11 @@ export default function BlindTest() {
   const [mode, setMode] = useState<Mode | null>(joinRoomCode ? "online" : deepLinkMode);
   const [themeId, setThemeId] = useState<string>(deepLinkTheme ?? "mix");
   const [variant, setVariant] = useState<Variant>(deepLink.variant ?? "classic");
+  // Source : extrait audio Deezer ou clip YouTube (mode « Devine le clip »).
+  const [media, setMedia] = useState<"audio" | "clip">(deepLink.media ?? "audio");
+  const isClip = media === "clip";
+  const clipRef = useRef<ClipHandle | null>(null);
+  const [clipUnavailable, setClipUnavailable] = useState(false);
   const variantRef = useRef<Variant>(variant);
   variantRef.current = variant;
   const [roundCount, setRoundCount] = useState(deepLink.rounds ?? 10);
@@ -159,6 +166,7 @@ export default function BlindTest() {
     jokers: jokerCount,
     players: mode === "local" ? playerNames.filter((n) => n.trim()) : [],
     variant,
+    media,
   };
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -244,6 +252,7 @@ export default function BlindTest() {
     sfx.reveal();
     clearTimers();
     audioRef.current?.pause();
+    clipRef.current?.pause();
     if (trackRef.current) {
       setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current, fast: fastRef.current }]);
     }
@@ -317,7 +326,7 @@ export default function BlindTest() {
       // Lancement auto — uniquement si l'audio a déjà été déverrouillé une première fois
       // dans cette session (premier clic manuel sur "Lancer l'extrait"). Petit délai pour
       // laisser le <audio> (remonté via key={track.id}) être prêt après resetRoundState().
-      if (autoPlayEnabled && audioUnlockedRef.current) {
+      if (autoPlayEnabled && audioUnlockedRef.current && media !== "clip") {
         const t = setTimeout(() => launchExtract(), 150);
         return () => clearTimeout(t);
       }
@@ -366,11 +375,32 @@ export default function BlindTest() {
     try {
       const res = await fetch(`/api/blindtest/pool?${buildQuery(playTheme, effectiveRounds)}`);
       const data = await res.json();
-      const pool: Track[] = data.tracks ?? [];
+      let pool: Track[] = data.tracks ?? [];
       if (pool.length < 3) {
         setSetupError("Deezer n'a pas renvoyé assez de titres pour ce thème. Réessaie, ou choisis un autre thème.");
         setPhase("setup");
         return;
+      }
+      if (media === "clip") {
+        // Mode clip : on retrouve le clip YouTube de chaque morceau ; ceux sans clip sortent du lot.
+        const cres = await fetch("/api/blindtest/clips", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tracks: pool.map((t) => ({ id: t.id, title: t.title, artistName: t.artistName })) }),
+        });
+        const cdata = (await cres.json()) as { clips?: Record<string, Track["clip"]>; available?: boolean };
+        if (cdata.available === false) {
+          setClipUnavailable(true);
+          setSetupError("Le mode clip n'est pas encore activé sur ce site. Joue avec les extraits audio en attendant.");
+          setPhase("setup");
+          return;
+        }
+        pool = pool.map((t) => ({ ...t, clip: cdata.clips?.[t.id] ?? null })).filter((t) => t.clip);
+        if (pool.length < 3) {
+          setSetupError("Pas assez de clips trouvés pour ce thème — essaie un autre thème, ou repasse en extraits audio.");
+          setPhase("setup");
+          return;
+        }
       }
       setTracks(pool);
       setPreviewOverride({});
@@ -396,7 +426,8 @@ export default function BlindTest() {
     audioUnlockedRef.current = true;
     extractStartedAtRef.current = Date.now();
     setAudioError(false);
-    audioRef.current?.play().catch(() => void recoverAudio(true));
+    if (isClip) clipRef.current?.play();
+    else audioRef.current?.play().catch(() => void recoverAudio(true));
     deadlineRef.current = Date.now() + effectiveSeconds * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
@@ -447,8 +478,14 @@ export default function BlindTest() {
   function useJoker(playerId: string) {
     const player = players.find((p) => p.id === playerId);
     const audio = audioRef.current;
-    if (!jokersEnabled || !player || player.jokersLeft <= 0 || !audio || !started || revealed || buzzedBy) return;
+    if (!jokersEnabled || !player || player.jokersLeft <= 0 || (!audio && !isClip) || !started || revealed || buzzedBy) return;
     sfx.joker();
+    if (isClip) {
+      clipRef.current?.seekBy(12);
+      setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, jokersLeft: p.jokersLeft - 1 } : p)));
+      return;
+    }
+    if (!audio) return;
     const dur = audio.duration;
     const jump = Number.isFinite(dur) ? Math.min(dur - 3, audio.currentTime + 9) : audio.currentTime + 9;
     audio.currentTime = Math.max(0, jump);
@@ -852,6 +889,7 @@ export default function BlindTest() {
     setAnswerMode(p.answerMode);
     setJokerCount(p.jokers);
     setVariant(p.variant ?? "classic");
+    setMedia(p.media ?? "audio");
     if (p.mode === "local" && p.players.length >= 2) setPlayerNames(p.players);
     setMode(p.mode);
     setSetupError(null);
@@ -1079,6 +1117,16 @@ export default function BlindTest() {
                     </p>
                   </div>
                   <div>
+                    <p className="text-xs font-semibold text-ink-faint mb-2">Source</p>
+                    <div className="segmented">
+                      <button type="button" aria-pressed={media === "audio"} onClick={() => { sfx.click(); setMedia("audio"); setSetupError(null); }}>Extrait audio</button>
+                      <button type="button" aria-pressed={media === "clip"} onClick={() => { sfx.click(); setMedia("clip"); setSetupError(null); }} disabled={clipUnavailable}>Devine le clip</button>
+                    </div>
+                    <p className="text-xs text-ink-faint mt-2 min-h-[1.5em]">
+                      {media === "clip" ? "Le clip YouTube, lancé après l'intro (titre et artiste masqués). Image et son." : "L'extrait Deezer de 30 secondes, pochette floutée en fond."}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-xs font-semibold text-ink-faint mb-2">Réponse</p>
                     <div className="segmented">
                       <button type="button" aria-pressed={answerMode === "qcm"} onClick={() => { sfx.click(); setAnswerMode("qcm"); }}>Facile · 3 choix</button>
@@ -1271,8 +1319,8 @@ export default function BlindTest() {
 
   return (
     <div className="stage blindtest-shell game-scroll-area overflow-y-auto overscroll-contain px-5 sm:px-6" style={{ height: "100dvh", paddingBottom: "calc(env(safe-area-inset-bottom) + 260px)" }}>
-      <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" onError={() => (started ? void recoverAudio(true) : undefined)} />
-      {track.coverUrl && <div className="round-bg" data-revealed={revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
+      {!isClip && <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" onError={() => (started ? void recoverAudio(true) : undefined)} />}
+      {track.coverUrl && !isClip && <div className="round-bg" data-revealed={revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
 
       <div className="max-w-2xl mx-auto">
         {/* Rail haut : quitter · progression · volume · plein écran */}
@@ -1346,15 +1394,22 @@ export default function BlindTest() {
           </div>
         )}
 
+        {/* Clip (mode « Devine le clip ») — monté dès la manche pour précharger, lecture au tap */}
+        {isClip && track.clip && !revealed && (
+          <div className="mb-5 max-w-lg mx-auto">
+            <ClipPlayer key={track.id} ref={clipRef} videoId={track.clip.videoId} start={track.clip.start} volume={trackVolume} onError={() => setAudioError(true)} covered={!started} />
+          </div>
+        )}
+
         {/* Scène centrale */}
-        <div className="text-center min-h-[42vh] flex flex-col items-center justify-center">
+        <div className={`text-center flex flex-col items-center justify-center ${isClip ? "min-h-[20vh]" : "min-h-[42vh]"}`}>
           {!started ? (
             <>
-              <span className="block w-20 h-20 mb-6"><DRMark3D size="100%" /></span>
+              {!isClip && <span className="block w-20 h-20 mb-6"><DRMark3D size="100%" /></span>}
               <p className="stage-kicker mb-1">{variant === "survival" ? `Son n°${roundIndex + 1}` : `Manche ${roundIndex + 1}`}</p>
-              <p className="font-display text-2xl font-extrabold tracking-tight mb-8">{roundIndex === 0 ? "Prêt ? Le son part au tap." : "Suivant."}</p>
+              <p className="font-display text-2xl font-extrabold tracking-tight mb-6">{roundIndex === 0 ? (isClip ? "Prêt ? Le clip part au tap." : "Prêt ? Le son part au tap.") : "Suivant."}</p>
               <button type="button" onClick={launchExtract} className="sticker h-16 px-10 text-lg">
-                <Icon icon="game-icons:play-button" width={22} /> Lancer l&apos;extrait
+                <Icon icon="game-icons:play-button" width={22} /> {isClip ? "Lancer le clip" : "Lancer l'extrait"}
               </button>
             </>
           ) : !revealed ? (
@@ -1366,8 +1421,8 @@ export default function BlindTest() {
                   <button type="button" onClick={retryAudio} className="text-xs font-semibold text-riseNeg inline-flex items-center gap-1"><RotateCcw size={12} /> Réessayer</button>
                 </div>
               )}
-              <div className="big-timer mb-3" data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
-                <span className={`score-num text-6xl ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
+              <div className={`big-timer mb-3 ${isClip ? "!w-24 !h-24" : ""}`} data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
+                <span className={`score-num ${isClip ? "text-4xl" : "text-6xl"} ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
               </div>
               <div className="h-7 flex items-center justify-center" aria-live="polite">
                 {bonusFlash !== null && <span className="solved-pop text-xs font-bold text-[#ffd166]">⚡ +{bonusFlash} rapidité</span>}

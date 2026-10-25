@@ -1,4 +1,4 @@
-import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy } from "lucide-react";
+import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy, Clapperboard } from "lucide-react";
 import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
 import SocialLinks from "@/components/SocialLinks";
@@ -106,8 +106,9 @@ export default function Home() {
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16" aria-labelledby="defis-title">
         <h2 id="defis-title" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Envie d&apos;autre chose ?</h2>
         <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
+            { href: "/jouer?mode=solo&media=clip&theme=hits-2026", Icon: Clapperboard, t: "Devine le clip", s: "L'image et le son, sans l'intro qui donne la réponse. Nouveau." },
             { href: "/jouer?mode=solo&v=survival&theme=mix", Icon: Skull, t: "Survie", s: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
             { href: "/jouer?mode=solo&v=sprint&theme=pop", Icon: Timer, t: "Sprint", s: "20 extraits, 8 secondes chacun. Que de l'instinct." },
             { href: "/jouer?mode=solo&theme=random&autostart=1", Icon: Shuffle, t: "Thème surprise", s: "Un thème tiré au sort, lancé direct." },

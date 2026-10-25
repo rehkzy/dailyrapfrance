@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Share, SquarePlus, Smartphone, Download, X, MoreVertical, Monitor } from "lucide-react";
+import { Share, SquarePlus, Smartphone, Download, X, MoreVertical, MoreHorizontal, Monitor } from "lucide-react";
 import QRCode from "qrcode";
 import { BrandTile } from "@/components/BrandMark";
 import { useInstall } from "@/lib/useInstall";
@@ -43,20 +43,20 @@ function Steps({ platform, canPrompt, onInstall }: { platform: "ios" | "android"
   const steps =
     platform === "ios"
       ? [
-          { Icon: Share, text: <>Touche <strong className="text-ink">Partager</strong> en bas de Safari</> },
-          { Icon: SquarePlus, text: <>Choisis <strong className="text-ink">« Sur l&apos;écran d&apos;accueil »</strong></> },
-          { Icon: Smartphone, text: <>Touche <strong className="text-ink">Ajouter</strong> — l&apos;icône est posée</> },
+          { Icon: MoreHorizontal, text: <>Touche <strong className="text-ink">⋯</strong> à droite de la barre d&apos;adresse, puis <strong className="text-ink">Partager</strong></> },
+          { Icon: SquarePlus, text: <>Fais défiler la liste et touche <strong className="text-ink">Ajouter à l&apos;écran d&apos;accueil</strong></> },
+          { Icon: Smartphone, text: <>Touche <strong className="text-ink">Ajouter</strong> en haut à droite. L&apos;icône rouge DailyRap apparaît sur ton écran d&apos;accueil.</> },
         ]
       : platform === "android"
         ? [
-            { Icon: MoreVertical, text: <>Ouvre le menu <strong className="text-ink">⋮</strong> de Chrome</> },
-            { Icon: SquarePlus, text: <>Touche <strong className="text-ink">« Ajouter à l&apos;écran d&apos;accueil »</strong> ou « Installer l&apos;application »</> },
-            { Icon: Smartphone, text: <>Confirme — l&apos;icône est posée</> },
+            { Icon: MoreVertical, text: <>Touche <strong className="text-ink">⋮</strong> en haut à droite de Chrome</> },
+            { Icon: SquarePlus, text: <>Touche <strong className="text-ink">Ajouter à l&apos;écran d&apos;accueil</strong> (ou <strong className="text-ink">Installer l&apos;application</strong>)</> },
+            { Icon: Smartphone, text: <>Confirme avec <strong className="text-ink">Installer</strong>. C&apos;est posé.</> },
           ]
         : [
-            { Icon: Smartphone, text: <>Scanne le QR code avec ton téléphone</> },
-            { Icon: Share, text: <>Sur iPhone : Partager → « Sur l&apos;écran d&apos;accueil ». Sur Android : menu ⋮ → « Installer »</> },
-            { Icon: Monitor, text: <>Sur cet ordinateur : Chrome propose aussi « Installer DailyRap » dans la barre d&apos;adresse</> },
+            { Icon: Smartphone, text: <>Scanne le QR code avec ton téléphone pour ouvrir le jeu</> },
+            { Icon: Share, text: <>iPhone : <strong className="text-ink">⋯ → Partager → Ajouter à l&apos;écran d&apos;accueil</strong>. Android : <strong className="text-ink">⋮ → Installer</strong></> },
+            { Icon: Monitor, text: <>Sur cet ordinateur, Chrome propose aussi <strong className="text-ink">Installer DailyRap</strong> dans la barre d&apos;adresse</> },
           ];
   return (
     <ol className="space-y-2">
@@ -98,7 +98,11 @@ export function AppStoreCallout({ compact = false }: { compact?: boolean }) {
             <BrandTile size={48} />
             <div>
               <p className="font-display text-lg sm:text-xl font-bold leading-tight">L&apos;app DailyRap arrive sur les stores</p>
-              <p className="text-xs text-ink-faint">En attendant, ajoute-la à ton écran d&apos;accueil : même icône, plein écran, lancement instantané.</p>
+              <p className="text-xs text-ink-faint">
+                {p === "ios"
+                  ? "En attendant, ajoute-la depuis Safari (Apple n'autorise pas de bouton direct) : même icône, plein écran, lancement instantané."
+                  : "En attendant, ajoute-la à ton écran d'accueil : même icône, plein écran, lancement instantané."}
+              </p>
             </div>
           </div>
           <div className="mb-4">
@@ -163,7 +167,9 @@ export function AppComingSoonModal() {
             <p className="text-xs text-ink-muted mt-1">
               {platform === "desktop"
                 ? "En attendant, le blind test se joue déjà comme une app sur ton téléphone."
-                : "En attendant, ajoute le blind test à ton écran d'accueil — 20 secondes, et il se lance comme une app."}
+                : platform === "ios"
+                  ? "Sur iPhone, Apple n'autorise aucun bouton d'installation direct : il faut passer par Safari, trois touches suffisent. Ensuite le jeu se lance comme une app, plein écran."
+                  : "Un tap et le blind test est sur ton écran d'accueil, plein écran, comme une app."}
             </p>
           </div>
           <button type="button" onClick={close} aria-label="Fermer" className="w-9 h-9 rounded-full glass grid place-items-center text-ink-muted shrink-0">
