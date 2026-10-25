@@ -28,7 +28,7 @@ import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
 import ResultTicket from "@/components/ResultTicket";
 import SavedPresets from "@/components/SavedPresets";
 import DailyCard from "@/components/DailyCard";
-import BrandMark, { BrandTile } from "@/components/BrandMark";
+import BrandMark from "@/components/BrandMark";
 import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
 import { markPlayedToday, bumpGamesPlayed, dailyNumber, getStreak, recordDailyScore } from "@/lib/dailyStreak";
 import type { RoundOutcome } from "@/lib/share";
@@ -931,8 +931,8 @@ export default function BlindTest() {
   const modeLabelNow = MODE_TILES.find((m) => m.id === mode)?.label ?? "Solo";
   const stageTop = (
     <div className="flex items-center justify-between gap-3 pt-4 pb-2">
-      <a href="/" className="inline-flex items-center gap-2 text-sm font-semibold">
-        <BrandTile size={28} /> DailyRap
+      <a href="/" aria-label="DailyRapFrance — accueil" className="inline-flex items-center">
+        <img src="/logo.svg" alt="DailyRapFrance" className="h-6 sm:h-7 w-auto" />
       </a>
       <div className="flex items-center gap-1.5">
         <a href="/blindtest/classement" aria-label="Classement" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink">
