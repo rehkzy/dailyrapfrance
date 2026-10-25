@@ -30,7 +30,12 @@ export async function sendEmail(to: string, subject: string, bodyText: string): 
       to: [to],
       subject,
       html: brandedHtml(subject, bodyText),
-      text: bodyText,
+      text: `${bodyText}\n\n—\nPour ne plus recevoir nos nouvelles : réponds « stop » à ce mail.`,
+      // En-tête de désinscription (Gmail/Apple Mail affichent un lien "Se désabonner") —
+      // une réponse "stop" suffit, traitée à la main depuis la boîte contact.
+      headers: {
+        "List-Unsubscribe": `<mailto:${(process.env.EMAIL_FROM ?? "").match(/<([^>]+)>/)?.[1] ?? "contact@dailyrapfrance.best"}?subject=stop>`,
+      },
     }),
   });
   if (!res.ok) {
@@ -119,7 +124,7 @@ function brandedHtml(subject: string, bodyText: string): string {
             <a href="https://dailyrapfrance.best" style="color:#F0001C;text-decoration:none;font-weight:600;">dailyrapfrance.best</a>
           </p>
           <p class="drf-text" style="margin:8px 0 0;color:rgba(245,232,232,0.28);font-size:11px;font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
-            Tu reçois ce mail parce que tu as un compte sur le blind test. Réponds simplement à ce mail pour nous parler.
+            Tu reçois ce mail parce que tu as un compte sur le blind test. Pour ne plus recevoir nos nouvelles, réponds simplement « stop » à ce mail.
           </p>
         </td></tr>
 

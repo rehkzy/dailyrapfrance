@@ -36,6 +36,7 @@ export default function ShareScoreCard({
       try {
         await Promise.all([
           document.fonts.load('800 340px "Bricolage Grotesque"'),
+          document.fonts.load('800 150px "Bricolage Grotesque"'),
           document.fonts.load('600 46px "Bricolage Grotesque"'),
         ]);
       } catch {
@@ -56,71 +57,30 @@ export default function ShareScoreCard({
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
 
-      // Logo officiel DailyRapFrance — le monogramme blanc (icon.svg, fond transparent),
-      // posé sur une pastille GLASS dessinée à la main : voile blanc translucide, liseré
-      // clair en haut, fine bordure — le style "glass" du site, sans aucun cadre opaque
-      // ni fond noir derrière le logo.
+      // En haut : le lettrage horizontal officiel, discret (c'est le jeu qu'on met en avant,
+      // pas la marque en double), puis le nom du jeu en très gros, façon affiche.
       try {
-        const logo = await loadSvg("/logo-stacked.svg");
+        const logo = await loadSvg("/logo.svg");
         if (cancelled) return;
-
-        const panelW = 340;
-        const panelH = 300;
-        const panelX = (W - panelW) / 2;
-        const panelY = 130;
-        const pr = 56;
-
-        const roundedPath = () => {
-          ctx.beginPath();
-          ctx.moveTo(panelX + pr, panelY);
-          ctx.arcTo(panelX + panelW, panelY, panelX + panelW, panelY + panelH, pr);
-          ctx.arcTo(panelX + panelW, panelY + panelH, panelX, panelY + panelH, pr);
-          ctx.arcTo(panelX, panelY + panelH, panelX, panelY, pr);
-          ctx.arcTo(panelX, panelY, panelX + panelW, panelY, pr);
-          ctx.closePath();
-        };
-
-        // Voile translucide (dégradé léger pour l'effet verre)
-        const glass = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
-        glass.addColorStop(0, "rgba(255,255,255,0.10)");
-        glass.addColorStop(1, "rgba(255,255,255,0.045)");
-        roundedPath();
-        ctx.fillStyle = glass;
-        ctx.fill();
-        // Fine bordure + reflet haut
-        roundedPath();
-        ctx.strokeStyle = "rgba(255,255,255,0.22)";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.strokeStyle = "rgba(255,255,255,0.35)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(panelX + pr, panelY + 1);
-        ctx.lineTo(panelX + panelW - pr, panelY + 1);
-        ctx.stroke();
-
-        // Le logo blanc, centré dans la pastille
-        const logoW = 240;
+        const logoW = 300;
         const logoH = (logo.height / logo.width) * logoW;
-        ctx.drawImage(logo, (W - logoW) / 2, panelY + (panelH - logoH) / 2, logoW, logoH);
+        ctx.drawImage(logo, (W - logoW) / 2, 120, logoW, logoH);
       } catch {
         // pas bloquant si le logo ne charge pas — le reste de la carte reste correct
       }
 
       ctx.textAlign = "center";
-
       ctx.fillStyle = "#ffffff";
-      ctx.font = '800 52px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.font = '800 150px "Bricolage Grotesque", system-ui, sans-serif';
       ctx.save();
-      ctx.letterSpacing = "4px";
-      ctx.fillText("DAILYRAPFRANCE", W / 2, 460);
+      ctx.letterSpacing = "-6px";
+      ctx.fillText("BLIND TEST", W / 2, 400);
       ctx.restore();
-
       ctx.fillStyle = "#F0001C";
-      ctx.font = '600 32px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.font = '800 92px "Bricolage Grotesque", system-ui, sans-serif';
       ctx.save();
-      ctx.letterSpacing = "8px";
-      ctx.fillText("BLIND TEST RAP FRANÇAIS", W / 2, 520);
+      ctx.letterSpacing = "-2px";
+      ctx.fillText("RAP FRANÇAIS", W / 2, 500);
       ctx.restore();
 
       // Score — le héros de la carte
@@ -155,9 +115,9 @@ export default function ShareScoreCard({
 
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.font = '500 36px "Bricolage Grotesque", system-ui, sans-serif';
-      ctx.fillText("+ de 25 thèmes · Ninho, JUL, PNL, 90s, drill...", W / 2, 1465);
-      ctx.fillText("Solo, entre potes ou en mode Soirée sur ta TV", W / 2, 1522);
-      ctx.fillText("Gratuit, sans téléchargement", W / 2, 1579);
+      ctx.fillText("85 thèmes · stars de 2026, JUL, Ninho, 90s, drill…", W / 2, 1465);
+      ctx.fillText("Solo, entre potes, en soirée sur la TV, ou devine le clip", W / 2, 1522);
+      ctx.fillText("Gratuit, sans inscription, sans téléchargement", W / 2, 1579);
 
       // CTA façon bouton — la marque en rouge, l'URL en gros, lisible même en story compressée.
       const btnW = 720;

@@ -1258,20 +1258,34 @@ function RoomsTab() {
 
 // ── Mails ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_SUBJECT = "On évolue grâce à toi 🔴 — 2 minutes pour nous aider ?";
-const DEFAULT_BODY = `Salut !
+const DEFAULT_SUBJECT = "On a tout refait. Viens voir si t'as encore l'oreille 🎤";
+const DEFAULT_BODY = `Salut,
 
-Petit mot de l'équipe DailyRapFrance. Si tu ne nous connais pas encore bien : on est un média indépendant du rap français depuis 2020 — né sur les réseaux, porté par la passion du rap FR. Le blind test, c'est notre nouveau terrain de jeu, et il grandit vite : mode Soirée sur ta TV, salons entre potes, nouveaux thèmes chaque semaine (Aya Nakamura vient d'arriver 🔥).
+Le blind test DailyRapFrance a été entièrement refait. Pas une mise à jour : une nouvelle version, de l'accueil jusqu'à l'écran de fin. Tes scores, eux, sont toujours là.
 
-Et justement, on évolue — mais pas sans toi. Ton retour compte énormément : ce que tu kiffes, ce qui te frustre, le thème ou la feature que tu rêves de voir. Réponds simplement à ce mail, on lit tout et on répond.
+🔥 Le défi du jour — un thème pour tout le monde, nouveau chaque minuit. Ta série de jours grandit tant que tu reviens.
 
-Et si le jeu te plaît, le plus beau cadeau que tu puisses nous faire, c'est de le montrer : lance une partie avec tes potes ce week-end, partage ton score en story, ou envoie juste le lien à la personne qui se croit incollable en rap FR.
+🎬 Devine le clip — nouveau jeu façon Reels : le clip officiel plein écran, sans l'intro qui donne la réponse, 15 secondes pour trouver qui est à l'écran.
 
-> Lancer une partie|https://dailyrapfrance.best/blindtest
+⚡ Survie & Sprint — un son raté et c'est fini, ou 20 extraits de 8 secondes sans joker. Chaque variante a son classement.
 
-Merci d'être là depuis le début. Le meilleur arrive.
+🎤 85 thèmes à jour — les stars de 2026, la nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui…), la drill, l'afro, le 93, Marseille, la Belgique, et 40 blind tests mono-artiste.
 
-L'équipe DailyRapFrance`;
+📲 Partage sans spoiler — ton résultat en grille à coller dans le groupe, et un bouton pour défier un pote sur exactement la même partie.
+
+📺 Mode Soirée — l'écran sur la TV, les téléphones en manette, un gage pour le dernier. Enregistre ta config et relance-la en un tap la prochaine fois.
+
+Toujours gratuit, sans inscription, dans le navigateur. Et le site s'ajoute à ton écran d'accueil comme une app — la version App Store / Google Play arrive.
+
+> Jouer au défi du jour|https://dailyrapfrance.best/jouer?daily=1&autostart=1
+
+Dis-moi ce que tu en penses : réponds à ce mail, je lis tout.
+
+Florian B.
+CEO — DailyRapFrance
+<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a>
+
+<a href="https://www.instagram.com/florian.b93tsz/" style="display:inline-block;margin-top:2px;padding:10px 22px;border-radius:999px;background:#F0001C;box-shadow:0 6px 20px rgba(240,0,28,0.3);color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">Me suivre sur Instagram →</a>`;
 
 function QuickSendCard() {
   const [to, setTo] = useState("");
