@@ -108,7 +108,7 @@ export default function Home() {
         <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
-            { href: "/jouer?mode=solo&media=clip&theme=hits-2026", Icon: Clapperboard, t: "Devine le clip", s: "L'image et le son, sans l'intro qui donne la réponse. Nouveau." },
+            { href: "/clips", Icon: Clapperboard, t: "Devine le clip", s: "Façon Reels : swipe, regarde, réponds. Clips officiels, sans l'intro. Nouveau." },
             { href: "/jouer?mode=solo&v=survival&theme=mix", Icon: Skull, t: "Survie", s: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
             { href: "/jouer?mode=solo&v=sprint&theme=pop", Icon: Timer, t: "Sprint", s: "20 extraits, 8 secondes chacun. Que de l'instinct." },
             { href: "/jouer?mode=solo&theme=random&autostart=1", Icon: Shuffle, t: "Thème surprise", s: "Un thème tiré au sort, lancé direct." },
@@ -172,48 +172,53 @@ export default function Home() {
         <AppStoreCallout />
       </section>
 
-      {/* Texte de référence + maillage vers les pages thème (lisible, pas caché) */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16 border-t border-white/8" aria-labelledby="seo-h">
-        <div className="grid md:grid-cols-[1.1fr_1fr] gap-8">
-          <div>
-            <h2 id="seo-h" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-3">
-              Le blind test rap français gratuit, en ligne, sans inscription
-            </h2>
-            <p className="text-sm text-ink-muted leading-relaxed mb-3">
-              DailyRapFrance propose le blind test rap français le plus complet : plus de quarante thèmes — les années 90, 2000,
-              2010 et les sons du moment, la drill, la trap, le cloud rap, le boom bap, les scènes du 93, du 91, de Marseille ou de Lyon,
-              et des blind tests dédiés à un seul artiste. Il se joue dans le navigateur, sans rien télécharger, en France comme en
-              Belgique, en Suisse ou au Québec.
-            </p>
-            <p className="text-sm text-ink-muted leading-relaxed">
-              Seul pour le classement et le défi du jour, entre amis sur un téléphone, à distance avec un code, ou en soirée sur la
-              TV avec des gages : même jeu, mêmes extraits Deezer renouvelés à chaque partie.
-            </p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {[
-                { href: "/blindtest/solo", t: "Blind test solo" },
-                { href: "/blindtest/entre-amis", t: "Entre amis" },
-                { href: "/blindtest/en-ligne", t: "En ligne à distance" },
-                { href: "/blindtest/soiree", t: "Jeu de soirée" },
-              ].map((x) => (
-                <a key={x.href} href={x.href} className="rounded-full glass px-3.5 py-1.5 text-xs font-medium hover:border-gold/40 transition-colors">
-                  {x.t}
-                </a>
-              ))}
+      {/* Texte de référence + maillage (SEO/GEO) — présent dans le HTML, replié par défaut */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 py-6 border-t border-white/8">
+        <details className="group">
+          <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-sm font-semibold text-ink-muted hover:text-ink min-h-[44px]">
+            À propos du blind test rap français — thèmes, modes, accès
+            <ArrowRight size={14} className="text-ink-faint shrink-0 transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="pt-4 grid md:grid-cols-[1.1fr_1fr] gap-8">
+            <div>
+              <h2 className="font-display text-lg font-bold tracking-tight mb-2">Le blind test rap français gratuit, en ligne, sans inscription</h2>
+              <p className="text-sm text-ink-muted leading-relaxed mb-3">
+                DailyRapFrance propose le blind test rap français le plus complet : plus de quarante thèmes — les années 90, 2000,
+                2010 et les sons du moment, la drill, la trap, le cloud rap, le boom bap, les scènes du 93, du 91, de Marseille ou de Lyon,
+                et des blind tests dédiés à un seul artiste. Il se joue dans le navigateur, sans rien télécharger, en France comme en
+                Belgique, en Suisse ou au Québec.
+              </p>
+              <p className="text-sm text-ink-muted leading-relaxed">
+                Seul pour le classement et le défi du jour, entre amis sur un téléphone, à distance avec un code, en soirée sur la TV
+                avec des gages, ou en devinant le clip : même jeu, mêmes extraits Deezer renouvelés à chaque partie.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {[
+                  { href: "/blindtest/solo", t: "Blind test solo" },
+                  { href: "/blindtest/entre-amis", t: "Entre amis" },
+                  { href: "/blindtest/en-ligne", t: "En ligne à distance" },
+                  { href: "/blindtest/soiree", t: "Jeu de soirée" },
+                  { href: "/clips", t: "Devine le clip" },
+                ].map((x) => (
+                  <a key={x.href} href={x.href} className="rounded-full glass px-3.5 py-1.5 text-xs font-medium hover:border-gold/40 transition-colors">
+                    {x.t}
+                  </a>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold mb-3">Thèmes populaires</p>
+              <div className="flex flex-wrap gap-2">
+                {POPULAR_THEME_LINKS.map((x) => (
+                  <a key={x.href} href={x.href} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-ink-muted hover:text-ink hover:border-gold/40 transition-colors">
+                    {x.t}
+                  </a>
+                ))}
+                <a href="/blindtest" className="rounded-full px-3 py-1.5 text-xs text-gold hover:text-glow">Tous les thèmes →</a>
+              </div>
             </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold mb-3">Thèmes populaires</p>
-            <div className="flex flex-wrap gap-2">
-              {POPULAR_THEME_LINKS.map((x) => (
-                <a key={x.href} href={x.href} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-ink-muted hover:text-ink hover:border-gold/40 transition-colors">
-                  {x.t}
-                </a>
-              ))}
-              <a href="/blindtest" className="rounded-full px-3 py-1.5 text-xs text-gold hover:text-glow">Tous les thèmes →</a>
-            </div>
-          </div>
-        </div>
+        </details>
       </section>
 
       {/* Communauté */}

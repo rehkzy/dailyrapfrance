@@ -109,6 +109,11 @@ export default function BlindTestPage() {
           balisage FAQPage exige que les réponses soient lisibles sur la page. Masqué
           uniquement pendant une partie (mode immersif, règle CSS #seo-editorial). */}
       <section id="seo-editorial" className="relative z-10 max-w-2xl mx-auto px-6 pb-24 text-sm text-ink-muted leading-relaxed">
+        <details className="group">
+        <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-sm font-semibold text-ink-muted hover:text-ink min-h-[44px] mb-2">
+          Tout savoir sur le blind test — questions fréquentes et thèmes
+          <span className="text-ink-faint transition-transform group-open:rotate-90">›</span>
+        </summary>
         <h2 className="font-display text-2xl text-ink font-semibold mb-3">
           Le blind test rap français gratuit, en ligne et sans inscription
         </h2>
@@ -184,6 +189,7 @@ export default function BlindTestPage() {
           </a>
           .
         </p>
+        </details>
       </section>
     </>
   );

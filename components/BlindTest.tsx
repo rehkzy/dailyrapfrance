@@ -402,7 +402,7 @@ export default function BlindTest() {
         }
         pool = pool.map((t) => ({ ...t, clip: cdata.clips?.[t.id] ?? null })).filter((t) => t.clip);
         if (pool.length < 3) {
-          setSetupError("Pas assez de clips trouvés pour ce thème — essaie un autre thème, ou repasse en extraits audio.");
+          setSetupError("Pas assez de clips officiels pour ce thème (on ne garde que les clips publiés sur la chaîne de l'artiste). Essaie un autre thème, ou repasse en extraits audio.");
           setPhase("setup");
           return;
         }
@@ -960,7 +960,7 @@ export default function BlindTest() {
 
           {phase === "loading" ? (
             <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">
-              <BrandLoader label="On prépare les extraits" size="lg" />
+              <BrandLoader label={media === "clip" ? "On cherche les clips officiels" : "On prépare les extraits"} size="lg" />
               <p className="text-sm text-ink-faint mt-6">{modeLabelNow} · {themeLabelNow}</p>
             </div>
           ) : wizardStep === 0 ? (
@@ -1061,7 +1061,7 @@ export default function BlindTest() {
               <button type="button" onClick={() => setWizardStep(0)} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]">
                 <ChevronLeft size={16} /> {modeLabelNow}
               </button>
-              <h2 className="stage-title mb-5">Choisis<br />ton crate.</h2>
+              <h2 className="stage-title mb-5">Choisis<br />ton thème.</h2>
               <ThemePicker
                 themeId={themeId}
                 onSelect={(id) => {
@@ -1112,7 +1112,7 @@ export default function BlindTest() {
                       <button type="button" aria-pressed={media === "clip"} onClick={() => { sfx.click(); setMedia("clip"); setSetupError(null); }} disabled={clipUnavailable}>Devine le clip</button>
                     </div>
                     <p className="text-xs text-ink-faint mt-2 min-h-[1.5em]">
-                      {media === "clip" ? "Le clip YouTube, lancé après l'intro (titre et artiste masqués). Image et son." : "L'extrait Deezer de 30 secondes, pochette floutée en fond."}
+                      {media === "clip" ? "Le clip officiel YouTube, lancé après l'intro. Seuls les morceaux dont le clip est sur la chaîne officielle de l'artiste sont proposés — certains thèmes ont donc moins d'extraits." : "L'extrait Deezer de 30 secondes, pochette floutée en fond."}
                     </p>
                   </div>
                   <div>

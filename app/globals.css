@@ -2510,3 +2510,154 @@ html { overflow-x: clip; }
   animation: brand-pulse 1.4s ease-in-out infinite;
 }
 .clip-frame[data-blurred="true"] .clip-inner { filter: blur(26px) saturate(1.4); }
+
+/* Affiches de thème (v3) */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 640px) { .theme-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .theme-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.theme-poster {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+.theme-poster:active { transform: scale(0.98); }
+.theme-poster[data-active="true"] { border-color: #fff; }
+.theme-poster-photos { position: absolute; inset: 0; display: flex; }
+.theme-poster-photos img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.15);
+  mix-blend-mode: luminosity;
+  opacity: 0.9;
+}
+.theme-poster-photos[data-count="2"] img { width: 50%; }
+.theme-poster-icon {
+  position: absolute;
+  right: -18px;
+  bottom: 28px;
+  color: rgba(255, 255, 255, 0.16);
+  transform: rotate(-8deg);
+}
+.theme-poster-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(240, 0, 28, 0.18), rgba(7, 4, 4, 0.1) 40%, rgba(7, 4, 4, 0.92) 100%);
+}
+.theme-poster-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.theme-poster-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--red);
+  display: grid;
+  place-items: center;
+}
+.theme-poster-label {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1rem, 4.6vw, 1.35rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #fff;
+}
+@media (min-width: 640px) { .theme-poster-label { font-size: 1.25rem; } }
+
+/* « Devine le clip » — feed vertical façon Reels */
+.reel-feed {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  background: #000;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+.reel-feed::-webkit-scrollbar { display: none; }
+.reel-slide {
+  position: relative;
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 18px);
+}
+.reel-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+}
+/* Le lecteur 16:9 est agrandi pour remplir la hauteur du téléphone (recadrage central) */
+.reel-video .clip-frame {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+/* L'iframe garde un ratio 16:9 mais prend TOUTE la hauteur de l'écran : elle déborde sur les
+   côtés (recadrage central), l'image remplit le téléphone comme un Reel. */
+.reel-video .clip-inner {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: max(100%, calc(100dvh * 16 / 9));
+  height: max(100%, calc(100vw * 9 / 16));
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -50%) scale(1.22);
+}
+.reel-video .clip-band { height: 13%; }
+.reel-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.9) 100%);
+}
+.reel-top { position: relative; z-index: 2; display: flex; align-items: center; gap: 12px; }
+.reel-bottom { position: relative; z-index: 2; max-width: 36rem; width: 100%; margin: 0 auto; }
+.reel-check {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #ffd166;
+  color: #3a0007;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+body:has(.reel-feed) header, body:has(.reel-feed) footer, body:has(.reel-feed) #site-announcement { display: none !important; }

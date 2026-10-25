@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Tv, User, Globe } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Tv, User, Globe, Clapperboard } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
@@ -20,6 +20,7 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 const NAV = [
   { href: "/", label: "Accueil", Icon: Home },
   { href: "/jouer", label: "Jouer", Icon: Play },
+  { href: "/clips", label: "Clips", Icon: Clapperboard },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
@@ -143,7 +144,7 @@ export default function Header() {
     setOpen(false);
   }, [pathname]);
 
-  const onGame = isActive(pathname, "/jouer") || isActive(pathname, "/blindtest");
+  const onGame = isActive(pathname, "/jouer") || isActive(pathname, "/blindtest") || isActive(pathname, "/clips");
 
   return (
     <header className="nav-panel sticky top-0 z-50 rounded-none border-x-0 border-t-0">

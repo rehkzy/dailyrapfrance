@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  Clapperboard,
   Users, Gamepad2, Radio, TrendingUp, Trophy, Search, Trash2, RefreshCcw,
   Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send, Globe,
   X, Eye, Instagram, Share2, Music2, Twitter, Gamepad, Calendar, Clock,
   LayoutGrid, Settings as SettingsIcon,
 } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
+import AdminClipsTab from "@/components/AdminClipsTab";
 
 /*
  * Back-office DailyRapFrance — 4 onglets :
@@ -75,6 +77,7 @@ const TABS = [
   { id: "rooms", label: "Salons", Icon: Radio },
   { id: "email", label: "Mails", Icon: Mail },
   { id: "settings", label: "Pilotage", Icon: SettingsIcon },
+  { id: "clips", label: "Clips", Icon: Clapperboard },
 ] as const;
 
 function themeLabel(id: string) {
@@ -187,6 +190,7 @@ export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
           <EmailTab recipients={recipients} onAdd={addRecipients} onRemove={removeRecipient} onClear={() => setRecipients([])} />
         )}
         {tab === "settings" && <SettingsTab />}
+        {tab === "clips" && <AdminClipsTab />}
       </div>
     </div>
   );

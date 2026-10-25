@@ -9,6 +9,7 @@ const columns = [
       { href: "/jouer?mode=local", label: "Entre potes" },
       { href: "/jouer?mode=online", label: "Salon en ligne" },
       { href: "/jouer?mode=party", label: "Soirée TV" },
+      { href: "/clips", label: "Devine le clip" },
     ],
   },
   {

@@ -32,9 +32,10 @@ async function readCache(ids: string[]): Promise<Record<string, Clip | null>> {
   const out: Record<string, Clip | null> = {};
   try {
     const supabase = await createClient();
-    const { data } = await supabase.from("clip_videos").select("track_id, video_id, duration, video_title").in("track_id", ids);
+    const { data } = await supabase.from("clip_videos").select("track_id, video_id, duration, video_title").in("track_id", ids.map(cacheKey));
     for (const row of data ?? []) {
-      out[row.track_id] = row.video_id ? { videoId: row.video_id, duration: row.duration ?? 0, title: row.video_title ?? "" } : null;
+      const id = String(row.track_id).slice(CACHE_VERSION.length + 1);
+      out[id] = row.video_id ? { videoId: row.video_id, duration: row.duration ?? 0, title: row.video_title ?? "" } : null;
     }
   } catch {
     /* cache indisponible — on cherchera en direct */
@@ -46,7 +47,7 @@ async function writeCache(trackId: string, clip: Clip | null) {
   try {
     const supabase = await createClient();
     await supabase.from("clip_videos").upsert({
-      track_id: trackId,
+      track_id: cacheKey(trackId),
       video_id: clip?.videoId ?? null,
       duration: clip?.duration ?? null,
       video_title: clip?.title ?? null,
@@ -56,41 +57,57 @@ async function writeCache(trackId: string, clip: Clip | null) {
   }
 }
 
+// Version de la logique de sélection — préfixe des clés de cache. À incrémenter quand les
+// règles changent, pour que les anciens résultats (plus permissifs) soient ignorés.
+const CACHE_VERSION = "v2";
+const cacheKey = (trackId: string) => `${CACHE_VERSION}:${trackId}`;
+
+const NOT_A_CLIP = /lyrics?|paroles?|audio|visuali[sz]er|live|cover|reaction|react|karaok|instrumental|remix|speed ?up|slowed|nightcore|8d|teaser|extrait|snippet|interview|making[- ]of|behind|bande[- ]annonce|freestyle/i;
+
+/** La chaîne est-elle la chaîne officielle de l'artiste ? (nom identique, ou nom + officiel / VEVO) */
+function isOfficialChannel(channelTitle: string, artist: string): boolean {
+  const ch = norm(channelTitle);
+  const a = norm(artist);
+  if (!a) return false;
+  if (ch === a) return true;
+  const stripped = ch.replace(/\b(officiel|official|vevo|music|musique|tv|channel|chaine|officielle)\b/g, "").trim();
+  if (stripped === a) return true;
+  // "ninhovevo", "jul officiel" collés sans espace
+  if (ch.replace(/\s+/g, "") === a.replace(/\s+/g, "") + "vevo") return true;
+  if (ch.replace(/\s+/g, "") === a.replace(/\s+/g, "") + "officiel") return true;
+  // Chaînes "Sujet" (Topic) : contenu audio auto-généré, jamais un clip.
+  return false;
+}
+
 async function searchYouTube(track: Track, key: string): Promise<Clip | null> {
   const q = `${track.artistName} ${track.title} clip officiel`;
   const url =
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=6&regionCode=FR&relevanceLanguage=fr` +
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=10&regionCode=FR&relevanceLanguage=fr` +
     `&q=${encodeURIComponent(q)}&key=${key}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`YouTube search HTTP ${res.status}`);
   const json = (await res.json()) as { items?: { id: { videoId: string }; snippet: { title: string; channelTitle: string } }[] };
   const items = json.items ?? [];
-  const artist = norm(track.artistName);
   const title = norm(track.title);
-  // Score : le titre de la vidéo doit contenir le morceau ET (l'artiste ou une chaîne au nom
-  // de l'artiste) ; bonus "clip officiel" ; malus lyrics/live/cover/reaction.
-  const scored = items
-    .map((it) => {
+  const titleWords = title.split(" ").filter((w) => w.length > 1);
+  // Règle : UNIQUEMENT la chaîne officielle de l'artiste (ou du groupe), un titre qui
+  // correspond au morceau, et rien qui indique autre chose qu'un clip (audio, lyrics, live…).
+  const candidates = items
+    .filter((it) => isOfficialChannel(it.snippet.channelTitle, track.artistName))
+    .filter((it) => {
       const t = norm(it.snippet.title);
-      const ch = norm(it.snippet.channelTitle);
-      let score = 0;
-      if (t.includes(title) || title.split(" ").every((w) => t.includes(w))) score += 3;
-      if (t.includes(artist) || ch.includes(artist)) score += 2;
-      if (/clip/.test(t)) score += 1;
-      if (/officiel|official/.test(t)) score += 1;
-      if (/lyrics|parole|live|cover|reaction|karaoke|instrumental|remix|speed up|slowed/.test(t)) score -= 4;
-      return { it, score };
+      return t.includes(title) || (titleWords.length > 0 && titleWords.every((w) => t.includes(w)));
     })
-    .filter((x) => x.score >= 4)
-    .sort((a, b) => b.score - a.score);
-  const best = scored[0]?.it;
+    .filter((it) => !NOT_A_CLIP.test(it.snippet.title))
+    .sort((a, b) => Number(/clip|video/i.test(b.snippet.title)) - Number(/clip|video/i.test(a.snippet.title)));
+  const best = candidates[0];
   if (!best) return null;
   const dres = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${best.id.videoId}&key=${key}`);
   const djson = (await dres.json()) as { items?: { contentDetails: { duration: string }; status?: { embeddable?: boolean } }[] };
   const v = djson.items?.[0];
   if (!v || v.status?.embeddable === false) return null;
   const duration = parseIsoDuration(v.contentDetails.duration);
-  if (duration < 60) return null;
+  if (duration < 90) return null; // moins d'1 min 30 : pas un clip exploitable après l'intro
   return { videoId: best.id.videoId, duration, title: best.snippet.title };
 }
 
