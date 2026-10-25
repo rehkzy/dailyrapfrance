@@ -60,9 +60,9 @@ export const THEME_ARTISTS: Record<string, string[]> = {
   "77": ["djadja & dinaz", "rk", "timal", "houdi"],
   "78": ["la fouine"],
   "75": ["plk", "la rvfleuze", "la mano 1.9", "guy2bezbar", "nekfeu", "alpha wann", "r2"],
-  "94": ["l2b", "danyl", "sefyu", "rohff", "mafia k'1 fry"],
+  "94": ["l2b", "bouss", "danyl", "sefyu", "rohff", "mafia k'1 fry"],
   "13": ["jul", "sch", "soprano", "alonzo", "naps", "soso maness", "akhenaton", "shurik'n", "lagui", "typhee", "zamdane", "kofs", "elams"],
-  "69": ["bouss", "khali", "zeu", "lyonzon"],
+  "69": ["ashe 22", "sasso", "khali", "zeu", "lyonzon"],
   "59": ["gradur", "zkr", "bekar", "ben plg"],
   "31": ["bigflo & oli", "samir flynn"],
   belgique: ["damso", "hamza", "green montana", "frenetik", "caballero & jeanjass", "roméo elvis", "isha", "limsa d'aulnay"],
@@ -127,6 +127,7 @@ export const THEME_LEAD_OVERRIDES: Record<string, string[]> = {
   "nouvelle-gen": ["la rvfleuze", "mauvais djo"],
   belgique: ["damso", "hamza"],
   "nouvelle-pop": ["theodora", "rsko"],
+  "69": ["ashe 22", "sasso"],
 };
 
 export function themeLeadArtists(id: string): string[] | null {
