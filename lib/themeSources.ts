@@ -38,10 +38,11 @@ export const THEME_ARTISTS: Record<string, string[]> = {
   // Albums 2026 — les sorties marquantes de l'année
   "albums-2026": ["ninho", "plk", "la rvfleuze", "bigflo & oli", "gradur", "lagui", "jul", "alonzo", "la fouine", "kaaris", "ziak", "booba", "zkr", "makala"],
   // Duos & groupes
-  duos: ["bigflo & oli", "djadja & dinaz", "pnl", "l2b", "triangle des bermudes", "caballero & jeanjass", "13 organisé", "scylla & furax barbarossa"],
+  duos: ["bigflo & oli", "djadja & dinaz", "pnl", "l2b", "triangle des bermudes", "caballero & jeanjass", "13 organisé", "scylla", "furax barbarossa"],
 
   // --- Styles ----------------------------------------------------------------------------
-  cloud: ["suikoden", "josman", "fixpen sill", "le wombat", "lomepal"],
+  // "suikoden" / "le wombat" retirés : introuvables sur Deezer, la résolution retombait sur un homonyme hors-sujet.
+  cloud: ["josman", "fixpen sill", "lomepal", "laylow", "so la lune", "hamza"],
   hardcore: ["kaaris", "kalash criminel", "alkpote", "seth gueko", "rohff"],
   boombap: ["iam", "suprême ntm", "oxmo puccino", "kery james"],
   melodique: ["pnl", "hamza", "tiakola", "so la lune", "bouss", "jul"],
