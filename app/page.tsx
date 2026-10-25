@@ -62,7 +62,7 @@ export default function Home() {
             <BrandTile size={40} />
             <div>
               <p className="font-display text-base font-semibold leading-tight">Blind test rap français</p>
-              <p className="text-xs text-ink-faint">Gratuit, sans inscription · par DailyRapFrance</p>
+              <p className="text-xs text-ink-faint">Gratuit, compte en 10 secondes · par DailyRapFrance</p>
             </div>
             <div className="ml-auto hidden sm:block">
               <LivePlayersBadge />
@@ -181,7 +181,7 @@ export default function Home() {
           </summary>
           <div className="pt-4 grid md:grid-cols-[1.1fr_1fr] gap-8">
             <div>
-              <h2 className="font-display text-lg font-bold tracking-tight mb-2">Le blind test rap français gratuit, en ligne, sans inscription</h2>
+              <h2 className="font-display text-lg font-bold tracking-tight mb-2">Le blind test rap français gratuit, en ligne, inscription en 10 secondes</h2>
               <p className="text-sm text-ink-muted leading-relaxed mb-3">
                 DailyRapFrance propose le blind test rap français le plus complet : plus de quarante thèmes — les années 90, 2000,
                 2010 et les sons du moment, la drill, la trap, le cloud rap, le boom bap, les scènes du 93, du 91, de Marseille ou de Lyon,

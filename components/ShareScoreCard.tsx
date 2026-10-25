@@ -117,7 +117,7 @@ export default function ShareScoreCard({
       ctx.font = '500 36px "Bricolage Grotesque", system-ui, sans-serif';
       ctx.fillText("85 thèmes · stars de 2026, JUL, Ninho, 90s, drill…", W / 2, 1465);
       ctx.fillText("Solo, entre potes, en soirée sur la TV, ou devine le clip", W / 2, 1522);
-      ctx.fillText("Gratuit, sans inscription, sans téléchargement", W / 2, 1579);
+      ctx.fillText("Gratuit, sans téléchargement, compte en 10 secondes", W / 2, 1579);
 
       // CTA façon bouton — la marque en rouge, l'URL en gros, lisible même en story compressée.
       const btnW = 720;

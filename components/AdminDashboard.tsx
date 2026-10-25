@@ -1272,7 +1272,7 @@ Ce qui change :
 - Le partage sans spoiler : ton résultat en grille à coller dans le groupe, et un lien pour défier un pote sur la même partie.
 - Le mode soirée : l'écran sur la TV, les téléphones en manette, un gage pour le dernier.
 
-Toujours sans inscription, dans le navigateur. Et tu peux ajouter le site à ton écran d'accueil, il se lance comme une app.
+Toujours inscription en 10 secondes, dans le navigateur. Et tu peux ajouter le site à ton écran d'accueil, il se lance comme une app.
 
 > Jouer au défi du jour|https://dailyrapfrance.best/jouer?daily=1&autostart=1
 

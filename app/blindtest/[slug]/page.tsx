@@ -100,7 +100,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
         </nav>
 
         <div className="flex items-center gap-2 text-xs font-semibold text-gold mb-3">
-          <BrandMark size={12} /> Gratuit · Sans inscription · Dans le navigateur
+          <BrandMark size={12} /> Gratuit · Compte en 10 s · Dans le navigateur
         </div>
         <h1 className="poster-title text-3xl sm:text-5xl mb-5">{l.title}</h1>
         <p className="text-base sm:text-lg text-ink-muted leading-relaxed max-w-2xl">{l.intro}</p>

@@ -13,17 +13,17 @@ import { AppComingSoonModal } from "@/components/AppComingSoon";
 export const metadata: Metadata = {
   metadataBase: new URL("https://dailyrapfrance.best"),
   title: {
-    default: "DailyRapFrance — Blind Test Rap Français Gratuit, en Ligne et Sans Inscription",
+    default: "DailyRapFrance — Blind Test Rap Français Gratuit, en Ligne, Compte en 10 Secondes",
     template: "%s",
   },
   description:
-    "Le blind test rap français n°1 : gratuit, en ligne, sans inscription. Joue en solo, entre amis sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes, par DailyRapFrance, média du rap FR depuis 2020.",
+    "Le blind test rap français n°1 : gratuit, en ligne, inscription en 10 secondes. Joue en solo, entre amis sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes, par DailyRapFrance, média du rap FR depuis 2020.",
   keywords: [
     "blind test rap français",
     "blind test rap",
     "blind test rap français gratuit",
     "blind test en ligne gratuit",
-    "blind test sans inscription",
+    "blind test rap gratuit en ligne",
     "blind test multijoueur",
     "blind test entre amis",
     "blind test à distance",
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Blind Test Rap Français — Gratuit, en Ligne, Sans Inscription",
+    title: "Blind Test Rap Français — Gratuit, en Ligne, Compte en 10 Secondes",
     description: "Joue au blind test rap français : solo, entre potes sur le même écran, à distance avec un code, ou en soirée sur la TV. Gratuit et libre d'accès.",
     siteName: "DailyRapFrance",
     locale: "fr_FR",
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     images: ["/og.png"],
     title: "Blind Test Rap Français — Gratuit et en Ligne",
-    description: "Le blind test rap FR à jouer partout avec ses amis : solo, local, à distance, en soirée. Gratuit, sans inscription.",
+    description: "Le blind test rap FR à jouer partout avec ses amis : solo, local, à distance, en soirée. Gratuit — compte en 10 secondes.",
   },
 };
 

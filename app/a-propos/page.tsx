@@ -223,7 +223,7 @@ export default async function AProposPage() {
               {[
                 { Icon: Bot, text: "Pas d'algorithme qui décide à notre place de ce qui mérite d'être vu." },
                 { Icon: Megaphone, text: "Pas de contenu sponsorisé déguisé en découverte." },
-                { Icon: Lock, text: "Pas de paywall — nos jeux sont gratuits, sans inscription forcée." },
+                { Icon: Lock, text: "Pas de paywall — nos jeux sont gratuits, inscription en 10 secondes forcée." },
               ].map(({ Icon, text }) => (
                 <div key={text} className="flex flex-col gap-3">
                   <Icon size={20} className="text-riseNeg" strokeWidth={1.8} />

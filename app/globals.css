@@ -2110,7 +2110,8 @@ html { overflow-x: clip; }
   pointer-events: none;
   z-index: 0;
 }
-.stage > * { position: relative; z-index: 1; }
+.stage > *:not(.stage-fixed) { position: relative; z-index: 1; }
+.stage > .stage-fixed { position: fixed; z-index: 30; }
 
 /* Titre d'écran — Bricolage 800 très serré, interlignage court */
 .stage-title {
@@ -2184,6 +2185,7 @@ html { overflow-x: clip; }
   padding: 22px;
   text-align: left;
   background: var(--poster-bg, #1a0608);
+  background-clip: padding-box;
   border: 2px solid transparent;
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
@@ -2525,6 +2527,7 @@ html { overflow-x: clip; }
   border-radius: 18px;
   overflow: hidden;
   border: 2px solid transparent;
+  background-clip: padding-box !important;
   transition: border-color 0.2s ease, transform 0.15s ease;
 }
 .theme-poster:active { transform: scale(0.98); }
@@ -2661,3 +2664,30 @@ html { overflow-x: clip; }
   pointer-events: none;
 }
 body:has(.reel-feed) header, body:has(.reel-feed) footer, body:has(.reel-feed) #site-announcement { display: none !important; }
+
+/* Écran de jeu : hauteur = écran, la scène s'adapte, le panneau de réponses est TOUJOURS visible */
+.game-layout {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.game-layout .game-scene {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.game-layout .game-scene::-webkit-scrollbar { display: none; }
+.game-layout .game-answers {
+  flex: 0 0 auto;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+}
+@media (max-height: 700px) {
+  .game-layout .answer { min-height: 50px; padding-top: 10px; padding-bottom: 10px; font-size: 15px; }
+  .game-layout .big-timer { width: 120px; height: 120px; }
+  .game-layout .big-timer .score-num { font-size: 2.6rem; }
+}
+/* Carte "Réglages avancés" */
+.adv-card summary { list-style: none; }
+.adv-card summary::-webkit-details-marker { display: none; }

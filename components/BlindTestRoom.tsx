@@ -714,7 +714,7 @@ function BlindTestRoom({
       <div className="max-w-lg mx-auto">
         <div className="fixed top-4 inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
           {notices.map((n) => (
-            <span key={n.id} className="solved-pop glass-strong rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
+            <span key={n.id} className="solved-pop ticket rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
               {n.text}
             </span>
           ))}
@@ -737,7 +737,7 @@ function BlindTestRoom({
             <ArrowLeft size={14} /> Quitter le salon
           </button>
         )}
-        <div className="card p-6 md:p-8 text-center">
+        <div className="ticket p-6 md:p-8 text-center">
           <p className="text-sm font-semibold text-ink-muted mb-2">Code du salon — touche pour copier</p>
           <button onClick={copyCode} className="inline-flex items-center gap-3 mb-4 group" aria-label={`Copier le code ${room.code}`}>
             <span className="room-code text-ink">{room.code}</span>
@@ -748,7 +748,7 @@ function BlindTestRoom({
             <Magnetic strength={0.15}>
               <button
                 onClick={shareRoom}
-                className="inline-flex items-center gap-2 bg-gold hover:bg-glow text-white rounded-full px-5 py-2.5 text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 sticker px-5 py-2.5 text-sm font-medium transition-colors"
               >
                 <Share2 size={15} />
                 {shared ? "Lien envoyé !" : "Partager l'invitation"}
@@ -786,13 +786,13 @@ function BlindTestRoom({
 
           <RoomFriendInvites userId={user.id} roomCode={room.code} />
 
-          <div className="glass rounded-xl p-4 mb-6">
-            <p className="font-mono text-xs text-ink-faint uppercase tracking-wide mb-3 flex items-center justify-center gap-1.5">
+          <div className="ticket p-4 mb-6">
+            <p className="text-xs font-semibold text-ink-faint mb-3 flex items-center justify-center gap-1.5">
               <Users size={13} /> {players.length} joueur{players.length > 1 ? "s" : ""}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {players.map((p) => (
-                <span key={p.user_id} className="glass rounded-full px-3 py-1 text-sm flex items-center gap-1.5">
+                <span key={p.user_id} className="bg-white/8 rounded-full px-3 py-1 text-sm flex items-center gap-1.5">
                   {p.user_id === room.host_id && <Icon icon="game-icons:crown" width={12} className="text-gold" />}
                   {p.display_name}
                 </span>
@@ -877,7 +877,7 @@ function BlindTestRoom({
         </div>
 
         {ranked.length > 3 && (
-          <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left">
+          <div className="ticket divide-y divide-white/8 overflow-hidden mb-8 text-left">
             {ranked.slice(3).map((p, i) => (
               <div key={p.user_id} className="flex items-center gap-4 py-3 px-5">
                 <span className="font-mono text-sm text-ink-faint w-6">{i + 4}</span>
@@ -888,8 +888,8 @@ function BlindTestRoom({
           </div>
         )}
 
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 text-left">Récap de la partie</p>
-        <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">
+        <p className="stage-kicker mb-3 text-left">Récap de la partie</p>
+        <div data-lenis-prevent className="ticket divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">
           {room.tracks.map((t, i) => {
             const rSolves = solves.filter((s) => s.round_index === i);
             return (
@@ -940,7 +940,7 @@ function BlindTestRoom({
           ) : (
             <button
               onClick={() => setConfirmingQuit(true)}
-              className="inline-flex items-center gap-2 glass text-ink-muted hover:text-ink rounded-full px-6 py-3 font-medium transition-colors"
+              className="inline-flex items-center gap-2 bg-white/6 border border-white/10 text-ink-muted hover:text-ink rounded-full px-6 py-3 font-medium transition-colors"
             >
               <LogOut size={16} />
               Quitter le salon
@@ -960,7 +960,7 @@ function BlindTestRoom({
   if (!track) {
     return (
       <div className="max-w-lg mx-auto text-center">
-        <div className="card p-8">
+        <div className="ticket p-8">
           <p className="text-sm text-ink-muted mb-4">Reconnexion à la partie...</p>
           <button
             onClick={() => {
@@ -1012,7 +1012,7 @@ function BlindTestRoom({
 
       <div className="fixed top-4 inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
         {notices.map((n) => (
-          <span key={n.id} className="solved-pop glass-strong rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
+          <span key={n.id} className="solved-pop ticket rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
             {n.text}
           </span>
         ))}
@@ -1032,7 +1032,7 @@ function BlindTestRoom({
         </div>
       </div>
 
-      <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between glass-strong rounded-xl px-4 gap-2">
+      <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between ticket rounded-xl px-4 gap-2">
         {confirmingQuit ? (
           <div className="flex items-center gap-2 text-[11px] font-mono uppercase">
             <span className="text-ink-muted">Fermer pour tous ?</span>
@@ -1052,7 +1052,7 @@ function BlindTestRoom({
             <LogOut size={14} />
           </button>
         )}
-        <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
+        <span className="text-xs font-semibold text-ink-faint">
           Manche {room.current_round + 1} / {room.tracks.length}
         </span>
         <button
@@ -1069,14 +1069,14 @@ function BlindTestRoom({
           <button
             key={e}
             onClick={() => sendReaction(e)}
-            className="tap-press w-9 h-9 rounded-full glass text-lg hover:bg-white/10 transition-colors"
+            className="tap-press w-9 h-9 rounded-full bg-white/6 border border-white/10 text-lg hover:bg-white/10 transition-colors"
           >
             {e}
           </button>
         ))}
       </div>
 
-      <div className="card p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
+      <div className="ticket p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
         {revealed ? (
           <div>
             {track.coverUrl && (
@@ -1140,7 +1140,7 @@ function BlindTestRoom({
               <button
                 type="button"
                 onClick={endRoundEarly}
-                className="mb-4 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
+                className="mb-4 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink bg-white/8 rounded-full px-4 py-2 transition-colors"
               >
                 <SkipForward size={13} />
                 Personne ne trouve — passer
@@ -1205,7 +1205,7 @@ function BlindTestRoom({
 
       <div className="flex flex-wrap gap-2 justify-center">
         {[...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id)).map((p) => (
-          <span key={p.user_id} className="font-mono text-xs glass rounded-full px-3 py-1">
+          <span key={p.user_id} className="font-mono text-xs bg-white/8 rounded-full px-3 py-1">
             {p.display_name} · <span className="text-gold">{scoreFor(p.user_id)}</span>
           </span>
         ))}
@@ -1241,7 +1241,7 @@ function ReplayPanel({
         <ArrowLeft size={14} /> Annuler
       </button>
       <div className="px-0.5">
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-1">Rejouer — même salon</p>
+        <p className="stage-kicker mb-1">Rejouer — même salon</p>
         <p className="text-xs text-ink-faint mb-4">Même code, mêmes joueurs — change juste le thème ou le nombre de manches.</p>
 
         <div className="mb-6 -mx-1 px-1">
@@ -1255,7 +1255,7 @@ function ReplayPanel({
               key={n}
               onClick={() => setRounds(n)}
               className={`rounded-full px-4 py-1.5 text-sm font-mono transition-colors ${
-                rounds === n ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+                rounds === n ? "bg-gold text-white" : "bg-white/6 border border-white/10 text-ink-muted hover:text-ink"
               }`}
             >
               {n}
@@ -1280,7 +1280,7 @@ function ReplayPanel({
               key={o.id}
               onClick={() => setAnswerMode(o.id)}
               className={`flex-1 rounded-lg py-2 text-xs font-mono transition-colors ${
-                answerMode === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+                answerMode === o.id ? "bg-gold text-white" : "bg-white/6 border border-white/10 text-ink-muted hover:text-ink"
               }`}
             >
               {o.label}
@@ -1342,7 +1342,7 @@ function RoomMenu({
       {onExit && (
         <button
           onClick={onExit}
-          className="tap-press inline-flex items-center gap-2 glass rounded-full pl-3 pr-4 py-2 text-xs font-medium text-ink-muted hover:text-ink hover:border-white/25 border border-white/10 transition-colors"
+          className="tap-press inline-flex items-center gap-2 bg-white/8 rounded-full pl-3 pr-4 py-2 text-xs font-medium text-ink-muted hover:text-ink hover:border-white/25 border border-white/10 transition-colors"
         >
           <ArrowLeft size={14} className="text-gold" /> Choix du mode
         </button>
@@ -1350,7 +1350,7 @@ function RoomMenu({
       <div className="px-0.5">
         {party ? (
           <div className="mb-4">
-            <h2 className="font-display text-2xl font-semibold leading-tight flex items-center gap-2.5">
+            <h2 className="font-display text-3xl font-extrabold tracking-tight leading-tight flex items-center gap-2.5">
               🎉 Mode Soirée
               <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
                 Nouveau
@@ -1363,7 +1363,7 @@ function RoomMenu({
           </div>
         ) : (
           <div className="mb-4">
-            <h2 className="font-display text-2xl font-semibold leading-tight">Créer un salon</h2>
+            <h2 className="font-display text-3xl font-extrabold tracking-tight leading-tight">Créer un salon</h2>
             <p className="text-sm text-ink-faint mt-1.5 leading-snug">
               Choisis un thème et les règles — tes potes rejoignent avec un code à 5 lettres.
             </p>
@@ -1381,7 +1381,7 @@ function RoomMenu({
               key={n}
               onClick={() => setRounds(n)}
               className={`rounded-full px-4 py-1.5 text-sm font-mono transition-colors ${
-                rounds === n ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"
+                rounds === n ? "bg-gold text-white" : "bg-white/6 border border-white/10 text-ink-muted hover:text-ink"
               }`}
             >
               {n}
@@ -1420,7 +1420,7 @@ function RoomMenu({
                   className={`tap-press rounded-xl border px-3 py-3.5 text-left transition-[border-color,box-shadow,background-color] ${
                     active
                       ? "border-gold bg-gold/10 shadow-[0_0_0_1px_rgba(240,0,28,0.35)]"
-                      : "border-white/10 glass hover:border-white/25"
+                      : "border-white/10 bg-white/6 border border-white/10 hover:border-white/25"
                   }`}
                 >
                   <span className="flex items-center justify-between">
@@ -1532,7 +1532,7 @@ function RoomMenu({
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-        <div className="max-w-lg mx-auto pointer-events-auto glass-strong rounded-2xl p-3 space-y-2.5">
+        <div className="max-w-lg mx-auto pointer-events-auto ticket p-3 space-y-2.5">
           <div className="flex gap-2">
             <input
               value={joinCode}

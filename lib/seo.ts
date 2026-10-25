@@ -26,7 +26,7 @@ export type Landing = {
 const COMMON_FAQ: { q: string; a: string }[] = [
   {
     q: "Le blind test rap français est-il gratuit ?",
-    a: "Oui, entièrement gratuit et sans inscription : tu ouvres dailyrapfrance.best et tu joues. Un compte (gratuit aussi) sert seulement à sauvegarder tes scores, apparaître dans le classement et créer des salons en ligne.",
+    a: "Oui, entièrement gratuit, inscription en 10 secondes : tu ouvres dailyrapfrance.best et tu joues. Un compte (gratuit aussi) sert seulement à sauvegarder tes scores, apparaître dans le classement et créer des salons en ligne.",
   },
   {
     q: "Faut-il installer une application ?",
@@ -45,7 +45,7 @@ export const MODE_LANDINGS: Landing[] = [
     title: "Blind test rap français en solo",
     metaTitle: "Blind Test Rap Français Solo — Gratuit, Défi du Jour et Classement | DailyRapFrance",
     description:
-      "Joue au blind test rap français en solo, gratuitement et sans inscription : défi du jour, série de jours, variantes Survie et Sprint, classement par thème. 40+ thèmes, extraits Deezer.",
+      "Joue au blind test rap français en solo, gratuitement et inscription en 10 secondes : défi du jour, série de jours, variantes Survie et Sprint, classement par thème. 40+ thèmes, extraits Deezer.",
     intro:
       "Cinq minutes dans le métro ou une heure sur le canapé : le mode solo te propose un extrait, un chrono, et trois questions — qui chante, quel titre, qui est en feat. Chaque jour, un défi commun à tous les joueurs change à minuit ; ta série de jours grandit tant que tu reviens.",
     playHref: "/jouer?mode=solo",
@@ -62,7 +62,7 @@ export const MODE_LANDINGS: Landing[] = [
     title: "Blind test rap français entre amis, sur un seul téléphone",
     metaTitle: "Blind Test Rap Entre Amis — Sur le Même Écran, avec Buzzer | DailyRapFrance",
     description:
-      "Un blind test rap français à jouer entre potes sur un seul téléphone : jusqu'à 8 joueurs, un buzzer, les pseudos de chacun, des jokers. Gratuit, sans inscription, sans appli à installer.",
+      "Un blind test rap français à jouer entre potes sur un seul téléphone : jusqu'à 8 joueurs, un buzzer, les pseudos de chacun, des jokers. Gratuit, compte en 10 secondes, sans appli à installer.",
     intro:
       "Un seul téléphone passe de main en main : l'extrait démarre, le premier qui reconnaît le son buzze et répond. Bonne réponse, les points sont à lui ; mauvaise réponse, les autres reprennent la main. Jusqu'à huit joueurs, et une configuration que tu peux enregistrer pour la relancer la prochaine fois avec les mêmes pseudos.",
     playHref: "/jouer?mode=local",
@@ -122,7 +122,7 @@ export function themeLanding(t: ThemeOption): Landing {
     kind: "theme",
     theme: t,
     title,
-    metaTitle: `${title} — Gratuit, en Ligne, Sans Inscription | DailyRapFrance`,
+    metaTitle: `${title} — Gratuit, en Ligne, Compte en 10 Secondes | DailyRapFrance`,
     description: `${title} : ${t.text}. Joue gratuitement en solo, entre amis sur un téléphone, à distance avec un code ou en soirée sur la TV. Extraits Deezer, nouveaux à chaque partie.`,
     intro: isArtist
       ? `Que des sons de ${subject}. Reconnais le titre le plus vite possible — et le featuring s'il y en a un — sur des extraits tirés de toute la discographie, renouvelés à chaque partie.`

@@ -4,12 +4,12 @@ import BlindTestLogo from "@/components/BlindTestLogo";
 import { THEME_LANDINGS } from "@/lib/seo";
 
 export const metadata = {
-  title: "Blind Test Rap Français — Gratuit, en Ligne, Sans Inscription | DailyRapFrance",
+  title: "Blind Test Rap Français — Gratuit, en Ligne, Compte en 10 Secondes | DailyRapFrance",
   description:
-    "Le blind test rap français gratuit et sans inscription : joue direct, en solo, entre potes sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes : 90s, 2000s, cloud rap, 93, 91, Marseille...",
+    "Le blind test rap français gratuit, inscription en 10 secondes : joue direct, en solo, entre potes sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes : 90s, 2000s, cloud rap, 93, 91, Marseille...",
   alternates: { canonical: "https://dailyrapfrance.best/blindtest" },
   openGraph: {
-    title: "Blind Test Rap Français — Gratuit, en Ligne, Sans Inscription",
+    title: "Blind Test Rap Français — Gratuit, en Ligne, Compte en 10 Secondes",
     description:
       "Joue direct, sans compte : solo, multijoueur sur le même écran, salon privé à distance, mode soirée sur TV. 45+ thèmes de rap FR.",
     url: "https://dailyrapfrance.best/blindtest",
@@ -31,7 +31,7 @@ const jsonLd = {
       name: "Blind Test Rap Français",
       alternateName: "Blind test rap FR DailyRapFrance",
       description:
-        "Blind test dédié au rap français, en ligne, gratuit et sans inscription. Plus de 45 thèmes (époques, styles, régions), mode solo, multijoueur local sur le même écran, salons privés à distance et mode soirée sur TV avec gages.",
+        "Blind test dédié au rap français, en ligne, gratuit, inscription en 10 secondes. Plus de 45 thèmes (époques, styles, régions), mode solo, multijoueur local sur le même écran, salons privés à distance et mode soirée sur TV avec gages.",
       genre: ["Quiz musical", "Jeu de soirée"],
       gamePlatform: "Navigateur web (mobile, tablette, ordinateur, TV)",
       playMode: ["SinglePlayer", "MultiPlayer"],
@@ -115,7 +115,7 @@ export default function BlindTestPage() {
           <span className="text-ink-faint transition-transform group-open:rotate-90">›</span>
         </summary>
         <h2 className="font-display text-2xl text-ink font-semibold mb-3">
-          Le blind test rap français gratuit, en ligne et sans inscription
+          Le blind test rap français gratuit, en ligne et inscription en 10 secondes
         </h2>
         <p className="mb-6">
           DailyRapFrance propose le blind test rap français le plus complet : plus de quarante-cinq

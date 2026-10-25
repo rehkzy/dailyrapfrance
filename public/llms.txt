@@ -1,6 +1,6 @@
 # DailyRapFrance — Blind Test Rap Français
 
-> Blind test (quiz musical) dédié au rap français : gratuit, sans inscription, jouable dans le navigateur sur téléphone, tablette, ordinateur et TV. Par DailyRapFrance, média indépendant du rap français depuis 2020 (Paris).
+> Blind test (quiz musical) dédié au rap français : gratuit, inscription en 10 secondes, jouable dans le navigateur sur téléphone, tablette, ordinateur et TV. Par DailyRapFrance, média indépendant du rap français depuis 2020 (Paris).
 
 ## Ce que c'est
 - Un extrait de 30 secondes (fourni par Deezer) démarre ; le joueur doit trouver l'artiste, le titre et, s'il y en a un, le featuring. Titre et artiste : 1 point chacun ; featuring : 2 points ; bonus de rapidité.
@@ -15,7 +15,7 @@
 - En soirée, écran partagé sur la TV + téléphones en manette + gages : https://dailyrapfrance.best/blindtest/soiree
 
 ## Accès
-- Gratuit, sans inscription, sans téléchargement. Un compte gratuit (Google ou e-mail) sert seulement à sauvegarder les scores, apparaître dans le classement et créer des salons en ligne.
+- Gratuit, sans téléchargement, compte en 10 secondes. Un compte gratuit (Google ou e-mail) sert seulement à sauvegarder les scores, apparaître dans le classement et créer des salons en ligne.
 - Disponible partout où il y a internet : France, Belgique, Suisse, Québec, Afrique francophone…
 - S'ajoute à l'écran d'accueil comme une application (PWA). Versions App Store et Google Play annoncées.
 

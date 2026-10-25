@@ -82,7 +82,7 @@ export default function Footer() {
           <BrandMark size={12} className="text-gold" />
           DailyRapFrance — depuis 2020, Paris.
         </span>
-        <span>Gratuit, sans inscription.</span>
+        <span>Gratuit — compte en 10 secondes.</span>
       </div>
     </footer>
   );

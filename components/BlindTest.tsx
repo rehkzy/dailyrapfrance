@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   RotateCcw, Users, User, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  X, VolumeX, Volume2, Lightbulb,
+  X, VolumeX, Volume2, Lightbulb, Sliders,
   SpellCheck, PartyPopper, Swords, Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -907,12 +907,24 @@ export default function BlindTest() {
       );
     }
     return (
-      <BlindTestRoom
-        user={user}
-        onExit={() => setMode(null)}
-        initialCode={joinRoomCode ?? undefined}
-        party={mode === "party"}
-      />
+      <div className="stage blindtest-shell px-5 sm:px-6 pb-10">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between gap-3 pt-4 pb-2">
+            <a href="/" aria-label="DailyRapFrance — accueil" className="inline-flex items-center">
+              <img src="/logo.svg" alt="DailyRapFrance" className="h-6 sm:h-7 w-auto" />
+            </a>
+            <a href="/blindtest/classement" aria-label="Classement" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink">
+              <Trophy size={17} />
+            </a>
+          </div>
+          <BlindTestRoom
+            user={user}
+            onExit={() => setMode(null)}
+            initialCode={joinRoomCode ?? undefined}
+            party={mode === "party"}
+          />
+        </div>
+      </div>
     );
   }
 
@@ -966,7 +978,8 @@ export default function BlindTest() {
           ) : wizardStep === 0 ? (
             <>
               <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
-              <h2 className="stage-title mb-6">Comment on joue<br />ce soir ?</h2>
+              <h2 className="stage-title mb-2">Comment on joue<br />ce soir ?</h2>
+              <p className="text-sm text-ink-muted mb-5">Choisis une carte, puis le thème. Le reste se règle en un écran.</p>
 
               {deepLink.from && (
                 <div className="challenge-banner mb-5">
@@ -1001,6 +1014,9 @@ export default function BlindTest() {
                         setMode(m.id);
                         setSetupError(null);
                         if (m.id === "solo") setTimeout(() => setWizardStep(1), 260);
+                        // Entre potes : le panneau des pseudos apparaît sous le deck — on l'amène
+                        // à l'écran, sinon on ne sait pas qu'il y a une étape de plus.
+                        if (m.id === "local") setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
                       }}
                     >
                       <BrandMark className="poster-mark" size="90%" />
@@ -1014,11 +1030,12 @@ export default function BlindTest() {
               </div>
 
               {mode === "local" && (
-                <div className="ticket p-5 mt-2 mb-6 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
-                  <div className="flex items-baseline justify-between mb-3">
+                <div id="players-panel" className="ticket p-5 mt-2 mb-6 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
+                  <div className="flex items-baseline justify-between mb-1">
                     <p className="font-display text-xl font-bold">Qui joue ?</p>
                     <span className="text-xs text-ink-faint">{playerNames.filter((n) => n.trim()).length} / 8</span>
                   </div>
+                  <p className="text-xs text-ink-faint mb-3">Les pseudos s&apos;affichent sur les buzzers. Au moins deux joueurs.</p>
                   <div className="space-y-2">
                     {playerNames.map((name, i) => (
                       <div key={i} className="flex gap-2 items-center">
@@ -1125,12 +1142,19 @@ export default function BlindTest() {
                 </div>
               </div>
 
-              <details className="group mb-6">
-                <summary className="cursor-pointer list-none flex items-center justify-between text-sm font-semibold min-h-[44px]">
-                  Réglages avancés
-                  <ChevronRight size={16} className="text-ink-faint transition-transform group-open:rotate-90" />
+              <details className="group adv-card ticket mb-6">
+                <summary className="cursor-pointer flex items-center gap-4 p-5 min-h-[72px]">
+                  <span className="w-11 h-11 rounded-xl bg-white/8 grid place-items-center shrink-0 text-ink"><Sliders size={18} /></span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-display text-lg font-bold leading-tight">Réglages avancés</span>
+                    <span className="block text-xs text-ink-faint mt-0.5 truncate">
+                      {variant === "classic" ? `${roundCount} manches · ${roundSeconds} s · ${jokerCount ? `${jokerCount} joker${jokerCount > 1 ? "s" : ""}` : "sans joker"}` : `${effectiveRounds} extraits · ${effectiveSeconds} s`}
+                      {hintsEnabled ? " · indice" : ""}{answerMode === "text" && strictMode ? " · orthographe stricte" : ""}
+                    </span>
+                  </span>
+                  <ChevronRight size={18} className="text-ink-faint transition-transform group-open:rotate-90 shrink-0" />
                 </summary>
-                <div className="mt-3 space-y-5">
+                <div className="px-5 pb-5 space-y-5">
                   {variant === "classic" && (
                     <>
                       <div>
@@ -1189,8 +1213,8 @@ export default function BlindTest() {
         </div>
 
         {/* Action principale, collée au pouce */}
-        {phase !== "loading" && (wizardStep === 2 || (wizardStep === 0 && mode === "local")) && (
-          <div className="fixed bottom-0 inset-x-0 z-30 px-5 pt-6 pointer-events-none" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+        {phase !== "loading" && (wizardStep === 2 || wizardStep === 0) && (
+          <div className="stage-fixed bottom-0 inset-x-0 px-5 pt-6 pointer-events-none" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
             <div className="absolute inset-0 bg-gradient-to-t from-[#070404] via-[#070404]/90 to-transparent -z-10" aria-hidden="true" />
             <div className="max-w-2xl mx-auto pointer-events-auto">
               {wizardStep === 2 ? (
@@ -1199,7 +1223,7 @@ export default function BlindTest() {
                 </button>
               ) : (
                 <button type="button" disabled={!canContinue} onClick={() => { setSetupError(null); setWizardStep(1); }} className="sticker w-full h-16 text-lg">
-                  Choisir le thème <ChevronRight size={18} />
+                  {!mode ? "Choisis un mode pour continuer" : mode === "local" && !canContinue ? "Ajoute au moins 2 joueurs" : "Choisir le thème"} {canContinue && <ChevronRight size={18} />}
                 </button>
               )}
             </div>
@@ -1307,12 +1331,12 @@ export default function BlindTest() {
   const qcmKeys = ["A", "B", "C", "D"];
 
   return (
-    <div className="stage blindtest-shell game-scroll-area overflow-y-auto overscroll-contain px-5 sm:px-6 flex flex-col" style={{ height: "100dvh" }}>
+    <div className="stage blindtest-shell game-layout px-5 sm:px-6" data-lenis-prevent>
       {!isClip && <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" onError={() => (started ? void recoverAudio(true) : undefined)} />}
       {track.coverUrl && !isClip && <div className="round-bg" data-revealed={revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
 
-      <div className="max-w-2xl mx-auto w-full flex-1">
-        {/* Rail haut : quitter · progression · volume · plein écran */}
+      <div className="max-w-2xl mx-auto w-full game-scene" data-lenis-prevent>
+        {/* Rail haut : quitter · progression · volume */}
         <div className="flex items-center gap-3 pt-4 pb-3">
           <button type="button" onClick={() => setConfirmQuit(true)} aria-label="Quitter la partie" className="w-10 h-10 shrink-0 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
             <X size={16} />
@@ -1388,7 +1412,7 @@ export default function BlindTest() {
         )}
 
         {/* Scène centrale */}
-        <div className={`text-center flex flex-col items-center justify-center ${isClip ? "min-h-[14vh]" : "min-h-[38vh]"}`}>
+        <div className={`text-center flex flex-col items-center justify-center ${isClip ? "min-h-[12vh]" : "min-h-[30vh]"} pb-3`}>
           {!started ? (
             <>
               {!isClip && <span className="block w-20 h-20 mb-6"><DRMark3D size="100%" /></span>}
@@ -1454,10 +1478,9 @@ export default function BlindTest() {
         </div>
       </div>
 
-      {/* Panneau de réponse — zone pouce. Collant au bas de la zone de jeu (pas "fixed" : sur
-          iOS Safari un élément fixed passe sous la barre d'outils et devient inatteignable). */}
-      <div className="sticky bottom-0 z-30 -mx-5 sm:-mx-6 px-5 sm:px-6 pt-6 mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#070404] via-[#070404]/95 to-transparent -z-10" aria-hidden="true" />
+      {/* Panneau de réponse — toujours visible, hors de la zone qui défile (ni fixed ni sticky :
+          sur iOS Safari ces deux-là finissent sous la barre d'outils). */}
+      <div className="game-answers relative z-30 pt-3">
         <div className="max-w-2xl mx-auto space-y-2.5">
           {showAnswers && jokersEnabled && timeLeft <= 8 && timeLeft > 0 && ((mode === "solo" && !soloPlayer?.timeJokerUsed) || (mode === "local" && buzzedBy && !activePlayer?.timeJokerUsed)) && (
             <div className="flex justify-end">

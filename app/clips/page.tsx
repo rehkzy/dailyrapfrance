@@ -6,11 +6,11 @@ import BrandLoader from "@/components/BrandLoader";
 export const metadata: Metadata = {
   title: "Devine le clip — Quiz Clips Rap Français | DailyRapFrance",
   description:
-    "Reconnais le rappeur à son clip : des clips officiels lancés après l'intro, 15 secondes pour répondre, façon Reels. Gratuit, sans inscription, dans le navigateur.",
+    "Reconnais le rappeur à son clip : des clips officiels lancés après l'intro, 15 secondes pour répondre, façon Reels. Gratuit, dans le navigateur, compte en 10 secondes.",
   alternates: { canonical: "https://dailyrapfrance.best/clips" },
   openGraph: {
     title: "Devine le clip — DailyRapFrance",
-    description: "Le quiz des clips rap français : swipe, regarde, réponds. Gratuit, sans inscription.",
+    description: "Le quiz des clips rap français : swipe, regarde, réponds. Gratuit — compte en 10 secondes.",
     url: "https://dailyrapfrance.best/clips",
     type: "website",
     images: [{ url: "/og.png", width: 1200, height: 630 }],
