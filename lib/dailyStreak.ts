@@ -4,13 +4,27 @@
  * juste pour jouer 30 secondes tuerait l'adoption. Contrepartie honnête : la série ne se
  * synchronise pas entre appareils — assumé, et dit clairement dans l'UI plutôt que de
  * laisser croire à un vrai compteur de compte.
+ *
+ * Ajouts v2 :
+ *  - historique des jours joués (calendrier des 14 derniers jours sur l'accueil / résultats)
+ *  - "joker de série" : un jour manqué par tranche de 7 jours de série est pardonné en
+ *    silence (pattern Duolingo), pour que la série récompense la régularité, pas la perfection
+ *  - numéro du défi du jour (#1 = date de lancement) et compte à rebours jusqu'à minuit Paris
+ *  - compteur de parties terminées, toutes modes confondus (sert à n'inviter à installer
+ *    l'app qu'après la 2e partie, jamais à froid)
  */
 
 const KEY = "drf-daily-streak";
+const DAYS_KEY = "drf-played-days";
+const GAMES_KEY = "drf-games-played";
+const BEST_KEY = "drf-daily-best";
 
-type StreakState = { count: number; lastDate: string | null };
+// Jour 1 du défi quotidien — sert à numéroter les défis (#312…) dans les résultats partagés.
+const DAILY_EPOCH = "2025-08-01";
 
-function parisDateString(d = new Date()): string {
+type StreakState = { count: number; lastDate: string | null; freezesUsed?: number };
+
+export function parisDateString(d = new Date()): string {
   return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(d);
 }
 
@@ -30,21 +44,47 @@ function daysBetween(a: string, b: string): number {
   return Math.round((db - da) / 86_400_000);
 }
 
+function readDays(): string[] {
+  try {
+    const raw = localStorage.getItem(DAYS_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
 /** À appeler une fois qu'une partie du jour est terminée (gagnée ou perdue — jouer compte,
- * pas seulement gagner, sinon la série punit l'échec au lieu de récompenser la régularité). */
-export function markPlayedToday(): number {
+ * pas seulement gagner, sinon la série punit l'échec au lieu de récompenser la régularité).
+ * Renvoie la série courante et si un joker de série vient d'être consommé. */
+export function markPlayedToday(): { count: number; frozen: boolean; isNew: boolean } {
   const today = parisDateString();
   const state = read();
-  if (state.lastDate === today) return state.count; // déjà compté aujourd'hui
+  const days = readDays();
+  if (!days.includes(today)) {
+    try {
+      localStorage.setItem(DAYS_KEY, JSON.stringify([...days, today].slice(-120)));
+    } catch {
+      /* ignore */
+    }
+  }
+  if (state.lastDate === today) return { count: state.count, frozen: false, isNew: false };
   const gap = state.lastDate ? daysBetween(state.lastDate, today) : null;
-  const nextCount = gap === 1 ? state.count + 1 : 1; // hier → +1, sinon la série repart à 1
-  const next: StreakState = { count: nextCount, lastDate: today };
+  let frozen = false;
+  let nextCount: number;
+  if (gap === 1) nextCount = state.count + 1;
+  else if (gap === 2 && state.count >= 7) {
+    // Un jour manqué, mais une série d'au moins 7 jours : le joker de série encaisse.
+    nextCount = state.count + 1;
+    frozen = true;
+  } else nextCount = 1;
+  const next: StreakState = { count: nextCount, lastDate: today, freezesUsed: (state.freezesUsed ?? 0) + (frozen ? 1 : 0) };
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
     /* stockage indisponible (navigation privée…) — la série ne persistera pas, tant pis */
   }
-  return nextCount;
+  return { count: nextCount, frozen, isNew: true };
 }
 
 export function getStreak(): number {
@@ -53,7 +93,93 @@ export function getStreak(): number {
   const today = parisDateString();
   if (!state.lastDate) return 0;
   const gap = daysBetween(state.lastDate, today);
-  // Si plus d'un jour s'est écoulé depuis la dernière partie, la série est déjà rompue —
-  // on l'affiche à 0 sans attendre que l'utilisateur rejoue pour le découvrir.
-  return gap <= 1 ? state.count : 0;
+  // Un jour de retard reste rattrapable aujourd'hui (et deux si la série est longue, grâce
+  // au joker) — sinon la série est déjà rompue, on l'affiche à 0 sans attendre.
+  if (gap <= 1) return state.count;
+  if (gap === 2 && state.count >= 7) return state.count;
+  return 0;
+}
+
+/** La série est-elle "en danger" : pas encore jouée aujourd'hui alors qu'elle est active ? */
+export function streakAtRisk(): boolean {
+  if (typeof window === "undefined") return false;
+  const state = read();
+  return getStreak() > 0 && state.lastDate !== parisDateString();
+}
+
+export function playedToday(): boolean {
+  if (typeof window === "undefined") return false;
+  return read().lastDate === parisDateString();
+}
+
+/** Les N derniers jours (du plus ancien au plus récent) avec, pour chacun, joué ou non. */
+export function recentDays(n = 14): { date: string; played: boolean; today: boolean }[] {
+  const days = new Set<string>(typeof window === "undefined" ? [] : readDays());
+  const today = parisDateString();
+  const out: { date: string; played: boolean; today: boolean }[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86_400_000);
+    const date = parisDateString(d);
+    out.push({ date, played: days.has(date), today: date === today });
+  }
+  return out;
+}
+
+export function dailyNumber(d = new Date()): number {
+  return daysBetween(DAILY_EPOCH, parisDateString(d)) + 1;
+}
+
+/** Millisecondes avant le prochain défi (minuit, heure de Paris). */
+export function msUntilNextDaily(now = new Date()): number {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const elapsed = (get("hour") % 24) * 3600 + get("minute") * 60 + get("second");
+  return (86_400 - elapsed) * 1000;
+}
+
+export function formatCountdown(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+export function bumpGamesPlayed(): number {
+  try {
+    const n = Number(localStorage.getItem(GAMES_KEY) ?? 0) + 1;
+    localStorage.setItem(GAMES_KEY, String(n));
+    return n;
+  } catch {
+    return 0;
+  }
+}
+
+export function getGamesPlayed(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    return Number(localStorage.getItem(GAMES_KEY) ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+/** Meilleur score du défi du jour sur cet appareil (pour "record perso"). */
+export function recordDailyScore(points: number): { best: number; isRecord: boolean } {
+  try {
+    const raw = localStorage.getItem(BEST_KEY);
+    const prev = raw ? (JSON.parse(raw) as { date: string; points: number }) : null;
+    const today = parisDateString();
+    if (prev && prev.date === today && prev.points >= points) return { best: prev.points, isRecord: false };
+    localStorage.setItem(BEST_KEY, JSON.stringify({ date: today, points }));
+    return { best: points, isRecord: !!prev && prev.date === today };
+  } catch {
+    return { best: points, isRecord: false };
+  }
 }

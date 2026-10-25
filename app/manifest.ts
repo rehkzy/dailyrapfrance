@@ -5,7 +5,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Blind Test Rap Français — DailyRapFrance",
-    short_name: "Blind Test",
+    short_name: "DailyRap",
     description: "Le blind test rap français : gratuit, solo ou entre potes.",
     start_url: "/jouer",
     display: "standalone",
@@ -16,7 +16,13 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+    // Raccourcis (appui long sur l'icône) — les trois gestes les plus fréquents.
+    shortcuts: [
+      { name: "Défi du jour", short_name: "Défi", url: "/jouer?daily=1&autostart=1", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Lancer une soirée", short_name: "Soirée", url: "/jouer?mode=party", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Entre potes", short_name: "Potes", url: "/jouer?mode=local", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }

@@ -38,7 +38,7 @@ export default function BrandLoader({
             className="rounded-full bg-bg-deep border border-white/10 flex items-center justify-center"
             style={{ width: dims * 0.72, height: dims * 0.72 }}
           >
-            <img src="/icon.svg" alt="" aria-hidden="true" style={{ width: iconSize, height: iconSize }} className="opacity-95" />
+            <img src="/logo-stacked.svg" alt="" aria-hidden="true" style={{ width: iconSize, height: iconSize }} className="opacity-95" />
           </div>
         </div>
       </div>

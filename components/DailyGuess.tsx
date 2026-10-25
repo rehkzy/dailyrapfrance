@@ -117,7 +117,7 @@ export default function DailyGuess() {
     if (!date) return;
     setStatus(next);
     saveState({ date, guesses: nextGuesses, status: next });
-    setStreak(markPlayedToday());
+    setStreak(markPlayedToday().count);
     if (next === "won") sfx.victory();
     else sfx.wrong();
   }

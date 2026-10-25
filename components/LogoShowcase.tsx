@@ -44,7 +44,7 @@ export default function LogoShowcase() {
         <div className="logo-sweep absolute inset-0 pointer-events-none" aria-hidden="true" />
 
         <img
-          src="/icon.svg"
+          src="/logo-stacked.svg"
           alt="DailyRapFrance"
           className="logo-float relative w-[58%] h-[58%] object-contain drop-shadow-[0_0_30px_rgba(240,0,28,0.55)]"
         />

@@ -41,7 +41,7 @@ export default function GameCover({
       }}
       aria-label={title}
     >
-      <img src="/icon.svg" alt="" aria-hidden="true" className="cover-logo" />
+      <img src="/logo-stacked.svg" alt="" aria-hidden="true" className="cover-logo" />
       {flag && <span className="nf-flag">{flag}</span>}
       <span className={variant === "card" ? "cover-title cover-title-lg" : "cover-title"}>
         {renderCoverTitle(title)}

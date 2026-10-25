@@ -261,11 +261,12 @@ export default function PartyDisplay({ code }: { code: string }) {
 
       {room.status === "lobby" && (
         <>
-          <p className="font-mono text-sm text-ink-faint uppercase tracking-[0.2em] mb-3">Scanne pour rejoindre</p>
+          <p className="font-display text-2xl sm:text-3xl font-bold mb-4">Scanne pour rejoindre</p>
           {qrDataUrl && (
-            <img src={qrDataUrl} alt="QR code pour rejoindre le salon" className="w-64 h-64 sm:w-80 sm:h-80 mb-6" />
+            <img src={qrDataUrl} alt="QR code pour rejoindre le salon" className="w-64 h-64 sm:w-[22rem] sm:h-[22rem] rounded-2xl mb-5 bg-white p-2" />
           )}
-          <p className="font-mono text-5xl sm:text-6xl font-bold tracking-[0.2em] text-gold mb-6">{room.code}</p>
+          <p className="text-sm text-ink-muted mb-1">ou va sur <span className="text-ink font-semibold">dailyrapfrance.best/jouer</span> et entre le code</p>
+          <p className="room-code text-gold mb-6">{room.code}</p>
 
           {/* Contexte de la partie — avant, personne devant la TV ne savait sur quoi on
               allait jouer tant que la première manche ne démarrait pas. */}

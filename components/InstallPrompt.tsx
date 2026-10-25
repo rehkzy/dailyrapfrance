@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Share, SquarePlus, X, Smartphone, Download } from "lucide-react";
-import { BlindTestMark } from "@/components/BlindTestLogo";
+import { BrandTile } from "@/components/BrandMark";
+import { getGamesPlayed } from "@/lib/dailyStreak";
 
 /*
  * Invite d'installation "comme une app" — détecte l'appareil et adapte le parcours :
@@ -13,7 +14,10 @@ import { BlindTestMark } from "@/components/BlindTestLogo";
  * · iPhone / iPad (Safari) : Apple n'expose aucune API d'installation. On affiche donc
  *   un tutoriel visuel pas-à-pas : Partager → « Sur l'écran d'accueil ».
  * · Déjà installé (mode standalone) : on ne montre rien.
- * · Refusé : on mémorise en localStorage et on ne re-propose pas avant 14 jours.
+ * · Refusé : on mémorise en localStorage et on ne re-propose pas avant 30 jours.
+ * · Timing (v2) : jamais à froid. L'invite n'apparaît qu'après la 2e partie terminée sur
+ *   cet appareil (événement "drf-game-finished"), au moment où l'engagement est le plus
+ *   haut — pattern web.dev "promote install after a conversion event".
  */
 
 type BeforeInstallPromptEvent = Event & {
@@ -22,7 +26,8 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = "drf-install-dismissed-at";
-const DISMISS_DAYS = 14;
+const DISMISS_DAYS = 30;
+const MIN_GAMES = 2;
 
 function isStandalone() {
   return (
@@ -47,6 +52,8 @@ export default function InstallPrompt() {
   const [showIosSteps, setShowIosSteps] = useState(false);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
+  const [eligible, setEligible] = useState(false);
+
   useEffect(() => {
     if (isStandalone()) return; // déjà installé
     const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) ?? 0);
@@ -54,27 +61,39 @@ export default function InstallPrompt() {
 
     const p = detectPlatform();
     setPlatform(p);
-    if (p === "ios") {
-      // Pas d'API côté Apple : on propose le tutoriel directement (mais seulement sur iOS,
-      // jamais sur desktop où ça n'aurait pas de sens).
-      setVisible(true);
-    }
+
+    // Éligible seulement après MIN_GAMES parties — évalué maintenant, puis à chaque fin de
+    // partie (l'écran de fin est le bon moment pour proposer l'app).
+    const check = () => {
+      if (getGamesPlayed() >= MIN_GAMES) setEligible(true);
+    };
+    check();
+    window.addEventListener("drf-game-finished", check);
 
     // Android/Chromium : on n'affiche l'invite QUE si le navigateur confirme que
     // l'installation est possible (l'événement ne se déclenche pas si déjà installé).
     const onBip = (e: Event) => {
       e.preventDefault();
       setInstallEvent(e as BeforeInstallPromptEvent);
-      setVisible(true);
     };
     window.addEventListener("beforeinstallprompt", onBip);
     const onInstalled = () => setVisible(false);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
+      window.removeEventListener("drf-game-finished", check);
       window.removeEventListener("beforeinstallprompt", onBip);
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
+
+  useEffect(() => {
+    if (!eligible) return;
+    // iOS : pas d'API, le tutoriel suffit. Android : il faut l'événement d'installation.
+    if (platform === "ios" || (platform === "android" && installEvent)) {
+      const t = setTimeout(() => setVisible(true), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [eligible, platform, installEvent]);
 
   function dismiss() {
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
@@ -97,13 +116,13 @@ export default function InstallPrompt() {
       {/* Bannière compacte */}
       <div className="fixed bottom-24 lg:bottom-6 inset-x-0 z-40 px-4 flex justify-center pointer-events-none">
         <div className="glass rounded-3xl p-4 pr-3 flex items-center gap-3.5 max-w-md w-full pointer-events-auto shadow-[0_16px_50px_rgba(0,0,0,0.6)]">
-          <BlindTestMark size={44} />
+          <BrandTile size={44} />
           <div className="min-w-0 flex-1">
-            <p className="font-display font-bold text-sm leading-tight">Le Blind Test en app</p>
+            <p className="font-display font-bold text-sm leading-tight">Garde le blind test sous la main</p>
             <p className="text-[11px] text-ink-muted mt-0.5">
               {platform === "ios"
-                ? "Ajoute-le à ton écran d'accueil, plein écran comme une vraie app."
-                : "Installe-le sur ton écran d'accueil en un tap."}
+                ? "Sur ton écran d'accueil : le défi du jour en un tap, plein écran, sans Safari."
+                : "Sur ton écran d'accueil en un tap — idéal pour lancer une soirée."}
             </p>
           </div>
           {platform === "android" && installEvent ? (
@@ -126,7 +145,7 @@ export default function InstallPrompt() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Installer sur iPhone">
           <div className="glass rounded-[28px] p-6 max-w-sm w-full bg-bg/95">
             <div className="flex items-center gap-3 mb-5">
-              <BlindTestMark size={40} />
+              <BrandTile size={40} />
               <div>
                 <p className="font-display font-bold leading-tight">Sur ton écran d'accueil</p>
                 <p className="text-[11px] text-ink-muted">30 secondes, depuis Safari</p>

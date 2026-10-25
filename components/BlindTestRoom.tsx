@@ -738,9 +738,9 @@ function BlindTestRoom({
           </button>
         )}
         <div className="card p-6 md:p-8 text-center">
-          <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Code du salon</p>
-          <button onClick={copyCode} className="inline-flex items-center gap-3 mb-4 group">
-            <span className="font-display text-4xl font-semibold tracking-[0.2em]">{room.code}</span>
+          <p className="text-sm font-semibold text-ink-muted mb-2">Code du salon — touche pour copier</p>
+          <button onClick={copyCode} className="inline-flex items-center gap-3 mb-4 group" aria-label={`Copier le code ${room.code}`}>
+            <span className="room-code text-ink">{room.code}</span>
             {copied ? <Check size={20} className="text-gold" /> : <Copy size={18} className="text-ink-faint group-hover:text-ink" />}
           </button>
 

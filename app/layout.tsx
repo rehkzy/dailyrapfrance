@@ -7,6 +7,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 import SitePresence from "@/components/SitePresence";
 import SiteAnnouncement from "@/components/SiteAnnouncement";
 import ActivityTracker from "@/components/ActivityTracker";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dailyrapfrance.best"),
@@ -33,8 +34,13 @@ export const metadata: Metadata = {
     "rap fr",
   ],
   icons: {
-    icon: "/icon.svg",
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
   },
   appleWebApp: {
     capable: true,
@@ -51,9 +57,11 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     type: "website",
     url: "https://dailyrapfrance.best",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Blind Test Rap Français — DailyRapFrance" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
+    images: ["/og.png"],
     title: "Blind Test Rap Français — Gratuit et en Ligne",
     description: "Le blind test rap FR à jouer partout avec ses amis : solo, local, à distance, en soirée. Gratuit, sans inscription.",
   },
@@ -78,7 +86,7 @@ const JSONLD_SITE = {
       "@id": "https://dailyrapfrance.best/#org",
       name: "DailyRapFrance",
       url: "https://dailyrapfrance.best",
-      logo: "https://dailyrapfrance.best/icon.svg",
+      logo: "https://dailyrapfrance.best/icon-512.png",
     },
   ],
 };
@@ -89,6 +97,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: "#0A0707",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -109,6 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main>{children}</main>
         <Footer />
+        <InstallPrompt />
       </body>
     </html>
   );

@@ -61,7 +61,7 @@ export default function ShareScoreCard({
       // clair en haut, fine bordure — le style "glass" du site, sans aucun cadre opaque
       // ni fond noir derrière le logo.
       try {
-        const logo = await loadSvg("/icon.svg");
+        const logo = await loadSvg("/logo-stacked.svg");
         if (cancelled) return;
 
         const panelW = 340;

@@ -15,8 +15,8 @@ const config: Config = {
         line: "#2b2020",
         "line-strong": "#3d2b2b",
         ink: "#F5E8E8",
-        "ink-muted": "#9BA1A8",
-        "ink-faint": "#5B6167",
+        "ink-muted": "#B9A9AB",   // gris chaud (teinte sable) — plus de gris bleuté générique
+        "ink-faint": "#7D6C6F",
         gold: "#F0001C",      // Rouge Daily — accent, certifications, hype, signature
         signal: "#780101",    // Rouge Article — secondaire, halos, profondeur
         glow: "#FF3B4E",       // Rouge Daily éclairci — halos, glow de survol, live
@@ -35,6 +35,11 @@ const config: Config = {
       },
       borderRadius: {
         DEFAULT: "6px",
+        "3xl": "1.5rem",
+        "4xl": "2rem",
+      },
+      boxShadow: {
+        brand: "0 12px 40px -12px rgba(240,0,28,0.55)",
       },
     },
   },

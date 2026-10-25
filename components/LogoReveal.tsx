@@ -33,7 +33,7 @@ export default function LogoReveal({ size = 40 }: { size?: number }) {
         transition: "clip-path 1.1s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
-      <img src="/icon.svg" alt="DailyRapFrance" width={size} height={size * 0.66} style={{ width: size, height: "auto" }} />
+      <img src="/logo-stacked.svg" alt="DailyRapFrance" width={size} height={size * 0.66} style={{ width: size, height: "auto" }} />
     </div>
   );
 }

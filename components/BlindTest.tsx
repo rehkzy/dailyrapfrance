@@ -6,7 +6,7 @@ import {
   Zap, RotateCcw, Users, User, Disc, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   Sliders, Gamepad2, Maximize, Minimize, X, VolumeX, Volume2, Lightbulb, Target,
-  ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper,
+  ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper, Swords,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -30,6 +30,13 @@ import ShareGame from "@/components/ShareGame";
 import { GameTabBarContent } from "@/components/GameTabBar";
 import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
 import BorderMagicButton from "@/components/ui/BorderMagicButton";
+import ResultShare from "@/components/ResultShare";
+import SavedPresets from "@/components/SavedPresets";
+import DailyCard from "@/components/DailyCard";
+import BrandMark from "@/components/BrandMark";
+import { parseConfig, touchPreset, type GameConfig, type Preset } from "@/lib/presets";
+import { markPlayedToday, bumpGamesPlayed, dailyNumber, getStreak, recordDailyScore } from "@/lib/dailyStreak";
+import type { RoundOutcome } from "@/lib/share";
 
 // Icône "salon" harmonisée avec la page d'accueil (Untitled UI) — remplace Globe (lucide)
 // qui donnait un symbole différent ("planète") de celui utilisé ailleurs pour le même
@@ -44,6 +51,13 @@ function RemoteSalonIconBase({ size = 24, className }: { size?: number; strokeWi
   return <Icon icon="game-icons:wifi-router" width={size} height={size} className={className} />;
 }
 const RemoteSalonIcon = RemoteSalonIconBase as unknown as LucideIcon;
+
+const MODE_TILES: { id: Mode; label: string; Icon: LucideIcon; desc: string; tag: string }[] = [
+  { id: "solo", label: "Solo", Icon: User, desc: "À ton rythme, score sauvegardé.", tag: "1 joueur" },
+  { id: "local", label: "Entre potes", Icon: Users, desc: "Un écran, un buzzer, les pseudos.", tag: "2 à 8 joueurs" },
+  { id: "online", label: "Salon en ligne", Icon: RemoteSalonIcon, desc: "Un code, chacun sur son téléphone.", tag: "À distance" },
+  { id: "party", label: "Soirée TV", Icon: PartyPopper, desc: "Écran partagé, téléphones en manette, un gage pour le dernier.", tag: "2 à 8 + TV" },
+];
 
 type Track = {
   id: string;
@@ -83,24 +97,39 @@ export default function BlindTest() {
   }, [user]);
   const searchParams = useSearchParams();
   const joinRoomCode = searchParams.get("room");
-  const deepLinkTheme = searchParams.get("theme");
-  const deepLinkMode = searchParams.get("mode");
-
-  const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(deepLinkTheme ? 1 : 0);
-  const [mode, setMode] = useState<Mode | null>(
-    joinRoomCode ? "online" : deepLinkMode === "online" || deepLinkMode === "local" || deepLinkMode === "solo" || deepLinkMode === "party" ? deepLinkMode : null
-  );
-  const [themeId, setThemeId] = useState<string>(
-    deepLinkTheme && THEME_OPTIONS.some((t) => t.id === deepLinkTheme) ? deepLinkTheme : "mix"
-  );
   const dailyTheme = useMemo(() => getDailyTheme(), []);
-  const [roundCount, setRoundCount] = useState(10);
-  const [roundSeconds, setRoundSeconds] = useState(DEFAULT_ROUND_SECONDS);
-  const [jokerCount, setJokerCount] = useState(1);
+  // Lien profond — transporte une configuration complète (preset, défi d'un pote, raccourci
+  // d'app) : /jouer?mode=local&theme=93&rounds=15&secs=25&players=A|B&autostart=1
+  const deepLink = useMemo(() => {
+    const cfg = parseConfig(searchParams, (id) => THEME_OPTIONS.some((t) => t.id === id));
+    const isDaily = searchParams.get("daily") === "1";
+    return {
+      ...cfg,
+      theme: isDaily && !cfg.theme ? dailyTheme.id : cfg.theme,
+      isDaily,
+      autostart: searchParams.get("autostart") === "1",
+      from: searchParams.get("from"),
+      scoreToBeat: Number(searchParams.get("score")) || null,
+      presetId: searchParams.get("preset"),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+  const deepLinkTheme = deepLink.theme ?? null;
+  const deepLinkMode = deepLink.mode ?? null;
+
+  const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(deepLinkTheme && deepLinkMode ? 2 : deepLinkTheme ? 1 : 0);
+  const [mode, setMode] = useState<Mode | null>(joinRoomCode ? "online" : deepLinkMode);
+  const [themeId, setThemeId] = useState<string>(deepLinkTheme ?? "mix");
+  const [roundCount, setRoundCount] = useState(deepLink.rounds ?? 10);
+  const [roundSeconds, setRoundSeconds] = useState(deepLink.seconds ?? DEFAULT_ROUND_SECONDS);
+  const [jokerCount, setJokerCount] = useState(deepLink.jokers ?? 1);
   const jokersEnabled = jokerCount > 0;
   // "Facile" (QCM) présélectionné : l'écran Réglages n'a plus d'état bloquant caché —
   // un joueur pressé peut taper "Lancer la partie" sans jamais avoir vu ce choix.
-  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>("qcm");
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(deepLink.answerMode ?? "qcm");
+  // Le défi du jour est "officiel" seulement en solo, sur le thème du jour, avec les réglages
+  // par défaut — sinon c'est une partie normale sur ce thème.
+  const isDailyRun = mode === "solo" && themeId === dailyTheme.id;
   const [strictMode, setStrictMode] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(false);
   const [trackVolume, setTrackVolume] = useState(1);
@@ -111,7 +140,18 @@ export default function BlindTest() {
   // n'est autorisé avant une interaction utilisateur).
   const autoPlayEnabled = true;
   const audioUnlockedRef = useRef(false);
-  const [playerNames, setPlayerNames] = useState<string[]>(["Joueur 1", "Joueur 2"]);
+  const [playerNames, setPlayerNames] = useState<string[]>(
+    deepLink.players && deepLink.players.length >= 2 ? deepLink.players : ["Joueur 1", "Joueur 2"]
+  );
+  const currentConfig: GameConfig = {
+    mode: mode ?? "solo",
+    theme: themeId,
+    rounds: roundCount,
+    seconds: roundSeconds,
+    answerMode: answerMode ?? "qcm",
+    jokers: jokerCount,
+    players: mode === "local" ? playerNames.filter((n) => n.trim()) : [],
+  };
   const [setupError, setSetupError] = useState<string | null>(null);
 
   const [phase, setPhase] = useState<Phase>("setup");
@@ -150,7 +190,9 @@ export default function BlindTest() {
   const baseFields: FieldKey[] = isSingleArtistTheme ? ["title"] : ["title", "artist"];
   const applicableFields: FieldKey[] = track?.feats?.length ? [...baseFields, "feat"] : baseFields;
 
-  const [roundHistory, setRoundHistory] = useState<{ track: Track; solved: Partial<Record<FieldKey, string>> }[]>([]);
+  const [roundHistory, setRoundHistory] = useState<{ track: Track; solved: Partial<Record<FieldKey, string>>; fast: boolean }[]>([]);
+  // Réponse éclair (tous les champs trouvés en moins de 5 s) — sert au ⚡ de la grille partagée.
+  const fastRef = useRef(false);
   const trackRef = useRef<Track | undefined>(undefined);
   const singleArtistRef = useRef(false);
   singleArtistRef.current = themeId.startsWith("artist-");
@@ -195,7 +237,7 @@ export default function BlindTest() {
     clearTimers();
     audioRef.current?.pause();
     if (trackRef.current) {
-      setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current }]);
+      setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current, fast: fastRef.current }]);
     }
     if (modeRef.current === "solo" && trackRef.current) {
       const base: FieldKey[] = singleArtistRef.current ? ["title"] : ["title", "artist"];
@@ -251,6 +293,7 @@ export default function BlindTest() {
     setAudioError(false);
     setQcmLockedFor(null);
     setQcmWrongId(null);
+    fastRef.current = false;
     clearTimers();
   }
 
@@ -463,6 +506,7 @@ export default function BlindTest() {
       const startedAt = extractStartedAtRef.current;
       if (startedAt) {
         const elapsed = (Date.now() - startedAt) / 1000;
+        if (elapsed <= 5) fastRef.current = true;
         const bonus = speedBonus(elapsed) * Object.keys(newlySolved).length;
         if (bonus > 0) {
           gained += bonus;
@@ -602,10 +646,40 @@ export default function BlindTest() {
   const [scoreSaveStatus, setScoreSaveStatus] = useState<"idle" | "saved" | "guest">("idle");
   const [topPercent, setTopPercent] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  // Bilan manche par manche (champs trouvés / à trouver) — alimente la progression, la grille
+  // emoji partagée et le récap.
+  const roundOutcomes: RoundOutcome[] = useMemo(
+    () =>
+      roundHistory.map((r) => ({
+        found: Object.keys(r.solved).length,
+        total: (isSingleArtistTheme ? 1 : 2) + (r.track.feats.length ? 1 : 0),
+        fast: r.fast,
+      })),
+    [roundHistory, isSingleArtistTheme]
+  );
+  const [dailyStreak, setDailyStreak] = useState(0);
+  const [streakFrozen, setStreakFrozen] = useState(false);
+  const [dailyRecord, setDailyRecord] = useState(false);
   useEffect(() => {
     if (phase !== "final") return;
     sfx.victory();
-    setShowConfetti(true);
+    // Confettis réservés aux vrais moments (partie parfaite ou record du jour) — pas à chaque fin.
+    const soloPlayer = players[0];
+    const perfectRun = mode === "solo" && roundOutcomes.length > 0 && roundOutcomes.every((r) => r.found >= r.total);
+    bumpGamesPlayed();
+    if (deepLink.presetId) touchPreset(deepLink.presetId);
+    if (isDailyRun) {
+      const st = markPlayedToday();
+      setDailyStreak(st.count);
+      setStreakFrozen(st.frozen);
+      const rec = recordDailyScore(soloPlayer?.score ?? 0);
+      setDailyRecord(rec.isRecord);
+      setShowConfetti(perfectRun || rec.isRecord || (st.isNew && [7, 30, 100].includes(st.count)));
+    } else {
+      setDailyStreak(getStreak());
+      setShowConfetti(perfectRun || mode !== "solo");
+    }
+    window.dispatchEvent(new Event("drf-game-finished"));
     if (mode !== "solo") return;
     const solo = players[0];
     if (!solo) return;
@@ -736,6 +810,32 @@ export default function BlindTest() {
     if (audioRef.current) audioRef.current.volume = trackVolume;
   }, [trackVolume, track?.id]);
 
+  // Lancement direct depuis un lien profond (défi du jour, preset solo, raccourci d'app) :
+  // zéro écran intermédiaire, la partie se charge tout de suite. Le premier extrait attend
+  // quand même un tap (contrainte navigateur sur l'audio).
+  const autostartedRef = useRef(false);
+  useEffect(() => {
+    if (userLoading || autostartedRef.current) return;
+    if (deepLink.autostart && mode === "solo" && phase === "setup") {
+      autostartedRef.current = true;
+      void startGame();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLoading]);
+
+  function applyPreset(p: Preset) {
+    sfx.click();
+    setThemeId(p.theme);
+    setRoundCount(p.rounds);
+    setRoundSeconds(p.seconds);
+    setAnswerMode(p.answerMode);
+    setJokerCount(p.jokers);
+    if (p.mode === "local" && p.players.length >= 2) setPlayerNames(p.players);
+    setMode(p.mode);
+    setSetupError(null);
+    if (p.mode === "solo" || p.mode === "local") setWizardStep(2);
+  }
+
   if (userLoading) {
     return (
       <div className="h-64 flex items-center justify-center">
@@ -819,155 +919,116 @@ export default function BlindTest() {
             <>
           {wizardStep === 0 && (
             <div
-              className={`flex-1 space-y-3 rounded-2xl transition-shadow ${
+              className={`flex-1 space-y-5 rounded-2xl transition-shadow ${
                 setupError && !mode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""
               }`}
             >
-              {!mode && (
-                <div className="px-0.5 pb-1">
-                  <h2 className="font-display text-2xl font-semibold leading-tight flex items-center gap-2.5">
-                    Choisis ton mode de jeu
-                    <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-60" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gold" />
-                    </span>
-                  </h2>
-                  <p className="text-sm text-ink-faint mt-1.5 leading-snug">
-                    Solo, entre potes ou en soirée — tape une carte pour commencer.
+              {deepLink.from && (
+                <div className="challenge-banner">
+                  <Swords size={18} className="text-gold shrink-0" />
+                  <p className="text-sm leading-snug">
+                    <span className="font-semibold">{deepLink.from}</span> te défie
+                    {deepLink.scoreToBeat ? (
+                      <>
+                        {" "}— <span className="text-gold font-semibold">{deepLink.scoreToBeat} pts</span> à battre
+                      </>
+                    ) : null}
+                    . Même thème, mêmes réglages.
                   </p>
                 </div>
               )}
-              {[
-                {
-                  id: "solo" as Mode,
-                  label: "Solo",
-                  Icon: User,
-                  desc: "Teste tes connaissances à ton rythme.",
-                  tag: "1 joueur",
-                  gradient: "from-[#7a0f0f] to-[#F0001C]",
-                },
-                {
-                  id: "local" as Mode,
-                  label: "Local",
-                  Icon: Users,
-                  desc: "Entre potes, sur le même écran, avec un buzzer.",
-                  tag: "2 à 8 joueurs",
-                  gradient: "from-[#8a1216] to-[#FF3B4E]",
-                },
-                {
-                  id: "online" as Mode,
-                  label: "Salon en ligne",
-                  Icon: RemoteSalonIcon,
-                  desc: "Un code à partager, chacun sur son téléphone.",
-                  tag: "Multi à distance",
-                  gradient: "from-[#3a0505] to-[#7a0f0f]",
-                },
-                {
-                  id: "party" as Mode,
-                  label: "Soirée",
-                  Icon: PartyPopper,
-                  desc: "Écran partagé sur la TV, gages pour le dernier, chacun joue sur son tel.",
-                  tag: "2 à 8 joueurs + TV",
-                  gradient: "from-[#F0001C] to-[#FF6B3B]",
-                  badge: "Nouveau",
-                },
-              ].map((m: { id: Mode; label: string; Icon: typeof User; desc: string; tag: string; gradient: string; badge?: string }) => {
-                const isActive = mode === m.id;
-                return (
-                  <div key={m.id}>
+
+              {!mode && (
+                <>
+                  <DailyCard variant="compact" />
+                  <div className="px-0.5 pt-1">
+                    <h2 className="font-display text-2xl font-bold tracking-tight">Ou choisis ta façon de jouer</h2>
+                    <p className="text-sm text-ink-faint mt-1">Seul, entre potes sur un écran, à distance, ou en soirée sur la TV.</p>
+                  </div>
+                </>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                {MODE_TILES.map((m) => {
+                  const isActive = mode === m.id;
+                  return (
                     <button
+                      key={m.id}
+                      type="button"
+                      aria-pressed={isActive}
+                      data-active={isActive}
                       onClick={() => {
                         sfx.click();
                         setMode(m.id);
                         setSetupError(null);
                         // Auto-avance : choisir Solo répond à la seule question de l'étape,
-                        // on passe direct au thème (zéro clic "Suivant"). Local reste sur
-                        // place : il faut saisir les pseudos. Online/Soirée quittent le
-                        // wizard d'eux-mêmes (rendu Room / gate connexion).
+                        // on passe direct au thème. Local reste sur place : il faut les pseudos.
+                        // Online/Soirée quittent le wizard d'eux-mêmes (rendu Room / connexion).
                         if (m.id === "solo") setTimeout(() => setWizardStep(1), 220);
                       }}
-                      className={`tap-press group relative w-full flex items-center gap-4 rounded-2xl p-4 text-left overflow-hidden border transition-[box-shadow,border-color] duration-200 ${
-                        isActive
-                          ? "border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.4),0_10px_28px_-8px_rgba(240,0,28,0.55)]"
-                          : "border-white/10 hover:border-white/25"
-                      }`}
+                      className="mode-tile min-h-[150px] sm:min-h-[164px]"
                     >
-                      <div
-                        className={`absolute inset-0 bg-gradient-to-br ${m.gradient} transition-opacity duration-200 ${
-                          isActive ? "opacity-25" : "opacity-0 group-hover:opacity-10"
-                        }`}
-                        aria-hidden="true"
-                      />
-                      <div
-                        className={`icon-tile relative w-14 h-14 shrink-0 bg-gradient-to-br ${m.gradient} text-white transition-transform duration-200`}
-                      >
-                        <m.Icon size={24} strokeWidth={2} />
-                      </div>
-                      <span className="relative min-w-0 flex-1">
-                        <span className="text-base font-semibold flex items-center gap-2">
-                          {m.label}
-                          {m.badge && (
-                            <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide animate-pulse">
-                              {m.badge}
-                            </span>
-                          )}
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 mt-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-colors ${
-                            isActive ? "bg-gold text-white" : "bg-gold/15 text-gold"
-                          }`}
-                        >
-                          <m.Icon size={11} strokeWidth={2.5} />
-                          {m.tag}
-                        </span>
-                        <span className="block text-xs text-ink-faint mt-1.5 leading-snug">{m.desc}</span>
+                      <span className="mode-wash" aria-hidden="true" />
+                      <span className="mode-icon">
+                        <m.Icon size={18} strokeWidth={2} />
                       </span>
-                      <div
-                        className={`relative w-7 h-7 shrink-0 rounded-full flex items-center justify-center transition-colors ${
-                          isActive ? "bg-gold text-white" : "bg-white/5 text-ink-faint"
-                        }`}
-                      >
-                        {isActive ? <Check size={14} strokeWidth={3} /> : <ChevronRight size={14} />}
-                      </div>
+                      {isActive && (
+                        <span className="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-gold grid place-items-center text-white">
+                          <Check size={13} strokeWidth={3} />
+                        </span>
+                      )}
+                      <span className="relative text-[11px] font-semibold text-gold">{m.tag}</span>
+                      <span className="relative font-display text-lg font-bold leading-tight">{m.label}</span>
+                      <span className="relative text-xs text-ink-muted leading-snug">{m.desc}</span>
                     </button>
+                  );
+                })}
+              </div>
 
-                    {m.id === "local" && isActive && (
-                      <div className="mt-2 rounded-xl border border-gold/20 bg-gold/[0.04] p-3.5 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
-                        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2.5">Pseudos</p>
-                        <div data-lenis-prevent className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                          {playerNames.map((name, i) => (
-                            <div key={i} className="flex gap-2">
-                              <input
-                                value={name}
-                                onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
-                                placeholder={`Joueur ${i + 1}`}
-                                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 min-h-[40px]"
-                              />
-                              {playerNames.length > 2 && (
-                                <button
-                                  onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
-                                  className="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg text-ink-faint hover:text-riseNeg hover:bg-riseNeg/10 transition-colors text-lg"
-                                  aria-label="Retirer ce joueur"
-                                >
-                                  ×
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                          {playerNames.length < 8 && (
-                            <button
-                              onClick={() => setPlayerNames((prev) => [...prev, `Joueur ${prev.length + 1}`])}
-                              className="text-xs font-mono text-gold hover:text-glow transition-colors py-1"
-                            >
-                              + Ajouter un joueur
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+              {mode === "local" && (
+                <div className="card p-4 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold">Qui joue ?</p>
+                    <span className="text-xs text-ink-faint">{playerNames.filter((n) => n.trim()).length} / 8</span>
                   </div>
-                );
-              })}
+                  <div data-lenis-prevent className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {playerNames.map((name, i) => (
+                      <div key={i} className="flex gap-2">
+                        <span className="w-10 h-11 shrink-0 grid place-items-center rounded-xl bg-white/5 text-xs font-mono text-ink-faint">{i + 1}</span>
+                        <input
+                          value={name}
+                          onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
+                          placeholder={`Joueur ${i + 1}`}
+                          maxLength={24}
+                          aria-label={`Pseudo du joueur ${i + 1}`}
+                          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-gold/50 min-h-[44px]"
+                        />
+                        {playerNames.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-ink-faint hover:text-riseNeg hover:bg-riseNeg/10 transition-colors"
+                            aria-label="Retirer ce joueur"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {playerNames.length < 8 && (
+                    <button
+                      type="button"
+                      onClick={() => setPlayerNames((prev) => [...prev, `Joueur ${prev.length + 1}`])}
+                      className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-gold hover:text-glow transition-colors min-h-[44px]"
+                    >
+                      + Ajouter un joueur
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {!mode && <SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} />}
             </div>
           )}
 
@@ -986,8 +1047,24 @@ export default function BlindTest() {
 
           {wizardStep === 2 && (
             <div className="flex-1 space-y-7">
+              <div className="card p-4 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-glow to-gold text-white grid place-items-center shrink-0">
+                  <BrandMark size={18} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">
+                    {MODE_TILES.find((m) => m.id === mode)?.label ?? "Solo"} · {THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId}
+                  </p>
+                  <p className="text-xs text-ink-faint truncate">
+                    {mode === "local" ? playerNames.filter((n) => n.trim()).join(", ") : `${roundCount} manches · ${roundSeconds}s par extrait`}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setWizardStep(1)} className="text-xs font-medium text-gold hover:text-glow min-h-[44px] px-2">
+                  Changer
+                </button>
+              </div>
               <div>
-                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
                   <Sliders size={13} />
                   Mode de réponse
                   {!answerMode && (
@@ -1046,7 +1123,7 @@ export default function BlindTest() {
               </div>
 
               <div>
-                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
                   <Disc size={13} />
                   Partie
                 </p>
@@ -1087,7 +1164,7 @@ export default function BlindTest() {
               </div>
 
               <div>
-                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
                   <Target size={13} />
                   Difficulté
                 </p>
@@ -1144,7 +1221,7 @@ export default function BlindTest() {
               </div>
 
               <div>
-                <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3 flex items-center gap-2">
+                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
                   <Volume2 size={13} />
                   Confort
                 </p>
@@ -1182,7 +1259,7 @@ export default function BlindTest() {
               </div>
 
               <div className="glass rounded-xl p-4">
-                <p className="font-mono text-[10px] text-gold uppercase tracking-[0.16em] mb-3">Barème & récap</p>
+                <p className="text-sm font-semibold mb-3">Barème</p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {[
                     { label: "Titre", pts: "1 pt" },
@@ -1284,197 +1361,223 @@ export default function BlindTest() {
 
   if (phase === "final") {
     const ranked = [...players].sort((a, b) => b.score - a.score);
+    const themeLabel = THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId;
+    const solo = mode === "solo";
+    const topScore = ranked[0]?.score ?? 0;
+    const perfect = roundOutcomes.filter((r) => r.total > 0 && r.found >= r.total).length;
+    const beat = solo ? deepLink.scoreToBeat : null;
+    const chips: { label: string; strong?: boolean }[] = [];
+    if (isDailyRun && dailyStreak > 0) chips.push({ label: `🔥 Série : ${dailyStreak} jour${dailyStreak > 1 ? "s" : ""}`, strong: true });
+    if (streakFrozen) chips.push({ label: "🧊 Série sauvée — un jour manqué pardonné" });
+    if (dailyRecord) chips.push({ label: "🏆 Record du jour sur cet appareil", strong: true });
+    if (solo && topPercent !== null) chips.push({ label: `Top ${topPercent}% sur ce thème` });
+    if (solo && bestStreak >= 2) chips.push({ label: `Combo max : ${bestStreak} manches parfaites` });
+
     return (
       <>
-      <div className="max-w-xl mx-auto text-center" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 188px)" }}>
-        {showConfetti && <Confetti />}
-        <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Partie terminée</p>
-        {mode === "solo" ? (
-          <>
-            <h2 className="mb-3">
-              <span
-                className="font-display font-extrabold text-6xl md:text-7xl tracking-tight text-ink"
-                style={{ textShadow: "0 0 40px rgba(240,0,28,0.45)" }}
-              >
-                {ranked[0]?.score ?? 0}
-              </span>
-              <span className="font-display font-bold text-2xl md:text-3xl text-ink-muted ml-2">pts</span>
-            </h2>
-            {bestStreak >= 2 && (
-              <p className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold bg-gold/10 border border-gold/30 rounded-full px-3 py-1 mb-10">
-                <Icon icon="game-icons:flame" width={12} className="text-gold" />
-                Meilleur combo : {bestStreak} manches parfaites d'affilée
-              </p>
+        <div className="max-w-xl mx-auto blindtest-shell" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
+          {showConfetti && <Confetti />}
+
+          <div className="text-center mb-6">
+            <p className="text-xs font-semibold text-gold mb-3">
+              {isDailyRun ? `Défi du jour #${dailyNumber()} — ${themeLabel}` : `${themeLabel} — partie terminée`}
+            </p>
+            {solo ? (
+              <>
+                <p className="score-num text-[5.5rem] md:text-[7rem] text-ink" style={{ textShadow: "0 0 48px rgba(240,0,28,0.5)" }}>
+                  {topScore}
+                  <span className="font-display font-bold text-2xl text-ink-muted ml-2 align-middle">pts</span>
+                </p>
+                <p className="text-sm text-ink-muted mt-1">
+                  {perfect} / {roundOutcomes.length} extraits reconnus en entier
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-1">
+                  {ranked[0]?.name} gagne
+                </p>
+                <p className="text-sm text-ink-muted">{topScore} pts — {ranked.length} joueurs, {roundOutcomes.length} extraits</p>
+              </>
             )}
-            {bestStreak < 2 && <div className="mb-10" />}
-          </>
-        ) : (
-          <>
-            <h2 className="font-display text-3xl md:text-4xl font-semibold mb-10">Résultats</h2>
-            <div className="flex items-end justify-center gap-3 mb-10">
+            {chips.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
+                {chips.map((c) => (
+                  <span
+                    key={c.label}
+                    className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${
+                      c.strong ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/6 text-ink-muted"
+                    }`}
+                  >
+                    {c.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* La partie, manche par manche — même code couleur que la grille partagée */}
+          <div className="seg-progress mb-6" aria-label="Bilan des manches">
+            {roundOutcomes.map((r, i) => (
+              <span key={i} className="seg !h-2" data-state={r.found >= r.total ? "done" : r.found > 0 ? "partial" : "miss"} />
+            ))}
+          </div>
+
+          {beat !== null && (
+            <div className="challenge-banner mb-6">
+              <Swords size={18} className="text-gold shrink-0" />
+              <p className="text-sm leading-snug">
+                {topScore > beat ? (
+                  <>Tu bats <span className="font-semibold">{deepLink.from}</span> ({beat} pts). Renvoie-lui le défi.</>
+                ) : topScore === beat ? (
+                  <>Égalité parfaite avec <span className="font-semibold">{deepLink.from}</span> — {beat} pts chacun.</>
+                ) : (
+                  <><span className="font-semibold">{deepLink.from}</span> garde la main ({beat} pts). Rejoue pour le rattraper.</>
+                )}
+              </p>
+            </div>
+          )}
+
+          {!solo && (
+            <div className="flex items-end justify-center gap-3 mb-8">
               {[ranked[1], ranked[0], ranked[2]].map((p, i) =>
                 p ? (
                   <div key={p.id} className={`flex flex-col items-center ${i === 1 ? "order-2" : i === 0 ? "order-1" : "order-3"}`}>
-                    <Icon
-                      icon={i === 1 ? "game-icons:trophy" : "game-icons:podium-winner"}
-                      width={i === 1 ? 28 : 20}
-                      className={i === 1 ? "text-gold" : "text-ink-faint"}
-                    />
                     <div
-                      className={`glass rounded-t-lg w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 ${
-                        i === 1 ? "h-28 border-gold/40" : i === 0 ? "h-20" : "h-14"
+                      className={`glass rounded-t-2xl w-24 sm:w-28 flex flex-col items-center justify-end pb-3 ${
+                        i === 1 ? "h-32 border-gold/40" : i === 0 ? "h-24" : "h-16"
                       }`}
                     >
-                      <p className="text-xs font-medium truncate px-1 max-w-full">{p.name}</p>
-                      <p className="font-mono text-xs text-gold">{p.score}</p>
+                      <p className="text-xs font-semibold truncate px-2 max-w-full">{p.name}</p>
+                      <p className="score-num text-xl text-gold mt-1">{p.score}</p>
                     </div>
                   </div>
                 ) : null
               )}
             </div>
-            {ranked.length > 3 && (
-              <div className="card divide-y divide-white/8 overflow-hidden mb-8 text-left">
-                {ranked.slice(3).map((p, i) => (
-                  <div key={p.id} className="flex items-center gap-4 py-3 px-5">
-                    <span className="font-mono text-sm text-ink-faint w-6">{i + 4}</span>
-                    <span className="flex-1 text-sm font-medium">{p.name}</span>
-                    <span className="font-mono text-sm text-gold">{p.score}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="mb-8">
-              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Rejouez avec d'autres potes</p>
-              <div className="flex justify-center">
-                <ShareGame text="On vient de jouer au blind test rap français de DailyRapFrance, viens tester ton niveau la prochaine fois 🔥" />
-              </div>
+          )}
+          {!solo && ranked.length > 3 && (
+            <div className="card divide-y divide-white/8 overflow-hidden mb-8">
+              {ranked.slice(3).map((p, i) => (
+                <div key={p.id} className="flex items-center gap-4 py-3 px-5">
+                  <span className="font-mono text-sm text-ink-faint w-6">{i + 4}</span>
+                  <span className="flex-1 text-sm font-medium">{p.name}</span>
+                  <span className="font-mono text-sm text-gold">{p.score}</span>
+                </div>
+              ))}
             </div>
-          </>
-        )}
+          )}
 
-        {mode === "solo" && (
-          <div className="mb-8">
-            {scoreSaveStatus === "saved" && (
-              <>
-                <p className="text-xs font-mono text-ink-faint mb-2.5">Score enregistré dans ton classement.</p>
-                {topPercent !== null && (
-                  <p className="inline-flex items-center gap-1.5 font-mono text-xs font-medium text-gold bg-gold/10 border border-gold/30 rounded-full px-3 py-1.5">
-                    🏆 Top {topPercent}% sur ce thème
-                  </p>
-                )}
-              </>
-            )}
-            {scoreSaveStatus === "guest" && (
-              <button
-                onClick={() => setShowAuth(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gold hover:text-glow glass rounded-full px-4 py-2 transition-colors"
-              >
-                <LogIn size={12} />
-                Connecte-toi pour sauvegarder ce score
-              </button>
-            )}
-          </div>
-        )}
+          {solo && scoreSaveStatus === "guest" && (
+            <button
+              onClick={() => setShowAuth(true)}
+              className="action-row mb-6"
+            >
+              <span className="w-10 h-10 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0">
+                <LogIn size={18} />
+              </span>
+              <span className="flex-1">
+                <span className="block text-sm font-semibold">Sauvegarder ce score</span>
+                <span className="block text-xs text-ink-faint">Compte gratuit — classement, profil, amis à défier.</span>
+              </span>
+              <ChevronRight size={16} className="text-ink-faint" />
+            </button>
+          )}
 
-        {roundHistory.length > 0 && (
-          <div className="mb-8 text-left">
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Récap de la partie</p>
-            <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain max-h-96">
-              {roundHistory.map((r, i) => {
-                const foundBy = [...new Set(Object.values(r.solved))];
-                return (
-                  <div key={r.track.id + i} className="flex items-center gap-3 py-3 px-4">
-                    {r.track.coverUrl ? (
-                      <img src={r.track.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{r.track.title}</p>
-                      <p className="text-xs text-ink-faint truncate">{r.track.artistName}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      {foundBy.length === 0 ? (
-                        <>
-                          <span className="text-[11px] font-mono text-ink-faint">personne</span>
+          <section className="mb-8" aria-labelledby="share-title">
+            <h3 id="share-title" className="font-display text-lg font-semibold mb-3">
+              Partage ton résultat
+            </h3>
+            <ResultShare
+              points={topScore}
+              rounds={roundOutcomes}
+              themeLabel={themeLabel}
+              config={currentConfig}
+              daily={isDailyRun ? { number: dailyNumber(), streak: dailyStreak } : null}
+              bestStreak={bestStreak}
+              playerName={solo ? (myUsername ?? undefined) : ranked[0]?.name}
+            />
+          </section>
+
+          {roundHistory.length > 0 && (
+            <details className="mb-8 group" open={!solo}>
+              <summary className="cursor-pointer list-none flex items-center justify-between font-display text-lg font-semibold mb-3">
+                Les {roundHistory.length} extraits
+                <ChevronRight size={16} className="text-ink-faint transition-transform group-open:rotate-90" />
+              </summary>
+              <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain max-h-96">
+                {roundHistory.map((r, i) => {
+                  const foundBy = [...new Set(Object.values(r.solved))];
+                  const o = roundOutcomes[i];
+                  return (
+                    <div key={r.track.id + i} className="flex items-center gap-3 py-3 px-4">
+                      <span className={`w-1.5 self-stretch rounded-full ${o.found >= o.total ? "bg-gold" : o.found > 0 ? "bg-riseNeg" : "bg-white/15"}`} aria-hidden="true" />
+                      {r.track.coverUrl ? (
+                        <img src={r.track.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
+                      ) : (
+                        <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{r.track.title}</p>
+                        <p className="text-xs text-ink-faint truncate">
+                          {r.track.artistName}
+                          {r.track.feats.length > 0 && ` feat. ${r.track.feats.join(", ")}`}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        {foundBy.length === 0 ? (
                           <button
                             onClick={() => retrySingleTrack(r.track)}
-                            className="press inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide text-gold hover:text-glow"
+                            className="press inline-flex items-center gap-1 text-xs font-medium text-gold hover:text-glow min-h-[36px]"
                           >
-                            <RotateCcw size={10} /> Réessayer
+                            <RotateCcw size={11} /> Réécouter
                           </button>
-                        </>
-                      ) : mode === "solo" ? (
-                        <Check size={14} className="text-gold" />
-                      ) : (
-                        foundBy.map((pid) => (
-                          <span key={pid} className="text-[11px] font-mono text-gold">
-                            {players.find((p) => p.id === pid)?.name}
-                          </span>
-                        ))
-                      )}
+                        ) : solo ? (
+                          <span className="text-xs font-mono text-gold">{o.found}/{o.total}{r.fast ? " ⚡" : ""}</span>
+                        ) : (
+                          foundBy.map((pid) => (
+                            <span key={pid} className="text-[11px] font-mono text-gold">
+                              {players.find((p) => p.id === pid)?.name}
+                            </span>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {mode === "solo" && (
-          <div className="mb-8">
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Partage ton score</p>
-            <ShareScoreCard
-              points={ranked[0]?.score ?? 0}
-              themeLabel={THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId}
-              rounds={tracks.length}
-            />
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Magnetic>
-            <BorderMagicButton onClick={playAgain} size="md">
-              <RotateCcw size={16} />
-              Rejouer
-            </BorderMagicButton>
-          </Magnetic>
-          {mode === "solo" && (
-            <>
-              <a
-                href="/blindtest/classement"
-                className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
-              >
-                Voir le classement
-              </a>
-              {myUsername && (
-                <a
-                  href={`/profil/${myUsername}`}
-                  className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
-                >
-                  Mon profil
-                </a>
-              )}
-              <a
-                href="/amis"
-                className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors"
-              >
-                Défier un ami
-              </a>
-            </>
+                  );
+                })}
+              </div>
+            </details>
           )}
-        </div>
-      </div>
 
-      <div
-        className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-        <div className="max-w-2xl mx-auto pointer-events-auto">
-          <GameTabBarContent />
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Magnetic>
+              <BorderMagicButton onClick={playAgain} size="md">
+                <RotateCcw size={16} />
+                {solo ? "Rejouer" : "Nouvelle partie"}
+              </BorderMagicButton>
+            </Magnetic>
+            {solo && (
+              <a href="/blindtest/classement" className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors min-h-[48px]">
+                Classement
+              </a>
+            )}
+            {solo && myUsername && (
+              <a href={`/profil/${myUsername}`} className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors min-h-[48px]">
+                Mon profil
+              </a>
+            )}
+          </div>
         </div>
-      </div>
+
+        <div
+          className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
+          <div className="max-w-2xl mx-auto pointer-events-auto">
+            <GameTabBarContent />
+          </div>
+        </div>
       </>
     );
   }
@@ -1532,8 +1635,8 @@ export default function BlindTest() {
               </div>
             </div>
           )}
-          <span className="font-mono text-xs text-ink-faint uppercase tracking-wide">
-            Manche {roundIndex + 1} / {tracks.length}
+          <span className="text-xs font-semibold text-ink-muted">
+            {roundIndex + 1} <span className="text-ink-faint font-normal">/ {tracks.length}</span>
           </span>
         </div>
 
@@ -1585,6 +1688,14 @@ export default function BlindTest() {
         </button>
       </div>
 
+      <div className="seg-progress mb-4" aria-hidden="true">
+        {tracks.map((_, i) => {
+          const o = roundOutcomes[i];
+          const state = i < roundIndex ? (o ? (o.found >= o.total ? "done" : o.found > 0 ? "partial" : "miss") : "miss") : i === roundIndex ? "current" : undefined;
+          return <span key={i} className="seg" data-state={state} />;
+        })}
+      </div>
+
       <div className="card game-round-card text-center relative overflow-hidden flex flex-col justify-center transition-[height] duration-300">
         {revealed && <div className="brand-glow" aria-hidden="true" />}
 
@@ -1627,10 +1738,6 @@ export default function BlindTest() {
           </div>
         ) : !revealed ? (
           <>
-            <span className="block w-28 h-28 mx-auto mb-6">
-              <DRMark3D size="100%" />
-            </span>
-
             {audioError && (
               <div className="solved-pop max-w-xs mx-auto mb-4 flex items-center gap-2.5 bg-riseNeg/10 border border-riseNeg/30 rounded-xl px-3.5 py-2.5 text-left">
                 <VolumeX size={16} className="text-riseNeg shrink-0" />
@@ -1655,14 +1762,15 @@ export default function BlindTest() {
                 </span>
               )}
             </div>
-            <span className={`font-display text-3xl text-gold block mb-4 transition-colors ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>
-              {timeLeft}
-            </span>
-            <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-4 max-w-xs mx-auto">
-              <div
-                className="h-full bg-gold transition-all duration-1000 ease-linear"
-                style={{ width: `${(timeLeft / roundSeconds) * 100}%` }}
-              />
+            <div
+              className="timer-ring mx-auto mb-5"
+              data-urgent={timeLeft <= 5}
+              style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(roundSeconds, 1)) * 100)) } as CSSProperties}
+              role="timer"
+              aria-label={`${timeLeft} secondes restantes`}
+            >
+              <BrandMark size={16} className="absolute top-6 text-gold/70" />
+              <span className={`score-num text-5xl ${timeLeft <= 5 ? "text-glow urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
             </div>
 
             {hintsEnabled && (
@@ -1683,10 +1791,10 @@ export default function BlindTest() {
                 <button
                   type="button"
                   onClick={() => (mode === "local" ? setConfirmSkip(true) : revealRound())}
-                  className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink glass rounded-full px-4 py-2 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint hover:text-ink glass rounded-full px-4 py-2 min-h-[36px] transition-colors"
                 >
                   <SkipForward size={13} />
-                  Personne ne trouve — passer
+                  Passer ce son
                 </button>
               )}
               {!buzzedBy && confirmSkip && (
@@ -1875,7 +1983,7 @@ export default function BlindTest() {
       >
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
         <div className="max-w-2xl mx-auto pointer-events-auto space-y-2.5">
-          {started && !revealed && (mode === "solo" || (mode === "local" && buzzedBy)) && (
+          {started && !revealed && ((mode === "solo" && (answerMode !== "qcm" || jokersEnabled)) || (mode === "local" && buzzedBy)) && (
             <>
               {jokersEnabled && timeLeft <= 8 && timeLeft > 0 && (
                 (mode === "solo" && !soloPlayer?.timeJokerUsed) ||
@@ -1893,6 +2001,9 @@ export default function BlindTest() {
               <div className="flex items-center gap-3 glass-strong rounded-2xl p-2">
                 {mode === "solo" && (
                   <>
+                    {jokersEnabled && answerMode === "qcm" && (
+                      <p className="flex-1 text-center text-xs text-ink-faint px-2">Touche la bonne réponse — plus tu es rapide, plus tu marques.</p>
+                    )}
                     {jokersEnabled && (
                       <button
                         type="button"
@@ -1905,14 +2016,16 @@ export default function BlindTest() {
                         Joker {jokerCount > 1 && `(${soloPlayer?.jokersLeft ?? 0})`}
                       </button>
                     )}
-                    <button
-                      type="submit"
-                      form="solo-guess-form"
-                      className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Check size={17} strokeWidth={3} />
-                      Valider
-                    </button>
+                    {answerMode !== "qcm" && (
+                      <button
+                        type="submit"
+                        form="solo-guess-form"
+                        className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Check size={17} strokeWidth={3} />
+                        Valider
+                      </button>
+                    )}
                   </>
                 )}
                 {mode === "local" && buzzedBy && (
