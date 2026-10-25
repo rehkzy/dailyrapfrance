@@ -2691,3 +2691,152 @@ body:has(.reel-feed) header, body:has(.reel-feed) footer, body:has(.reel-feed) #
 /* Carte "Réglages avancés" */
 .adv-card summary { list-style: none; }
 .adv-card summary::-webkit-details-marker { display: none; }
+
+/* ---------------------------------------------------------------------------------------
+   Le jeu en « feed » : une manche = un écran plein, l'écran suivant monte depuis le bas.
+   Appui maintenu = pause, glisser vers le haut = suite, réponses en bas, actions à droite.
+   --------------------------------------------------------------------------------------- */
+.feed {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  background: #000;
+  color: var(--ink);
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.feed input, .feed textarea { user-select: text; -webkit-user-select: text; }
+.feed .round-bg { position: absolute; }
+.feed-bg[data-playing="true"] { animation: feed-breathe 9s ease-in-out infinite alternate; }
+@keyframes feed-breathe {
+  from { transform: scale(1.2) translate3d(0, 0, 0); }
+  to { transform: scale(1.32) translate3d(2%, -2%, 0); }
+}
+.feed .reel-shade { background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 24%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.92) 100%); }
+
+.feed-slide {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 14px);
+  animation: feed-enter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.feed-slide-scroll { overflow-y: auto; scrollbar-width: none; padding-bottom: calc(env(safe-area-inset-bottom) + 40px); }
+.feed-slide-scroll::-webkit-scrollbar { display: none; }
+@keyframes feed-enter {
+  from { transform: translate3d(0, 14%, 0); opacity: 0; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+.feed-top { display: flex; align-items: center; gap: 12px; }
+.feed-icon {
+  width: 40px; height: 40px; flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  display: grid; place-items: center;
+  color: var(--ink);
+}
+.feed-players { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+.feed-scene {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  padding: 8px 0;
+  touch-action: pan-y;
+}
+.feed-gain { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); }
+.feed-burst { position: absolute; top: 4%; left: 0; right: 0; display: flex; justify-content: center; }
+
+/* Avant le départ : grand bouton rond, un seul geste */
+.feed-launch { display: flex; flex-direction: column; align-items: center; color: inherit; }
+.feed-launch-ring {
+  width: 108px; height: 108px; border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  display: grid; place-items: center;
+  box-shadow: 0 18px 50px rgba(240, 0, 28, 0.45);
+  animation: cta-pulse 2.2s ease-in-out infinite;
+  transition: transform 0.15s;
+}
+.feed-launch:active .feed-launch-ring { transform: scale(0.94); }
+
+/* Le disque qui tourne pendant l'écoute, le chrono en anneau par-dessus */
+.feed-disc {
+  width: min(56vw, 240px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #1a0608 0 11%, #000 12% 13%, transparent 13.5%),
+    repeating-radial-gradient(circle, #0c0c0c 0 2px, #161616 2px 4px);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  display: grid; place-items: center;
+  margin-bottom: -56px;
+  transition: transform 0.25s;
+}
+.feed-disc[data-held="true"] { transform: scale(0.96); filter: brightness(0.7); }
+.feed-disc-inner { width: 100%; height: 100%; display: grid; place-items: center; }
+.feed-timer { width: 112px; height: 112px; z-index: 1; backdrop-filter: blur(4px); }
+.feed-timer-sm { width: 84px; height: 84px; }
+
+/* Révélation : carte centrale touchable, barre « suite dans… » */
+.feed-reveal { display: block; width: 100%; max-width: 22rem; color: inherit; }
+.feed-next { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 18px; }
+.feed-next-bar { width: 120px; height: 3px; border-radius: 99px; background: rgba(255, 255, 255, 0.15); overflow: hidden; position: relative; }
+.feed-next-bar::after { content: ""; position: absolute; inset: 0; background: var(--red); transform-origin: left; animation: feed-next-fill linear forwards; animation-duration: inherit; }
+@keyframes feed-next-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Rail d'actions, à droite, au-dessus des réponses */
+.feed-rail {
+  position: absolute;
+  right: 8px;
+  bottom: calc(env(safe-area-inset-bottom) + 300px);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.feed-rail-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--ink); }
+.feed-rail-btn:disabled { opacity: 0.35; }
+.feed-rail-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+  display: grid; place-items: center;
+  transition: transform 0.12s;
+}
+.feed-rail-btn:active .feed-rail-icon { transform: scale(0.9); }
+.feed-rail-icon-gold { background: #ffd166; color: #3a0007; border-color: #ffd166; }
+
+.feed-bottom { flex: 0 0 auto; max-width: 36rem; width: 100%; margin: 0 auto; padding-right: 0; }
+.feed-answers { display: grid; gap: 8px; }
+.feed .answer { min-height: 54px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); border-color: rgba(255, 255, 255, 0.16); }
+.feed .answer-input { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); }
+@media (max-height: 700px) {
+  .feed .answer { min-height: 46px; padding-top: 8px; padding-bottom: 8px; font-size: 14px; }
+  .feed-disc { width: 40vw; margin-bottom: -44px; }
+  .feed-timer { width: 88px; height: 88px; }
+  .feed-timer .score-num { font-size: 2.2rem; }
+  .feed-rail { bottom: calc(env(safe-area-inset-bottom) + 250px); gap: 10px; }
+  .feed-rail-icon { width: 42px; height: 42px; }
+}
+@media (min-width: 640px) {
+  .feed-rail { right: max(8px, calc(50% - 20rem)); }
+}
+body:has(.feed) header, body:has(.feed) footer, body:has(.feed) #site-announcement { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .feed-slide, .feed-bg, .feed-launch-ring { animation: none; }
+}

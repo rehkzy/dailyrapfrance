@@ -108,7 +108,7 @@ export default function Home() {
         <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
-            { href: "/clips", Icon: Clapperboard, t: "Devine le clip", s: "Façon Reels : swipe, regarde, réponds. Clips officiels, sans l'intro. Nouveau." },
+            { href: "/jouer?mode=clips", Icon: Clapperboard, t: "Devine le clip", s: "Swipe, regarde, réponds. Clips officiels, lancés après l'intro. Nouveau." },
             { href: "/jouer?mode=solo&v=survival&theme=mix", Icon: Skull, t: "Survie", s: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
             { href: "/jouer?mode=solo&v=sprint&theme=pop", Icon: Timer, t: "Sprint", s: "20 extraits, 8 secondes chacun. Que de l'instinct." },
             { href: "/jouer?mode=solo&theme=random&autostart=1", Icon: Shuffle, t: "Thème surprise", s: "Un thème tiré au sort, lancé direct." },
@@ -198,7 +198,7 @@ export default function Home() {
                   { href: "/blindtest/entre-amis", t: "Entre amis" },
                   { href: "/blindtest/en-ligne", t: "En ligne à distance" },
                   { href: "/blindtest/soiree", t: "Jeu de soirée" },
-                  { href: "/clips", t: "Devine le clip" },
+                  { href: "/jouer?mode=clips", t: "Devine le clip" },
                 ].map((x) => (
                   <a key={x.href} href={x.href} className="rounded-full glass px-3.5 py-1.5 text-xs font-medium hover:border-gold/40 transition-colors">
                     {x.t}

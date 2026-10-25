@@ -182,7 +182,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
         <div className="max-w-xl mx-auto">
           <div className="flex items-center justify-between pt-4 pb-2">
             <a href="/" aria-label="Accueil"><img src="/logo.svg" alt="DailyRapFrance" className="h-6 w-auto" /></a>
-            <a href="/clips" className="text-sm font-semibold text-ink-muted">Rejouer</a>
+            <a href="/jouer?mode=clips" className="text-sm font-semibold text-ink-muted">Rejouer</a>
           </div>
           <h2 className="stage-title mt-4 mb-5">{perfect === clips.length ? "Sans faute." : perfect >= clips.length * 0.7 ? "Solide." : "Fini."}</h2>
           <ResultTicket
@@ -194,7 +194,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
             chips={[{ label: `${perfect} / ${clips.length} clips reconnus` }]}
             headline="Devine le clip"
             subline="1 pt par artiste reconnu, bonus de rapidité."
-            onReplay={() => window.location.assign("/clips")}
+            onReplay={() => window.location.assign("/jouer?mode=clips")}
             leaderboardHref={undefined}
           />
         </div>
@@ -225,7 +225,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
 
             {/* Haut : fermer, progression, score */}
             <div className="reel-top">
-              <a href="/" aria-label="Quitter" className="w-10 h-10 rounded-full bg-black/45 border border-white/10 grid place-items-center text-ink"><X size={16} /></a>
+              <a href="/jouer" aria-label="Quitter" className="w-10 h-10 rounded-full bg-black/45 border border-white/10 grid place-items-center text-ink"><X size={16} /></a>
               <div className="flex-1 seg-progress">
                 {clips.map((c, j) => (
                   <span key={c.id} className="seg" data-state={states[c.id] ? (states[c.id].correct ? "done" : "miss") : j === active ? "current" : undefined} />

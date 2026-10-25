@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type TouchEvent as ReactTouchEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   RotateCcw, Users, User, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   X, VolumeX, Volume2, Lightbulb, Sliders,
-  SpellCheck, PartyPopper, Swords, Trophy,
+  SpellCheck, PartyPopper, Swords, Trophy, Clapperboard,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -48,8 +48,11 @@ function RemoteSalonIconBase({ size = 24, className }: { size?: number; strokeWi
 }
 const RemoteSalonIcon = RemoteSalonIconBase as unknown as LucideIcon;
 
-const MODE_TILES: { id: Mode; label: string; Icon: LucideIcon; desc: string; tag: string }[] = [
+// « clips » n'est pas un mode du blind test audio : la tuile envoie vers le feed vertical
+// « Devine le clip » (/jouer?mode=clips), rendu par app/jouer/page.tsx à la place de ce composant.
+const MODE_TILES: { id: Mode | "clips"; label: string; Icon: LucideIcon; desc: string; tag: string }[] = [
   { id: "solo", label: "Solo", Icon: User, desc: "À ton rythme, score sauvegardé.", tag: "1 joueur" },
+  { id: "clips", label: "Devine le clip", Icon: Clapperboard, desc: "Swipe, regarde, réponds. Clips officiels, sans l'intro.", tag: "Nouveau · vidéo" },
   { id: "local", label: "Entre potes", Icon: Users, desc: "Un écran, un buzzer, les pseudos.", tag: "2 à 8 joueurs" },
   { id: "online", label: "Salon en ligne", Icon: RemoteSalonIcon, desc: "Un code, chacun sur son téléphone.", tag: "À distance" },
   { id: "party", label: "Soirée TV", Icon: PartyPopper, desc: "Écran partagé, téléphones en manette, un gage pour le dernier.", tag: "2 à 8 + TV" },
@@ -249,10 +252,35 @@ export default function BlindTest() {
 
   useEffect(() => clearTimers, [clearTimers]);
 
+  // Retour haptique (Android / navigateurs qui le supportent — iOS Safari l'ignore sans casser).
+  const haptic = useCallback((pattern: number | number[]) => {
+    try {
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(pattern);
+    } catch {}
+  }, []);
+
+  // Passage à la manche suivante (ou à la fin) — appelé par le minuteur après la révélation,
+  // ou tout de suite si la personne glisse vers le haut / touche l'écran.
+  const advanceRound = useCallback(() => {
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+    advanceTimeoutRef.current = null;
+    const nothingFound = Object.keys(solvedRef.current).length === 0;
+    if (variantRef.current === "survival" && nothingFound) {
+      setPhase("final");
+      return;
+    }
+    setRoundIndex((i) => {
+      const next = i + 1;
+      if (next >= tracks.length) setPhase("final");
+      return next;
+    });
+  }, [tracks.length]);
+
   const revealRound = useCallback(() => {
     blurAndRealign();
     setRevealed(true);
     sfx.reveal();
+    haptic(Object.keys(solvedRef.current).length ? [18, 40, 18] : 60);
     clearTimers();
     audioRef.current?.pause();
     clipRef.current?.pause();
@@ -277,20 +305,8 @@ export default function BlindTest() {
     }
     // Durée d'affichage du résultat avant la manche suivante — 3.8s (au lieu de 3.2s),
     // pour laisser le temps de lire le titre/artiste révélés sans que ça paraisse "flash".
-    const nothingFound = Object.keys(solvedRef.current).length === 0;
-    const survivalOver = variantRef.current === "survival" && nothingFound;
-    advanceTimeoutRef.current = setTimeout(() => {
-      if (survivalOver) {
-        setPhase("final");
-        return;
-      }
-      setRoundIndex((i) => {
-        const next = i + 1;
-        if (next >= tracks.length) setPhase("final");
-        return next;
-      });
-    }, variantRef.current === "sprint" ? 1800 : 3800);
-  }, [blurAndRealign, clearTimers, tracks.length]);
+    advanceTimeoutRef.current = setTimeout(advanceRound, variantRef.current === "sprint" ? 1800 : 3800);
+  }, [blurAndRealign, clearTimers, advanceRound, haptic]);
 
   const tick = useCallback(() => {
     if (deadlineRef.current == null) return;
@@ -332,7 +348,7 @@ export default function BlindTest() {
       // dans cette session (premier clic manuel sur "Lancer l'extrait"). Petit délai pour
       // laisser le <audio> (remonté via key={track.id}) être prêt après resetRoundState().
       if (autoPlayEnabled && audioUnlockedRef.current && media !== "clip") {
-        const t = setTimeout(() => launchExtract(), 150);
+        const t = setTimeout(() => launchExtract(true), 150);
         return () => clearTimeout(t);
       }
     }
@@ -424,8 +440,10 @@ export default function BlindTest() {
     }
   }
 
-  function launchExtract() {
-    if (started || revealed) return;
+  // `force` : appel depuis l'effet de changement de manche, où la fermeture capture encore
+  // l'état « révélé » de la manche précédente (resetRoundState vient de le remettre à zéro).
+  function launchExtract(force = false) {
+    if (!force && (started || revealed)) return;
     sfx.click();
     setStarted(true);
     audioUnlockedRef.current = true;
@@ -526,6 +544,7 @@ export default function BlindTest() {
   }
 
   function awardPoints(playerId: string, points: number) {
+    haptic(12);
     setPlayers((prev) => prev.map((p) => (p.id === playerId ? { ...p, score: p.score + points } : p)));
     gainCounter.current += 1;
     const nonce = gainCounter.current;
@@ -629,6 +648,7 @@ export default function BlindTest() {
     }
     sfx.wrong();
     setQcmWrongId(chosenLabel);
+    haptic([30, 30, 30]);
     setTimeout(() => setQcmWrongId(null), 450);
     setQcmLockedFor(playerId);
     if (mode === "solo") {
@@ -790,6 +810,67 @@ export default function BlindTest() {
     setTopPercent(null);
     setShowConfetti(false);
     resetRoundState();
+  }
+
+  // « Encore » : même mode, même thème, mêmes réglages, nouveaux extraits — sans repasser
+  // par les réglages. C'est le bouton principal de l'écran de fin.
+  function replaySame() {
+    sfx.click();
+    clearTimers();
+    setStreak(0);
+    setStreakBurst(null);
+    setRoundHistory([]);
+    setScoreSaveStatus("idle");
+    setTopPercent(null);
+    setShowConfetti(false);
+    resetRoundState();
+    void startGame();
+  }
+
+  // Appui maintenu sur la scène = pause (son + chrono), relâcher = reprise.
+  const holdRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; since: number | null }>({ timer: null, since: null });
+  const [held, setHeld] = useState(false);
+  function holdStart() {
+    if (!started || revealed) return;
+    holdRef.current.timer = setTimeout(() => {
+      holdRef.current.since = Date.now();
+      setHeld(true);
+      audioRef.current?.pause();
+      clipRef.current?.pause();
+      haptic(10);
+    }, 220);
+  }
+  function holdEnd() {
+    if (holdRef.current.timer) clearTimeout(holdRef.current.timer);
+    holdRef.current.timer = null;
+    if (holdRef.current.since != null) {
+      const pausedFor = Date.now() - holdRef.current.since;
+      if (deadlineRef.current != null) deadlineRef.current += pausedFor;
+      holdRef.current.since = null;
+      setHeld(false);
+      if (isClip) clipRef.current?.play();
+      else audioRef.current?.play().catch(() => {});
+    }
+  }
+
+  // Glisser vers le haut : lance l'extrait (avant le départ) ou passe à la suite (après la
+  // révélation). Un petit déplacement vertical rapide suffit, comme dans un feed.
+  const swipeRef = useRef<{ y: number; t: number } | null>(null);
+  function swipeStart(e: ReactTouchEvent) {
+    swipeRef.current = { y: e.touches[0].clientY, t: Date.now() };
+  }
+  function swipeEnd(e: ReactTouchEvent) {
+    const s0 = swipeRef.current;
+    swipeRef.current = null;
+    if (!s0) return;
+    const dy = e.changedTouches[0].clientY - s0.y;
+    if (dy > -70 || Date.now() - s0.t > 700) return;
+    if (revealed) {
+      sfx.click();
+      advanceRound();
+    } else if (!started) {
+      launchExtract();
+    }
   }
 
   const immersive = phase === "playing";
@@ -996,6 +1077,7 @@ export default function BlindTest() {
                   const isActive = mode === m.id;
                   const bgs = [
                     "linear-gradient(160deg, #3a0a0f 0%, #8a0010 60%, #f0001c 130%)",
+                    "linear-gradient(160deg, #0b0b0b 0%, #2a0608 45%, #f0001c 140%)",
                     "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)",
                     "linear-gradient(160deg, #1b0507 0%, #5c000b 60%, #a3121b 120%)",
                     "linear-gradient(160deg, #f0001c 0%, #ff3b4e 55%, #ffb199 140%)",
@@ -1011,6 +1093,10 @@ export default function BlindTest() {
                       style={{ "--poster-bg": bgs[i] } as CSSProperties}
                       onClick={() => {
                         sfx.click();
+                        if (m.id === "clips") {
+                          window.location.assign("/jouer?mode=clips");
+                          return;
+                        }
                         setMode(m.id);
                         setSetupError(null);
                         if (m.id === "solo") setTimeout(() => setWizardStep(1), 260);
@@ -1022,6 +1108,7 @@ export default function BlindTest() {
                       <BrandMark className="poster-mark" size="90%" />
                       <span className="poster-tag">{m.tag}</span>
                       {isActive && <span className="poster-check"><Check size={16} strokeWidth={3} /></span>}
+                      {m.id === "clips" && <span className="poster-check" aria-hidden><Clapperboard size={16} strokeWidth={2.5} /></span>}
                       <span className="relative poster-title">{m.label}</span>
                       <span className="relative poster-sub">{m.desc}</span>
                     </button>
@@ -1254,9 +1341,9 @@ export default function BlindTest() {
       : `${ranked.length} joueurs · ${roundOutcomes.length} extraits`;
 
     return (
-      <div className="stage blindtest-shell px-5 sm:px-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 40px)" }}>
+      <div className="feed feed-final" data-lenis-prevent>
         {showConfetti && <Confetti />}
-        <div className="max-w-xl mx-auto">
+        <div className="feed-slide feed-slide-scroll max-w-xl mx-auto w-full">
           {stageTop}
           <h2 className="stage-title mt-4 mb-5">{solo ? (perfect === roundOutcomes.length && perfect > 0 ? "Sans faute." : topScore >= roundOutcomes.length * 2 ? "Solide." : "Fini.") : `${ranked[0]?.name} gagne.`}</h2>
 
@@ -1272,6 +1359,7 @@ export default function BlindTest() {
             headline={headline}
             subline={subline}
             onReplay={playAgain}
+            onReplaySame={replaySame}
             leaderboardHref={solo ? "/blindtest/classement" : undefined}
             podium={solo ? undefined : ranked.map((p) => ({ name: p.name, score: p.score }))}
           />
@@ -1331,14 +1419,22 @@ export default function BlindTest() {
   const qcmKeys = ["A", "B", "C", "D"];
 
   return (
-    <div className="stage blindtest-shell game-layout px-5 sm:px-6" data-lenis-prevent>
+    <div className="feed" data-lenis-prevent onTouchStart={swipeStart} onTouchEnd={swipeEnd}>
       {!isClip && <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" onError={() => (started ? void recoverAudio(true) : undefined)} />}
-      {track.coverUrl && !isClip && <div className="round-bg" data-revealed={revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
 
-      <div className="max-w-2xl mx-auto w-full game-scene" data-lenis-prevent>
-        {/* Rail haut : quitter · progression · volume */}
-        <div className="flex items-center gap-3 pt-4 pb-3">
-          <button type="button" onClick={() => setConfirmQuit(true)} aria-label="Quitter la partie" className="w-10 h-10 shrink-0 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
+      {/* Fond : pochette floutée qui respire (audio) ou clip plein écran (vidéo) */}
+      {track.coverUrl && !isClip && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
+      {isClip && track.clip && !revealed && (
+        <div className="reel-video">
+          <ClipPlayer key={track.id} ref={clipRef} videoId={track.clip.videoId} start={track.clip.start} volume={trackVolume} onError={() => setAudioError(true)} onPlaying={onClipPlaying} covered={!started} />
+        </div>
+      )}
+      <div className="reel-shade" aria-hidden="true" />
+
+      <div key={`${roundIndex}-${track.id}`} className="feed-slide">
+        {/* Haut : quitter · progression segmentée · son */}
+        <div className="feed-top">
+          <button type="button" onClick={() => setConfirmQuit(true)} aria-label="Quitter la partie" className="feed-icon">
             <X size={16} />
           </button>
           <div className="flex-1 min-w-0">
@@ -1349,17 +1445,35 @@ export default function BlindTest() {
                 return <span key={i} className="seg" data-state={state} />;
               })}
             </div>
-            <p className="text-[11px] text-ink-faint mt-1.5">
-              {variant === "survival" ? `Survie · son ${roundIndex + 1}` : `${roundIndex + 1} / ${tracks.length}`} · {themeLabelNow}
-            </p>
+            <div className="flex items-center justify-between gap-2 mt-1.5">
+              <p className="text-[11px] font-semibold text-ink-muted truncate">
+                {variant === "survival" ? `Survie · son ${roundIndex + 1}` : `${roundIndex + 1} / ${tracks.length}`} · {themeLabelNow}
+              </p>
+              {mode === "solo" ? (
+                <p className="text-[11px] font-bold shrink-0 inline-flex items-center gap-1.5">
+                  <span className="score-num text-base text-ink">{soloPlayer?.score ?? 0}</span>
+                  <span className="text-ink-faint">pts</span>
+                  {streak >= 2 && <span className="text-glow inline-flex items-center gap-0.5"><Icon icon="game-icons:flame" width={12} /> {streak}</span>}
+                </p>
+              ) : null}
+            </div>
           </div>
-          <div className="group flex items-center gap-1 shrink-0">
-            <input type="range" min={0} max={100} value={trackVolume * 100} onChange={(e) => setTrackVolume(Number(e.target.value) / 100)} aria-label="Volume de l'extrait" className="w-0 opacity-0 group-hover:w-20 group-hover:opacity-100 focus:w-20 focus:opacity-100 transition-all duration-200 accent-[#f0001c] cursor-pointer" />
-            <button type="button" onClick={() => setTrackVolume(trackVolume === 0 ? 1 : 0)} aria-label={trackVolume === 0 ? "Rétablir le son" : "Couper le son"} className="w-10 h-10 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
-              {trackVolume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
-            </button>
-          </div>
+          <button type="button" onClick={() => setTrackVolume(trackVolume === 0 ? 1 : 0)} aria-label={trackVolume === 0 ? "Rétablir le son" : "Couper le son"} className="feed-icon">
+            {trackVolume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          </button>
         </div>
+
+        {mode === "local" && (
+          <div className="feed-players">
+            {players.map((p) => (
+              <span key={p.id} className="player-chip" data-buzzed={buzzedBy === p.id}>
+                <span className="avatar">{p.name.slice(0, 2).toUpperCase()}</span>
+                {p.name}
+                <b>{p.score}</b>
+              </span>
+            ))}
+          </div>
+        )}
 
         {confirmQuit && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -1374,54 +1488,31 @@ export default function BlindTest() {
           </div>
         )}
 
-        {/* Rail de score */}
-        <div className="flex items-center justify-between gap-2 mb-6">
-          {mode === "solo" ? (
-            <div className="score-rail">
-              <span className="score-num text-2xl text-ink pl-2">{soloPlayer?.score ?? 0}</span>
-              <span className="text-xs text-ink-faint pr-2">pts</span>
-              {streak >= 2 && <span className="inline-flex items-center gap-1 text-xs font-bold text-glow pr-2"><Icon icon="game-icons:flame" width={13} /> {streak}</span>}
-            </div>
-          ) : (
-            <div className="flex gap-1.5 flex-wrap">
-              {players.map((p) => (
-                <span key={p.id} className="player-chip" data-buzzed={buzzedBy === p.id}>
-                  <span className="avatar">{p.name.slice(0, 2).toUpperCase()}</span>
-                  {p.name}
-                  <b>{p.score}</b>
-                </span>
-              ))}
-            </div>
-          )}
+        {/* Scène : appui maintenu = pause */}
+        <div
+          className="feed-scene"
+          onPointerDown={holdStart}
+          onPointerUp={holdEnd}
+          onPointerCancel={holdEnd}
+          onPointerLeave={holdEnd}
+          onContextMenu={(e) => e.preventDefault()}
+        >
           {roundGain && (
-            <span key={roundGain.nonce} className="float-points score-num text-3xl text-glow pointer-events-none">+{roundGain.points}</span>
+            <span key={roundGain.nonce} className="float-points feed-gain score-num text-5xl text-glow pointer-events-none">+{roundGain.points}</span>
           )}
-        </div>
+          {streakBurst && (
+            <div key={streakBurst} className="solved-pop feed-burst pointer-events-none">
+              <span className="inline-flex items-center gap-1.5 bg-[#ffd166] text-[#3a0007] font-display font-extrabold text-sm rounded-full px-4 py-1.5"><Icon icon="game-icons:flame" width={15} /> Combo x{streakBurst} — +2</span>
+            </div>
+          )}
 
-        {streakBurst && (
-          <div key={streakBurst} className="solved-pop flex justify-center mb-4 pointer-events-none">
-            <span className="inline-flex items-center gap-1.5 bg-[#ffd166] text-[#3a0007] font-display font-extrabold text-sm rounded-full px-4 py-1.5"><Icon icon="game-icons:flame" width={15} /> Combo x{streakBurst} — +2</span>
-          </div>
-        )}
-
-        {/* Clip (mode « Devine le clip ») — monté dès la manche pour précharger, lecture au tap */}
-        {isClip && track.clip && !revealed && (
-          <div className="mb-3 max-w-lg mx-auto">
-            <ClipPlayer key={track.id} ref={clipRef} videoId={track.clip.videoId} start={track.clip.start} volume={trackVolume} onError={() => setAudioError(true)} onPlaying={onClipPlaying} covered={!started} />
-          </div>
-        )}
-
-        {/* Scène centrale */}
-        <div className={`text-center flex flex-col items-center justify-center ${isClip ? "min-h-[12vh]" : "min-h-[30vh]"} pb-3`}>
           {!started ? (
-            <>
-              {!isClip && <span className="block w-20 h-20 mb-6"><DRMark3D size="100%" /></span>}
-              <p className="stage-kicker mb-1">{variant === "survival" ? `Son n°${roundIndex + 1}` : `Manche ${roundIndex + 1}`}</p>
-              <p className="font-display text-2xl font-extrabold tracking-tight mb-6">{roundIndex === 0 ? (isClip ? "Prêt ? Le clip part au tap." : "Prêt ? Le son part au tap.") : "Suivant."}</p>
-              <button type="button" onClick={launchExtract} className="sticker h-16 px-10 text-lg">
-                <Icon icon="game-icons:play-button" width={22} /> {isClip ? "Lancer le clip" : "Lancer l'extrait"}
-              </button>
-            </>
+            <button type="button" onClick={() => launchExtract()} className="feed-launch">
+              <span className="feed-launch-ring"><Icon icon="game-icons:play-button" width={34} /></span>
+              <span className="stage-kicker mt-5">{variant === "survival" ? `Son n°${roundIndex + 1}` : `Manche ${roundIndex + 1}`}</span>
+              <span className="font-display text-2xl font-extrabold tracking-tight">{roundIndex === 0 ? (isClip ? "Touche pour lancer le clip" : "Touche pour lancer le son") : "Suivant"}</span>
+              <span className="text-xs text-ink-faint mt-1">ou glisse vers le haut</span>
+            </button>
           ) : !revealed ? (
             <>
               {audioError && (
@@ -1431,68 +1522,90 @@ export default function BlindTest() {
                   <button type="button" onClick={retryAudio} className="text-xs font-semibold text-riseNeg inline-flex items-center gap-1"><RotateCcw size={12} /> Réessayer</button>
                 </div>
               )}
-              <div className={`big-timer mb-2 ${isClip ? "!w-20 !h-20" : ""}`} data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
-                <span className={`score-num ${isClip ? "text-3xl" : "text-6xl"} ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
+              {!isClip && (
+                <div className="feed-disc" data-held={held} aria-hidden="true">
+                  <div className={`feed-disc-inner ${held ? "" : "vinyl-spin"}`}>
+                    <DRMark3D size="46%" />
+                  </div>
+                </div>
+              )}
+              <div className={`big-timer feed-timer ${isClip ? "feed-timer-sm" : ""}`} data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
+                <span className={`score-num ${isClip ? "text-3xl" : "text-5xl"} ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{held ? <Icon icon="game-icons:pause-button" width={28} /> : timeLeft}</span>
               </div>
-              {clipBuffering && <p className="text-xs text-ink-faint -mt-1 mb-1 animate-pulse">Le clip charge… le chrono part avec l&apos;image.</p>}
-              <div className="h-7 flex items-center justify-center" aria-live="polite">
-                {bonusFlash !== null && <span className="solved-pop text-xs font-bold text-[#ffd166]">⚡ +{bonusFlash} rapidité</span>}
-                {hintsEnabled && bonusFlash === null && timeLeft <= 6 && timeLeft > 0 && !solved.title && (
+              <div className="h-6 flex items-center justify-center" aria-live="polite">
+                {held && <span className="text-xs font-semibold text-ink-muted">En pause — relâche pour reprendre</span>}
+                {!held && clipBuffering && <span className="text-xs text-ink-faint animate-pulse">Le clip charge… le chrono part avec l&apos;image.</span>}
+                {!held && bonusFlash !== null && <span className="solved-pop text-xs font-bold text-[#ffd166]">⚡ +{bonusFlash} rapidité</span>}
+                {!held && hintsEnabled && bonusFlash === null && timeLeft <= 6 && timeLeft > 0 && !solved.title && (
                   <span className="solved-pop text-xs font-semibold text-ink-muted inline-flex items-center gap-1.5"><Lightbulb size={12} className="text-[#ffd166]" /> Le titre commence par « {track.title.charAt(0).toUpperCase()} »</span>
-                )}
-              </div>
-              <div className="h-9 flex items-center justify-center gap-2 mt-1">
-                {!buzzedBy && !confirmSkip && (
-                  <button type="button" onClick={() => (mode === "local" ? setConfirmSkip(true) : revealRound())} className="text-xs font-semibold text-ink-faint hover:text-ink inline-flex items-center gap-1.5 min-h-[36px] px-3">
-                    <SkipForward size={13} /> Passer ce son
-                  </button>
-                )}
-                {!buzzedBy && confirmSkip && (
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold">
-                    <span className="text-ink-muted">Révéler ?</span>
-                    <button type="button" onClick={() => { setConfirmSkip(false); revealRound(); }} className="text-riseNeg px-3 py-1.5">Oui</button>
-                    <button type="button" onClick={() => setConfirmSkip(false)} className="text-ink-faint px-3 py-1.5">Non</button>
-                  </span>
                 )}
               </div>
             </>
           ) : (
-            <div className="solved-pop">
-              {track.coverUrl && <img src={track.coverUrl} alt="" className="w-40 h-40 rounded-2xl object-cover mx-auto mb-5 shadow-[0_20px_50px_rgba(0,0,0,0.6)]" />}
+            <button type="button" onClick={() => { sfx.click(); advanceRound(); }} className="feed-reveal solved-pop" aria-label="Manche suivante">
+              {track.coverUrl && <img src={track.coverUrl} alt="" className="w-36 h-36 rounded-2xl object-cover mx-auto mb-4 shadow-[0_20px_50px_rgba(0,0,0,0.6)]" />}
               <p className="font-display text-3xl font-extrabold tracking-tight leading-tight">{track.title}</p>
               <p className="text-ink-muted text-lg mt-1">{track.artistName}</p>
               {track.feats.length > 0 && <p className="text-sm text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>}
-              <div className="flex items-center justify-center gap-2 mt-5 flex-wrap">
+              <span className="flex items-center justify-center gap-2 mt-4 flex-wrap">
                 <ResultPill ok={!!solved.title} label="Titre" points={POINTS.title} />
                 {applicableFields.includes("artist") && <ResultPill ok={!!solved.artist} label="Artiste" points={POINTS.artist} />}
                 {applicableFields.includes("feat") && <ResultPill ok={!!solved.feat} label="Feat" points={POINTS.feat} />}
-              </div>
+              </span>
               {mode === "local" && Object.keys(solved).length > 0 && (
-                <p className="mt-4 text-sm font-semibold text-glow">
+                <span className="block mt-3 text-sm font-semibold text-glow">
                   {[...new Set(Object.values(solved))].map((id) => players.find((p) => p.id === id)?.name).filter(Boolean).join(" et ")} — bien joué !
-                </p>
+                </span>
               )}
-              {Object.keys(solved).length === 0 && <p className="mt-4 text-sm text-ink-faint">Personne ne l&apos;a reconnu — il était dur celui-là.</p>}
-            </div>
+              {Object.keys(solved).length === 0 && <span className="block mt-3 text-sm text-ink-faint">Personne ne l&apos;a reconnu — il était dur celui-là.</span>}
+              <span className="feed-next" aria-hidden="true">
+                <span className="feed-next-bar" style={{ animationDuration: `${variant === "sprint" ? 1.8 : 3.8}s` }} />
+                <span className="text-[11px] font-semibold text-ink-faint inline-flex items-center gap-1"><ChevronRight size={12} className="-rotate-90" /> Glisse ou touche pour la suite</span>
+              </span>
+            </button>
           )}
         </div>
-      </div>
 
-      {/* Panneau de réponse — toujours visible, hors de la zone qui défile (ni fixed ni sticky :
-          sur iOS Safari ces deux-là finissent sous la barre d'outils). */}
-      <div className="game-answers relative z-30 pt-3">
-        <div className="max-w-2xl mx-auto space-y-2.5">
-          {showAnswers && jokersEnabled && timeLeft <= 8 && timeLeft > 0 && ((mode === "solo" && !soloPlayer?.timeJokerUsed) || (mode === "local" && buzzedBy && !activePlayer?.timeJokerUsed)) && (
-            <div className="flex justify-end">
-              <button type="button" onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)} className="urgent-pulse-soft h-9 px-3.5 rounded-full bg-[#ffd166] text-[#3a0007] text-xs font-extrabold inline-flex items-center gap-1.5">
-                <Clock size={13} /> +{TIME_JOKER_SECONDS} s
+        {/* Rail d'actions à droite */}
+        {showAnswers && (mode === "solo" || buzzedBy) && (
+          <div className="feed-rail">
+            {jokersEnabled && (
+              <button type="button" onClick={() => useJoker(mode === "solo" ? "solo" : buzzedBy!)} disabled={((mode === "solo" ? soloPlayer : activePlayer)?.jokersLeft ?? 0) <= 0} className="feed-rail-btn">
+                <span className="feed-rail-icon"><Icon icon="game-icons:headphones" width={22} /></span>
+                <span>Joker{jokerCount > 1 ? ` ${(mode === "solo" ? soloPlayer : activePlayer)?.jokersLeft ?? 0}` : ""}</span>
               </button>
-            </div>
-          )}
+            )}
+            {jokersEnabled && timeLeft <= 8 && timeLeft > 0 && !(mode === "solo" ? soloPlayer : activePlayer)?.timeJokerUsed && (
+              <button type="button" onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)} className="feed-rail-btn urgent-pulse-soft">
+                <span className="feed-rail-icon feed-rail-icon-gold"><Clock size={20} /></span>
+                <span>+{TIME_JOKER_SECONDS} s</span>
+              </button>
+            )}
+            {!buzzedBy && (
+              <button type="button" onClick={() => (mode === "local" ? setConfirmSkip(true) : revealRound())} className="feed-rail-btn">
+                <span className="feed-rail-icon"><SkipForward size={20} /></span>
+                <span>Passer</span>
+              </button>
+            )}
+          </div>
+        )}
 
+        {/* Bas : réponses, toujours à portée de pouce */}
+        <div className="feed-bottom">
           {showAnswers && mode === "local" && !buzzedBy && (
             <div>
-              <p className="text-center text-xs font-semibold text-ink-muted mb-3">Qui buzze ?</p>
+              <div className="flex items-center justify-between mb-2.5 px-1">
+                <p className="text-sm font-bold">Qui buzze ?</p>
+                {!confirmSkip ? (
+                  <button type="button" onClick={() => setConfirmSkip(true)} className="text-xs font-semibold text-ink-faint inline-flex items-center gap-1 min-h-[32px]"><SkipForward size={12} /> Passer</button>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold">
+                    <span className="text-ink-muted">Révéler ?</span>
+                    <button type="button" onClick={() => { setConfirmSkip(false); revealRound(); }} className="text-riseNeg px-2 py-1.5">Oui</button>
+                    <button type="button" onClick={() => setConfirmSkip(false)} className="text-ink-faint px-2 py-1.5">Non</button>
+                  </span>
+                )}
+              </div>
               <div className={`grid gap-3 justify-items-center ${players.length <= 2 ? "grid-cols-2 max-w-xs mx-auto" : players.length <= 3 ? "grid-cols-3" : "grid-cols-4"}`}>
                 {players.map((p) => (
                   <button key={p.id} type="button" onClick={() => handleBuzz(p.id)} disabled={locked.has(p.id)} className="buzzer">
@@ -1529,7 +1642,7 @@ export default function BlindTest() {
                   </span>
                 )}
               </div>
-              <div className="space-y-2" key={currentQcmField ?? "x"}>
+              <div className="feed-answers" key={currentQcmField ?? "x"}>
                 {qcmOptions.map((label, i) => (
                   <button key={label} type="button" onClick={() => submitQcmChoice(mode === "solo" ? "solo" : buzzedBy!, label)} disabled={!!qcmLockedFor} className="answer solved-pop" data-wrong={qcmWrongId === label}>
                     <span className="answer-key">{qcmKeys[i]}</span>
@@ -1537,11 +1650,6 @@ export default function BlindTest() {
                   </button>
                 ))}
               </div>
-              {mode === "solo" && jokersEnabled && (
-                <button type="button" onClick={() => useJoker("solo")} disabled={(soloPlayer?.jokersLeft ?? 0) <= 0} className="mt-2 text-[11px] font-semibold text-ink-faint hover:text-ink disabled:opacity-30 inline-flex items-center gap-1 min-h-[32px] px-1">
-                  <Icon icon="game-icons:headphones" width={12} /> Joker : écouter un autre passage{jokerCount > 1 && ` (${soloPlayer?.jokersLeft ?? 0})`}
-                </button>
-              )}
             </div>
           )}
 
@@ -1558,14 +1666,7 @@ export default function BlindTest() {
               <FieldRow value={guess.title} onChange={(v) => setGuess((g) => ({ ...g, title: v }))} placeholder="Titre (1 pt)" solved={!!solved.title} wrongFlash={wrongFlash} />
               {applicableFields.includes("artist") && <FieldRow value={guess.artist} onChange={(v) => setGuess((g) => ({ ...g, artist: v }))} placeholder="Artiste (1 pt)" solved={!!solved.artist} wrongFlash={wrongFlash} />}
               {applicableFields.includes("feat") && <FieldRow value={guess.feat} onChange={(v) => setGuess((g) => ({ ...g, feat: v }))} placeholder="Featuring (+2 pts)" solved={!!solved.feat} wrongFlash={wrongFlash} gold />}
-              <div className="flex gap-2 pt-1">
-                {mode === "solo" && jokersEnabled && (
-                  <button type="button" onClick={() => useJoker("solo")} disabled={(soloPlayer?.jokersLeft ?? 0) <= 0} aria-label="Joker : écouter un autre passage" className="sticker sticker-ghost h-14 px-4 shrink-0 disabled:opacity-30">
-                    <Icon icon="game-icons:headphones" width={18} />
-                  </button>
-                )}
-                <button type="submit" className="sticker flex-1 h-14"><Check size={18} strokeWidth={3} /> Valider{mode === "local" ? ` — ${activePlayer?.name}` : ""}</button>
-              </div>
+              <button type="submit" className="sticker w-full h-14"><Check size={18} strokeWidth={3} /> Valider{mode === "local" ? ` — ${activePlayer?.name}` : ""}</button>
             </form>
           )}
         </div>
@@ -1573,7 +1674,6 @@ export default function BlindTest() {
     </div>
   );
 }
-
 function SettingToggle({
   Icon,
   label,

@@ -14,19 +14,19 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
  * En-tête v2 — un seul objectif : amener au jeu en un tap.
  *  - Desktop : logo, 4 liens, et un bouton rouge "Jouer" toujours visible.
  *  - Mobile : logo + bouton "Jouer" + menu. Le tiroir contient le défi du jour (compact),
- *    les 4 façons de jouer en tuiles, puis les pages secondaires.
+ *    les 5 façons de jouer en tuiles, puis les pages secondaires.
  */
 
 const NAV = [
   { href: "/", label: "Accueil", Icon: Home },
   { href: "/jouer", label: "Jouer", Icon: Play },
-  { href: "/clips", label: "Clips", Icon: Clapperboard },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
 const MODES = [
   { href: "/jouer?mode=solo", label: "Solo", sub: "À ton rythme", Icon: User },
+  { href: "/jouer?mode=clips", label: "Devine le clip", sub: "Swipe, regarde, réponds", Icon: Clapperboard },
   { href: "/jouer?mode=local", label: "Entre potes", sub: "Un écran, un buzzer", Icon: Users },
   { href: "/jouer?mode=online", label: "Salon en ligne", sub: "Un code, chacun chez soi", Icon: Globe },
   { href: "/jouer?mode=party", label: "Soirée TV", sub: "Téléphones + gages", Icon: Tv },
@@ -144,7 +144,7 @@ export default function Header() {
     setOpen(false);
   }, [pathname]);
 
-  const onGame = isActive(pathname, "/jouer") || isActive(pathname, "/blindtest") || isActive(pathname, "/clips");
+  const onGame = isActive(pathname, "/jouer") || isActive(pathname, "/blindtest");
 
   return (
     <header className="nav-panel sticky top-0 z-50 rounded-none border-x-0 border-t-0">

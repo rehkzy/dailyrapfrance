@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Share2, Copy, Check, ImageIcon, Swords, BookmarkPlus, X, RotateCcw, Trophy } from "lucide-react";
+import { Share2, Copy, Check, ImageIcon, Swords, BookmarkPlus, X, RotateCcw, Trophy , Sliders } from "lucide-react";
 import { WhatsAppIcon } from "@/components/SocialIcons";
 import { buildShareText, copyText, shareOrCopy, type RoundOutcome } from "@/lib/share";
 import { configToUrl, savePreset, describeConfig, VARIANTS, type GameConfig } from "@/lib/presets";
@@ -26,6 +26,7 @@ export default function ResultTicket({
   headline,
   subline,
   onReplay,
+  onReplaySame,
   leaderboardHref,
   podium,
 }: {
@@ -40,6 +41,7 @@ export default function ResultTicket({
   headline: string;
   subline: string;
   onReplay: () => void;
+  onReplaySame?: () => void;
   leaderboardHref?: string;
   podium?: { name: string; score: number }[];
 }) {
@@ -191,13 +193,18 @@ export default function ResultTicket({
           </div>
 
           <div className="grid gap-2.5 mt-6">
-            <button type="button" onClick={challenge} className="sticker w-full">
+            {onReplaySame && (
+              <button type="button" onClick={onReplaySame} className="sticker w-full h-16 text-lg cta-glow">
+                <RotateCcw size={20} /> Encore — nouveaux extraits
+              </button>
+            )}
+            <button type="button" onClick={challenge} className={`sticker w-full ${onReplaySame ? "sticker-ghost" : ""}`}>
               {challenged ? <Check size={18} /> : <Swords size={18} />}
               {challenged ? "Défi envoyé" : "Défier un pote sur cette partie"}
             </button>
             <div className="grid grid-cols-2 gap-2.5">
               <button type="button" onClick={onReplay} className="sticker sticker-ghost w-full">
-                <RotateCcw size={16} /> Rejouer
+                <Sliders size={16} /> {onReplaySame ? "Changer" : "Rejouer"}
               </button>
               {leaderboardHref ? (
                 <a href={leaderboardHref} className="sticker sticker-ghost w-full">
