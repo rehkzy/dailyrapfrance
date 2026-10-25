@@ -1258,34 +1258,28 @@ function RoomsTab() {
 
 // ── Mails ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_SUBJECT = "On a tout refait. Viens voir si t'as encore l'oreille 🎤";
+const DEFAULT_SUBJECT = "J'ai refait le blind test, dis-moi ce que t'en penses";
 const DEFAULT_BODY = `Salut,
 
-Le blind test DailyRapFrance a été entièrement refait. Pas une mise à jour : une nouvelle version, de l'accueil jusqu'à l'écran de fin. Tes scores, eux, sont toujours là.
+Je t'écris parce que tu as un compte sur le blind test DailyRapFrance, et qu'on vient de le refaire entièrement. Pas une mise à jour : une nouvelle version, de l'accueil jusqu'à l'écran de fin. Tes scores sont toujours là.
 
-🔥 Le défi du jour — un thème pour tout le monde, nouveau chaque minuit. Ta série de jours grandit tant que tu reviens.
+Ce qui change :
 
-🎬 Devine le clip — nouveau jeu façon Reels : le clip officiel plein écran, sans l'intro qui donne la réponse, 15 secondes pour trouver qui est à l'écran.
+- Un défi du jour, le même thème pour tout le monde, qui change à minuit. Ta série de jours grandit tant que tu reviens.
+- Un deuxième jeu, Devine le clip : le clip officiel en plein écran, lancé après l'intro, 15 secondes pour dire qui est à l'écran. Ça se joue comme des Reels.
+- Deux variantes, Survie (un son raté et c'est fini) et Sprint (20 extraits de 8 secondes).
+- 85 thèmes à jour : les stars de 2026, la nouvelle génération, la drill, l'afro, le 93, Marseille, la Belgique, et 40 blind tests sur un seul artiste.
+- Le partage sans spoiler : ton résultat en grille à coller dans le groupe, et un lien pour défier un pote sur la même partie.
+- Le mode soirée : l'écran sur la TV, les téléphones en manette, un gage pour le dernier.
 
-⚡ Survie & Sprint — un son raté et c'est fini, ou 20 extraits de 8 secondes sans joker. Chaque variante a son classement.
-
-🎤 85 thèmes à jour — les stars de 2026, la nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui…), la drill, l'afro, le 93, Marseille, la Belgique, et 40 blind tests mono-artiste.
-
-📲 Partage sans spoiler — ton résultat en grille à coller dans le groupe, et un bouton pour défier un pote sur exactement la même partie.
-
-📺 Mode Soirée — l'écran sur la TV, les téléphones en manette, un gage pour le dernier. Enregistre ta config et relance-la en un tap la prochaine fois.
-
-Toujours gratuit, sans inscription, dans le navigateur. Et le site s'ajoute à ton écran d'accueil comme une app — la version App Store / Google Play arrive.
+Toujours sans inscription, dans le navigateur. Et tu peux ajouter le site à ton écran d'accueil, il se lance comme une app.
 
 > Jouer au défi du jour|https://dailyrapfrance.best/jouer?daily=1&autostart=1
 
-Dis-moi ce que tu en penses : réponds à ce mail, je lis tout.
+Si quelque chose te plaît, ou te gêne, réponds à ce mail : je lis tout et je corrige vite.
 
-Florian B.
-CEO — DailyRapFrance
-<a href="https://florian-b.fr" style="color:#F0001C;text-decoration:none;font-weight:600;">florian-b.fr</a>
-
-<a href="https://www.instagram.com/florian.b93tsz/" style="display:inline-block;margin-top:2px;padding:10px 22px;border-radius:999px;background:#F0001C;box-shadow:0 6px 20px rgba(240,0,28,0.3);color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;font-family:'Bricolage Grotesque',Arial,Helvetica,sans-serif;">Me suivre sur Instagram →</a>`;
+Florian
+DailyRapFrance`;
 
 function QuickSendCard() {
   const [to, setTo] = useState("");
@@ -1379,6 +1373,8 @@ function EmailTab({
 }) {
   const [subject, setSubject] = useState(DEFAULT_SUBJECT);
   const [body, setBody] = useState(DEFAULT_BODY);
+  // "plain" = mail personnel sans image ni bouton (boîte principale Gmail) ; "branded" = gabarit visuel.
+  const [style, setStyle] = useState<"plain" | "branded">("plain");
   const [audience, setAudience] = useState<"all" | "active30d" | "manual">(recipients.length > 0 ? "manual" : "all");
   const [manualInput, setManualInput] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
@@ -1415,8 +1411,8 @@ function EmailTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           audience === "manual" && !test
-            ? { subject, body, recipients, test }
-            : { subject, body, audience: audience === "manual" ? "all" : audience, test }
+            ? { subject, body, recipients, test, style }
+            : { subject, body, audience: audience === "manual" ? "all" : audience, test, style }
         ),
       });
       const d = await res.json();
@@ -1453,10 +1449,32 @@ function EmailTab({
           <Mail size={15} className="text-gold" /> Campagne e-mail
         </p>
         <p className="text-xs text-ink-faint mb-4 leading-relaxed">
-          Le modèle raconte l&apos;histoire du média, demande un retour (réponse directe au mail) et incite au
-          partage — modifie-le librement. Astuce : une ligne <span className="font-mono">&gt; Libellé|https://...</span>{" "}
-          devient un bouton rouge. Envoie-toi d&apos;abord un test.
+          Une ligne <span className="font-mono">&gt; Libellé|https://...</span> devient le lien principal (bouton rouge en style
+          visuel, lien simple en style personnel). Envoie-toi d&apos;abord un test.
         </p>
+
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-[11px] font-mono uppercase tracking-wide text-ink-faint mr-1">Style :</span>
+          {([
+            { id: "plain" as const, label: "Personnel — boîte principale", hint: "Fond blanc, aucune image ni bouton, un seul lien. Gmail le range avec les mails de personnes, pas dans Promotions." },
+            { id: "branded" as const, label: "Visuel — gabarit rouge", hint: "Logo, boutons, réseaux. Plus beau, mais Gmail le classe souvent dans Promotions." },
+          ]).map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => setStyle(o.id)}
+              title={o.hint}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${style === o.id ? "bg-gold text-white" : "glass text-ink-muted hover:text-ink"}`}
+            >
+              {o.label}
+            </button>
+          ))}
+          <span className="basis-full text-[11px] text-ink-faint">
+            {style === "plain"
+              ? "Pour la boîte principale : pas d'émoji dans l'objet, un seul lien, un ton de personne à personne, et un expéditeur nommé (ex. « Florian de DailyRapFrance »)."
+              : "Le gabarit visuel finit souvent dans l'onglet Promotions de Gmail."}
+          </span>
+        </div>
 
         <label className="text-[11px] font-mono uppercase tracking-wide text-ink-faint">Sujet</label>
         <input

@@ -29,10 +29,11 @@ export async function POST(req: NextRequest) {
   }
 
   const payload = (await req.json().catch(() => null)) as
-    | { subject?: string; body?: string; audience?: "all" | "active30d"; test?: boolean; to?: string }
+    | { subject?: string; body?: string; audience?: "all" | "active30d"; test?: boolean; to?: string; style?: "branded" | "plain" }
     | null;
   const subject = payload?.subject?.trim();
   const body = payload?.body?.trim();
+  const style = payload?.style === "plain" ? "plain" : "branded";
   if (!subject || !body) return NextResponse.json({ error: "Sujet et message requis." }, { status: 400 });
 
   // Envoi rapide manuel : un seul destinataire, saisi dans le dashboard — pour répondre
@@ -42,13 +43,13 @@ export async function POST(req: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 });
     }
-    const r = await sendEmail(to, subject, body);
+    const r = await sendEmail(to, subject, body, style);
     return r.ok ? NextResponse.json({ ok: true, single: true }) : NextResponse.json({ error: r.error }, { status: 500 });
   }
 
   // Test : uniquement vers l'admin
   if (payload?.test) {
-    const r = await sendEmail(gate.email, subject, body);
+    const r = await sendEmail(gate.email, subject, body, style);
     return r.ok ? NextResponse.json({ ok: true, test: true }) : NextResponse.json({ error: r.error }, { status: 500 });
   }
 
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
   let sent = 0;
   const errors: string[] = [];
   for (const r of toSend) {
-    const result = await sendEmail(r.email, subject, body);
+    const result = await sendEmail(r.email, subject, body, style);
     if (result.ok) {
       sent++;
       await db.from("email_log").insert({ user_id: r.id, kind });

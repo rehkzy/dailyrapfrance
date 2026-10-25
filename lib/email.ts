@@ -17,7 +17,14 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
-export async function sendEmail(to: string, subject: string, bodyText: string): Promise<{ ok: boolean; error?: string }> {
+export type EmailStyle = "branded" | "plain";
+
+export async function sendEmail(
+  to: string,
+  subject: string,
+  bodyText: string,
+  style: EmailStyle = "branded"
+): Promise<{ ok: boolean; error?: string }> {
   if (!emailConfigured()) return { ok: false, error: "RESEND_API_KEY ou EMAIL_FROM manquante." };
   const res = await fetch(RESEND_URL, {
     method: "POST",
@@ -29,7 +36,7 @@ export async function sendEmail(to: string, subject: string, bodyText: string): 
       from: process.env.EMAIL_FROM,
       to: [to],
       subject,
-      html: brandedHtml(subject, bodyText),
+      html: style === "plain" ? plainHtml(bodyText) : brandedHtml(subject, bodyText),
       text: `${bodyText}\n\n—\nPour ne plus recevoir nos nouvelles : réponds « stop » à ce mail.`,
       // En-tête de désinscription (Gmail/Apple Mail affichent un lien "Se désabonner") —
       // une réponse "stop" suffit, traitée à la main depuis la boîte contact.
@@ -43,6 +50,34 @@ export async function sendEmail(to: string, subject: string, bodyText: string): 
     return { ok: false, error: `Resend ${res.status} — ${err.slice(0, 200)}` };
   }
   return { ok: true };
+}
+
+/*
+ * Style "personnel" — pour arriver dans la boîte principale de Gmail plutôt que dans
+ * Promotions : aucune image, aucun bouton, un fond blanc, une police système, un seul lien
+ * en clair. Visuellement, c'est un mail écrit par une personne, pas une newsletter.
+ * Même syntaxe que le gabarit brandé : paragraphes séparés par une ligne vide, une ligne
+ * "> Libellé|url" devient un simple lien.
+ */
+function plainHtml(bodyText: string): string {
+  const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const paragraphs = bodyText
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const cta = p.match(/^>\s*(.+?)\s*\|\s*(https?:\/\/\S+)$/);
+      if (cta) return `<p style="margin:0 0 16px;"><a href="${cta[2]}" style="color:#c8001a;">${esc(cta[1])}</a> — ${cta[2]}</p>`;
+      // Les lignes qui sont déjà du HTML (signature) passent telles quelles
+      const html = /<a\s|<\/a>/.test(p) ? p : esc(p);
+      return `<p style="margin:0 0 16px;">${html.replace(/\n/g, "<br/>")}</p>`;
+    })
+    .join("");
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
+<body style="margin:0;padding:24px 16px;background:#ffffff;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;">
+<div style="max-width:560px;margin:0 auto;">${paragraphs}
+<p style="margin:24px 0 0;color:#888888;font-size:12px;">Pour ne plus recevoir mes nouvelles, réponds simplement « stop » à ce mail.</p>
+</div></body></html>`;
 }
 
 // Texte brut → HTML brandé, dans la charte exacte du site (fond #0a0707, halos rouges
