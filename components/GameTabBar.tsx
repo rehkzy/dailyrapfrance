@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Gamepad2, Users, Trophy, Settings, Maximize, Minimize, type LucideIcon } from "lucide-react";
+import { Gamepad2, Users, Trophy, Settings, type LucideIcon } from "lucide-react";
 
 const TABS: { href: string; label: string; Icon: LucideIcon; match: (path: string) => boolean }[] = [
   { href: "/jouer", label: "Jouer", Icon: Gamepad2, match: (p) => p === "/jouer" },
@@ -17,47 +16,6 @@ const TABS: { href: string; label: string; Icon: LucideIcon; match: (path: strin
 // les autres sont des ronds icône seuls — même vocabulaire que les stores mobiles.
 export function GameTabBarContent() {
   const pathname = usePathname();
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [manualImmersive, setManualImmersive] = useState(false);
-
-  useEffect(() => {
-    function onChange() {
-      setIsFullscreen(!!document.fullscreenElement);
-    }
-    document.addEventListener("fullscreenchange", onChange);
-    document.addEventListener("webkitfullscreenchange", onChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", onChange);
-      document.removeEventListener("webkitfullscreenchange", onChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    document.body.classList.toggle("game-immersive", manualImmersive);
-    return () => {
-      document.body.classList.remove("game-immersive");
-    };
-  }, [manualImmersive]);
-
-  const fullscreenActive = isFullscreen || manualImmersive;
-
-  async function toggleFullscreen() {
-    const goingFullscreen = !manualImmersive;
-    setManualImmersive(goingFullscreen);
-    try {
-      if (!goingFullscreen) {
-        if (document.fullscreenElement) await document.exitFullscreen();
-      } else {
-        const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
-        if (el.requestFullscreen) await el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-      }
-    } catch {
-      // iOS Safari refuse souvent le plein écran natif — le mode immersif CSS a déjà pris
-      // effet, le bouton n'est donc jamais un bouton mort.
-    }
-  }
-
   return (
     <div className="dock" role="navigation" aria-label="Navigation du jeu">
       {TABS.map(({ href, label, Icon, match }) => {
@@ -74,15 +32,6 @@ export function GameTabBarContent() {
           </a>
         );
       })}
-      <button
-        onClick={toggleFullscreen}
-        aria-label={fullscreenActive ? "Quitter le plein écran" : "Passer en plein écran"}
-        title={fullscreenActive ? "Quitter le plein écran" : "Plein écran"}
-        className={`dock-item press ml-auto ${fullscreenActive ? "!text-gold" : ""}`}
-      >
-        {fullscreenActive ? <Minimize size={17} /> : <Maximize size={17} />}
-        {fullscreenActive ? "Réduire" : "Plein écran"}
-      </button>
     </div>
   );
 }

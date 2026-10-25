@@ -61,8 +61,8 @@ export type ClipHandle = {
   setVolume: (v: number) => void;
 };
 
-const ClipPlayer = forwardRef<ClipHandle, { videoId: string; start: number; volume: number; onError?: () => void; blurred?: boolean; covered?: boolean }>(
-  function ClipPlayer({ videoId, start, volume, onError, blurred = false, covered = false }, ref) {
+const ClipPlayer = forwardRef<ClipHandle, { videoId: string; start: number; volume: number; onError?: () => void; onPlaying?: () => void; blurred?: boolean; covered?: boolean }>(
+  function ClipPlayer({ videoId, start, volume, onError, onPlaying, blurred = false, covered = false }, ref) {
     const hostRef = useRef<HTMLDivElement>(null);
     const playerRef = useRef<YTPlayer | null>(null);
     const [ready, setReady] = useState(false);
@@ -97,6 +97,11 @@ const ClipPlayer = forwardRef<ClipHandle, { videoId: string; start: number; volu
               setReady(true);
             },
             onError: () => onError?.(),
+            // Le chrono de la manche ne démarre qu'à la vraie lecture (le buffering YouTube
+            // peut prendre 1 à 3 s : sans ça, le joueur perd ce temps-là).
+            onStateChange: (e: { data: number }) => {
+              if (window.YT && e.data === window.YT.PlayerState.PLAYING) onPlaying?.();
+            },
           },
         });
         playerRef.current = player;

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   RotateCcw, Users, User, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Maximize, Minimize, X, VolumeX, Volume2, Lightbulb,
+  X, VolumeX, Volume2, Lightbulb,
   SpellCheck, PartyPopper, Swords, Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -126,6 +126,9 @@ export default function BlindTest() {
   const isClip = media === "clip";
   const clipRef = useRef<ClipHandle | null>(null);
   const [clipUnavailable, setClipUnavailable] = useState(false);
+  // Clip : entre le tap et la vraie lecture, le chrono attend (buffering YouTube).
+  const [clipBuffering, setClipBuffering] = useState(false);
+  const clipStartedRef = useRef(false);
   const variantRef = useRef<Variant>(variant);
   variantRef.current = variant;
   const [roundCount, setRoundCount] = useState(deepLink.rounds ?? 10);
@@ -317,6 +320,8 @@ export default function BlindTest() {
     setQcmLockedFor(null);
     setQcmWrongId(null);
     fastRef.current = false;
+    setClipBuffering(false);
+    clipStartedRef.current = false;
     clearTimers();
   }
 
@@ -426,9 +431,25 @@ export default function BlindTest() {
     audioUnlockedRef.current = true;
     extractStartedAtRef.current = Date.now();
     setAudioError(false);
-    if (isClip) clipRef.current?.play();
-    else audioRef.current?.play().catch(() => void recoverAudio(true));
+    if (isClip) {
+      // Le chrono partira dans onClipPlaying (premier état PLAYING du lecteur).
+      clipStartedRef.current = false;
+      setClipBuffering(true);
+      clipRef.current?.play();
+      return;
+    }
+    audioRef.current?.play().catch(() => void recoverAudio(true));
     deadlineRef.current = Date.now() + effectiveSeconds * 1000;
+    intervalRef.current = setInterval(tick, 1000);
+  }
+
+  function onClipPlaying() {
+    if (clipStartedRef.current) return; // reprise après joker/pause : ne pas relancer le chrono
+    clipStartedRef.current = true;
+    setClipBuffering(false);
+    extractStartedAtRef.current = Date.now();
+    deadlineRef.current = Date.now() + effectiveSeconds * 1000;
+    if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(tick, 1000);
   }
 
@@ -771,39 +792,7 @@ export default function BlindTest() {
     resetRoundState();
   }
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [manualImmersive, setManualImmersive] = useState(false);
-  const immersive = phase === "playing" || manualImmersive;
-
-  useEffect(() => {
-    function onChange() {
-      setIsFullscreen(!!document.fullscreenElement);
-    }
-    document.addEventListener("fullscreenchange", onChange);
-    document.addEventListener("webkitfullscreenchange", onChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", onChange);
-      document.removeEventListener("webkitfullscreenchange", onChange);
-    };
-  }, []);
-
-  async function toggleFullscreen() {
-    sfx.click();
-    const goingFullscreen = !manualImmersive;
-    setManualImmersive(goingFullscreen);
-    try {
-      if (!goingFullscreen) {
-        if (document.fullscreenElement) await document.exitFullscreen();
-      } else {
-        const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
-        if (el.requestFullscreen) await el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-      }
-    } catch {
-      // iOS Safari refuse le plein écran natif — échec silencieux, le mode immersif maison a
-      // déjà pris effet.
-    }
-  }
+  const immersive = phase === "playing";
 
   useEffect(() => {
     document.body.classList.toggle("game-immersive", immersive);
@@ -1318,11 +1307,11 @@ export default function BlindTest() {
   const qcmKeys = ["A", "B", "C", "D"];
 
   return (
-    <div className="stage blindtest-shell game-scroll-area overflow-y-auto overscroll-contain px-5 sm:px-6" style={{ height: "100dvh", paddingBottom: "calc(env(safe-area-inset-bottom) + 260px)" }}>
+    <div className="stage blindtest-shell game-scroll-area overflow-y-auto overscroll-contain px-5 sm:px-6 flex flex-col" style={{ height: "100dvh" }}>
       {!isClip && <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" onError={() => (started ? void recoverAudio(true) : undefined)} />}
       {track.coverUrl && !isClip && <div className="round-bg" data-revealed={revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto w-full flex-1">
         {/* Rail haut : quitter · progression · volume · plein écran */}
         <div className="flex items-center gap-3 pt-4 pb-3">
           <button type="button" onClick={() => setConfirmQuit(true)} aria-label="Quitter la partie" className="w-10 h-10 shrink-0 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
@@ -1346,9 +1335,6 @@ export default function BlindTest() {
               {trackVolume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
             </button>
           </div>
-          <button type="button" onClick={toggleFullscreen} aria-label={manualImmersive ? "Quitter le plein écran" : "Plein écran"} className="w-10 h-10 shrink-0 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
-            {manualImmersive ? <Minimize size={15} /> : <Maximize size={15} />}
-          </button>
         </div>
 
         {confirmQuit && (
@@ -1396,13 +1382,13 @@ export default function BlindTest() {
 
         {/* Clip (mode « Devine le clip ») — monté dès la manche pour précharger, lecture au tap */}
         {isClip && track.clip && !revealed && (
-          <div className="mb-5 max-w-lg mx-auto">
-            <ClipPlayer key={track.id} ref={clipRef} videoId={track.clip.videoId} start={track.clip.start} volume={trackVolume} onError={() => setAudioError(true)} covered={!started} />
+          <div className="mb-3 max-w-lg mx-auto">
+            <ClipPlayer key={track.id} ref={clipRef} videoId={track.clip.videoId} start={track.clip.start} volume={trackVolume} onError={() => setAudioError(true)} onPlaying={onClipPlaying} covered={!started} />
           </div>
         )}
 
         {/* Scène centrale */}
-        <div className={`text-center flex flex-col items-center justify-center ${isClip ? "min-h-[20vh]" : "min-h-[42vh]"}`}>
+        <div className={`text-center flex flex-col items-center justify-center ${isClip ? "min-h-[14vh]" : "min-h-[38vh]"}`}>
           {!started ? (
             <>
               {!isClip && <span className="block w-20 h-20 mb-6"><DRMark3D size="100%" /></span>}
@@ -1421,9 +1407,10 @@ export default function BlindTest() {
                   <button type="button" onClick={retryAudio} className="text-xs font-semibold text-riseNeg inline-flex items-center gap-1"><RotateCcw size={12} /> Réessayer</button>
                 </div>
               )}
-              <div className={`big-timer mb-3 ${isClip ? "!w-24 !h-24" : ""}`} data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
-                <span className={`score-num ${isClip ? "text-4xl" : "text-6xl"} ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
+              <div className={`big-timer mb-2 ${isClip ? "!w-20 !h-20" : ""}`} data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
+                <span className={`score-num ${isClip ? "text-3xl" : "text-6xl"} ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
               </div>
+              {clipBuffering && <p className="text-xs text-ink-faint -mt-1 mb-1 animate-pulse">Le clip charge… le chrono part avec l&apos;image.</p>}
               <div className="h-7 flex items-center justify-center" aria-live="polite">
                 {bonusFlash !== null && <span className="solved-pop text-xs font-bold text-[#ffd166]">⚡ +{bonusFlash} rapidité</span>}
                 {hintsEnabled && bonusFlash === null && timeLeft <= 6 && timeLeft > 0 && !solved.title && (
@@ -1467,14 +1454,17 @@ export default function BlindTest() {
         </div>
       </div>
 
-      {/* Panneau de réponse — zone pouce */}
-      <div className="fixed bottom-0 inset-x-0 z-30 px-5 pt-8 pointer-events-none" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}>
+      {/* Panneau de réponse — zone pouce. Collant au bas de la zone de jeu (pas "fixed" : sur
+          iOS Safari un élément fixed passe sous la barre d'outils et devient inatteignable). */}
+      <div className="sticky bottom-0 z-30 -mx-5 sm:-mx-6 px-5 sm:px-6 pt-6 mt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}>
         <div className="absolute inset-0 bg-gradient-to-t from-[#070404] via-[#070404]/95 to-transparent -z-10" aria-hidden="true" />
-        <div className="max-w-2xl mx-auto pointer-events-auto space-y-2.5">
+        <div className="max-w-2xl mx-auto space-y-2.5">
           {showAnswers && jokersEnabled && timeLeft <= 8 && timeLeft > 0 && ((mode === "solo" && !soloPlayer?.timeJokerUsed) || (mode === "local" && buzzedBy && !activePlayer?.timeJokerUsed)) && (
-            <button type="button" onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)} className="urgent-pulse-soft w-full h-12 rounded-2xl bg-[#ffd166] text-[#3a0007] text-sm font-extrabold inline-flex items-center justify-center gap-2">
-              <Clock size={16} /> +{TIME_JOKER_SECONDS} s pour répondre
-            </button>
+            <div className="flex justify-end">
+              <button type="button" onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)} className="urgent-pulse-soft h-9 px-3.5 rounded-full bg-[#ffd166] text-[#3a0007] text-xs font-extrabold inline-flex items-center gap-1.5">
+                <Clock size={13} /> +{TIME_JOKER_SECONDS} s
+              </button>
+            </div>
           )}
 
           {showAnswers && mode === "local" && !buzzedBy && (
