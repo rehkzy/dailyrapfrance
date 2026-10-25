@@ -217,7 +217,9 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
                   start={clip.start}
                   volume={1}
                   onPlaying={() => onPlaying(clip.id)}
-                  covered={!started}
+                  covered={!playing[clip.id] && !st}
+                  onCoverTap={started && isActive ? () => playersRef.current[clip.id]?.play() : undefined}
+                  coverLabel={!started ? "Le clip démarre au tap" : "Lancer le clip"}
                 />
               )}
             </div>
@@ -261,11 +263,6 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
                       <span className={`score-num text-2xl ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{playing[clip.id] ? timeLeft : "…"}</span>
                     )}
                   </div>
-                  {isActive && started && !playing[clip.id] && (
-                    <button type="button" onClick={() => playersRef.current[clip.id]?.play()} className="w-full mb-2 h-11 rounded-xl bg-white/10 text-sm font-semibold inline-flex items-center justify-center gap-2">
-                      <Play size={14} fill="currentColor" /> Lancer le clip
-                    </button>
-                  )}
                   <div className="space-y-2">
                     {clip.choices.map((choice, k) => (
                       <button key={choice} type="button" disabled={!isActive || !started} onClick={() => answer(clip.id, choice)} className="answer">

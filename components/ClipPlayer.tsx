@@ -61,8 +61,8 @@ export type ClipHandle = {
   setVolume: (v: number) => void;
 };
 
-const ClipPlayer = forwardRef<ClipHandle, { videoId: string; start: number; volume: number; onError?: () => void; onPlaying?: () => void; blurred?: boolean; covered?: boolean }>(
-  function ClipPlayer({ videoId, start, volume, onError, onPlaying, blurred = false, covered = false }, ref) {
+const ClipPlayer = forwardRef<ClipHandle, { videoId: string; start: number; volume: number; onError?: () => void; onPlaying?: () => void; blurred?: boolean; covered?: boolean; onCoverTap?: () => void; coverLabel?: string }>(
+  function ClipPlayer({ videoId, start, volume, onError, onPlaying, blurred = false, covered = false, onCoverTap, coverLabel }, ref) {
     const hostRef = useRef<HTMLDivElement>(null);
     const playerRef = useRef<YTPlayer | null>(null);
     const [ready, setReady] = useState(false);
@@ -149,7 +149,18 @@ const ClipPlayer = forwardRef<ClipHandle, { videoId: string; start: number; volu
         <div className="clip-band clip-band-top" aria-hidden="true" />
         <div className="clip-band clip-band-bottom" aria-hidden="true" />
         <div className="clip-shield" aria-hidden="true" />
-        {covered && <div className="clip-cover">Le clip démarre au tap</div>}
+        {/* Voile opaque tant que la vidéo ne joue pas : on ne montre JAMAIS la vignette ni le
+            bouton de lecture YouTube (le joueur croirait que c'est lui qu'il faut toucher). */}
+        {covered && (
+          onCoverTap ? (
+            <button type="button" onClick={onCoverTap} className="clip-cover clip-cover-tap" aria-label={coverLabel ?? "Lancer le clip"}>
+              <span className="feed-launch-ring"><svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg></span>
+              <span className="mt-4 font-display text-xl font-extrabold text-ink">{coverLabel ?? "Lancer le clip"}</span>
+            </button>
+          ) : (
+            <div className="clip-cover">{coverLabel ?? "Le clip démarre au tap"}</div>
+          )
+        )}
       </div>
     );
   }
