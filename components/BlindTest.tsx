@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Zap, RotateCcw, Users, User, Disc, Clock,
+  RotateCcw, Users, User, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
-  Sliders, Gamepad2, Maximize, Minimize, X, VolumeX, Volume2, Lightbulb, Target,
-  ListChecks, Keyboard, SpellCheck, Timer, Hash, PartyPopper, Swords,
+  Maximize, Minimize, X, VolumeX, Volume2, Lightbulb,
+  SpellCheck, PartyPopper, Swords, Trophy,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -19,21 +19,16 @@ import { speedBonus } from "@/lib/scoring";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel, QCM_STAGE_PROMPTS } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
-import Magnetic from "@/components/Magnetic";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
 import { DRMark3D } from "@/components/BlindTestLogo";
 import BlindTestRoom from "@/components/BlindTestRoom";
 import BrandLoader from "@/components/BrandLoader";
-import ShareScoreCard from "@/components/ShareScoreCard";
-import ShareGame from "@/components/ShareGame";
-import { GameTabBarContent } from "@/components/GameTabBar";
 import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
-import BorderMagicButton from "@/components/ui/BorderMagicButton";
-import ResultShare from "@/components/ResultShare";
+import ResultTicket from "@/components/ResultTicket";
 import SavedPresets from "@/components/SavedPresets";
 import DailyCard from "@/components/DailyCard";
-import BrandMark from "@/components/BrandMark";
+import BrandMark, { BrandTile } from "@/components/BrandMark";
 import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
 import { markPlayedToday, bumpGamesPlayed, dailyNumber, getStreak, recordDailyScore } from "@/lib/dailyStreak";
 import type { RoundOutcome } from "@/lib/share";
@@ -902,141 +897,117 @@ export default function BlindTest() {
     );
   }
 
-  if (phase === "setup" || phase === "loading") {
-    return (
-      <div
-        className="max-w-2xl mx-auto pt-6 sm:pt-8 blindtest-shell"
-        style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${wizardStep > 0 || mode === "local" ? 236 : 150}px)` }}
-      >
-        {!user && (
-          <div className="flex justify-center mb-3">
-            <button
-              onClick={() => setShowAuth(true)}
-              className="inline-flex items-center gap-1.5 text-[11px] text-ink-faint hover:text-ink glass rounded-full px-3.5 py-1.5 transition-colors"
-            >
-              <LogIn size={11} className="text-gold" />
-              Mode invité · <span className="text-gold font-semibold">se connecter</span>
-            </button>
-          </div>
+  // ---------------------------------------------------------------------------------------
+  // v3 "La Scène" — barre haute commune aux écrans de préparation et de fin
+  // ---------------------------------------------------------------------------------------
+  const themeLabelNow = themeId === "random" ? "Thème surprise" : THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId;
+  const modeLabelNow = MODE_TILES.find((m) => m.id === mode)?.label ?? "Solo";
+  const stageTop = (
+    <div className="flex items-center justify-between gap-3 pt-4 pb-2">
+      <a href="/" className="inline-flex items-center gap-2 text-sm font-semibold">
+        <BrandTile size={28} /> DailyRap
+      </a>
+      <div className="flex items-center gap-1.5">
+        <a href="/blindtest/classement" aria-label="Classement" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink">
+          <Trophy size={17} />
+        </a>
+        {user ? (
+          <a href={myUsername ? `/profil/${myUsername}` : "/parametres"} aria-label="Mon compte" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink">
+            <User size={17} />
+          </a>
+        ) : (
+          <button type="button" onClick={() => setShowAuth(true)} className="h-10 px-3.5 rounded-full bg-white/6 text-xs font-semibold text-ink-muted hover:text-ink">
+            Se connecter
+          </button>
         )}
-        <div className="flex items-center justify-center gap-2 mb-3 sm:mb-5 px-1 flex-wrap">
-          {[
-            { label: "Mode", Icon: Gamepad2 },
-            { label: "Thème", Icon: Disc },
-            { label: "Réglages", Icon: Sliders },
-          ].map(({ label, Icon }, i) => (
-            <button
-              key={label}
-              onClick={() => setWizardStep(i as 0 | 1 | 2)}
-              className={`filter-pill ${i === wizardStep ? "is-active" : ""}`}
-            >
-              <Icon size={13} strokeWidth={2.3} />
-              {label}
-              {i < wizardStep && <Check size={12} strokeWidth={3} className="ml-0.5 opacity-70" />}
-            </button>
-          ))}
-        </div>
+      </div>
+    </div>
+  );
 
-        <div className="px-0.5 sm:px-1 flex flex-col">
+  if (phase === "setup" || phase === "loading") {
+    const canContinue = wizardStep === 0 ? !!mode && (mode !== "local" || playerNames.filter((n) => n.trim()).length >= 2) : true;
+    return (
+      <div className="stage blindtest-shell px-5 sm:px-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
+        <div className="max-w-2xl mx-auto">
+          {stageTop}
+
           {phase === "loading" ? (
-            <div className="flex-1 flex items-center justify-center py-10">
-              <BrandLoader label="Recherche des titres" size="lg" />
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">
+              <BrandLoader label="On prépare les extraits" size="lg" />
+              <p className="text-sm text-ink-faint mt-6">{modeLabelNow} · {themeLabelNow}</p>
             </div>
-          ) : (
+          ) : wizardStep === 0 ? (
             <>
-          {wizardStep === 0 && (
-            <div
-              className={`flex-1 space-y-5 rounded-2xl transition-shadow ${
-                setupError && !mode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""
-              }`}
-            >
+              <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
+              <h2 className="stage-title mb-6">Comment on joue<br />ce soir ?</h2>
+
               {deepLink.from && (
-                <div className="challenge-banner">
+                <div className="challenge-banner mb-5">
                   <Swords size={18} className="text-gold shrink-0" />
                   <p className="text-sm leading-snug">
                     <span className="font-semibold">{deepLink.from}</span> te défie
-                    {deepLink.scoreToBeat ? (
-                      <>
-                        {" "}— <span className="text-gold font-semibold">{deepLink.scoreToBeat} pts</span> à battre
-                      </>
-                    ) : null}
-                    . Même thème, mêmes réglages.
+                    {deepLink.scoreToBeat ? <> — <span className="text-gold font-semibold">{deepLink.scoreToBeat} pts</span> à battre</> : null}. Même thème, mêmes réglages.
                   </p>
                 </div>
               )}
 
-              {!mode && (
-                <>
-                  <DailyCard variant="compact" />
-                  <div className="px-0.5 pt-1">
-                    <h2 className="font-display text-2xl font-bold tracking-tight">Ou choisis ta façon de jouer</h2>
-                    <p className="text-sm text-ink-faint mt-1">Seul, entre potes sur un écran, à distance, ou en soirée sur la TV.</p>
-                  </div>
-                </>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                {MODE_TILES.map((m) => {
+              <div className="deck" role="radiogroup" aria-label="Mode de jeu">
+                {MODE_TILES.map((m, i) => {
                   const isActive = mode === m.id;
+                  const bgs = [
+                    "linear-gradient(160deg, #3a0a0f 0%, #8a0010 60%, #f0001c 130%)",
+                    "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)",
+                    "linear-gradient(160deg, #1b0507 0%, #5c000b 60%, #a3121b 120%)",
+                    "linear-gradient(160deg, #f0001c 0%, #ff3b4e 55%, #ffb199 140%)",
+                  ];
                   return (
                     <button
                       key={m.id}
                       type="button"
-                      aria-pressed={isActive}
+                      role="radio"
+                      aria-checked={isActive}
                       data-active={isActive}
+                      className="poster"
+                      style={{ "--poster-bg": bgs[i] } as CSSProperties}
                       onClick={() => {
                         sfx.click();
                         setMode(m.id);
                         setSetupError(null);
-                        // Auto-avance : choisir Solo répond à la seule question de l'étape,
-                        // on passe direct au thème. Local reste sur place : il faut les pseudos.
-                        // Online/Soirée quittent le wizard d'eux-mêmes (rendu Room / connexion).
-                        if (m.id === "solo") setTimeout(() => setWizardStep(1), 220);
+                        if (m.id === "solo") setTimeout(() => setWizardStep(1), 260);
                       }}
-                      className="mode-tile min-h-[150px] sm:min-h-[164px]"
                     >
-                      <span className="mode-wash" aria-hidden="true" />
-                      <span className="mode-icon">
-                        <m.Icon size={18} strokeWidth={2} />
-                      </span>
-                      {isActive && (
-                        <span className="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-gold grid place-items-center text-white">
-                          <Check size={13} strokeWidth={3} />
-                        </span>
-                      )}
-                      <span className="relative text-[11px] font-semibold text-gold">{m.tag}</span>
-                      <span className="relative font-display text-lg font-bold leading-tight">{m.label}</span>
-                      <span className="relative text-xs text-ink-muted leading-snug">{m.desc}</span>
+                      <BrandMark className="poster-mark" size="90%" />
+                      <span className="poster-tag">{m.tag}</span>
+                      {isActive && <span className="poster-check"><Check size={16} strokeWidth={3} /></span>}
+                      <span className="relative poster-title">{m.label}</span>
+                      <span className="relative poster-sub">{m.desc}</span>
                     </button>
                   );
                 })}
               </div>
 
               {mode === "local" && (
-                <div className="card p-4 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold">Qui joue ?</p>
+                <div className="ticket p-5 mt-2 mb-6 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
+                  <div className="flex items-baseline justify-between mb-3">
+                    <p className="font-display text-xl font-bold">Qui joue ?</p>
                     <span className="text-xs text-ink-faint">{playerNames.filter((n) => n.trim()).length} / 8</span>
                   </div>
-                  <div data-lenis-prevent className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  <div className="space-y-2">
                     {playerNames.map((name, i) => (
-                      <div key={i} className="flex gap-2">
-                        <span className="w-10 h-11 shrink-0 grid place-items-center rounded-xl bg-white/5 text-xs font-mono text-ink-faint">{i + 1}</span>
+                      <div key={i} className="flex gap-2 items-center">
+                        <span className="avatar w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold text-white shrink-0" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>
+                          {(name.trim() || `J${i + 1}`).slice(0, 2).toUpperCase()}
+                        </span>
                         <input
                           value={name}
                           onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
                           placeholder={`Joueur ${i + 1}`}
                           maxLength={24}
                           aria-label={`Pseudo du joueur ${i + 1}`}
-                          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-gold/50 min-h-[44px]"
+                          className="answer-input !min-h-[48px] !text-[15px]"
                         />
                         {playerNames.length > 2 && (
-                          <button
-                            type="button"
-                            onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))}
-                            className="w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-ink-faint hover:text-riseNeg hover:bg-riseNeg/10 transition-colors"
-                            aria-label="Retirer ce joueur"
-                          >
+                          <button type="button" onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))} className="w-10 h-10 shrink-0 grid place-items-center rounded-full text-ink-faint hover:text-riseNeg hover:bg-white/5" aria-label="Retirer ce joueur">
                             <X size={16} />
                           </button>
                         )}
@@ -1044,512 +1015,209 @@ export default function BlindTest() {
                     ))}
                   </div>
                   {playerNames.length < 8 && (
-                    <button
-                      type="button"
-                      onClick={() => setPlayerNames((prev) => [...prev, `Joueur ${prev.length + 1}`])}
-                      className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-gold hover:text-glow transition-colors min-h-[44px]"
-                    >
+                    <button type="button" onClick={() => setPlayerNames((prev) => [...prev, ""])} className="mt-3 text-sm font-semibold text-glow min-h-[44px]">
                       + Ajouter un joueur
                     </button>
                   )}
                 </div>
               )}
 
-              {!mode && <SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} />}
-            </div>
-          )}
-
-          {wizardStep === 1 && (
-            <ThemePicker
-              themeId={themeId}
-              onSelect={(id) => {
-                sfx.click();
-                setThemeId(id);
-                // Auto-avance : un thème choisi = l'étape est finie, direction Réglages.
-                setTimeout(() => setWizardStep(2), 220);
-              }}
-              dailyTheme={dailyTheme}
-            />
-          )}
-
-          {wizardStep === 2 && (
-            <div className="flex-1 space-y-7">
-              <div className="card p-4 flex items-center gap-3">
-                <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-glow to-gold text-white grid place-items-center shrink-0">
-                  <BrandMark size={18} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold truncate">
-                    {MODE_TILES.find((m) => m.id === mode)?.label ?? "Solo"} · {themeId === "random" ? "Thème surprise" : THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId}
-                  </p>
-                  <p className="text-xs text-ink-faint truncate">
-                    {variant !== "classic" ? `${VARIANTS.find((v) => v.id === variant)?.label} · ` : ""}
-                    {mode === "local" ? playerNames.filter((n) => n.trim()).join(", ") : `${effectiveRounds} manches · ${effectiveSeconds}s par extrait`}
-                  </p>
+              {!mode && (
+                <div className="mt-2 space-y-6">
+                  <DailyCard variant="compact" />
+                  <SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} />
                 </div>
-                <button type="button" onClick={() => setWizardStep(1)} className="text-xs font-medium text-gold hover:text-glow min-h-[44px] px-2">
-                  Changer
-                </button>
-              </div>
-              <div>
-                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Gamepad2 size={13} />
-                  Règles
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {VARIANTS.map((v) => {
-                    const active = variant === v.id;
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() => {
-                          sfx.click();
-                          setVariant(v.id);
-                        }}
-                        aria-pressed={active}
-                        className={`text-left rounded-2xl p-3.5 border transition-all duration-200 min-h-[92px] ${
-                          active
-                            ? "border-gold/50 bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.18)]"
-                            : "border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        <p className="font-display text-sm font-semibold">{v.label}</p>
-                        <p className="text-[11px] text-ink-faint mt-1 leading-snug">{v.desc}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              )}
+            </>
+          ) : wizardStep === 1 ? (
+            <>
+              <button type="button" onClick={() => setWizardStep(0)} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]">
+                <ChevronLeft size={16} /> {modeLabelNow}
+              </button>
+              <h2 className="stage-title mb-5">Choisis<br />ton crate.</h2>
+              <ThemePicker
+                themeId={themeId}
+                onSelect={(id) => {
+                  sfx.click();
+                  setThemeId(id);
+                  setTimeout(() => setWizardStep(2), 220);
+                }}
+                dailyTheme={dailyTheme}
+              />
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={() => setWizardStep(1)} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]">
+                <ChevronLeft size={16} /> Thèmes
+              </button>
+              <h2 className="stage-title mb-5">Dernier<br />réglage.</h2>
 
-              <div>
-                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Sliders size={13} />
-                  Mode de réponse
-                  {!answerMode && (
-                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gold/15 text-gold px-2.5 py-0.5 text-[10px] font-bold normal-case tracking-normal">
-                      À choisir
-                    </span>
-                  )}
-                </p>
-                <div
-                  className={`grid grid-cols-2 gap-2.5 rounded-2xl transition-shadow ${
-                    setupError && !answerMode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""
-                  }`}
-                >
-                  {([
-                    {
-                      id: "qcm" as const,
-                      Icon: ListChecks,
-                      title: "Facile",
-                      sub: "3 titres au choix",
-                    },
-                    {
-                      id: "text" as const,
-                      Icon: Keyboard,
-                      title: "Difficile",
-                      sub: "Écrire la réponse",
-                    },
-                  ]).map((o) => {
-                    const active = answerMode === o.id;
-                    return (
-                      <button
-                        key={o.id}
-                        onClick={() => {
-                          sfx.click();
-                          setAnswerMode(o.id);
-                          setSetupError(null);
-                        }}
-                        aria-pressed={active}
-                        className={`relative text-left rounded-2xl p-4 border transition-all duration-200 ${
-                          active
-                            ? "border-gold/50 bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.18)]"
-                            : "border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        {active && (
-                          <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-gold flex items-center justify-center">
-                            <Check size={11} className="text-white" />
-                          </span>
-                        )}
-                        <o.Icon size={20} className={active ? "text-gold" : "text-ink-faint"} />
-                        <p className="font-display text-base font-semibold mt-2.5">{o.title}</p>
-                        <p className="text-xs text-ink-faint mt-0.5">{o.sub}</p>
-                      </button>
-                    );
-                  })}
+              <div className="ticket mb-5">
+                <div className="p-5 flex items-center gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="stage-kicker mb-1">{modeLabelNow}</p>
+                    <p className="font-display text-2xl font-extrabold leading-tight truncate">{themeLabelNow}</p>
+                    <p className="text-xs text-ink-faint mt-1 truncate">
+                      {mode === "local" ? playerNames.filter((n) => n.trim()).join(", ") : `${effectiveRounds} extraits · ${effectiveSeconds} s chacun`}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setWizardStep(1)} className="sticker sticker-ghost sticker-sm">Changer</button>
                 </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Disc size={13} />
-                  Partie
-                </p>
-                {variant !== "classic" && (
-                  <p className="text-xs text-ink-faint mb-3">
-                    {variant === "sprint"
-                      ? `Sprint : ${SPRINT_ROUNDS} extraits de ${SPRINT_SECONDS} s, sans joker.`
-                      : `Survie : jusqu'à ${SURVIVAL_POOL} extraits, la partie s'arrête au premier son entièrement raté.`}
-                  </p>
-                )}
-                <p className="text-xs text-ink-faint mb-2">{variant === "classic" ? "Nombre de manches" : "Chrono par manche"}</p>
-                <div className={`flex gap-2 mb-4 flex-wrap ${variant === "classic" ? "" : "hidden"}`}>
-                  {[10, 15, 20, 30].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => {
-                        sfx.click();
-                        setRoundCount(n);
-                      }}
-                      className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
-                        roundCount === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                <p className={`text-xs text-ink-faint mb-2 ${variant === "classic" ? "" : "hidden"}`}>Temps par manche</p>
-                <div className={`flex gap-2 flex-wrap ${variant === "sprint" ? "hidden" : ""}`}>
-                  {ROUND_TIME_OPTIONS.map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => {
-                        sfx.click();
-                        setRoundSeconds(n);
-                      }}
-                      className={`rounded-full px-4 py-1.5 text-sm font-mono transition-all duration-200 ${
-                        roundSeconds === n ? "bg-gold text-white shadow-[0_0_16px_rgba(240,0,28,0.35)]" : "glass text-ink-muted hover:text-ink"
-                      }`}
-                    >
-                      {n}s
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Target size={13} />
-                  Difficulté
-                </p>
-                <div className="flex items-center justify-between gap-4 glass rounded-xl p-4 mb-2.5">
-                  <span className="min-w-0 flex items-start gap-2.5">
-                    <Icon icon="game-icons:headphones" width={15} className="text-gold shrink-0 mt-0.5" />
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium">Jokers d'écoute</span>
-                      <span className="block text-xs text-ink-faint mt-0.5 leading-snug">
-                        Réécouter un autre passage de l'extrait, par joueur et par partie.
-                      </span>
-                    </span>
-                  </span>
-                  <div className="flex gap-1 shrink-0" role="group" aria-label="Nombre de jokers d'écoute">
-                    {[
-                      { n: 0, label: "Aucun" },
-                      { n: 1, label: "1" },
-                      { n: 2, label: "2" },
-                    ].map(({ n, label }) => (
-                      <button
-                        key={n}
-                        onClick={() => {
-                          sfx.click();
-                          setJokerCount(n);
-                        }}
-                        aria-pressed={jokerCount === n}
-                        className={`px-3 h-8 rounded-full text-xs font-mono transition-colors ${
-                          jokerCount === n ? "bg-gold text-white" : "bg-white/5 text-ink-muted hover:text-ink"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                <div className="ticket-cut" />
+                <div className="p-5 space-y-5">
+                  <div>
+                    <p className="text-xs font-semibold text-ink-faint mb-2">Règles</p>
+                    <div className="segmented">
+                      {VARIANTS.map((v) => (
+                        <button key={v.id} type="button" aria-pressed={variant === v.id} onClick={() => { sfx.click(); setVariant(v.id); }}>
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-ink-faint mt-2 min-h-[1.5em]">
+                      {variant === "classic" ? `${roundCount} manches, ${roundSeconds} s par extrait, ${jokerCount ? `${jokerCount} joker${jokerCount > 1 ? "s" : ""}` : "sans joker"}.` : VARIANTS.find((v) => v.id === variant)?.desc}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-ink-faint mb-2">Réponse</p>
+                    <div className="segmented">
+                      <button type="button" aria-pressed={answerMode === "qcm"} onClick={() => { sfx.click(); setAnswerMode("qcm"); }}>Facile · 3 choix</button>
+                      <button type="button" aria-pressed={answerMode === "text"} onClick={() => { sfx.click(); setAnswerMode("text"); }}>Difficile · j&apos;écris</button>
+                    </div>
                   </div>
                 </div>
-                {answerMode === "text" && (
-                  <SettingToggle
-                    Icon={SpellCheck}
-                    label="Orthographe stricte"
-                    description="Aucune tolérance aux fautes de frappe. Désactivé, une réponse proche suffit."
-                    checked={strictMode}
-                    onChange={setStrictMode}
-                  />
-                )}
-                <div className="mt-2.5">
-                  <SettingToggle
-                    Icon={Lightbulb}
-                    label="Indice en fin de chrono"
-                    description="La première lettre du titre s'affiche dans les dernières secondes."
-                    checked={hintsEnabled}
-                    onChange={setHintsEnabled}
-                  />
-                </div>
               </div>
 
-              <div>
-                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Volume2 size={13} />
-                  Confort
-                </p>
-                <div className="glass rounded-xl p-4 mb-2.5">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    {trackVolume === 0 ? (
-                      <VolumeX size={15} className="text-gold shrink-0" />
-                    ) : (
-                      <Volume2 size={15} className="text-gold shrink-0" />
-                    )}
-                    <span className="text-sm font-medium flex-1">Volume des extraits</span>
+              <details className="group mb-6">
+                <summary className="cursor-pointer list-none flex items-center justify-between text-sm font-semibold min-h-[44px]">
+                  Réglages avancés
+                  <ChevronRight size={16} className="text-ink-faint transition-transform group-open:rotate-90" />
+                </summary>
+                <div className="mt-3 space-y-5">
+                  {variant === "classic" && (
+                    <>
+                      <div>
+                        <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
+                        <div className="segmented">
+                          {[10, 15, 20, 30].map((n) => (
+                            <button key={n} type="button" aria-pressed={roundCount === n} onClick={() => { sfx.click(); setRoundCount(n); }}>{n}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-ink-faint mb-2">Temps par manche</p>
+                        <div className="segmented">
+                          {ROUND_TIME_OPTIONS.map((n) => (
+                            <button key={n} type="button" aria-pressed={roundSeconds === n} onClick={() => { sfx.click(); setRoundSeconds(n); }}>{n}s</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-ink-faint mb-2">Jokers d&apos;écoute (réécouter un autre passage)</p>
+                        <div className="segmented">
+                          {[0, 1, 2].map((n) => (
+                            <button key={n} type="button" aria-pressed={jokerCount === n} onClick={() => { sfx.click(); setJokerCount(n); }}>{n === 0 ? "Aucun" : n}</button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {variant === "survival" && (
+                    <div>
+                      <p className="text-xs font-semibold text-ink-faint mb-2">Temps par manche</p>
+                      <div className="segmented">
+                        {ROUND_TIME_OPTIONS.map((n) => (
+                          <button key={n} type="button" aria-pressed={roundSeconds === n} onClick={() => { sfx.click(); setRoundSeconds(n); }}>{n}s</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {answerMode === "text" && (
+                    <SettingToggle Icon={SpellCheck} label="Orthographe stricte" description="Aucune tolérance aux fautes. Désactivé, une réponse proche suffit." checked={strictMode} onChange={setStrictMode} />
+                  )}
+                  <SettingToggle Icon={Lightbulb} label="Indice en fin de chrono" description="La première lettre du titre s'affiche dans les dernières secondes." checked={hintsEnabled} onChange={setHintsEnabled} />
+                  <SettingToggle Icon={sfxEnabled ? Volume2 : VolumeX} label="Effets sonores" description="Clics, buzzer, révélations." checked={sfxEnabled} onChange={(v) => { setSfxEnabled(v); sfx.setMuted(!v); }} />
+                  <div className="flex items-center gap-3">
+                    <Volume2 size={15} className="text-ink-faint shrink-0" />
+                    <input type="range" min={0} max={100} value={trackVolume * 100} onChange={(e) => setTrackVolume(Number(e.target.value) / 100)} className="brand-slider flex-1" style={{ "--fill": `${trackVolume * 100}%` } as CSSProperties} aria-label="Volume des extraits" />
                     <span className="font-mono text-xs text-ink-faint w-9 text-right">{Math.round(trackVolume * 100)}%</span>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={trackVolume * 100}
-                    onChange={(e) => setTrackVolume(Number(e.target.value) / 100)}
-                    className="brand-slider"
-                    style={{ "--fill": `${trackVolume * 100}%` } as CSSProperties}
-                    aria-label="Volume des extraits"
-                  />
+                  <p className="text-xs text-ink-faint">Barème : titre 1 pt · artiste 1 pt · featuring 2 pts · bonus de rapidité.</p>
                 </div>
-                <SettingToggle
-                  Icon={sfxEnabled ? Volume2 : VolumeX}
-                  label="Effets sonores"
-                  description="Clics, buzzer, révélations — les bruitages de l'interface."
-                  checked={sfxEnabled}
-                  onChange={(v) => {
-                    setSfxEnabled(v);
-                    sfx.setMuted(!v);
-                  }}
-                />
-              </div>
+              </details>
 
-              <div className="glass rounded-xl p-4">
-                <p className="text-sm font-semibold mb-3">Barème</p>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {[
-                    { label: "Titre", pts: "1 pt" },
-                    ...(answerMode !== "qcm" ? [{ label: "Artiste", pts: "1 pt" }] : []),
-                    { label: "Featuring", pts: "+2 pts", gold: true },
-                  ].map((b) => (
-                    <span
-                      key={b.label}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-mono ${
-                        b.gold ? "bg-gold/15 text-gold" : "bg-white/5 text-ink-muted"
-                      }`}
-                    >
-                      {b.label} <span className="opacity-70">·</span> {b.pts}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-faint">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Hash size={12} className="text-gold" /> {roundCount} manches
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Timer size={12} className="text-gold" /> {roundSeconds}s / manche
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon icon="game-icons:headphones" width={12} className="text-gold" />
-                    {jokersEnabled ? `${jokerCount} joker${jokerCount > 1 ? "s" : ""} d'écoute` : "Sans joker d'écoute"}
-                  </span>
-                </div>
-              </div>
-
-              {setupError && <p className="text-sm text-riseNeg">{setupError}</p>}
-            </div>
-          )}
-          </>
+              {setupError && <p className="text-sm text-riseNeg mb-4">{setupError}</p>}
+            </>
           )}
         </div>
 
-        <div className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/95 to-transparent -z-10" aria-hidden="true" />
-          <div className="max-w-2xl mx-auto pointer-events-auto">
-            {/* La barre Précédent/Suivant n'apparaît que quand elle sert : jamais à
-                l'étape Mode (l'auto-avance fait le travail), sauf en Local où il faut
-                valider les pseudos. Une barre de moins = un écran qui respire. */}
-            {(wizardStep > 0 || mode === "local") && (
-            <div className="px-4 pt-4">
-              <div className="flex items-center gap-3 glass-strong rounded-2xl p-2">
-                <button
-                  onClick={() => setWizardStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : s))}
-                  disabled={wizardStep === 0}
-                  aria-label="Étape précédente"
-                  className="flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full text-sm font-medium text-ink-muted hover:text-ink hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                >
-                  <ChevronLeft size={16} /> Précédent
+        {/* Action principale, collée au pouce */}
+        {phase !== "loading" && (wizardStep === 2 || (wizardStep === 0 && mode === "local")) && (
+          <div className="fixed bottom-0 inset-x-0 z-30 px-5 pt-6 pointer-events-none" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#070404] via-[#070404]/90 to-transparent -z-10" aria-hidden="true" />
+            <div className="max-w-2xl mx-auto pointer-events-auto">
+              {wizardStep === 2 ? (
+                <button type="button" onClick={startGame} className="sticker w-full h-16 text-lg">
+                  <Icon icon="game-icons:play-button" width={20} /> Lancer la partie
                 </button>
-                {wizardStep < 2 ? (
-                  <button
-                    onClick={() => {
-                      if (wizardStep === 0 && !mode) {
-                        setSetupError("Choisis un mode — Solo, Local ou Salon en ligne — pour continuer.");
-                        return;
-                      }
-                      setSetupError(null);
-                      setWizardStep((s) => (s < 2 ? ((s + 1) as 0 | 1 | 2) : s));
-                    }}
-                    aria-label="Étape suivante"
-                    className={`flex-1 flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-full text-sm font-semibold transition-colors ${
-                      wizardStep === 0 && !mode
-                        ? "bg-white/10 text-ink-muted"
-                        : "bg-gold hover:bg-glow text-white"
-                    }`}
-                  >
-                    {wizardStep === 0 && !mode ? "Choisis un mode" : "Suivant"} <ChevronRight size={16} />
-                  </button>
-                ) : (
-                  <Magnetic strength={0.15} className="flex-1 block">
-                    <BorderMagicButton
-                      onClick={startGame}
-                      disabled={phase === "loading"}
-                      fullWidth
-                      size="md"
-                    >
-                      {phase === "loading" ? "Chargement..." : "Lancer la partie"}
-                      {phase !== "loading" && <Icon icon="game-icons:play-button" width={18} />}
-                    </BorderMagicButton>
-                  </Magnetic>
-                )}
-              </div>
-            </div>
-            )}
-
-            <div className="pt-2.5">
-              <GameTabBarContent />
+              ) : (
+                <button type="button" disabled={!canContinue} onClick={() => { setSetupError(null); setWizardStep(1); }} className="sticker w-full h-16 text-lg">
+                  Choisir le thème <ChevronRight size={18} />
+                </button>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
 
   if (phase === "final") {
     const ranked = [...players].sort((a, b) => b.score - a.score);
-    const themeLabel = THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId;
     const solo = mode === "solo";
     const topScore = ranked[0]?.score ?? 0;
     const perfect = roundOutcomes.filter((r) => r.total > 0 && r.found >= r.total).length;
     const beat = solo ? deepLink.scoreToBeat : null;
     const chips: { label: string; strong?: boolean }[] = [];
     if (isDailyRun && dailyStreak > 0) chips.push({ label: `🔥 Série : ${dailyStreak} jour${dailyStreak > 1 ? "s" : ""}`, strong: true });
-    if (streakFrozen) chips.push({ label: "🧊 Série sauvée — un jour manqué pardonné" });
-    if (dailyRecord) chips.push({ label: "🏆 Record du jour sur cet appareil", strong: true });
+    if (streakFrozen) chips.push({ label: "🧊 Série sauvée" });
+    if (dailyRecord) chips.push({ label: "🏆 Record du jour", strong: true });
     if (solo && topPercent !== null) chips.push({ label: `Top ${topPercent}% sur ce thème` });
-    if (solo && bestStreak >= 2) chips.push({ label: `Combo max : ${bestStreak} manches parfaites` });
+    if (solo && bestStreak >= 2) chips.push({ label: `Combo max : ${bestStreak}` });
+    if (beat !== null) chips.push(topScore > beat ? { label: `Tu bats ${deepLink.from} (${beat} pts)`, strong: true } : topScore === beat ? { label: `Égalité avec ${deepLink.from}` } : { label: `${deepLink.from} garde la main (${beat} pts)` });
+    const headline = isDailyRun ? `Défi du jour #${dailyNumber()} · ${themeLabelNow}` : `${modeLabelNow} · ${themeLabelNow}`;
+    const subline = solo
+      ? variant === "survival"
+        ? `${roundOutcomes.filter((r) => r.found > 0).length} sons tenus avant la chute`
+        : `${perfect} extrait${perfect > 1 ? "s" : ""} sur ${roundOutcomes.length} reconnu${perfect > 1 ? "s" : ""} en entier`
+      : `${ranked.length} joueurs · ${roundOutcomes.length} extraits`;
 
     return (
-      <>
-        <div className="max-w-xl mx-auto blindtest-shell" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
-          {showConfetti && <Confetti />}
+      <div className="stage blindtest-shell px-5 sm:px-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 40px)" }}>
+        {showConfetti && <Confetti />}
+        <div className="max-w-xl mx-auto">
+          {stageTop}
+          <h2 className="stage-title mt-4 mb-5">{solo ? (perfect === roundOutcomes.length && perfect > 0 ? "Sans faute." : topScore >= roundOutcomes.length * 2 ? "Solide." : "Fini.") : `${ranked[0]?.name} gagne.`}</h2>
 
-          <div className="text-center mb-6">
-            <p className="text-xs font-semibold text-gold mb-3">
-              {isDailyRun
-                ? `Défi du jour #${dailyNumber()} — ${themeLabel}`
-                : variant === "survival"
-                  ? `Survie — ${themeLabel}`
-                  : variant === "sprint"
-                    ? `Sprint — ${themeLabel}`
-                    : `${themeLabel} — partie terminée`}
-            </p>
-            {solo ? (
-              <>
-                <p className="score-num text-[5.5rem] md:text-[7rem] text-ink" style={{ textShadow: "0 0 48px rgba(240,0,28,0.5)" }}>
-                  {topScore}
-                  <span className="font-display font-bold text-2xl text-ink-muted ml-2 align-middle">pts</span>
-                </p>
-                <p className="text-sm text-ink-muted mt-1">
-                  {variant === "survival"
-                    ? `${roundOutcomes.filter((r) => r.found > 0).length} sons tenus avant la chute`
-                    : `${perfect} / ${roundOutcomes.length} extraits reconnus en entier`}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-1">
-                  {ranked[0]?.name} gagne
-                </p>
-                <p className="text-sm text-ink-muted">{topScore} pts — {ranked.length} joueurs, {roundOutcomes.length} extraits</p>
-              </>
-            )}
-            {chips.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {chips.map((c) => (
-                  <span
-                    key={c.label}
-                    className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium ${
-                      c.strong ? "bg-gold/15 text-gold border border-gold/30" : "bg-white/6 text-ink-muted"
-                    }`}
-                  >
-                    {c.label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* La partie, manche par manche — même code couleur que la grille partagée */}
-          <div className="seg-progress mb-6" aria-label="Bilan des manches">
-            {roundOutcomes.map((r, i) => (
-              <span key={i} className="seg !h-2" data-state={r.found >= r.total ? "done" : r.found > 0 ? "partial" : "miss"} />
-            ))}
-          </div>
-
-          {beat !== null && (
-            <div className="challenge-banner mb-6">
-              <Swords size={18} className="text-gold shrink-0" />
-              <p className="text-sm leading-snug">
-                {topScore > beat ? (
-                  <>Tu bats <span className="font-semibold">{deepLink.from}</span> ({beat} pts). Renvoie-lui le défi.</>
-                ) : topScore === beat ? (
-                  <>Égalité parfaite avec <span className="font-semibold">{deepLink.from}</span> — {beat} pts chacun.</>
-                ) : (
-                  <><span className="font-semibold">{deepLink.from}</span> garde la main ({beat} pts). Rejoue pour le rattraper.</>
-                )}
-              </p>
-            </div>
-          )}
-
-          {!solo && (
-            <div className="flex items-end justify-center gap-3 mb-8">
-              {[ranked[1], ranked[0], ranked[2]].map((p, i) =>
-                p ? (
-                  <div key={p.id} className={`flex flex-col items-center ${i === 1 ? "order-2" : i === 0 ? "order-1" : "order-3"}`}>
-                    <div
-                      className={`glass rounded-t-2xl w-24 sm:w-28 flex flex-col items-center justify-end pb-3 ${
-                        i === 1 ? "h-32 border-gold/40" : i === 0 ? "h-24" : "h-16"
-                      }`}
-                    >
-                      <p className="text-xs font-semibold truncate px-2 max-w-full">{p.name}</p>
-                      <p className="score-num text-xl text-gold mt-1">{p.score}</p>
-                    </div>
-                  </div>
-                ) : null
-              )}
-            </div>
-          )}
-          {!solo && ranked.length > 3 && (
-            <div className="card divide-y divide-white/8 overflow-hidden mb-8">
-              {ranked.slice(3).map((p, i) => (
-                <div key={p.id} className="flex items-center gap-4 py-3 px-5">
-                  <span className="font-mono text-sm text-ink-faint w-6">{i + 4}</span>
-                  <span className="flex-1 text-sm font-medium">{p.name}</span>
-                  <span className="font-mono text-sm text-gold">{p.score}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <ResultTicket
+            points={topScore}
+            rounds={roundOutcomes}
+            themeLabel={themeLabelNow}
+            config={currentConfig}
+            daily={isDailyRun ? { number: dailyNumber(), streak: dailyStreak } : null}
+            bestStreak={bestStreak}
+            playerName={solo ? (myUsername ?? undefined) : ranked[0]?.name}
+            chips={chips}
+            headline={headline}
+            subline={subline}
+            onReplay={playAgain}
+            leaderboardHref={solo ? "/blindtest/classement" : undefined}
+            podium={solo ? undefined : ranked.map((p) => ({ name: p.name, score: p.score }))}
+          />
 
           {solo && scoreSaveStatus === "guest" && (
-            <button
-              onClick={() => setShowAuth(true)}
-              className="action-row mb-6"
-            >
-              <span className="w-10 h-10 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0">
-                <LogIn size={18} />
-              </span>
+            <button type="button" onClick={() => setShowAuth(true)} className="mt-4 w-full ticket p-4 flex items-center gap-3 text-left">
+              <span className="w-10 h-10 rounded-full bg-gold/15 text-gold grid place-items-center shrink-0"><LogIn size={17} /></span>
               <span className="flex-1">
                 <span className="block text-sm font-semibold">Sauvegarder ce score</span>
                 <span className="block text-xs text-ink-faint">Compte gratuit — classement, profil, amis à défier.</span>
@@ -1558,101 +1226,39 @@ export default function BlindTest() {
             </button>
           )}
 
-          <section className="mb-8" aria-labelledby="share-title">
-            <h3 id="share-title" className="font-display text-lg font-semibold mb-3">
-              Partage ton résultat
-            </h3>
-            <ResultShare
-              points={topScore}
-              rounds={roundOutcomes}
-              themeLabel={themeLabel}
-              config={currentConfig}
-              daily={isDailyRun ? { number: dailyNumber(), streak: dailyStreak } : null}
-              bestStreak={bestStreak}
-              playerName={solo ? (myUsername ?? undefined) : ranked[0]?.name}
-            />
-          </section>
-
           {roundHistory.length > 0 && (
-            <details className="mb-8 group" open={!solo}>
-              <summary className="cursor-pointer list-none flex items-center justify-between font-display text-lg font-semibold mb-3">
+            <details className="mt-6 group" open={!solo}>
+              <summary className="cursor-pointer list-none flex items-center justify-between font-display text-xl font-bold min-h-[44px]">
                 Les {roundHistory.length} extraits
                 <ChevronRight size={16} className="text-ink-faint transition-transform group-open:rotate-90" />
               </summary>
-              <div data-lenis-prevent className="card divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain max-h-96">
+              <div className="mt-2 space-y-1.5">
                 {roundHistory.map((r, i) => {
-                  const foundBy = [...new Set(Object.values(r.solved))];
                   const o = roundOutcomes[i];
+                  const foundBy = [...new Set(Object.values(r.solved))];
                   return (
-                    <div key={r.track.id + i} className="flex items-center gap-3 py-3 px-4">
-                      <span className={`w-1.5 self-stretch rounded-full ${o.found >= o.total ? "bg-gold" : o.found > 0 ? "bg-riseNeg" : "bg-white/15"}`} aria-hidden="true" />
-                      {r.track.coverUrl ? (
-                        <img src={r.track.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
-                      ) : (
-                        <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />
-                      )}
+                    <div key={r.track.id + i} className="flex items-center gap-3 py-2">
+                      <span className="tile shrink-0" data-s={o.found >= o.total ? (r.fast ? "fast" : "done") : o.found > 0 ? "partial" : "miss"} />
+                      {r.track.coverUrl ? <img src={r.track.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" /> : <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{r.track.title}</p>
-                        <p className="text-xs text-ink-faint truncate">
-                          {r.track.artistName}
-                          {r.track.feats.length > 0 && ` feat. ${r.track.feats.join(", ")}`}
-                        </p>
+                        <p className="text-sm font-semibold truncate">{r.track.title}</p>
+                        <p className="text-xs text-ink-faint truncate">{r.track.artistName}{r.track.feats.length > 0 && ` feat. ${r.track.feats.join(", ")}`}</p>
                       </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        {foundBy.length === 0 ? (
-                          <button
-                            onClick={() => retrySingleTrack(r.track)}
-                            className="press inline-flex items-center gap-1 text-xs font-medium text-gold hover:text-glow min-h-[36px]"
-                          >
-                            <RotateCcw size={11} /> Réécouter
-                          </button>
-                        ) : solo ? (
-                          <span className="text-xs font-mono text-gold">{o.found}/{o.total}{r.fast ? " ⚡" : ""}</span>
-                        ) : (
-                          foundBy.map((pid) => (
-                            <span key={pid} className="text-[11px] font-mono text-gold">
-                              {players.find((p) => p.id === pid)?.name}
-                            </span>
-                          ))
-                        )}
-                      </div>
+                      {foundBy.length === 0 ? (
+                        <button onClick={() => retrySingleTrack(r.track)} className="text-xs font-semibold text-glow min-h-[36px] inline-flex items-center gap-1"><RotateCcw size={11} /> Réécouter</button>
+                      ) : solo ? (
+                        <span className="score-num text-base text-ink-muted">{o.found}/{o.total}</span>
+                      ) : (
+                        <span className="text-[11px] text-glow text-right">{foundBy.map((pid) => players.find((p) => p.id === pid)?.name).join(", ")}</span>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </details>
           )}
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Magnetic>
-              <BorderMagicButton onClick={playAgain} size="md">
-                <RotateCcw size={16} />
-                {solo ? "Rejouer" : "Nouvelle partie"}
-              </BorderMagicButton>
-            </Magnetic>
-            {solo && (
-              <a href="/blindtest/classement" className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors min-h-[48px]">
-                Classement
-              </a>
-            )}
-            {solo && myUsername && (
-              <a href={`/profil/${myUsername}`} className="inline-flex items-center gap-2 glass rounded-full px-6 py-3 text-sm font-medium hover:border-gold/40 transition-colors min-h-[48px]">
-                Mon profil
-              </a>
-            )}
-          </div>
         </div>
-
-        <div
-          className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-          <div className="max-w-2xl mx-auto pointer-events-auto">
-            <GameTabBarContent />
-          </div>
-        </div>
-      </>
+      </div>
     );
   }
 
@@ -1660,462 +1266,240 @@ export default function BlindTest() {
 
   const activePlayer = mode === "local" ? players.find((p) => p.id === buzzedBy) : players[0];
   const soloPlayer = players[0];
+  const showAnswers = started && !revealed;
+  const qcmKeys = ["A", "B", "C", "D"];
 
   return (
-    <div
-      className="max-w-2xl mx-auto blindtest-shell game-scroll-area overflow-y-auto overscroll-contain"
-      style={{ height: "100dvh", paddingBottom: "calc(env(safe-area-inset-bottom) + 172px)" }}
-    >
-      <audio
-        key={track.id}
-        ref={audioRef}
-        src={previewOverride[track.id] ?? track.previewUrl}
-        preload="auto"
-        onError={() => (started ? void recoverAudio(true) : undefined)}
-      />
+    <div className="stage blindtest-shell game-scroll-area overflow-y-auto overscroll-contain px-5 sm:px-6" style={{ height: "100dvh", paddingBottom: "calc(env(safe-area-inset-bottom) + 260px)" }}>
+      <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" onError={() => (started ? void recoverAudio(true) : undefined)} />
+      {track.coverUrl && <div className="round-bg" data-revealed={revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
 
-      <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setConfirmQuit(true)}
-            aria-label="Quitter la partie"
-            title="Quitter la partie"
-            className="tap-press w-8 h-8 flex items-center justify-center rounded-full glass text-ink-faint hover:text-riseNeg transition-colors"
-          >
-            <X size={15} />
+      <div className="max-w-2xl mx-auto">
+        {/* Rail haut : quitter · progression · volume · plein écran */}
+        <div className="flex items-center gap-3 pt-4 pb-3">
+          <button type="button" onClick={() => setConfirmQuit(true)} aria-label="Quitter la partie" className="w-10 h-10 shrink-0 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
+            <X size={16} />
           </button>
-          {/* Confirmation — quitter efface la progression de la partie en cours */}
-          {confirmQuit && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true">
-              <div className="glass-strong rounded-2xl p-6 max-w-sm w-full text-center">
-                <p className="font-display text-lg font-semibold mb-1.5">Quitter la partie ?</p>
-                <p className="text-sm text-ink-muted mb-5">
-                  Manche {roundIndex + 1} / {tracks.length} — la progression et les scores de cette partie seront perdus.
-                </p>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => setConfirmQuit(false)}
-                    className="min-h-[44px] rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors"
-                  >
-                    Continuer à jouer
-                  </button>
-                  <button
-                    onClick={() => { setConfirmQuit(false); playAgain(); }}
-                    className="min-h-[44px] rounded-full glass text-ink-muted hover:text-riseNeg text-sm font-medium transition-colors"
-                  >
-                    Quitter quand même
-                  </button>
-                </div>
-              </div>
+          <div className="flex-1 min-w-0">
+            <div className="seg-progress" aria-hidden="true">
+              {tracks.map((_, i) => {
+                const o = roundOutcomes[i];
+                const state = i < roundIndex ? (o ? (o.found >= o.total ? "done" : o.found > 0 ? "partial" : "miss") : "miss") : i === roundIndex ? "current" : undefined;
+                return <span key={i} className="seg" data-state={state} />;
+              })}
             </div>
-          )}
-          <span className="text-xs font-semibold text-ink-muted">
-            {roundIndex + 1} <span className="text-ink-faint font-normal">/ {tracks.length}</span>
-          </span>
+            <p className="text-[11px] text-ink-faint mt-1.5">
+              {variant === "survival" ? `Survie · son ${roundIndex + 1}` : `${roundIndex + 1} / ${tracks.length}`} · {themeLabelNow}
+            </p>
+          </div>
+          <div className="group flex items-center gap-1 shrink-0">
+            <input type="range" min={0} max={100} value={trackVolume * 100} onChange={(e) => setTrackVolume(Number(e.target.value) / 100)} aria-label="Volume de l'extrait" className="w-0 opacity-0 group-hover:w-20 group-hover:opacity-100 focus:w-20 focus:opacity-100 transition-all duration-200 accent-[#f0001c] cursor-pointer" />
+            <button type="button" onClick={() => setTrackVolume(trackVolume === 0 ? 1 : 0)} aria-label={trackVolume === 0 ? "Rétablir le son" : "Couper le son"} className="w-10 h-10 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
+              {trackVolume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
+          </div>
+          <button type="button" onClick={toggleFullscreen} aria-label={manualImmersive ? "Quitter le plein écran" : "Plein écran"} className="w-10 h-10 shrink-0 rounded-full bg-black/40 border border-white/10 grid place-items-center text-ink-muted hover:text-ink">
+            {manualImmersive ? <Minimize size={15} /> : <Maximize size={15} />}
+          </button>
         </div>
 
-        <div className="flex-1 min-w-0 flex items-center justify-center flex-wrap gap-2">
-          {mode === "solo" && streak >= 2 && (
-            <span className="solved-pop inline-flex items-center gap-1 font-mono text-xs font-semibold text-gold bg-gold/10 border border-gold/30 rounded-full px-2.5 py-1">
-              <Icon icon="game-icons:flame" width={12} className="text-gold" />
-              {streak}
-            </span>
-          )}
-          {mode === "local" && (
-            <div className="flex gap-3 font-mono text-xs text-ink-muted flex-wrap justify-center">
+        {confirmQuit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/75 backdrop-blur-sm" role="dialog" aria-modal="true">
+            <div className="ticket p-6 max-w-sm w-full text-center">
+              <p className="font-display text-xl font-bold mb-1.5">Quitter la partie ?</p>
+              <p className="text-sm text-ink-muted mb-5">Manche {roundIndex + 1} / {tracks.length} — la progression et les scores seront perdus.</p>
+              <div className="grid gap-2">
+                <button onClick={() => setConfirmQuit(false)} className="sticker w-full">Continuer à jouer</button>
+                <button onClick={() => { setConfirmQuit(false); playAgain(); }} className="sticker sticker-ghost w-full">Quitter quand même</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rail de score */}
+        <div className="flex items-center justify-between gap-2 mb-6">
+          {mode === "solo" ? (
+            <div className="score-rail">
+              <span className="score-num text-2xl text-ink pl-2">{soloPlayer?.score ?? 0}</span>
+              <span className="text-xs text-ink-faint pr-2">pts</span>
+              {streak >= 2 && <span className="inline-flex items-center gap-1 text-xs font-bold text-glow pr-2"><Icon icon="game-icons:flame" width={13} /> {streak}</span>}
+            </div>
+          ) : (
+            <div className="flex gap-1.5 flex-wrap">
               {players.map((p) => (
-                <span key={p.id}>
-                  {p.name} · <span className="text-gold">{p.score}</span>
+                <span key={p.id} className="player-chip" data-buzzed={buzzedBy === p.id}>
+                  <span className="avatar">{p.name.slice(0, 2).toUpperCase()}</span>
+                  {p.name}
+                  <b>{p.score}</b>
                 </span>
               ))}
             </div>
           )}
+          {roundGain && (
+            <span key={roundGain.nonce} className="float-points score-num text-3xl text-glow pointer-events-none">+{roundGain.points}</span>
+          )}
         </div>
-
-        {/* Volume ajustable en pleine partie — clic sur l'icône = mute, slider au survol/focus */}
-        <div className="group shrink-0 flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setTrackVolume(trackVolume === 0 ? 1 : 0)}
-            aria-label={trackVolume === 0 ? "Rétablir le son" : "Couper le son"}
-            className="tap-press w-8 h-8 flex items-center justify-center rounded-full glass text-ink-muted hover:text-gold transition-colors"
-          >
-            {trackVolume === 0 ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={trackVolume * 100}
-            onChange={(e) => setTrackVolume(Number(e.target.value) / 100)}
-            aria-label="Volume de l'extrait"
-            className="w-0 opacity-0 group-hover:w-20 group-hover:opacity-100 focus:w-20 focus:opacity-100 transition-all duration-200 accent-[#f0001c] cursor-pointer"
-          />
-        </div>
-        <button
-          onClick={toggleFullscreen}
-          aria-label={manualImmersive ? "Quitter le plein écran" : "Passer en plein écran"}
-          title={manualImmersive ? "Quitter le plein écran" : "Plein écran — plus d'immersion"}
-          className="tap-press shrink-0 w-8 h-8 flex items-center justify-center rounded-full glass text-ink-muted hover:text-gold transition-colors"
-        >
-          {manualImmersive ? <Minimize size={14} /> : <Maximize size={14} />}
-        </button>
-      </div>
-
-      <div className="seg-progress mb-4" aria-hidden="true">
-        {tracks.map((_, i) => {
-          const o = roundOutcomes[i];
-          const state = i < roundIndex ? (o ? (o.found >= o.total ? "done" : o.found > 0 ? "partial" : "miss") : "miss") : i === roundIndex ? "current" : undefined;
-          return <span key={i} className="seg" data-state={state} />;
-        })}
-      </div>
-
-      <div className="card game-round-card text-center relative overflow-hidden flex flex-col justify-center transition-[height] duration-300">
-        {revealed && <div className="brand-glow" aria-hidden="true" />}
-
-        {roundGain && (
-          <span
-            key={roundGain.nonce}
-            className="float-points absolute left-1/2 top-6 -translate-x-1/2 z-20 font-display text-2xl font-semibold text-gold pointer-events-none"
-          >
-            +{roundGain.points}
-          </span>
-        )}
 
         {streakBurst && (
-          <div
-            key={streakBurst}
-            className="solved-pop absolute inset-x-0 top-6 z-20 flex items-center justify-center gap-2 pointer-events-none"
-          >
-            <span className="inline-flex items-center gap-1.5 bg-gold text-white font-display font-semibold text-sm rounded-full px-4 py-1.5 shadow-[0_4px_20px_rgba(240,0,28,0.5)]">
-              <Icon icon="game-icons:flame" width={15} />
-              Combo x{streakBurst} — +2 bonus
-            </span>
+          <div key={streakBurst} className="solved-pop flex justify-center mb-4 pointer-events-none">
+            <span className="inline-flex items-center gap-1.5 bg-[#ffd166] text-[#3a0007] font-display font-extrabold text-sm rounded-full px-4 py-1.5"><Icon icon="game-icons:flame" width={15} /> Combo x{streakBurst} — +2</span>
           </div>
         )}
 
-        {!started ? (
-          <div className="flex flex-col items-center">
-            <span className="block w-16 h-16 mb-5">
-              <DRMark3D size="100%" />
-            </span>
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.2em] mb-1">
-              Manche {roundIndex + 1}
-            </p>
-            <p className="text-sm text-ink-faint mb-7">Prêt à reconnaître ce son ?</p>
-            <Magnetic strength={0.25}>
-              <BorderMagicButton onClick={launchExtract} size="lg">
-                <Icon icon="game-icons:play-button" width={22} />
-                Lancer l'extrait
-              </BorderMagicButton>
-            </Magnetic>
-          </div>
-        ) : !revealed ? (
-          <>
-            {audioError && (
-              <div className="solved-pop max-w-xs mx-auto mb-4 flex items-center gap-2.5 bg-riseNeg/10 border border-riseNeg/30 rounded-xl px-3.5 py-2.5 text-left">
-                <VolumeX size={16} className="text-riseNeg shrink-0" />
-                <p className="text-xs text-ink-muted flex-1">Le son n'a pas pu se charger.</p>
-                <button
-                  type="button"
-                  onClick={retryAudio}
-                  className="tap-press shrink-0 inline-flex items-center gap-1 text-xs font-medium text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-lg px-2.5 py-1.5 transition-colors"
-                >
-                  <RotateCcw size={12} />
-                  Réessayer
-                </button>
-              </div>
-            )}
-
-            {/* Emplacement à hauteur fixe : le badge apparaît/disparaît SANS décaler
-                le chrono ni les blocs de réponse en dessous (anti mis-click). */}
-            <div className="h-7 mb-2 flex items-center justify-center" aria-live="polite">
-              {bonusFlash !== null && (
-                <span className="solved-pop inline-flex items-center gap-1 rounded-full bg-gold/15 text-gold px-3 py-1 text-xs font-bold">
-                  ⚡ +{bonusFlash} rapidité
-                </span>
-              )}
-            </div>
-            <div
-              className="timer-ring mx-auto mb-5"
-              data-urgent={timeLeft <= 5}
-              style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties}
-              role="timer"
-              aria-label={`${timeLeft} secondes restantes`}
-            >
-              <BrandMark size={16} className="absolute top-6 text-gold/70" />
-              <span className={`score-num text-5xl ${timeLeft <= 5 ? "text-glow urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
-            </div>
-
-            {hintsEnabled && (
-              <div className="h-8 mb-4 flex items-center justify-center" aria-live="polite">
-                {timeLeft <= 6 && timeLeft > 0 && !solved.title && (
-                  <p className="solved-pop inline-flex items-center gap-1.5 font-mono text-xs text-gold bg-gold/10 border border-gold/25 rounded-full px-3 py-1.5">
-                    <Lightbulb size={12} />
-                    Le titre commence par « {track.title.charAt(0).toUpperCase()} »
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Slot fixe : le bouton "passer" disparaît au buzz sans décaler les réponses.
-                En local (à plusieurs), passer prive tout le monde de la manche → confirmation. */}
-            <div className="h-9 mb-6 flex items-center justify-center gap-2">
-              {!buzzedBy && !confirmSkip && (
-                <button
-                  type="button"
-                  onClick={() => (mode === "local" ? setConfirmSkip(true) : revealRound())}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint hover:text-ink glass rounded-full px-4 py-2 min-h-[36px] transition-colors"
-                >
-                  <SkipForward size={13} />
-                  Passer ce son
-                </button>
-              )}
-              {!buzzedBy && confirmSkip && (
-                <span className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wide">
-                  <span className="text-ink-muted">Révéler la réponse ?</span>
-                  <button type="button" onClick={() => { setConfirmSkip(false); revealRound(); }} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1.5 transition-colors">
-                    Oui, passer
-                  </button>
-                  <button type="button" onClick={() => setConfirmSkip(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1.5 transition-colors">
-                    Annuler
-                  </button>
-                </span>
-              )}
-            </div>
-
-            {mode === "local" ? (
-              buzzedBy && answerMode === "qcm" ? (
-                <div className="max-w-sm mx-auto">
-                  <p className="text-sm text-ink-muted mb-2.5">
-                    <span className="text-gold font-medium">{activePlayer?.name}</span> a buzzé
-                  </p>
-                  <QcmChoices
-                    options={qcmOptions}
-                    onPick={(label) => submitQcmChoice(buzzedBy, label)}
-                    disabled={!!qcmLockedFor}
-                    wrongId={qcmWrongId}
-                    prompt={currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
-                    stageIndex={currentQcmField ? qcmStages.indexOf(currentQcmField) : 0}
-                    stageCount={qcmStages.length}
-                  />
-                </div>
-              ) : buzzedBy ? (
-                <form
-                  id="local-guess-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    submitLocalGuess();
-                  }}
-                  className="max-w-sm mx-auto space-y-2.5"
-                >
-                  <p className="text-sm text-ink-muted mb-2">
-                    <span className="text-gold font-medium">{activePlayer?.name}</span> a buzzé
-                  </p>
-                  <input
-                    autoFocus
-                    value={guess.title}
-                    onChange={(e) => setGuess((g) => ({ ...g, title: e.target.value }))}
-                    placeholder="Titre (1 pt)"
-                    disabled={!!solved.title}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 disabled:opacity-40"
-                  />
-                  {applicableFields.includes("artist") && (
-                    <input
-                      value={guess.artist}
-                      onChange={(e) => setGuess((g) => ({ ...g, artist: e.target.value }))}
-                      placeholder="Artiste (1 pt)"
-                      disabled={!!solved.artist}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/50 disabled:opacity-40"
-                    />
-                  )}
-                  {applicableFields.includes("feat") && (
-                    <input
-                      value={guess.feat}
-                      onChange={(e) => setGuess((g) => ({ ...g, feat: e.target.value }))}
-                      placeholder="Featuring (+2 pts)"
-                      disabled={!!solved.feat}
-                      className="w-full bg-white/5 border border-gold/30 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold/60 disabled:opacity-40"
-                    />
-                  )}
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto">
-                    {players.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => handleBuzz(p.id)}
-                        disabled={locked.has(p.id)}
-                        className="glass rounded-xl py-4 flex flex-col items-center gap-1.5 hover:border-gold/40 disabled:opacity-30 disabled:hover:border-white/8 transition-colors"
-                      >
-                        <Zap size={18} className="text-gold" />
-                        <span className="text-sm font-medium">{p.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {jokersEnabled && (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {players.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => useJoker(p.id)}
-                          disabled={p.jokersLeft <= 0}
-                          className="inline-flex items-center gap-1.5 text-xs font-mono glass rounded-full px-3 py-1.5 text-ink-faint hover:text-gold disabled:opacity-30 disabled:hover:text-ink-faint transition-colors"
-                        >
-                          <Icon icon="game-icons:headphones" width={13} />
-                          Joker {p.name} {jokerCount > 1 && `(${p.jokersLeft})`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            ) : answerMode === "qcm" ? (
-              <QcmChoices
-                options={qcmOptions}
-                onPick={(label) => submitQcmChoice("solo", label)}
-                disabled={!!qcmLockedFor}
-                wrongId={qcmWrongId}
-                prompt={currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
-                stageIndex={currentQcmField ? qcmStages.indexOf(currentQcmField) : 0}
-                stageCount={qcmStages.length}
-              />
-            ) : (
-              <form
-                id="solo-guess-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  submitSoloGuess();
-                }}
-                className={`max-w-sm mx-auto space-y-2.5 ${wrongFlash ? "shake-wrong" : ""}`}
-              >
-                <FieldRow
-                  value={guess.title}
-                  onChange={(v) => setGuess((g) => ({ ...g, title: v }))}
-                  placeholder="Titre (1 pt)"
-                  solved={!!solved.title}
-                  wrongFlash={wrongFlash}
-                />
-                {applicableFields.includes("artist") && (
-                  <FieldRow
-                    value={guess.artist}
-                    onChange={(v) => setGuess((g) => ({ ...g, artist: v }))}
-                    placeholder="Artiste (1 pt)"
-                    solved={!!solved.artist}
-                    wrongFlash={wrongFlash}
-                  />
-                )}
-                {applicableFields.includes("feat") && (
-                  <FieldRow
-                    value={guess.feat}
-                    onChange={(v) => setGuess((g) => ({ ...g, feat: v }))}
-                    placeholder="Featuring (+2 pts)"
-                    solved={!!solved.feat}
-                    wrongFlash={wrongFlash}
-                    gold
-                  />
-                )}
-              </form>
-            )}
-          </>
-        ) : (
-          <div>
-            {track.coverUrl && (
-              <img src={track.coverUrl} alt={track.title} className="w-24 h-24 rounded-lg object-cover mx-auto mb-4" />
-            )}
-            <p className="font-display text-2xl font-medium">{track.title}</p>
-            <p className="text-ink-muted mt-1">{track.artistName}</p>
-            {track.feats.length > 0 && (
-              <p className="text-xs text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>
-            )}
-            <div className="flex items-center justify-center gap-2 mt-5 flex-wrap">
-              <ResultPill ok={!!solved.title} label="Titre" points={POINTS.title} />
-              <ResultPill ok={!!solved.artist} label="Artiste" points={POINTS.artist} />
-              {applicableFields.includes("feat") && <ResultPill ok={!!solved.feat} label="Feat" points={POINTS.feat} />}
-            </div>
-            {mode === "local" && Object.keys(solved).length > 0 && (
-              <p className="mt-4 font-mono text-sm text-gold">
-                {(() => {
-                  const names = [...new Set(Object.values(solved))]
-                    .map((id) => players.find((p) => p.id === id)?.name)
-                    .filter(Boolean) as string[];
-                  const list =
-                    names.length > 1 ? `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}` : names[0];
-                  return `Bien joué ${list} — bonne réponse !`;
-                })()}
-              </p>
-            )}
-            {Object.keys(solved).length === 0 && <p className="mt-4 font-mono text-sm text-ink-faint">Personne ne l'a reconnu — il était dur celui-là.</p>}
-          </div>
-        )}
-      </div>
-
-      <div
-        className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-        <div className="max-w-2xl mx-auto pointer-events-auto space-y-2.5">
-          {started && !revealed && ((mode === "solo" && (answerMode !== "qcm" || jokersEnabled)) || (mode === "local" && buzzedBy)) && (
+        {/* Scène centrale */}
+        <div className="text-center min-h-[42vh] flex flex-col items-center justify-center">
+          {!started ? (
             <>
-              {jokersEnabled && timeLeft <= 8 && timeLeft > 0 && (
-                (mode === "solo" && !soloPlayer?.timeJokerUsed) ||
-                (mode === "local" && buzzedBy && !activePlayer?.timeJokerUsed)
-              ) && (
-                <button
-                  type="button"
-                  onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)}
-                  className="urgent-pulse-soft tap-press w-full flex items-center justify-center gap-2 bg-gold text-white rounded-2xl py-3 text-sm font-semibold shadow-[0_4px_20px_rgba(240,0,28,0.45)] transition-colors"
-                >
-                  <Clock size={16} />
-                  Joker temps — +{TIME_JOKER_SECONDS}s pour répondre
-                </button>
+              <span className="block w-20 h-20 mb-6"><DRMark3D size="100%" /></span>
+              <p className="stage-kicker mb-1">{variant === "survival" ? `Son n°${roundIndex + 1}` : `Manche ${roundIndex + 1}`}</p>
+              <p className="font-display text-2xl font-extrabold tracking-tight mb-8">{roundIndex === 0 ? "Prêt ? Le son part au tap." : "Suivant."}</p>
+              <button type="button" onClick={launchExtract} className="sticker h-16 px-10 text-lg">
+                <Icon icon="game-icons:play-button" width={22} /> Lancer l&apos;extrait
+              </button>
+            </>
+          ) : !revealed ? (
+            <>
+              {audioError && (
+                <div className="solved-pop mb-4 flex items-center gap-2.5 bg-riseNeg/15 border border-riseNeg/40 rounded-xl px-3.5 py-2.5 text-left">
+                  <VolumeX size={16} className="text-riseNeg shrink-0" />
+                  <p className="text-xs flex-1">Le son n&apos;a pas pu se charger.</p>
+                  <button type="button" onClick={retryAudio} className="text-xs font-semibold text-riseNeg inline-flex items-center gap-1"><RotateCcw size={12} /> Réessayer</button>
+                </div>
               )}
-              <div className="flex items-center gap-3 glass-strong rounded-2xl p-2">
-                {mode === "solo" && (
-                  <>
-                    {jokersEnabled && answerMode === "qcm" && (
-                      <p className="flex-1 text-center text-xs text-ink-faint px-2">Touche la bonne réponse — plus tu es rapide, plus tu marques.</p>
-                    )}
-                    {jokersEnabled && (
-                      <button
-                        type="button"
-                        onClick={() => useJoker("solo")}
-                        disabled={(soloPlayer?.jokersLeft ?? 0) <= 0}
-                        aria-label="Joker : écouter un autre passage de l'extrait"
-                        className="tap-press shrink-0 flex items-center gap-1.5 text-xs font-mono rounded-full px-4 min-h-[48px] text-ink-muted hover:text-gold hover:bg-white/5 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                      >
-                        <Icon icon="game-icons:headphones" width={15} />
-                        Joker {jokerCount > 1 && `(${soloPlayer?.jokersLeft ?? 0})`}
-                      </button>
-                    )}
-                    {answerMode !== "qcm" && (
-                      <button
-                        type="submit"
-                        form="solo-guess-form"
-                        className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Check size={17} strokeWidth={3} />
-                        Valider
-                      </button>
-                    )}
-                  </>
+              <div className="big-timer mb-3" data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
+                <span className={`score-num text-6xl ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
+              </div>
+              <div className="h-7 flex items-center justify-center" aria-live="polite">
+                {bonusFlash !== null && <span className="solved-pop text-xs font-bold text-[#ffd166]">⚡ +{bonusFlash} rapidité</span>}
+                {hintsEnabled && bonusFlash === null && timeLeft <= 6 && timeLeft > 0 && !solved.title && (
+                  <span className="solved-pop text-xs font-semibold text-ink-muted inline-flex items-center gap-1.5"><Lightbulb size={12} className="text-[#ffd166]" /> Le titre commence par « {track.title.charAt(0).toUpperCase()} »</span>
                 )}
-                {mode === "local" && buzzedBy && (
-                  <button
-                    type="submit"
-                    form="local-guess-form"
-                    className="tap-press cta-glow flex-1 bg-gold hover:bg-glow text-white rounded-full min-h-[48px] font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Check size={17} strokeWidth={3} />
-                    Valider — {activePlayer?.name}
+              </div>
+              <div className="h-9 flex items-center justify-center gap-2 mt-1">
+                {!buzzedBy && !confirmSkip && (
+                  <button type="button" onClick={() => (mode === "local" ? setConfirmSkip(true) : revealRound())} className="text-xs font-semibold text-ink-faint hover:text-ink inline-flex items-center gap-1.5 min-h-[36px] px-3">
+                    <SkipForward size={13} /> Passer ce son
                   </button>
+                )}
+                {!buzzedBy && confirmSkip && (
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold">
+                    <span className="text-ink-muted">Révéler ?</span>
+                    <button type="button" onClick={() => { setConfirmSkip(false); revealRound(); }} className="text-riseNeg px-3 py-1.5">Oui</button>
+                    <button type="button" onClick={() => setConfirmSkip(false)} className="text-ink-faint px-3 py-1.5">Non</button>
+                  </span>
                 )}
               </div>
             </>
+          ) : (
+            <div className="solved-pop">
+              {track.coverUrl && <img src={track.coverUrl} alt="" className="w-40 h-40 rounded-2xl object-cover mx-auto mb-5 shadow-[0_20px_50px_rgba(0,0,0,0.6)]" />}
+              <p className="font-display text-3xl font-extrabold tracking-tight leading-tight">{track.title}</p>
+              <p className="text-ink-muted text-lg mt-1">{track.artistName}</p>
+              {track.feats.length > 0 && <p className="text-sm text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>}
+              <div className="flex items-center justify-center gap-2 mt-5 flex-wrap">
+                <ResultPill ok={!!solved.title} label="Titre" points={POINTS.title} />
+                {applicableFields.includes("artist") && <ResultPill ok={!!solved.artist} label="Artiste" points={POINTS.artist} />}
+                {applicableFields.includes("feat") && <ResultPill ok={!!solved.feat} label="Feat" points={POINTS.feat} />}
+              </div>
+              {mode === "local" && Object.keys(solved).length > 0 && (
+                <p className="mt-4 text-sm font-semibold text-glow">
+                  {[...new Set(Object.values(solved))].map((id) => players.find((p) => p.id === id)?.name).filter(Boolean).join(" et ")} — bien joué !
+                </p>
+              )}
+              {Object.keys(solved).length === 0 && <p className="mt-4 text-sm text-ink-faint">Personne ne l&apos;a reconnu — il était dur celui-là.</p>}
+            </div>
           )}
-          <GameTabBarContent />
+        </div>
+      </div>
+
+      {/* Panneau de réponse — zone pouce */}
+      <div className="fixed bottom-0 inset-x-0 z-30 px-5 pt-8 pointer-events-none" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070404] via-[#070404]/95 to-transparent -z-10" aria-hidden="true" />
+        <div className="max-w-2xl mx-auto pointer-events-auto space-y-2.5">
+          {showAnswers && jokersEnabled && timeLeft <= 8 && timeLeft > 0 && ((mode === "solo" && !soloPlayer?.timeJokerUsed) || (mode === "local" && buzzedBy && !activePlayer?.timeJokerUsed)) && (
+            <button type="button" onClick={() => useTimeJoker(mode === "solo" ? "solo" : buzzedBy!)} className="urgent-pulse-soft w-full h-12 rounded-2xl bg-[#ffd166] text-[#3a0007] text-sm font-extrabold inline-flex items-center justify-center gap-2">
+              <Clock size={16} /> +{TIME_JOKER_SECONDS} s pour répondre
+            </button>
+          )}
+
+          {showAnswers && mode === "local" && !buzzedBy && (
+            <div>
+              <p className="text-center text-xs font-semibold text-ink-muted mb-3">Qui buzze ?</p>
+              <div className={`grid gap-3 justify-items-center ${players.length <= 2 ? "grid-cols-2 max-w-xs mx-auto" : players.length <= 3 ? "grid-cols-3" : "grid-cols-4"}`}>
+                {players.map((p) => (
+                  <button key={p.id} type="button" onClick={() => handleBuzz(p.id)} disabled={locked.has(p.id)} className="buzzer">
+                    <span className="text-[11px] opacity-80">{locked.has(p.id) ? "éliminé" : "BUZZ"}</span>
+                    <span className="truncate max-w-[90%]">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+              {jokersEnabled && (
+                <div className="flex flex-wrap justify-center gap-2 mt-3">
+                  {players.map((p) => (
+                    <button key={p.id} type="button" onClick={() => useJoker(p.id)} disabled={p.jokersLeft <= 0} className="text-[11px] font-semibold text-ink-faint hover:text-ink disabled:opacity-30 inline-flex items-center gap-1 px-2 min-h-[32px]">
+                      <Icon icon="game-icons:headphones" width={12} /> Joker {p.name}{jokerCount > 1 && ` (${p.jokersLeft})`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showAnswers && (mode === "solo" || buzzedBy) && answerMode === "qcm" && (
+            <div>
+              <div className="flex items-center justify-between mb-2.5 px-1">
+                <p className="text-sm font-bold">
+                  {mode === "local" && <span className="text-glow">{activePlayer?.name} — </span>}
+                  {currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
+                </p>
+                {qcmStages.length > 1 && (
+                  <span className="flex items-center gap-1" aria-label={`Étape ${(currentQcmField ? qcmStages.indexOf(currentQcmField) : 0) + 1} sur ${qcmStages.length}`}>
+                    {qcmStages.map((f, i) => {
+                      const idx = currentQcmField ? qcmStages.indexOf(currentQcmField) : 0;
+                      return <span key={f} className={`h-1.5 rounded-full ${i < idx ? "w-1.5 bg-gold" : i === idx ? "w-5 bg-gold" : "w-1.5 bg-white/20"}`} />;
+                    })}
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2" key={currentQcmField ?? "x"}>
+                {qcmOptions.map((label, i) => (
+                  <button key={label} type="button" onClick={() => submitQcmChoice(mode === "solo" ? "solo" : buzzedBy!, label)} disabled={!!qcmLockedFor} className="answer solved-pop" data-wrong={qcmWrongId === label}>
+                    <span className="answer-key">{qcmKeys[i]}</span>
+                    <span className="flex-1 truncate">{label}</span>
+                  </button>
+                ))}
+              </div>
+              {mode === "solo" && jokersEnabled && (
+                <button type="button" onClick={() => useJoker("solo")} disabled={(soloPlayer?.jokersLeft ?? 0) <= 0} className="mt-2 text-[11px] font-semibold text-ink-faint hover:text-ink disabled:opacity-30 inline-flex items-center gap-1 min-h-[32px] px-1">
+                  <Icon icon="game-icons:headphones" width={12} /> Joker : écouter un autre passage{jokerCount > 1 && ` (${soloPlayer?.jokersLeft ?? 0})`}
+                </button>
+              )}
+            </div>
+          )}
+
+          {showAnswers && (mode === "solo" || buzzedBy) && answerMode === "text" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (mode === "solo") submitSoloGuess();
+                else submitLocalGuess();
+              }}
+              className={`space-y-2 ${wrongFlash ? "shake-wrong" : ""}`}
+            >
+              {mode === "local" && <p className="text-sm font-bold px-1"><span className="text-glow">{activePlayer?.name}</span> a buzzé</p>}
+              <FieldRow value={guess.title} onChange={(v) => setGuess((g) => ({ ...g, title: v }))} placeholder="Titre (1 pt)" solved={!!solved.title} wrongFlash={wrongFlash} />
+              {applicableFields.includes("artist") && <FieldRow value={guess.artist} onChange={(v) => setGuess((g) => ({ ...g, artist: v }))} placeholder="Artiste (1 pt)" solved={!!solved.artist} wrongFlash={wrongFlash} />}
+              {applicableFields.includes("feat") && <FieldRow value={guess.feat} onChange={(v) => setGuess((g) => ({ ...g, feat: v }))} placeholder="Featuring (+2 pts)" solved={!!solved.feat} wrongFlash={wrongFlash} gold />}
+              <div className="flex gap-2 pt-1">
+                {mode === "solo" && jokersEnabled && (
+                  <button type="button" onClick={() => useJoker("solo")} disabled={(soloPlayer?.jokersLeft ?? 0) <= 0} aria-label="Joker : écouter un autre passage" className="sticker sticker-ghost h-14 px-4 shrink-0 disabled:opacity-30">
+                    <Icon icon="game-icons:headphones" width={18} />
+                  </button>
+                )}
+                <button type="submit" className="sticker flex-1 h-14"><Check size={18} strokeWidth={3} /> Valider{mode === "local" ? ` — ${activePlayer?.name}` : ""}</button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>
@@ -2167,60 +1551,6 @@ function SettingToggle({
   );
 }
 
-function QcmChoices({
-  options,
-  onPick,
-  disabled,
-  wrongId,
-  prompt,
-  stageIndex,
-  stageCount,
-}: {
-  options: string[];
-  onPick: (label: string) => void;
-  disabled: boolean;
-  wrongId: string | null;
-  prompt: string;
-  stageIndex: number;
-  stageCount: number;
-}) {
-  return (
-    <div className="max-w-sm mx-auto">
-      <div className="flex items-center justify-center gap-2.5 mb-3">
-        <p className="text-sm font-semibold">{prompt}</p>
-        {stageCount > 1 && (
-          <span className="flex items-center gap-1" aria-label={`Étape ${stageIndex + 1} sur ${stageCount}`}>
-            {Array.from({ length: stageCount }).map((_, i) => (
-              <span
-                key={i}
-                className={`h-1.5 rounded-full transition-all ${
-                  i < stageIndex ? "w-1.5 bg-gold" : i === stageIndex ? "w-4 bg-gold" : "w-1.5 bg-white/15"
-                }`}
-              />
-            ))}
-          </span>
-        )}
-      </div>
-      <div className="space-y-2.5" key={prompt}>
-        {options.map((label) => (
-          <button
-            key={label}
-            onClick={() => onPick(label)}
-            disabled={disabled}
-            className={`solved-pop tap-press w-full text-left rounded-xl px-4 py-3 min-h-[48px] text-sm font-medium border transition-colors disabled:opacity-50 active:scale-[0.985] ${
-              wrongId === label
-                ? "border-riseNeg bg-riseNeg/10 shake-wrong"
-                : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07] active:bg-white/10"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function FieldRow({
   value,
   onChange,
@@ -2238,8 +1568,8 @@ function FieldRow({
 }) {
   if (solved) {
     return (
-      <div className="solved-pop w-full bg-gold/10 border border-gold/30 rounded-lg px-3 py-2 text-sm text-gold flex items-center gap-2">
-        <Check size={14} />
+      <div className="solved-pop answer !min-h-[52px] !bg-gold/15 !border-gold/40 text-glow text-sm">
+        <Check size={16} strokeWidth={3} />
         {placeholder.replace(/\s*\(.+\)/, "")} trouvé
       </div>
     );
@@ -2249,9 +1579,10 @@ function FieldRow({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors ${
-        wrongFlash ? "border-riseNeg" : gold ? "border-gold/30 focus:border-gold/60" : "border-white/10 focus:border-gold/50"
-      }`}
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      className={`answer-input !min-h-[52px] ${wrongFlash ? "!border-riseNeg" : gold ? "!border-gold/40" : ""}`}
     />
   );
 }
@@ -2259,8 +1590,8 @@ function FieldRow({
 function ResultPill({ ok, label, points }: { ok: boolean; label: string; points: number }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-mono ${
-        ok ? "bg-gold/15 text-gold" : "bg-white/5 text-ink-faint"
+      className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-bold ${
+        ok ? "bg-gold text-white" : "bg-white/8 text-ink-faint line-through"
       }`}
     >
       {ok && <Check size={11} />}

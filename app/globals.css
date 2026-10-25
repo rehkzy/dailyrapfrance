@@ -145,6 +145,13 @@ body.game-immersive #game-intro {
     padding-top: max(env(safe-area-inset-top), 14px);
   }
 }
+/* v3 : le jeu est un écran d'app — pas de pied de page ni de texte éditorial sous la scène */
+body:has(.stage) footer,
+body:has(.stage) #seo-editorial,
+body:has(.stage) #game-intro,
+body:has(.stage) .aurora-fixed {
+  display: none !important;
+}
 
 /* Sans le header (masqué ci-dessus), le contenu du jeu se retrouvait collé au bord supérieur
    de l'écran (encoche/barre de statut iOS comprise) — on lui redonne une respiration propre. */
@@ -2071,3 +2078,378 @@ input[type="range"].brand-slider::-moz-range-track {
   inherits: false;
   initial-value: 100;
 }
+
+/* ==========================================================================================
+   v3 — "La Scène" : interface de jeu entièrement nouvelle (octobre 2026)
+   Noir plat, une seule source de lumière rouge (la marque), typographie XXL comme élément
+   d'interface, cartes-affiches, boutons "sticker" à ombre dure. Aucun panneau verre ici.
+   ========================================================================================== */
+
+.stage {
+  position: relative;
+  min-height: 100dvh;
+  background: #070404;
+  color: var(--ink);
+  isolation: isolate;
+  /* pleine largeur quel que soit le conteneur parent (/jouer est nu, /blindtest a un px-6) */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+html { overflow-x: clip; }
+.stage::before {
+  /* la marque comme projecteur, fixe, qui déborde en haut à droite */
+  content: "";
+  position: fixed;
+  top: -8vh;
+  right: -18vw;
+  width: 70vw;
+  max-width: 620px;
+  aspect-ratio: 939.94 / 748.89;
+  background: url("/mark-red.svg") no-repeat center / contain;
+  opacity: 0.09;
+  pointer-events: none;
+  z-index: 0;
+}
+.stage > * { position: relative; z-index: 1; }
+
+/* Titre d'écran — Bricolage 800 très serré, interlignage court */
+.stage-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  font-size: clamp(2.2rem, 9vw, 3.6rem);
+}
+.stage-kicker {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red-glow);
+}
+
+/* Bouton sticker — plat, ombre dure décalée, s'enfonce au clic */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  background: var(--red);
+  color: #fff;
+  box-shadow: 4px 4px 0 #3a0007;
+  transform: translate(0, 0);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.2s ease;
+}
+.sticker:hover { background: var(--red-glow); }
+.sticker:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #3a0007; }
+.sticker:disabled { opacity: 0.5; pointer-events: none; }
+.sticker-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid rgba(245, 232, 232, 0.25);
+  box-shadow: 4px 4px 0 rgba(245, 232, 232, 0.1);
+}
+.sticker-ghost:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(245, 232, 232, 0.5); }
+.sticker-ghost:active { box-shadow: 1px 1px 0 rgba(245, 232, 232, 0.1); }
+.sticker-sm { min-height: 44px; padding: 0 16px; font-size: 14px; border-radius: 11px; box-shadow: 3px 3px 0 #3a0007; }
+@media (prefers-reduced-motion: reduce) { .sticker { transition: none; } }
+
+/* Deck de modes — cartes-affiches en défilement horizontal avec accroche */
+.deck {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 6px 20px 18px;
+  margin: 0 -20px;
+  scrollbar-width: none;
+}
+.deck::-webkit-scrollbar { display: none; }
+.poster {
+  position: relative;
+  flex: 0 0 78%;
+  max-width: 340px;
+  aspect-ratio: 4 / 5;
+  scroll-snap-align: center;
+  border-radius: 22px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 22px;
+  text-align: left;
+  background: var(--poster-bg, #1a0608);
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+@media (min-width: 640px) { .poster { flex-basis: 46%; } }
+@media (min-width: 1024px) { .deck { overflow: visible; margin: 0; padding: 0; } .poster { flex: 1 1 0; max-width: none; aspect-ratio: 3 / 4; } }
+.poster[data-active="true"] { border-color: #fff; transform: translateY(-4px); }
+.poster .poster-mark {
+  position: absolute;
+  top: -12%;
+  right: -22%;
+  width: 90%;
+  opacity: 0.22;
+  color: #fff;
+  pointer-events: none;
+  transform: rotate(-8deg);
+}
+.poster .poster-tag {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+}
+.poster .poster-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.9rem, 7.5vw, 2.6rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: #fff;
+}
+.poster .poster-sub { color: rgba(255, 255, 255, 0.78); font-size: 13px; margin-top: 8px; line-height: 1.35; }
+.poster .poster-check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--red);
+  display: grid;
+  place-items: center;
+}
+
+/* Segmenté — un seul rail, l'option active en relief */
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.segmented > button {
+  min-height: 46px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.segmented > button[aria-pressed="true"] { background: #fff; color: #0a0505; }
+.segmented > button:not([aria-pressed="true"]):hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+
+/* Ticket de config / de résultat — bord perforé */
+.ticket {
+  position: relative;
+  background: #0f0809;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+}
+.ticket-cut {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed rgba(255, 255, 255, 0.14);
+  margin: 0 14px;
+}
+.ticket-cut::before, .ticket-cut::after {
+  content: "";
+  position: absolute;
+  top: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #070404;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.ticket-cut::before { left: -26px; }
+.ticket-cut::after { right: -26px; }
+
+/* Tuiles de la grille de résultat (le visuel du texte copié) */
+.tiles { display: flex; flex-wrap: wrap; gap: 6px; }
+.tile {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.tile[data-s="done"] { background: var(--red); }
+.tile[data-s="partial"] { background: #e8894a; }
+.tile[data-s="fast"] { background: #ffd166; color: #3a0007; }
+
+/* Boutons ronds de partage */
+.share-round {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--ink-2);
+  min-width: 64px;
+}
+.share-round > span:first-child {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+  transition: transform 0.12s ease, background-color 0.15s ease;
+}
+.share-round:hover > span:first-child { background: rgba(255, 255, 255, 0.12); }
+.share-round:active > span:first-child { transform: scale(0.92); }
+.share-round[data-primary="true"] > span:first-child { background: var(--red); border-color: transparent; color: #fff; }
+
+/* Écran de jeu : pochette floutée en fond, qui se révèle à la fin de la manche */
+.round-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(42px) saturate(1.3) brightness(0.45);
+  transform: scale(1.2);
+  transition: filter 0.9s ease, transform 0.9s ease;
+  pointer-events: none;
+}
+.round-bg[data-revealed="true"] { filter: blur(0) saturate(1) brightness(0.35); transform: scale(1.02); }
+.round-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7,4,4,0.3), rgba(7,4,4,0.85) 70%, #070404); }
+
+/* Réponses : gros boutons empilés en zone pouce */
+.answer {
+  width: 100%;
+  min-height: 60px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+.answer:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.3); }
+.answer:active { transform: scale(0.98); }
+.answer[data-wrong="true"] { border-color: #e8894a; background: rgba(232, 137, 74, 0.15); }
+.answer .answer-key {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: var(--ink-2);
+  flex-shrink: 0;
+}
+.answer-input {
+  width: 100%;
+  min-height: 58px;
+  padding: 0 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  font-size: 17px;
+  color: var(--ink);
+}
+.answer-input:focus { outline: none; border-color: var(--red-glow); background: rgba(255, 255, 255, 0.1); }
+.answer-input::placeholder { color: var(--ink-3); }
+
+/* Rail de score en haut de l'écran de jeu */
+.score-rail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+/* Gros chrono v3 */
+.big-timer {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(closest-side, #070404 84%, transparent 85% 100%),
+    conic-gradient(var(--red) calc(var(--pct) * 1%), rgba(255, 255, 255, 0.08) 0);
+}
+.big-timer[data-urgent="true"] {
+  background:
+    radial-gradient(closest-side, #1a0608 84%, transparent 85% 100%),
+    conic-gradient(#ffd166 calc(var(--pct) * 1%), rgba(255, 255, 255, 0.08) 0);
+}
+
+/* Pastilles de score des joueurs (local) */
+.player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+.player-chip b { font-family: var(--font-impact); font-size: 16px; letter-spacing: 0.02em; color: var(--red-glow); }
+.player-chip .avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #ff3b4e, #780101);
+}
+
+/* Buzzer — grand, rond, satisfaisant */
+.buzzer {
+  width: 100%;
+  max-width: 112px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  background: radial-gradient(circle at 35% 30%, #ff5566, #c20016 70%);
+  color: #fff;
+  box-shadow: 0 10px 0 #5a0008, 0 18px 30px rgba(240, 0, 28, 0.35);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.buzzer:active { transform: translateY(8px); box-shadow: 0 2px 0 #5a0008, 0 6px 14px rgba(240, 0, 28, 0.3); }
+.buzzer:disabled { filter: grayscale(1); opacity: 0.35; box-shadow: 0 4px 0 #222; }

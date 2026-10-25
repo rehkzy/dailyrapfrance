@@ -124,8 +124,10 @@ export function AppComingSoonModal() {
 
   useEffect(() => {
     if (standalone || platform === null) return;
-    // Pas pendant une partie ni sur les écrans admin/TV.
-    if (pathname?.startsWith("/ecran") || pathname?.startsWith("/admin")) return;
+    // Seulement sur les pages "vitrine" (accueil, pages blind test) — jamais dans le jeu
+    // (/jouer), sur l'écran TV, l'admin ou les pages de compte.
+    const allowed = pathname === "/" || pathname === "/blindtest" || (pathname?.startsWith("/blindtest/") && pathname !== "/blindtest/classement") || pathname === "/a-propos";
+    if (!allowed) return;
     try {
       const seen = Number(localStorage.getItem(MODAL_KEY) ?? 0);
       if (seen && Date.now() - seen < MODAL_DAYS * 86_400_000) return;
