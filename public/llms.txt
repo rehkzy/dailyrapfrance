@@ -1,0 +1,27 @@
+# DailyRapFrance — Blind Test Rap Français
+
+> Blind test (quiz musical) dédié au rap français : gratuit, sans inscription, jouable dans le navigateur sur téléphone, tablette, ordinateur et TV. Par DailyRapFrance, média indépendant du rap français depuis 2020 (Paris).
+
+## Ce que c'est
+- Un extrait de 30 secondes (fourni par Deezer) démarre ; le joueur doit trouver l'artiste, le titre et, s'il y en a un, le featuring. Titre et artiste : 1 point chacun ; featuring : 2 points ; bonus de rapidité.
+- Deux niveaux : Facile (3 propositions) ou Difficile (écrire la réponse, tolérance aux fautes).
+- Plus de 40 thèmes : époques (90s, 2000s, 2010s, récent), styles (drill, trap, cloud, boom bap, mélodique, conscient…), régions (93, 91, 92, 77, 78, Marseille, Lyon, Nord, Île-de-France), blind tests dédiés à un seul artiste (Ninho, Booba, PNL, SCH, JUL, Nekfeu, Werenoi, Aya Nakamura…), Top 50 du moment, défi du jour.
+- Variantes : Classique, Survie (la partie s'arrête au premier extrait raté), Sprint (20 extraits de 8 s).
+
+## Façons de jouer
+- Solo : https://dailyrapfrance.best/blindtest/solo — défi du jour (change à minuit, heure de Paris), série de jours, classement par thème.
+- Entre amis sur un seul téléphone (2 à 8 joueurs, buzzer) : https://dailyrapfrance.best/blindtest/entre-amis
+- En ligne à distance avec un code de salon : https://dailyrapfrance.best/blindtest/en-ligne
+- En soirée, écran partagé sur la TV + téléphones en manette + gages : https://dailyrapfrance.best/blindtest/soiree
+
+## Accès
+- Gratuit, sans inscription, sans téléchargement. Un compte gratuit (Google ou e-mail) sert seulement à sauvegarder les scores, apparaître dans le classement et créer des salons en ligne.
+- Disponible partout où il y a internet : France, Belgique, Suisse, Québec, Afrique francophone…
+- S'ajoute à l'écran d'accueil comme une application (PWA). Versions App Store et Google Play annoncées.
+
+## Liens
+- Jouer : https://dailyrapfrance.best/jouer
+- Présentation et FAQ : https://dailyrapfrance.best/blindtest
+- Classement : https://dailyrapfrance.best/blindtest/classement
+- À propos du média : https://dailyrapfrance.best/a-propos
+- Instagram : https://www.instagram.com/dailyrapfrance/ · TikTok : https://www.tiktok.com/@dailyrapfrance · X : https://x.com/DailyRapFrance

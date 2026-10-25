@@ -1,21 +1,19 @@
 import type { MetadataRoute } from "next";
+import { MODE_LANDINGS, THEME_LANDINGS, SITE } from "@/lib/seo";
 
 /*
- * Sitemap généré automatiquement par Next.js, servi à l'URL /sitemap.xml.
- * Liste les pages statiques principales du site — à compléter si de nouvelles
- * pages publiques sont ajoutées (ex. pages d'articles individuelles, si elles
- * ont des URLs prévisibles, générées ici via une boucle sur la base de données).
+ * Sitemap — uniquement des URL canoniques : l'accueil, la page du jeu, le classement,
+ * les 4 pages "façon de jouer" et une page par thème (générées statiquement).
+ * /jouer est volontairement absent : son canonical pointe vers /blindtest.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://dailyrapfrance.best";
   const now = new Date();
-
   return [
-    { url: base, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${base}/a-propos`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    // /jouer est volontairement absent : son canonical pointe vers /blindtest,
-    // l'URL canonique du jeu — un sitemap ne liste que des canoniques.
-    { url: `${base}/blindtest`, lastModified: now, changeFrequency: "daily", priority: 1 },
-    { url: `${base}/blindtest/classement`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
+    { url: SITE, lastModified: now, changeFrequency: "daily", priority: 1 },
+    { url: `${SITE}/blindtest`, lastModified: now, changeFrequency: "daily", priority: 1 },
+    ...MODE_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.9 })),
+    ...THEME_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 })),
+    { url: `${SITE}/blindtest/classement`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
+    { url: `${SITE}/a-propos`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 }

@@ -2,6 +2,15 @@ import { Medal } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
+import { THEME_OPTIONS } from "@/lib/themes";
+
+// "survival:93" → "Survie · Rappeurs du 93" ; "93" → "Rappeurs du 93"
+function themeLabel(raw: string) {
+  const [a, b] = raw.includes(":") ? raw.split(":") : [null, raw];
+  const label = THEME_OPTIONS.find((t) => t.id === b)?.label ?? b;
+  const variant = a === "survival" ? "Survie" : a === "sprint" ? "Sprint" : null;
+  return variant ? `${variant} · ${label}` : label;
+}
 
 export const metadata = {
   title: "Classement du Blind Test Rap Français — DailyRapFrance",
@@ -70,7 +79,7 @@ export default async function ClassementPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{profile?.display_name ?? "Joueur"}</p>
                   <p className="text-xs text-ink-faint">
-                    {s.theme} · {s.rounds} manches
+                    {themeLabel(s.theme)} · {s.rounds} manches
                   </p>
                 </div>
                 <span className="font-mono text-gold shrink-0">{s.points} pts</span>

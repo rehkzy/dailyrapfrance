@@ -24,7 +24,7 @@ const columns = [
     links: [
       { href: "/a-propos", label: "Notre histoire" },
       { href: "/blindtest", label: "Le blind test" },
-      { href: "/jeux", label: "Autres jeux" },
+      { href: "/blindtest/soiree", label: "Blind test en soirée" },
     ],
   },
 ];

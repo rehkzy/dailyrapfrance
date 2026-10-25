@@ -8,6 +8,7 @@ import SitePresence from "@/components/SitePresence";
 import SiteAnnouncement from "@/components/SiteAnnouncement";
 import ActivityTracker from "@/components/ActivityTracker";
 import InstallPrompt from "@/components/InstallPrompt";
+import { AppComingSoonModal } from "@/components/AppComingSoon";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dailyrapfrance.best"),
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "Le blind test rap français n°1 : gratuit, en ligne, sans inscription. Joue en solo, entre amis sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 15+ thèmes, par DailyRapFrance, média du rap FR depuis 2020.",
+    "Le blind test rap français n°1 : gratuit, en ligne, sans inscription. Joue en solo, entre amis sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes, par DailyRapFrance, média du rap FR depuis 2020.",
   keywords: [
     "blind test rap français",
     "blind test rap",
@@ -32,6 +33,16 @@ export const metadata: Metadata = {
     "quiz musical rap",
     "jeu rap français",
     "rap fr",
+    "quiz rap",
+    "blind test gratuit",
+    "blind test sans téléchargement",
+    "blind test rap belge",
+    "blind test rap suisse",
+    "blind test rap québec",
+    "blind test rap 2026",
+    "jeu de soirée rap",
+    "blind test à faire en soirée",
+    "devine le rappeur",
   ],
   icons: {
     icon: [
@@ -69,7 +80,7 @@ export const metadata: Metadata = {
 
 // Données structurées globales — aident Google à afficher le site comme une entité
 // (sitelinks, knowledge panel) et à comprendre le champ lexical du site : blind test
-// rap français ET arcade de jeux rap (Artists Manager 2026 et la suite).
+// rap français et son blind test (WebApplication gratuite).
 const JSONLD_SITE = {
   "@context": "https://schema.org",
   "@graph": [
@@ -87,6 +98,35 @@ const JSONLD_SITE = {
       name: "DailyRapFrance",
       url: "https://dailyrapfrance.best",
       logo: "https://dailyrapfrance.best/icon-512.png",
+      foundingDate: "2020-04",
+      areaServed: ["FR", "BE", "CH", "CA", "LU", "MC"],
+      sameAs: [
+        "https://www.instagram.com/dailyrapfrance/",
+        "https://www.tiktok.com/@dailyrapfrance",
+        "https://x.com/DailyRapFrance",
+      ],
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://dailyrapfrance.best/#app",
+      name: "Blind Test Rap Français — DailyRapFrance",
+      url: "https://dailyrapfrance.best/jouer",
+      applicationCategory: "GameApplication",
+      operatingSystem: "Any (navigateur web, PWA)",
+      browserRequirements: "Requires JavaScript",
+      inLanguage: "fr-FR",
+      isAccessibleForFree: true,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+      featureList: [
+        "Défi du jour",
+        "Solo avec classement",
+        "Entre amis sur un téléphone (2 à 8 joueurs)",
+        "Salon en ligne à distance avec code",
+        "Mode soirée : écran TV + téléphones en manette + gages",
+        "Variantes Survie et Sprint",
+        "40+ thèmes rap français",
+      ],
+      publisher: { "@id": "https://dailyrapfrance.best/#org" },
     },
   ],
 };
@@ -119,6 +159,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         <Footer />
         <InstallPrompt />
+        <AppComingSoonModal />
       </body>
     </html>
   );

@@ -1,10 +1,12 @@
-import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Share2, Flame } from "lucide-react";
+import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy } from "lucide-react";
 import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
 import SocialLinks from "@/components/SocialLinks";
-import GameCover from "@/components/GameCover";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
+import { AppStoreCallout } from "@/components/AppComingSoon";
+import { THEME_OPTIONS } from "@/lib/themes";
+import { themeSlug } from "@/lib/seo";
 
 /*
  * Accueil v2 — construit autour d'une seule idée : on vient ici pour jouer, maintenant ou
@@ -44,6 +46,10 @@ const MODES = [
     featured: true,
   },
 ];
+
+const POPULAR_THEME_LINKS = THEME_OPTIONS.filter((t) => t.id !== "mix")
+  .slice(0, 24)
+  .map((t) => ({ href: `/blindtest/${themeSlug(t)}`, t: t.label }));
 
 export default function Home() {
   return (
@@ -96,6 +102,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Variantes — des façons de rejouer quand on connaît déjà le jeu */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16" aria-labelledby="defis-title">
+        <h2 id="defis-title" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Envie d&apos;autre chose ?</h2>
+        <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { href: "/jouer?mode=solo&v=survival&theme=mix", Icon: Skull, t: "Survie", s: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
+            { href: "/jouer?mode=solo&v=sprint&theme=pop", Icon: Timer, t: "Sprint", s: "20 extraits, 8 secondes chacun. Que de l'instinct." },
+            { href: "/jouer?mode=solo&theme=random&autostart=1", Icon: Shuffle, t: "Thème surprise", s: "Un thème tiré au sort, lancé direct." },
+            { href: "/blindtest/classement", Icon: Trophy, t: "Classement", s: "Les meilleurs scores par thème et par variante." },
+          ].map((d) => (
+            <a key={d.href} href={d.href} className="card p-4 flex items-start gap-3">
+              <span className="w-10 h-10 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0">
+                <d.Icon size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">{d.t}</span>
+                <span className="block text-xs text-ink-faint mt-0.5 leading-snug">{d.s}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+
       {/* Soirées enregistrées — n'apparaît que s'il y en a */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16">
         <SavedPresets />
@@ -136,42 +166,52 @@ export default function Home() {
         </div>
       </section>
 
-      {/* L'app sur l'écran d'accueil */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16">
-        <div className="card p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
-          <BrandTile size={72} />
-          <div className="flex-1">
-            <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">Garde-le sur ton écran d&apos;accueil</h2>
-            <p className="text-sm text-ink-muted mt-1.5 leading-relaxed max-w-xl">
-              Le blind test s&apos;installe comme une app, sans passer par un store : plein écran, lancement instantané, le défi
-              du jour à portée de pouce. Sur iPhone : Partager → « Sur l&apos;écran d&apos;accueil ». Sur Android : « Installer l&apos;application » dans le menu.
-            </p>
-          </div>
-          <a href="/jouer" className="inline-flex items-center gap-2 h-11 px-5 rounded-full glass text-sm font-medium hover:border-gold/40 transition-colors shrink-0">
-            <Share2 size={15} className="text-gold" /> Ouvrir le jeu
-          </a>
-        </div>
+      {/* L'app : bientôt sur les stores, déjà sur l'écran d'accueil */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16" aria-label="Installer l'app">
+        <AppStoreCallout />
       </section>
 
-      {/* Le reste de l'arcade */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16 border-t border-white/8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">Aussi dans l&apos;arcade</h2>
-          <a href="/jeux" className="text-sm text-gold hover:text-glow transition-colors inline-flex items-center gap-1">
-            Tous les jeux <ArrowRight size={14} />
-          </a>
-        </div>
-        <div className="nf-row -mx-5 px-5 sm:-mx-6 sm:px-6">
-          {[
-            { title: "La Tracklist", href: "/jeux/tracklist", cover: "/jeux/tracklist.png", flag: "Défi du jour" },
-            { title: "Plus Haut, Plus Bas", href: "/jeux/plus-haut", cover: "/jeux/plus-haut.png", flag: null },
-            { title: "Le Tribunal", href: "/jeux/tribunal", cover: "/jeux/tribunal.png", flag: "Vote du jour" },
-            { title: "Coach A&R", href: "/jeux/pronos", cover: "/jeux/coach-ar.png", flag: null },
-            { title: "La Punchline", href: "/jeux/punchline", cover: "/jeux/punchline.png", flag: null },
-            { title: "Ghostwriter", href: "/jeux/ghostwriter", cover: "/jeux/ghostwriter.png", flag: null },
-          ].map((g) => (
-            <GameCover key={g.href} href={g.href} cover={g.cover} title={g.title} flag={g.flag} variant="poster" />
-          ))}
+      {/* Texte de référence + maillage vers les pages thème (lisible, pas caché) */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16 border-t border-white/8" aria-labelledby="seo-h">
+        <div className="grid md:grid-cols-[1.1fr_1fr] gap-8">
+          <div>
+            <h2 id="seo-h" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-3">
+              Le blind test rap français gratuit, en ligne, sans inscription
+            </h2>
+            <p className="text-sm text-ink-muted leading-relaxed mb-3">
+              DailyRapFrance propose le blind test rap français le plus complet : plus de quarante thèmes — les années 90, 2000,
+              2010 et les sons du moment, la drill, la trap, le cloud rap, le boom bap, les scènes du 93, du 91, de Marseille ou de Lyon,
+              et des blind tests dédiés à un seul artiste. Il se joue dans le navigateur, sans rien télécharger, en France comme en
+              Belgique, en Suisse ou au Québec.
+            </p>
+            <p className="text-sm text-ink-muted leading-relaxed">
+              Seul pour le classement et le défi du jour, entre amis sur un téléphone, à distance avec un code, ou en soirée sur la
+              TV avec des gages : même jeu, mêmes extraits Deezer renouvelés à chaque partie.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {[
+                { href: "/blindtest/solo", t: "Blind test solo" },
+                { href: "/blindtest/entre-amis", t: "Entre amis" },
+                { href: "/blindtest/en-ligne", t: "En ligne à distance" },
+                { href: "/blindtest/soiree", t: "Jeu de soirée" },
+              ].map((x) => (
+                <a key={x.href} href={x.href} className="rounded-full glass px-3.5 py-1.5 text-xs font-medium hover:border-gold/40 transition-colors">
+                  {x.t}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-semibold mb-3">Thèmes populaires</p>
+            <div className="flex flex-wrap gap-2">
+              {POPULAR_THEME_LINKS.map((x) => (
+                <a key={x.href} href={x.href} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-ink-muted hover:text-ink hover:border-gold/40 transition-colors">
+                  {x.t}
+                </a>
+              ))}
+              <a href="/blindtest" className="rounded-full px-3 py-1.5 text-xs text-gold hover:text-glow">Tous les thèmes →</a>
+            </div>
+          </div>
         </div>
       </section>
 

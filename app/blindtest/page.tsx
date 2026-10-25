@@ -1,16 +1,17 @@
 import { Suspense } from "react";
 import BlindTest from "@/components/BlindTest";
 import BlindTestLogo from "@/components/BlindTestLogo";
+import { THEME_LANDINGS } from "@/lib/seo";
 
 export const metadata = {
   title: "Blind Test Rap Français — Gratuit, en Ligne, Sans Inscription | DailyRapFrance",
   description:
-    "Le blind test rap français gratuit et sans inscription : joue direct, en solo, entre potes sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 15+ thèmes : 90s, 2000s, cloud rap, 93, 91, Marseille...",
+    "Le blind test rap français gratuit et sans inscription : joue direct, en solo, entre potes sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes : 90s, 2000s, cloud rap, 93, 91, Marseille...",
   alternates: { canonical: "https://dailyrapfrance.best/blindtest" },
   openGraph: {
     title: "Blind Test Rap Français — Gratuit, en Ligne, Sans Inscription",
     description:
-      "Joue direct, sans compte : solo, multijoueur sur le même écran, salon privé à distance, mode soirée sur TV. 15+ thèmes de rap FR.",
+      "Joue direct, sans compte : solo, multijoueur sur le même écran, salon privé à distance, mode soirée sur TV. 45+ thèmes de rap FR.",
     url: "https://dailyrapfrance.best/blindtest",
     type: "website",
   },
@@ -30,7 +31,7 @@ const jsonLd = {
       name: "Blind Test Rap Français",
       alternateName: "Blind test rap FR DailyRapFrance",
       description:
-        "Blind test dédié au rap français, en ligne, gratuit et sans inscription. Plus de 15 thèmes (époques, styles, régions), mode solo, multijoueur local sur le même écran, salons privés à distance et mode soirée sur TV avec gages.",
+        "Blind test dédié au rap français, en ligne, gratuit et sans inscription. Plus de 45 thèmes (époques, styles, régions), mode solo, multijoueur local sur le même écran, salons privés à distance et mode soirée sur TV avec gages.",
       genre: ["Quiz musical", "Jeu de soirée"],
       gamePlatform: "Navigateur web (mobile, tablette, ordinateur, TV)",
       playMode: ["SinglePlayer", "MultiPlayer"],
@@ -74,7 +75,7 @@ const jsonLd = {
           name: "Quels thèmes de rap français sont disponibles ?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Plus de 15 thèmes : les années 90, 2000 et 2010, les sons récents, le cloud rap, les scènes régionales (93, 91, 92, Marseille, Nord), des blind tests dédiés à un seul artiste (Ninho, Booba, PNL, SCH, JUL, Nekfeu...), le Top 50 du moment et un défi du jour qui change chaque jour.",
+            text: "Plus de 45 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et 2010, la drill, la trap, l'afro, le jersey club, le cloud rap, les scènes régionales (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles), des blind tests dédiés à un seul artiste, le Top 50 et un défi du jour qui change chaque jour.",
           },
         },
       ],
@@ -112,7 +113,7 @@ export default function BlindTestPage() {
           Le blind test rap français gratuit, en ligne et sans inscription
         </h2>
         <p className="mb-6">
-          DailyRapFrance propose le blind test rap français le plus complet : plus de quinze
+          DailyRapFrance propose le blind test rap français le plus complet : plus de quarante-cinq
           thèmes couvrant les années 90, 2000, 2010 et les sons les plus récents, le cloud rap,
           les scènes régionales (rap 93, rap 91, rap 92, Marseille, Nord), des blind tests dédiés
           à un seul artiste et un défi du jour qui change chaque jour. Il se joue partout — sur
@@ -142,11 +143,37 @@ export default function BlindTestPage() {
 
         <h3 className="font-display text-lg text-ink font-medium mb-1.5">Quels thèmes de rap français sont disponibles ?</h3>
         <p className="mb-5">
-          Plus de 15 thèmes : les années 90, 2000 et 2010, les sons récents, le cloud rap, les
-          scènes régionales (93, 91, 92, Marseille, Nord), des blind tests dédiés à un seul
-          artiste (Ninho, Booba, PNL, SCH, JUL, Nekfeu...), le Top 50 du moment et un défi du
-          jour qui change chaque jour.
+          Plus de 45 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la
+          nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et
+          2010, la drill, la trap, l&apos;afro, le jersey club, le cloud rap, les scènes régionales
+          (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles),
+          des blind tests dédiés à un seul artiste, le Top 50 et un défi du jour qui change chaque jour.
         </p>
+
+        <h3 className="font-display text-lg text-ink font-medium mb-1.5">Quelles variantes de jeu existent ?</h3>
+        <p className="mb-5">
+          En plus de la partie classique (10 à 30 manches, chrono réglable, jokers), deux variantes : <strong className="text-ink">Survie</strong>,
+          où la partie s&apos;arrête au premier extrait entièrement raté, et <strong className="text-ink">Sprint</strong>, 20 extraits de 8 secondes sans
+          joker. Chaque variante a son propre classement.
+        </p>
+
+        <h3 className="font-display text-lg text-ink font-medium mb-1.5">Où peut-on y jouer ?</h3>
+        <p className="mb-5">
+          Partout où il y a internet, directement dans le navigateur, sans rien télécharger : en France, en Belgique, en Suisse, au
+          Québec, au Luxembourg ou en Afrique francophone. Le site s&apos;ajoute à l&apos;écran d&apos;accueil comme une application ; une
+          version App Store et Google Play est annoncée.
+        </p>
+
+        <div className="mb-8">
+          <p className="font-display text-lg text-ink font-medium mb-2">Tous les thèmes</p>
+          <div className="flex flex-wrap gap-2">
+            {THEME_LANDINGS.map((t) => (
+              <a key={t.slug} href={`/blindtest/${t.slug}`} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-ink-muted hover:text-ink hover:border-gold/40 transition-colors">
+                {t.theme?.label}
+              </a>
+            ))}
+          </div>
+        </div>
 
         <p>
           Titre et artiste rapportent chacun un point ; retrouver un featuring rapporte deux

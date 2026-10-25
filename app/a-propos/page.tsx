@@ -6,7 +6,6 @@ import CountUp from "@/components/CountUp";
 import LogoReveal from "@/components/LogoReveal";
 import Timeline from "@/components/Timeline";
 import HistoryScroller from "@/components/HistoryScroller";
-import GameCover from "@/components/GameCover";
 import { resolveArtist } from "@/lib/deezerArtist";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,7 +27,7 @@ const STATS = [
 const TIMELINE = [
   { year: "2020", text: "Confinement. Un compte lancé pour partager les sorties et les artistes découverts au fil des écoutes." },
   { year: "2021 – 2023", text: "Une communauté se construit. Le compte devient un média suivi, avec une ligne éditoriale propre." },
-  { year: "Aujourd'hui", text: "Média indépendant, une arcade de jeux rap français qui s'agrandit (blind test, tracklist, pronos...), et une communauté qui continue de grandir." },
+  { year: "Aujourd'hui", text: "Média indépendant, un blind test rap français gratuit joué en solo, entre potes et en soirée — bientôt en app — et une communauté qui continue de grandir." },
 ];
 
 const HISTORY_ERAS = [
@@ -55,17 +54,6 @@ const HISTORY_ERAS = [
 // garanties : pas de portrait d'homonyme).
 const FEATURED_ARTISTS = ["pnl", "booba", "jul", "sch", "ninho", "nekfeu", "badara"];
 
-// L'arcade — le blind test n'est plus le seul jeu, et d'autres arrivent. Covers officielles,
-// même composant que le hub /jouer et la page profil. Seuls Blind Test et Artists Manager
-// 2026 sont jouables pour l'instant ; le reste est encore en préparation.
-const ARCADE_PREVIEW = [
-  { title: "Artists Manager 2026", href: "/jeux/artists-manager", cover: "/jeux/artists-manager.png", flag: "Nouveau" },
-  { title: "Blind Test", href: "/jouer?play=1", cover: "/jeux/blind-test.png", flag: null },
-  { title: "La Tracklist", href: "/jeux/bientot?titre=La%20Tracklist", cover: "/jeux/tracklist.png", flag: "Bientôt" },
-  { title: "Plus Haut, Plus Bas", href: "/jeux/bientot?titre=Plus%20Haut%2C%20Plus%20Bas", cover: "/jeux/plus-haut.png", flag: "Bientôt" },
-  { title: "Le Tribunal", href: "/jeux/bientot?titre=Le%20Tribunal", cover: "/jeux/tribunal.png", flag: "Bientôt" },
-  { title: "Coach A&R", href: "/jeux/bientot?titre=Coach%20A%26R", cover: "/jeux/coach-ar.png", flag: "Bientôt" },
-];
 
 export default async function AProposPage() {
   const [artists, supabase] = await Promise.all([
@@ -161,25 +149,33 @@ export default async function AProposPage() {
         </section>
       </Reveal>
 
-      {/* L'arcade — le blind test n'est plus seul, et d'autres jeux arrivent */}
+      {/* Le jeu — un seul, poussé à fond : le blind test */}
       <Reveal>
         <section className="max-w-4xl mx-auto px-6 pb-20 md:pb-28">
           <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-3">Ça a grandi</p>
           <h2 className="font-display text-2xl md:text-3xl font-medium leading-tight mb-6">
-            Le blind test n'est plus seul — une arcade complète,
+            Le média a son jeu : le blind test rap français,
             <br className="hidden md:block" />
-            et d'autres jeux arrivent.
+            gratuit, en ligne, à jouer partout.
           </h2>
-          <div className="nf-row -mx-6 px-6 mb-4">
-            {ARCADE_PREVIEW.map((g) => (
-              <GameCover key={g.href} href={g.href} cover={g.cover} title={g.title} flag={g.flag} variant="poster" />
+          <div className="grid sm:grid-cols-2 gap-3 mb-6">
+            {[
+              { href: "/jouer?mode=solo", t: "Solo", s: "Le défi du jour, une série à entretenir, un classement." },
+              { href: "/jouer?mode=local", t: "Entre potes", s: "Un téléphone, un buzzer, jusqu'à huit joueurs." },
+              { href: "/jouer?mode=online", t: "Salon en ligne", s: "Un code à partager, chacun joue de chez lui." },
+              { href: "/jouer?mode=party", t: "Soirée TV", s: "L'écran sur la télé, les téléphones en manette, un gage pour le dernier." },
+            ].map((m) => (
+              <a key={m.href} href={m.href} className="card p-4 block">
+                <span className="block text-sm font-semibold">{m.t}</span>
+                <span className="block text-xs text-ink-faint mt-0.5">{m.s}</span>
+              </a>
             ))}
           </div>
           <a
-            href="/jouer"
+            href="/blindtest"
             className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-gold hover:text-glow transition-colors"
           >
-            Voir tous les jeux <ArrowRight size={13} />
+            Tout savoir sur le blind test <ArrowRight size={13} />
           </a>
         </section>
       </Reveal>
@@ -348,7 +344,7 @@ export default async function AProposPage() {
         </section>
       </Reveal>
 
-      {/* CTA de sortie — générique (l'arcade complète), plus seulement le blind test */}
+      {/* CTA de sortie */}
       <Reveal>
         <section className="max-w-4xl mx-auto px-6 pb-28 md:pb-36 text-center">
           <Magnetic>
@@ -356,7 +352,7 @@ export default async function AProposPage() {
               href="/jouer"
               className="inline-flex items-center gap-2 bg-gold text-white rounded-full pl-6 pr-5 py-3 text-sm font-medium hover:bg-glow transition-colors"
             >
-              Découvrir l'arcade
+              Jouer au blind test
               <ArrowRight size={16} />
             </a>
           </Magnetic>

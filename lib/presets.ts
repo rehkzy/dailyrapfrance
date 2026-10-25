@@ -13,6 +13,19 @@
 
 export type GameMode = "solo" | "local" | "online" | "party";
 export type AnswerMode = "qcm" | "text";
+// Variantes de règles — mêmes extraits, boucle différente :
+//   classic  : N manches, chrono par manche, jokers.
+//   survival : un extrait entièrement raté met fin à la partie ; le score, c'est la distance.
+//   sprint   : 20 extraits de 8 s, pas de joker, révélation éclair — que de l'instinct.
+export type Variant = "classic" | "survival" | "sprint";
+export const VARIANTS: { id: Variant; label: string; desc: string }[] = [
+  { id: "classic", label: "Classique", desc: "10 à 30 manches, chrono réglable, jokers." },
+  { id: "survival", label: "Survie", desc: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
+  { id: "sprint", label: "Sprint", desc: "20 extraits, 8 secondes chacun, sans joker." },
+];
+export const SPRINT_SECONDS = 8;
+export const SPRINT_ROUNDS = 20;
+export const SURVIVAL_POOL = 30;
 
 export type GameConfig = {
   mode: GameMode;
@@ -22,6 +35,7 @@ export type GameConfig = {
   answerMode: AnswerMode;
   jokers: number;
   players: string[];
+  variant: Variant;
 };
 
 export type Preset = GameConfig & {
@@ -46,6 +60,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   answerMode: "qcm",
   jokers: 1,
   players: [],
+  variant: "classic",
 };
 
 function read(): Preset[] {
@@ -103,7 +118,9 @@ export function deletePreset(id: string) {
 /** Nom lisible par défaut, dérivé de la config ("Entre potes · Rap 93 · 15 manches"). */
 export function describeConfig(c: GameConfig, themeLabel: string) {
   const modeLabel = { solo: "Solo", local: "Entre potes", online: "Salon en ligne", party: "Soirée TV" }[c.mode];
-  const parts = [modeLabel, themeLabel, `${c.rounds} manches`];
+  const parts = [modeLabel, themeLabel];
+  if (c.variant && c.variant !== "classic") parts.push(VARIANTS.find((v) => v.id === c.variant)?.label ?? c.variant);
+  else parts.push(`${c.rounds} manches`);
   if (c.mode === "local" && c.players.length) parts.push(`${c.players.length} joueurs`);
   return parts.join(" · ");
 }
@@ -118,6 +135,7 @@ export function configToSearch(c: GameConfig, extra?: Record<string, string>): s
   if (c.answerMode !== DEFAULT_CONFIG.answerMode) p.set("answer", c.answerMode);
   if (c.jokers !== DEFAULT_CONFIG.jokers) p.set("jokers", String(c.jokers));
   if (c.mode === "local" && c.players.length) p.set("players", c.players.join("|"));
+  if (c.variant && c.variant !== "classic") p.set("v", c.variant);
   if (extra) for (const [k, v] of Object.entries(extra)) if (v) p.set(k, v);
   return p.toString();
 }
@@ -132,7 +150,9 @@ export function parseConfig(params: URLSearchParams, validTheme: (id: string) =>
   const mode = params.get("mode");
   if (mode === "solo" || mode === "local" || mode === "online" || mode === "party") out.mode = mode;
   const theme = params.get("theme");
-  if (theme && validTheme(theme)) out.theme = theme;
+  if (theme && (theme === "random" || validTheme(theme))) out.theme = theme;
+  const v = params.get("v");
+  if (v === "classic" || v === "survival" || v === "sprint") out.variant = v;
   const rounds = Number(params.get("rounds"));
   if ((ROUND_OPTIONS as readonly number[]).includes(rounds)) out.rounds = rounds;
   const secs = Number(params.get("secs"));

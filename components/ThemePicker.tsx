@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Check, X, Flame, ArrowUp } from "lucide-react";
-import { THEME_OPTIONS, THEME_CATEGORIES, FEATURED_THEME_IDS, type ThemeOption } from "@/lib/themes";
+import { THEME_OPTIONS, THEME_CATEGORIES, FEATURED_THEME_IDS, PHOTO_THEME_IDS, type ThemeOption } from "@/lib/themes";
 import ThemeCover from "@/components/ThemeCover";
 
 /*
@@ -57,7 +57,7 @@ export default function ThemePicker({
       .then((r) => r.json())
       .then((d) => setTrendingThemes(new Set([...FEATURED_THEME_IDS, ...(d.themes ?? [])])))
       .catch(() => {});
-    fetch(`/api/blindtest/theme-art?themes=${THEME_OPTIONS.filter((t) => t.category !== "Top 50").map((t) => t.id).join(",")}`)
+    fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
       .then((r) => r.json())
       .then((data) => setThemePhotos(data.photos ?? {}))
       .catch(() => {});
@@ -97,7 +97,7 @@ export default function ThemePicker({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return null;
-    return THEME_OPTIONS.filter((t) => t.label.toLowerCase().includes(q) || t.text.toLowerCase().includes(q));
+    return THEME_OPTIONS.filter((t) => `${t.label} ${t.text} ${t.keywords ?? ""}`.toLowerCase().includes(q));
   }, [query]);
 
   function jumpTo(cat: string) {

@@ -34,7 +34,7 @@ import ResultShare from "@/components/ResultShare";
 import SavedPresets from "@/components/SavedPresets";
 import DailyCard from "@/components/DailyCard";
 import BrandMark from "@/components/BrandMark";
-import { parseConfig, touchPreset, type GameConfig, type Preset } from "@/lib/presets";
+import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
 import { markPlayedToday, bumpGamesPlayed, dailyNumber, getStreak, recordDailyScore } from "@/lib/dailyStreak";
 import type { RoundOutcome } from "@/lib/share";
 
@@ -117,19 +117,25 @@ export default function BlindTest() {
   const deepLinkTheme = deepLink.theme ?? null;
   const deepLinkMode = deepLink.mode ?? null;
 
-  const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(deepLinkTheme && deepLinkMode ? 2 : deepLinkTheme ? 1 : 0);
+  // Lien profond : mode + thème → direct aux réglages ; mode solo seul → direct au thème.
+  const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(
+    deepLinkTheme && deepLinkMode ? 2 : deepLinkTheme || deepLinkMode === "solo" ? 1 : 0
+  );
   const [mode, setMode] = useState<Mode | null>(joinRoomCode ? "online" : deepLinkMode);
   const [themeId, setThemeId] = useState<string>(deepLinkTheme ?? "mix");
+  const [variant, setVariant] = useState<Variant>(deepLink.variant ?? "classic");
+  const variantRef = useRef<Variant>(variant);
+  variantRef.current = variant;
   const [roundCount, setRoundCount] = useState(deepLink.rounds ?? 10);
   const [roundSeconds, setRoundSeconds] = useState(deepLink.seconds ?? DEFAULT_ROUND_SECONDS);
   const [jokerCount, setJokerCount] = useState(deepLink.jokers ?? 1);
-  const jokersEnabled = jokerCount > 0;
+  const jokersEnabledBase = jokerCount > 0;
   // "Facile" (QCM) présélectionné : l'écran Réglages n'a plus d'état bloquant caché —
   // un joueur pressé peut taper "Lancer la partie" sans jamais avoir vu ce choix.
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(deepLink.answerMode ?? "qcm");
   // Le défi du jour est "officiel" seulement en solo, sur le thème du jour, avec les réglages
   // par défaut — sinon c'est une partie normale sur ce thème.
-  const isDailyRun = mode === "solo" && themeId === dailyTheme.id;
+  const isDailyRun = mode === "solo" && themeId === dailyTheme.id && variant === "classic";
   const [strictMode, setStrictMode] = useState(false);
   const [hintsEnabled, setHintsEnabled] = useState(false);
   const [trackVolume, setTrackVolume] = useState(1);
@@ -143,6 +149,12 @@ export default function BlindTest() {
   const [playerNames, setPlayerNames] = useState<string[]>(
     deepLink.players && deepLink.players.length >= 2 ? deepLink.players : ["Joueur 1", "Joueur 2"]
   );
+  // Réglages effectifs : le Sprint impose ses règles (8 s, 20 extraits, sans joker), la
+  // Survie tire un pool large et s'arrête au premier raté.
+  const effectiveSeconds = variant === "sprint" ? SPRINT_SECONDS : roundSeconds;
+  const effectiveRounds = variant === "sprint" ? SPRINT_ROUNDS : variant === "survival" ? SURVIVAL_POOL : roundCount;
+  const effectiveJokers = variant === "sprint" ? 0 : jokerCount;
+  const jokersEnabled = jokersEnabledBase && effectiveJokers > 0;
   const currentConfig: GameConfig = {
     mode: mode ?? "solo",
     theme: themeId,
@@ -151,6 +163,7 @@ export default function BlindTest() {
     answerMode: answerMode ?? "qcm",
     jokers: jokerCount,
     players: mode === "local" ? playerNames.filter((n) => n.trim()) : [],
+    variant,
   };
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -257,13 +270,19 @@ export default function BlindTest() {
     }
     // Durée d'affichage du résultat avant la manche suivante — 3.8s (au lieu de 3.2s),
     // pour laisser le temps de lire le titre/artiste révélés sans que ça paraisse "flash".
+    const nothingFound = Object.keys(solvedRef.current).length === 0;
+    const survivalOver = variantRef.current === "survival" && nothingFound;
     advanceTimeoutRef.current = setTimeout(() => {
+      if (survivalOver) {
+        setPhase("final");
+        return;
+      }
       setRoundIndex((i) => {
         const next = i + 1;
         if (next >= tracks.length) setPhase("final");
         return next;
       });
-    }, 3800);
+    }, variantRef.current === "sprint" ? 1800 : 3800);
   }, [blurAndRealign, clearTimers, tracks.length]);
 
   const tick = useCallback(() => {
@@ -281,7 +300,7 @@ export default function BlindTest() {
   function resetRoundState() {
     blurAndRealign();
     setStarted(false);
-    setTimeLeft(roundSeconds);
+    setTimeLeft(effectiveSeconds);
     deadlineRef.current = null;
     setBuzzedBy(null);
     setLocked(new Set());
@@ -342,8 +361,15 @@ export default function BlindTest() {
       return;
     }
     setPhase("loading");
+    // Thème surprise : tiré au sort au lancement, puis affiché comme n'importe quel thème.
+    let playTheme = themeId;
+    if (themeId === "random") {
+      const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "random");
+      playTheme = pool[Math.floor(Math.random() * pool.length)].id;
+      setThemeId(playTheme);
+    }
     try {
-      const res = await fetch(`/api/blindtest/pool?${buildQuery(themeId, roundCount)}`);
+      const res = await fetch(`/api/blindtest/pool?${buildQuery(playTheme, effectiveRounds)}`);
       const data = await res.json();
       const pool: Track[] = data.tracks ?? [];
       if (pool.length < 3) {
@@ -357,8 +383,8 @@ export default function BlindTest() {
       setRoundHistory([]);
       setPlayers(
         mode === "solo"
-          ? [{ id: "solo", name: "Toi", score: 0, jokersLeft: jokerCount, timeJokerUsed: false }]
-          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokersLeft: jokerCount, timeJokerUsed: false }))
+          ? [{ id: "solo", name: "Toi", score: 0, jokersLeft: effectiveJokers, timeJokerUsed: false }]
+          : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokersLeft: effectiveJokers, timeJokerUsed: false }))
       );
       setRoundIndex(0);
       setPhase("playing");
@@ -376,7 +402,7 @@ export default function BlindTest() {
     extractStartedAtRef.current = Date.now();
     setAudioError(false);
     audioRef.current?.play().catch(() => void recoverAudio(true));
-    deadlineRef.current = Date.now() + roundSeconds * 1000;
+    deadlineRef.current = Date.now() + effectiveSeconds * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
 
@@ -686,7 +712,7 @@ export default function BlindTest() {
     fetch("/api/blindtest/score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme: themeId, rounds: tracks.length, points: solo.score }),
+      body: JSON.stringify({ theme: variant === "classic" ? themeId : `${variant}:${themeId}`, rounds: roundHistory.length || tracks.length, points: solo.score }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -830,6 +856,7 @@ export default function BlindTest() {
     setRoundSeconds(p.seconds);
     setAnswerMode(p.answerMode);
     setJokerCount(p.jokers);
+    setVariant(p.variant ?? "classic");
     if (p.mode === "local" && p.players.length >= 2) setPlayerNames(p.players);
     setMode(p.mode);
     setSetupError(null);
@@ -1053,16 +1080,48 @@ export default function BlindTest() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate">
-                    {MODE_TILES.find((m) => m.id === mode)?.label ?? "Solo"} · {THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId}
+                    {MODE_TILES.find((m) => m.id === mode)?.label ?? "Solo"} · {themeId === "random" ? "Thème surprise" : THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId}
                   </p>
                   <p className="text-xs text-ink-faint truncate">
-                    {mode === "local" ? playerNames.filter((n) => n.trim()).join(", ") : `${roundCount} manches · ${roundSeconds}s par extrait`}
+                    {variant !== "classic" ? `${VARIANTS.find((v) => v.id === variant)?.label} · ` : ""}
+                    {mode === "local" ? playerNames.filter((n) => n.trim()).join(", ") : `${effectiveRounds} manches · ${effectiveSeconds}s par extrait`}
                   </p>
                 </div>
                 <button type="button" onClick={() => setWizardStep(1)} className="text-xs font-medium text-gold hover:text-glow min-h-[44px] px-2">
                   Changer
                 </button>
               </div>
+              <div>
+                <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Gamepad2 size={13} />
+                  Règles
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {VARIANTS.map((v) => {
+                    const active = variant === v.id;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => {
+                          sfx.click();
+                          setVariant(v.id);
+                        }}
+                        aria-pressed={active}
+                        className={`text-left rounded-2xl p-3.5 border transition-all duration-200 min-h-[92px] ${
+                          active
+                            ? "border-gold/50 bg-gold/10 shadow-[0_0_20px_rgba(240,0,28,0.18)]"
+                            : "border-white/8 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <p className="font-display text-sm font-semibold">{v.label}</p>
+                        <p className="text-[11px] text-ink-faint mt-1 leading-snug">{v.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div>
                 <p className="text-sm font-semibold mb-3 flex items-center gap-2">
                   <Sliders size={13} />
@@ -1127,8 +1186,15 @@ export default function BlindTest() {
                   <Disc size={13} />
                   Partie
                 </p>
-                <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
-                <div className="flex gap-2 mb-4 flex-wrap">
+                {variant !== "classic" && (
+                  <p className="text-xs text-ink-faint mb-3">
+                    {variant === "sprint"
+                      ? `Sprint : ${SPRINT_ROUNDS} extraits de ${SPRINT_SECONDS} s, sans joker.`
+                      : `Survie : jusqu'à ${SURVIVAL_POOL} extraits, la partie s'arrête au premier son entièrement raté.`}
+                  </p>
+                )}
+                <p className="text-xs text-ink-faint mb-2">{variant === "classic" ? "Nombre de manches" : "Chrono par manche"}</p>
+                <div className={`flex gap-2 mb-4 flex-wrap ${variant === "classic" ? "" : "hidden"}`}>
                   {[10, 15, 20, 30].map((n) => (
                     <button
                       key={n}
@@ -1144,8 +1210,8 @@ export default function BlindTest() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-ink-faint mb-2">Temps par manche</p>
-                <div className="flex gap-2 flex-wrap">
+                <p className={`text-xs text-ink-faint mb-2 ${variant === "classic" ? "" : "hidden"}`}>Temps par manche</p>
+                <div className={`flex gap-2 flex-wrap ${variant === "sprint" ? "hidden" : ""}`}>
                   {ROUND_TIME_OPTIONS.map((n) => (
                     <button
                       key={n}
@@ -1380,7 +1446,13 @@ export default function BlindTest() {
 
           <div className="text-center mb-6">
             <p className="text-xs font-semibold text-gold mb-3">
-              {isDailyRun ? `Défi du jour #${dailyNumber()} — ${themeLabel}` : `${themeLabel} — partie terminée`}
+              {isDailyRun
+                ? `Défi du jour #${dailyNumber()} — ${themeLabel}`
+                : variant === "survival"
+                  ? `Survie — ${themeLabel}`
+                  : variant === "sprint"
+                    ? `Sprint — ${themeLabel}`
+                    : `${themeLabel} — partie terminée`}
             </p>
             {solo ? (
               <>
@@ -1389,7 +1461,9 @@ export default function BlindTest() {
                   <span className="font-display font-bold text-2xl text-ink-muted ml-2 align-middle">pts</span>
                 </p>
                 <p className="text-sm text-ink-muted mt-1">
-                  {perfect} / {roundOutcomes.length} extraits reconnus en entier
+                  {variant === "survival"
+                    ? `${roundOutcomes.filter((r) => r.found > 0).length} sons tenus avant la chute`
+                    : `${perfect} / ${roundOutcomes.length} extraits reconnus en entier`}
                 </p>
               </>
             ) : (
@@ -1765,7 +1839,7 @@ export default function BlindTest() {
             <div
               className="timer-ring mx-auto mb-5"
               data-urgent={timeLeft <= 5}
-              style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(roundSeconds, 1)) * 100)) } as CSSProperties}
+              style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / Math.max(effectiveSeconds, 1)) * 100)) } as CSSProperties}
               role="timer"
               aria-label={`${timeLeft} secondes restantes`}
             >

@@ -1,56 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveArtist } from "@/lib/deezerArtist";
 import { deezerFetch, fetchTrackDetail, toGameTrack, type DeezerTrackSummary, type DeezerTrackFull } from "@/lib/deezerTrack";
+import { THEME_PLAYLISTS, THEME_ARTISTS, ALL_DECADE_PLAYLISTS } from "@/lib/themeSources";
 
 // Pool de titres du blind test — 100% en direct depuis l'API Deezer, aucune base de données.
 // Volontairement sans persistance : rien à peupler, rien qui puisse être "pas encore prêt".
 //
-// Sources par thème — playlists éditoriales par décennie pour les thèmes généraux, recherche
-// d'artiste pour les thèmes ciblés (curation manuelle, voir listes ci-dessous).
-const DECADE_PLAYLISTS: Record<string, number[]> = {
-  "90s": [1182010551],           // Rapstars 90s
-  "2000s": [4676814864],         // Rapstars 2000
-  "2010s": [5175061384],          // Rapstars 2010
-  recent: [9563400362],           // Rapstars 2020
-};
-const ALL_DECADE_PLAYLISTS = [1182010551, 4676814864, 5175061384, 9563400362];
-
-// Curation manuelle, vérifiée nom par nom le 26/07/2026 (sources : Wikipédia + bios
-// officielles). Volontairement courte et à étendre — pas une base de données géographique
-// faisant autorité. Deezer ne fournit ni sous-genre ni ville de naissance.
-const CLOUD_ARTISTS = ["suikoden", "josman", "fixpen sill", "le wombat", "lomepal"];
-// Styles — curation manuelle par sous-genre, mêmes réserves que ci-dessus : listes courtes,
-// artistes emblématiques du style, à étendre au fil des retours joueurs.
-// Drill & trap sont sourcés par PLAYLISTS et non par artistes : le style est une propriété
-// des morceaux, pas des artistes — le top Deezer d'un artiste drill est souvent son hit
-// mélodique grand public, d'où des pools hors-sujet avec l'approche par artistes.
-// Playlists retenues après inspection du contenu (dominantes vérifiées le 28/07/2026) :
-//   drill — éditoriales Digster France (1Pliké140, Ziak, Sokra…) + Filtr France (Kerchak, Gazo, KLM…)
-//   trap  — "Hits de Rue" (éditoriale Deezer : Uzi, SDM, Zkr, Maes…) + "Trap style bangers" (Kaaris, SCH, Niska, Koba…)
-const STYLE_PLAYLISTS: Record<string, number[]> = {
-  drill: [3110361646, 8059169502],
-  trap: [14055911981, 11116884244],
-};
-
-const STYLE_ARTISTS: Record<string, string[]> = {
-  hardcore: ["kaaris", "kalash criminel", "alkpote", "seth gueko", "rohff"],
-  boombap: ["iam", "suprême ntm", "oxmo puccino", "kery james"],
-  melodique: ["pnl", "hamza", "tiakola", "so la lune"],
-  conscient: ["kery james", "médine", "youssoupha"],
-};
-const LAGUI_SADEK_ARTISTS = ["lagui", "sadek"];
-const DEPT_ARTISTS: Record<string, string[]> = {
-  "93": ["kaaris", "mac tyer", "vald", "kalash criminel", "maes", "diddi trix"],
-  "91": ["pnl", "niska", "koba lad", "ol kainry"],
-  "92": ["booba", "ali", "sdm", "benash"],
-  "77": ["djadja & dinaz", "rk", "timal", "houdi"],
-  "78": ["la fouine"],
-  "13": ["jul", "sch", "soprano", "alonzo", "naps", "soso maness", "akhenaton", "shurik'n"],
-  "69": ["bouss", "khali", "zeu", "lyonzon"],
-  "59": ["gradur"],
-};
-DEPT_ARTISTS["idf"] = Array.from(new Set([...DEPT_ARTISTS["93"], ...DEPT_ARTISTS["91"], ...DEPT_ARTISTS["92"], ...DEPT_ARTISTS["77"], ...DEPT_ARTISTS["78"]]));
-
+// Les sources (playlists éditoriales par époque/style, listes d'artistes par scène, région
+// ou artiste unique) vivent dans lib/themeSources.ts — une seule curation partagée avec
+// les pochettes de thème.
 // Thèmes à liste de titres VERROUILLÉE — quand la page Deezer d'un artiste est contaminée
 // (morceaux d'homonymes/tiers rattachés par erreur), on fige la liste exacte des IDs de
 // titres au lieu de faire confiance à ses albums. forcedArtistName corrige au passage les
@@ -89,23 +47,6 @@ const FIXED_TRACK_THEMES: Record<string, { trackIds: number[]; forcedArtistName?
   },
 };
 
-// Blind tests dédiés à un seul artiste — que ses propres morceaux.
-const SINGLE_ARTIST_THEMES: Record<string, string[]> = {
-  "artist-aya": ["aya nakamura"],
-  "artist-ninho": ["ninho"],
-  "artist-booba": ["booba"],
-  "artist-pnl": ["pnl"],
-  "artist-sch": ["sch"],
-  "artist-jul": ["jul"],
-  "artist-nekfeu": ["nekfeu"],
-  "artist-badara": ["badara"],
-  "artist-werenoi": ["werenoi"],
-  "artist-benef": ["benef"],
-  "artist-djadja-dinaz": ["djadja & dinaz"],
-  "artist-bouss": ["bouss"],
-  "artist-maes": ["maes"],
-  "artist-algerino": ["l'algerino"],
-};
 
 async function fetchPlaylistTracks(id: number): Promise<DeezerTrackSummary[]> {
   try {
@@ -164,13 +105,7 @@ export async function GET(req: NextRequest) {
   try {
     let raw: DeezerTrackSummary[] = [];
 
-    const artistListsById: Record<string, string[]> = {
-      cloud: CLOUD_ARTISTS,
-      ...STYLE_ARTISTS,
-      "lagui-sadek": LAGUI_SADEK_ARTISTS,
-      ...DEPT_ARTISTS,
-      ...SINGLE_ARTIST_THEMES,
-    };
+    const artistListsById = THEME_ARTISTS;
 
     const fixed = FIXED_TRACK_THEMES[themeId];
     if (fixed) {
@@ -186,8 +121,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ tracks });
     }
 
-    if (STYLE_PLAYLISTS[themeId]) {
-      const lists = await Promise.all(STYLE_PLAYLISTS[themeId].map(fetchPlaylistTracks));
+    if (THEME_PLAYLISTS[themeId] && themeId !== "90s" && themeId !== "2000s" && themeId !== "2010s" && themeId !== "recent") {
+      const lists = await Promise.all(THEME_PLAYLISTS[themeId].map(fetchPlaylistTracks));
       raw = lists.flat();
     } else if (artistListsById[themeId]) {
       const names = artistListsById[themeId];
@@ -200,7 +135,7 @@ export async function GET(req: NextRequest) {
       const lists = await Promise.all(ALL_DECADE_PLAYLISTS.map(fetchPlaylistTracks));
       raw = lists.flat();
     } else {
-      const ids = DECADE_PLAYLISTS[themeId] ?? ALL_DECADE_PLAYLISTS;
+      const ids = THEME_PLAYLISTS[themeId] ?? ALL_DECADE_PLAYLISTS;
       const lists = await Promise.all(ids.map(fetchPlaylistTracks));
       raw = lists.flat();
     }
