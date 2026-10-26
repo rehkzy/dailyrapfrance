@@ -163,8 +163,10 @@ export default function Header() {
 
   const onGame = isActive(pathname, "/jouer") || isActive(pathname, "/blindtest");
 
+  // En mode app (écran d'accueil iOS, barre de statut translucide), le header passait sous
+  // l'heure et la batterie dès qu'on scrollait : on réserve la zone sûre en haut.
   return (
-    <header className="nav-panel sticky top-0 z-50 rounded-none border-x-0 border-t-0">
+    <header className="nav-panel sticky top-0 z-50 rounded-none border-x-0 border-t-0" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center gap-4">
         <a href="/" className="flex items-center shrink-0 group/logo" aria-label="DailyRapFrance — accueil">
           <img

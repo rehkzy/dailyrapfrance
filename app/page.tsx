@@ -2,7 +2,7 @@ import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, S
 import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
 import SocialLinks from "@/components/SocialLinks";
-import BrandMark, { BrandTile } from "@/components/BrandMark";
+import { BrandTile } from "@/components/BrandMark";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { THEME_OPTIONS } from "@/lib/themes";
@@ -230,7 +230,7 @@ export default function Home() {
       {/* Communauté */}
       <section className="relative overflow-hidden border-t border-white/8">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 py-16 sm:py-24 text-center">
-          <BrandMark size={28} className="text-gold mx-auto mb-5" />
+          <BrandTile size={56} className="mx-auto mb-5" />
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-4">
             Le rap français, raconté depuis 2020
           </h2>

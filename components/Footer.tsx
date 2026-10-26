@@ -1,5 +1,5 @@
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
-import BrandMark from "@/components/BrandMark";
+import { BrandTile } from "@/components/BrandMark";
 
 const columns = [
   {
@@ -79,7 +79,7 @@ export default function Footer() {
 
       <div className="max-w-6xl mx-auto px-6 pb-10 flex items-center justify-between gap-6 text-xs text-ink-faint">
         <span className="inline-flex items-center gap-2">
-          <BrandMark size={12} className="text-gold" />
+          <BrandTile size={18} />
           DailyRapFrance — depuis 2020, Paris.
         </span>
         <span>Gratuit — compte en 10 secondes.</span>

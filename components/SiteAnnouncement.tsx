@@ -25,7 +25,7 @@ export default function SiteAnnouncement() {
   if (!text) return null;
 
   return (
-    <div id="site-announcement" className="relative z-40 bg-gold text-white text-center text-sm font-medium px-4 py-2.5">
+    <div id="site-announcement" className="relative z-40 bg-gold text-white text-center text-sm font-medium px-4 py-2.5" style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)" }}>
       {text}
     </div>
   );
