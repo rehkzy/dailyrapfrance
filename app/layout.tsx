@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import Header from "@/components/Header";
@@ -9,6 +11,14 @@ import SiteAnnouncement from "@/components/SiteAnnouncement";
 import ActivityTracker from "@/components/ActivityTracker";
 import InstallPrompt from "@/components/InstallPrompt";
 import { AppComingSoonModal } from "@/components/AppComingSoon";
+
+const APPLE_ICON_DATA_URI = (() => {
+  try {
+    return `data:image/png;base64,${readFileSync(join(process.cwd(), "public", "apple-touch-icon.png")).toString("base64")}`;
+  } catch {
+    return "/apple-touch-icon.png";
+  }
+})();
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dailyrapfrance.best"),
@@ -50,7 +60,13 @@ export const metadata: Metadata = {
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/apple-touch-icon.png",
+    // Icône iOS incorporée en data: URI (lue au build) : Safari la récupère avec la page
+    // elle-même, donc elle passe même si une protection (challenge Vercel, hors-ligne) bloque
+    // la requête séparée vers /apple-touch-icon.png — sinon iOS retombe sur une lettre.
+    apple: [
+      { url: APPLE_ICON_DATA_URI, sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
   },
   appleWebApp: {
@@ -118,7 +134,7 @@ const JSONLD_SITE = {
       isAccessibleForFree: true,
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
       featureList: [
-        "Défi du jour",
+        "Défi de la semaine",
         "Solo avec classement",
         "Entre amis sur un téléphone (2 à 8 joueurs)",
         "Salon en ligne à distance avec code",

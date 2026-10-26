@@ -2841,3 +2841,41 @@ body:has(.feed) header, body:has(.feed) footer, body:has(.feed) #site-announceme
 @media (prefers-reduced-motion: reduce) {
   .feed-slide, .feed-bg, .feed-launch-ring { animation: none; }
 }
+
+/* ==========================================================================================
+   Responsive — correctifs tous écrans (iPhone récents avec barres Safari, petits téléphones,
+   paysage, tablettes).
+   ========================================================================================== */
+
+/* Tiroir du menu mobile : jamais plus haut que la zone VRAIMENT visible.
+   vh = écran sans les barres de Safari (trop grand) → dvh/svh = écran réellement affiché. */
+.drawer-sheet { max-height: 88vh; max-height: 88svh; max-height: 88dvh; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .drawer-sheet { max-height: 96vh; max-height: 96svh; max-height: 96dvh; }
+}
+
+/* Écran de jeu (« feed ») et « Devine le clip » : collés à l'écran, pas à la page.
+   Avant, si on avait fait défiler la page avant de lancer la partie, le verrou de scroll
+   décalait tout le jeu vers le haut : haut coupé (bouton quitter invisible) et bande vide
+   en bas. En position fixe, le jeu occupe toujours exactement l'écran. */
+body .feed,
+body .reel-feed {
+  position: fixed;
+  inset: 0;
+  height: auto;
+  z-index: 40;
+}
+
+/* Barre d'onglets du jeu (Jouer · Amis · Classement · Compte) : elle flotte en bas de
+   l'écran — on réserve sa place pour qu'elle ne cache plus le formulaire ou le pied de page. */
+@media (max-width: 1023px) {
+  body:has(.game-tabbar-fixed) {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+  }
+}
+
+/* Gros bouton d'action du jeu : tient sur une ligne même sur un petit téléphone (320 px) */
+@media (max-width: 380px) {
+  .sticker { padding-left: 16px; padding-right: 16px; font-size: 15px; line-height: 1.15; }
+  .sticker.text-lg { font-size: 15px; }
+}

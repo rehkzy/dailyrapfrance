@@ -30,7 +30,7 @@ import SavedPresets from "@/components/SavedPresets";
 import DailyCard from "@/components/DailyCard";
 import BrandMark from "@/components/BrandMark";
 import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
-import { markPlayedToday, bumpGamesPlayed, dailyNumber, getStreak, recordDailyScore } from "@/lib/dailyStreak";
+import { markPlayedToday, bumpGamesPlayed, weeklyNumber, weekKey, getStreak, recordDailyScore } from "@/lib/dailyStreak";
 import type { RoundOutcome } from "@/lib/share";
 import ClipPlayer, { type ClipHandle } from "@/components/ClipPlayer";
 
@@ -141,7 +141,7 @@ export default function BlindTest() {
   // "Facile" (QCM) présélectionné : l'écran Réglages n'a plus d'état bloquant caché —
   // un joueur pressé peut taper "Lancer la partie" sans jamais avoir vu ce choix.
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(deepLink.answerMode ?? "qcm");
-  // Le défi du jour est "officiel" seulement en solo, sur le thème du jour, avec les réglages
+  // Le défi de la semaine est "officiel" seulement en solo, sur le thème de la semaine, avec les réglages
   // par défaut — sinon c'est une partie normale sur ce thème.
   const isDailyRun = mode === "solo" && themeId === dailyTheme.id && variant === "classic";
   const [strictMode, setStrictMode] = useState(false);
@@ -762,7 +762,7 @@ export default function BlindTest() {
   useEffect(() => {
     if (phase !== "final") return;
     sfx.victory();
-    // Confettis réservés aux vrais moments (partie parfaite ou record du jour) — pas à chaque fin.
+    // Confettis réservés aux vrais moments (partie parfaite ou record de la semaine) — pas à chaque fin.
     const soloPlayer = players[0];
     const perfectRun = mode === "solo" && roundOutcomes.length > 0 && roundOutcomes.every((r) => r.found >= r.total);
     bumpGamesPlayed();
@@ -785,7 +785,7 @@ export default function BlindTest() {
     fetch("/api/blindtest/score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme: variant === "classic" ? themeId : `${variant}:${themeId}`, rounds: roundHistory.length || tracks.length, points: solo.score }),
+      body: JSON.stringify({ theme: isDailyRun ? `defi:${weekKey()}` : variant === "classic" ? themeId : `${variant}:${themeId}`, rounds: roundHistory.length || tracks.length, points: solo.score }),
     })
       .then((r) => r.json())
       .then((data) => {
@@ -915,6 +915,10 @@ export default function BlindTest() {
       }
     };
 
+    // Remonte en haut AVANT de verrouiller : sinon le verrou mémorise la position de la
+    // page (ex. après avoir fait défiler les modes) et décale tout l'écran de jeu.
+    window.__lenis?.scrollTo(0, { immediate: true });
+    window.scrollTo(0, 0);
     document.body.classList.add("game-scroll-lock");
     lockScroll();
     window.__lenis?.stop();
@@ -938,7 +942,7 @@ export default function BlindTest() {
     if (audioRef.current) audioRef.current.volume = trackVolume;
   }, [trackVolume, track?.id]);
 
-  // Lancement direct depuis un lien profond (défi du jour, preset solo, raccourci d'app) :
+  // Lancement direct depuis un lien profond (défi de la semaine, preset solo, raccourci d'app) :
   // zéro écran intermédiaire, la partie se charge tout de suite. Le premier extrait attend
   // quand même un tap (contrainte navigateur sur l'audio).
   const autostartedRef = useRef(false);
@@ -1329,11 +1333,11 @@ export default function BlindTest() {
     const chips: { label: string; strong?: boolean }[] = [];
     if (isDailyRun && dailyStreak > 0) chips.push({ label: `🔥 Série : ${dailyStreak} jour${dailyStreak > 1 ? "s" : ""}`, strong: true });
     if (streakFrozen) chips.push({ label: "🧊 Série sauvée" });
-    if (dailyRecord) chips.push({ label: "🏆 Record du jour", strong: true });
-    if (solo && topPercent !== null) chips.push({ label: `Top ${topPercent}% sur ce thème` });
+    if (dailyRecord) chips.push({ label: "🏆 Record de la semaine", strong: true });
+    if (solo && topPercent !== null) chips.push({ label: isDailyRun ? `Top ${topPercent}% du défi` : `Top ${topPercent}% sur ce thème` });
     if (solo && bestStreak >= 2) chips.push({ label: `Combo max : ${bestStreak}` });
     if (beat !== null) chips.push(topScore > beat ? { label: `Tu bats ${deepLink.from} (${beat} pts)`, strong: true } : topScore === beat ? { label: `Égalité avec ${deepLink.from}` } : { label: `${deepLink.from} garde la main (${beat} pts)` });
-    const headline = isDailyRun ? `Défi du jour #${dailyNumber()} · ${themeLabelNow}` : `${modeLabelNow} · ${themeLabelNow}`;
+    const headline = isDailyRun ? `Défi de la semaine #${weeklyNumber()} · ${themeLabelNow}` : `${modeLabelNow} · ${themeLabelNow}`;
     const subline = solo
       ? variant === "survival"
         ? `${roundOutcomes.filter((r) => r.found > 0).length} sons tenus avant la chute`
@@ -1352,7 +1356,7 @@ export default function BlindTest() {
             rounds={roundOutcomes}
             themeLabel={themeLabelNow}
             config={currentConfig}
-            daily={isDailyRun ? { number: dailyNumber(), streak: dailyStreak } : null}
+            daily={isDailyRun ? { number: weeklyNumber(), streak: dailyStreak } : null}
             bestStreak={bestStreak}
             playerName={solo ? (myUsername ?? undefined) : ranked[0]?.name}
             chips={chips}
@@ -1360,7 +1364,7 @@ export default function BlindTest() {
             subline={subline}
             onReplay={playAgain}
             onReplaySame={replaySame}
-            leaderboardHref={solo ? "/blindtest/classement" : undefined}
+            leaderboardHref={solo ? (isDailyRun ? "/blindtest/defi" : "/blindtest/classement") : undefined}
             podium={solo ? undefined : ranked.map((p) => ({ name: p.name, score: p.score }))}
           />
 
@@ -1420,7 +1424,9 @@ export default function BlindTest() {
 
   return (
     <div className="feed" data-lenis-prevent onTouchStart={swipeStart} onTouchEnd={swipeEnd}>
-      {!isClip && <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" onError={() => (started ? void recoverAudio(true) : undefined)} />}
+      {/* `loop` : l'extrait Deezer dure 30 s ; avec le joker +15 s (ou 35/45 s de chrono) il
+          s'arrêtait net avant la fin de la manche — il reboucle désormais sur lui-même. */}
+      {!isClip && <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" loop onError={() => (started ? void recoverAudio(true) : undefined)} />}
 
       {/* Fond : pochette floutée qui respire (audio) ou clip plein écran (vidéo) */}
       {track.coverUrl && !isClip && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}

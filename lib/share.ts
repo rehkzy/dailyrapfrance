@@ -37,7 +37,7 @@ export function buildShareText(opts: {
 }): string {
   const perfect = opts.rounds.filter((r) => r.total > 0 && r.found >= r.total).length;
   const head = opts.daily
-    ? `DailyRap #${opts.daily.number} 🎤 ${perfect}/${opts.rounds.length}`
+    ? `Défi DailyRap semaine #${opts.daily.number} 🎤 ${perfect}/${opts.rounds.length}`
     : `Blind Test Rap FR 🎤 ${opts.themeLabel} — ${perfect}/${opts.rounds.length}`;
   const lines = [head, buildGrid(opts.rounds), `${opts.points} pts`];
   if (opts.daily && opts.daily.streak >= 2) lines.push(`🔥 Série : ${opts.daily.streak} jours`);

@@ -129,6 +129,59 @@ export function dailyNumber(d = new Date()): number {
   return daysBetween(DAILY_EPOCH, parisDateString(d)) + 1;
 }
 
+/* ---------------------------------------------------------------------------------------
+   Défi de la SEMAINE — un thème imposé du lundi 00:00 au dimanche 23:59 (heure de Paris).
+   Un jour c'était trop court pour que les potes aient le temps de s'affronter dessus ; la
+   semaine laisse la place à plusieurs tentatives et à un vrai classement par défi.
+   --------------------------------------------------------------------------------------- */
+
+// Lundi de lancement du défi hebdomadaire — numérote les défis (#1, #2…).
+const WEEK_EPOCH = "2026-10-26";
+
+/** Date (AAAA-MM-JJ, Paris) du lundi de la semaine courante — c'est la clé du défi. */
+export function weekKey(d = new Date()): string {
+  const today = parisDateString(d);
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay(); // 0 = dimanche
+  const back = (dow + 6) % 7; // jours écoulés depuis lundi
+  const monday = new Date(new Date(`${today}T00:00:00Z`).getTime() - back * 86_400_000);
+  return monday.toISOString().slice(0, 10);
+}
+
+export function weeklyNumber(d = new Date()): number {
+  return Math.floor(daysBetween(WEEK_EPOCH, weekKey(d)) / 7) + 1;
+}
+
+/** Numéro du défi pour une clé donnée (page de classement d'une semaine passée). */
+export function weeklyNumberFor(key: string): number {
+  return Math.floor(daysBetween(WEEK_EPOCH, key) / 7) + 1;
+}
+
+/** Millisecondes avant le prochain défi (lundi 00:00, heure de Paris). */
+export function msUntilNextWeekly(now = new Date()): number {
+  const today = parisDateString(now);
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+  const daysLeft = (7 - ((dow + 6) % 7) - 1); // jours entiers restant après aujourd'hui
+  return msUntilNextDaily(now) + daysLeft * 86_400_000;
+}
+
+/** "3 j 04 h" au-delà d'un jour, sinon HH:MM:SS. */
+export function formatCountdownLong(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const days = Math.floor(s / 86_400);
+  if (days >= 1) {
+    const h = Math.floor((s % 86_400) / 3600);
+    return `${days} j ${String(h).padStart(2, "0")} h`;
+  }
+  return formatCountdown(ms);
+}
+
+/** A-t-on déjà joué (sur cet appareil) depuis le lundi de cette semaine ? */
+export function playedThisWeek(): boolean {
+  if (typeof window === "undefined") return false;
+  const monday = weekKey();
+  return readDays().some((d) => d >= monday);
+}
+
 /** Millisecondes avant le prochain défi (minuit, heure de Paris). */
 export function msUntilNextDaily(now = new Date()): number {
   const parts = new Intl.DateTimeFormat("fr-FR", {
@@ -170,15 +223,15 @@ export function getGamesPlayed(): number {
   }
 }
 
-/** Meilleur score du défi du jour sur cet appareil (pour "record perso"). */
+/** Meilleur score du défi de la semaine sur cet appareil (pour "record perso"). */
 export function recordDailyScore(points: number): { best: number; isRecord: boolean } {
   try {
     const raw = localStorage.getItem(BEST_KEY);
     const prev = raw ? (JSON.parse(raw) as { date: string; points: number }) : null;
-    const today = parisDateString();
-    if (prev && prev.date === today && prev.points >= points) return { best: prev.points, isRecord: false };
-    localStorage.setItem(BEST_KEY, JSON.stringify({ date: today, points }));
-    return { best: points, isRecord: !!prev && prev.date === today };
+    const week = weekKey();
+    if (prev && prev.date === week && prev.points >= points) return { best: prev.points, isRecord: false };
+    localStorage.setItem(BEST_KEY, JSON.stringify({ date: week, points }));
+    return { best: points, isRecord: !!prev && prev.date === week };
   } catch {
     return { best: points, isRecord: false };
   }

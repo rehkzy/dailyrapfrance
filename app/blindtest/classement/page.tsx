@@ -1,11 +1,13 @@
-import { Medal } from "lucide-react";
+import { Medal, Flame, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
 import { THEME_OPTIONS } from "@/lib/themes";
+import { weeklyNumberFor } from "@/lib/dailyStreak";
 
 // "survival:93" → "Survie · Rappeurs du 93" ; "93" → "Rappeurs du 93"
 function themeLabel(raw: string) {
+  if (raw.startsWith("defi:")) return `Défi de la semaine #${weeklyNumberFor(raw.slice(5))}`;
   const [a, b] = raw.includes(":") ? raw.split(":") : [null, raw];
   const label = THEME_OPTIONS.find((t) => t.id === b)?.label ?? b;
   const variant = a === "survival" ? "Survie" : a === "sprint" ? "Sprint" : null;
@@ -42,9 +44,17 @@ export default async function ClassementPage() {
       <BackToGame />
 
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Classement</h1>
-      <p className="text-ink-muted mb-10">
+      <p className="text-ink-muted mb-6">
         Les meilleurs scores solo, tous thèmes confondus. Connecte-toi et termine une partie pour y apparaître.
       </p>
+      <a href="/blindtest/defi" className="ticket p-4 mb-8 flex items-center gap-3">
+        <span className="w-10 h-10 rounded-full bg-gold/15 text-gold grid place-items-center shrink-0"><Flame size={18} /></span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold">Défi de la semaine</span>
+          <span className="block text-xs text-ink-faint">Qui a participé, qui mène — un thème imposé du lundi au dimanche.</span>
+        </span>
+        <ChevronRight size={16} className="text-ink-faint shrink-0" />
+      </a>
 
       {!scores || scores.length === 0 ? (
         <div className="card p-10 text-center text-ink-muted text-sm">

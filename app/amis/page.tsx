@@ -153,7 +153,7 @@ export default function AmisPage() {
       <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Amis</h1>
       <p className="text-ink-muted mb-10">
-        Ajoute tes potes, défie-les sur le défi du jour ou invite-les dans un salon privé.
+        Ajoute tes potes, défie-les sur le défi de la semaine ou invite-les dans un salon privé.
       </p>
 
       {/* Recherche */}

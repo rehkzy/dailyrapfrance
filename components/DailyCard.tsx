@@ -3,16 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Play, Check, Share2 } from "lucide-react";
 import { getDailyTheme } from "@/lib/themes";
-import { dailyNumber, formatCountdown, msUntilNextDaily, playedToday, getStreak } from "@/lib/dailyStreak";
+import { weeklyNumber, formatCountdownLong, msUntilNextWeekly, playedThisWeek, getStreak } from "@/lib/dailyStreak";
 import { configToSearch, DEFAULT_CONFIG } from "@/lib/presets";
 import { shareOrCopy } from "@/lib/share";
 import BrandMark from "@/components/BrandMark";
 import StreakStrip from "@/components/StreakStrip";
 
 /*
- * Le défi du jour — le bloc le plus important de l'accueil. Une seule action primaire :
- * jouer. Le thème est imposé et identique pour tout le monde, il change à minuit (Paris),
- * le compte à rebours est la raison de revenir demain.
+ * Le défi de la semaine — le bloc le plus important de l'accueil. Une seule action primaire :
+ * jouer. Le thème est imposé et identique pour tout le monde, il change chaque lundi à minuit
+ * (Paris) ; le classement du défi est la raison de rejouer dans la semaine.
  */
 export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "compact" }) {
   const theme = useMemo(() => getDailyTheme(), []);
@@ -22,11 +22,11 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    const tick = () => setLeft(msUntilNextDaily());
+    const tick = () => setLeft(msUntilNextWeekly());
     tick();
     const id = setInterval(tick, 1000);
     const refresh = () => {
-      setDone(playedToday());
+      setDone(playedThisWeek());
       setStreak(getStreak());
     };
     refresh();
@@ -37,12 +37,12 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
     };
   }, []);
 
-  const number = dailyNumber();
+  const number = weeklyNumber();
   const href = `/jouer?${configToSearch({ ...DEFAULT_CONFIG, theme: theme.id }, { daily: "1", autostart: "1" })}`;
 
   async function invite() {
     const res = await shareOrCopy({
-      title: "Défi du jour — Blind Test Rap FR",
+      title: "Défi de la semaine — Blind Test Rap FR",
       text: `Défi DailyRap #${number} : ${theme.label}. Tu fais mieux que moi ? 🎤\nhttps://dailyrapfrance.best${href}`,
     });
     if (res === "copied") {
@@ -58,12 +58,12 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
           {done ? <Check size={20} strokeWidth={3} /> : <BrandMark size={22} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Défi du jour #{number} — {theme.label}</span>
+          <span className="block text-sm font-semibold">Défi de la semaine #{number} — {theme.label}</span>
           <span className={`block text-xs ${done ? "text-ink-faint" : "text-white/80"}`}>
-            {done ? "Déjà joué aujourd'hui — rejoue pour battre ton score" : theme.text}
+            {done ? "Déjà joué cette semaine — rejoue pour battre ton score" : theme.text}
           </span>
         </span>
-        <span className="font-mono text-[11px] shrink-0 opacity-80">{left !== null ? formatCountdown(left) : ""}</span>
+        <span className="font-mono text-[11px] shrink-0 opacity-80">{left !== null ? formatCountdownLong(left) : ""}</span>
       </a>
     );
   }
@@ -75,17 +75,17 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
         <div className="flex items-center justify-between gap-3 mb-5">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-white/85">
             <span className="w-2 h-2 rounded-full bg-glow animate-pulse" aria-hidden="true" />
-            Défi du jour #{number}
+            Défi de la semaine #{number}
           </span>
           <span className="font-mono text-xs text-white/70" aria-live="off">
-            {left !== null ? `Nouveau dans ${formatCountdown(left)}` : ""}
+            {left !== null ? `Nouveau défi dans ${formatCountdownLong(left)}` : ""}
           </span>
         </div>
 
         <h2 id="daily-title" className="poster-title text-4xl sm:text-5xl md:text-6xl text-white max-w-xl">
           {theme.label}
         </h2>
-        <p className="mt-3 text-sm sm:text-base text-white/80 max-w-md">{theme.text}. 10 extraits, le même thème pour tout le monde, une seule chance par jour de faire le meilleur score.</p>
+        <p className="mt-3 text-sm sm:text-base text-white/80 max-w-md">{theme.text}. 10 extraits, le même thème pour tout le monde du lundi au dimanche. Rejoue autant que tu veux : seul ton meilleur score compte au classement.</p>
 
         <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
           <a
@@ -93,7 +93,7 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
             className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full sm:w-auto"
           >
             <Play size={20} fill="currentColor" />
-            {done ? "Rejouer le défi" : "Jouer le défi du jour"}
+            {done ? "Rejouer le défi" : "Jouer le défi de la semaine"}
           </a>
           <button
             type="button"
@@ -103,6 +103,9 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
             <Share2 size={16} />
             Défier un pote
           </button>
+          <a href="/blindtest/defi" className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-sm font-medium text-white/85 hover:text-white w-full sm:w-auto">
+            Classement du défi →
+          </a>
         </div>
 
         <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between gap-4 flex-wrap">

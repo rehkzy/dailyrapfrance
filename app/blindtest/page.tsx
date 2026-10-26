@@ -75,7 +75,7 @@ const jsonLd = {
           name: "Quels thèmes de rap français sont disponibles ?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Plus de 45 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et 2010, la drill, la trap, l'afro, le jersey club, le cloud rap, les scènes régionales (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles), des blind tests dédiés à un seul artiste, le Top 50 et un défi du jour qui change chaque jour.",
+            text: "Plus de 45 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et 2010, la drill, la trap, l'afro, le jersey club, le cloud rap, les scènes régionales (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles), des blind tests dédiés à un seul artiste, le Top 50 et un défi de la semaine qui change chaque lundi.",
           },
         },
       ],
@@ -121,7 +121,7 @@ export default function BlindTestPage() {
           DailyRapFrance propose le blind test rap français le plus complet : plus de quarante-cinq
           thèmes couvrant les années 90, 2000, 2010 et les sons les plus récents, le cloud rap,
           les scènes régionales (rap 93, rap 91, rap 92, Marseille, Nord), des blind tests dédiés
-          à un seul artiste et un défi du jour qui change chaque jour. Il se joue partout — sur
+          à un seul artiste et un défi de la semaine qui change chaque lundi. Il se joue partout — sur
           téléphone, tablette, ordinateur ou TV — directement dans le navigateur.
         </p>
 
@@ -152,7 +152,7 @@ export default function BlindTestPage() {
           nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et
           2010, la drill, la trap, l&apos;afro, le jersey club, le cloud rap, les scènes régionales
           (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles),
-          des blind tests dédiés à un seul artiste, le Top 50 et un défi du jour qui change chaque jour.
+          des blind tests dédiés à un seul artiste, le Top 50 et un défi de la semaine qui change chaque lundi.
         </p>
 
         <h3 className="font-display text-lg text-ink font-medium mb-1.5">Quelles variantes de jeu existent ?</h3>

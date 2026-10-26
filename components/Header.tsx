@@ -13,7 +13,7 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 /*
  * En-tête v2 — un seul objectif : amener au jeu en un tap.
  *  - Desktop : logo, 4 liens, et un bouton rouge "Jouer" toujours visible.
- *  - Mobile : logo + bouton "Jouer" + menu. Le tiroir contient le défi du jour (compact),
+ *  - Mobile : logo + bouton "Jouer" + menu. Le tiroir contient le défi de la semaine (compact),
  *    les 5 façons de jouer en tuiles, puis les pages secondaires.
  */
 
@@ -49,6 +49,15 @@ function isActive(pathname: string | null, href: string) {
 function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () => void; pathname: string | null }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Touche Échap = fermer (clavier, iPad avec clavier, ordinateur en fenêtre étroite)
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!mounted) return null;
 
   return createPortal(
@@ -59,27 +68,35 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
       aria-hidden={!open}
     >
       <button type="button" aria-label="Fermer le menu" onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      {/*
+        Hauteur en dvh/svh (pas en vh) : sur iPhone, 100vh = l'écran SANS les barres de Safari,
+        donc un tiroir de 88vh dépassait par le haut quand les barres étaient affichées et la
+        croix de fermeture devenait inaccessible. L'en-tête du tiroir (poignée + croix) est
+        maintenant HORS de la zone qui défile : il reste toujours visible.
+      */}
       <div
-        className={`absolute left-0 right-0 bottom-0 max-h-[88vh] rounded-t-3xl bg-[#120b0c] border-t border-white/10 overflow-hidden transition-transform duration-[350ms] ease-out ${
+        className={`drawer-sheet absolute left-0 right-0 bottom-0 mx-auto w-full sm:max-w-lg flex flex-col rounded-t-3xl bg-[#120b0c] border-t border-x-0 sm:border-x border-white/10 overflow-hidden transition-transform duration-[350ms] ease-out ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         role="dialog"
+        aria-modal="true"
         aria-label="Menu"
       >
-        <div className="relative px-5 pt-3 pb-8 overflow-y-auto max-h-[88vh]" data-lenis-prevent>
-          <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
-
-          <div className="flex items-center justify-between mb-5">
+        <div className="shrink-0 px-5 pt-3 pb-3 border-b border-white/[0.06]">
+          <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3" />
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <BrandTile size={30} />
               <span className="font-display text-lg font-semibold">DailyRapFrance</span>
             </div>
-            <button type="button" onClick={onClose} aria-label="Fermer le menu" className="w-9 h-9 flex items-center justify-center rounded-full glass text-ink-muted hover:text-ink">
-              <CloseIcon size={18} />
+            <button type="button" onClick={onClose} aria-label="Fermer le menu" className="w-11 h-11 -mr-1 flex items-center justify-center rounded-full glass text-ink hover:text-ink">
+              <CloseIcon size={20} />
             </button>
           </div>
+        </div>
 
+        <div className="flex-1 min-h-0 px-5 pt-4 pb-8 overflow-y-auto overscroll-contain" data-lenis-prevent>
           <div className="mb-5">
             <DailyCard variant="compact" />
           </div>

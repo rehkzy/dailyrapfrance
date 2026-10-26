@@ -1265,7 +1265,7 @@ Je t'écris parce que tu as un compte sur le blind test DailyRapFrance, et qu'on
 
 Ce qui change :
 
-- Un défi du jour, le même thème pour tout le monde, qui change à minuit. Ta série de jours grandit tant que tu reviens.
+- Un défi de la semaine, le même thème pour tout le monde, qui change chaque lundi. Ta série de jours grandit tant que tu reviens.
 - Un deuxième jeu, Devine le clip : le clip officiel en plein écran, lancé après l'intro, 15 secondes pour dire qui est à l'écran. Tu swipes, tu regardes, tu réponds.
 - Deux variantes, Survie (un son raté et c'est fini) et Sprint (20 extraits de 8 secondes).
 - 85 thèmes à jour : les stars de 2026, la nouvelle génération, la drill, l'afro, le 93, Marseille, la Belgique, et 40 blind tests sur un seul artiste.
@@ -1274,7 +1274,7 @@ Ce qui change :
 
 Toujours inscription en 10 secondes, dans le navigateur. Et tu peux ajouter le site à ton écran d'accueil, il se lance comme une app.
 
-> Jouer au défi du jour|https://dailyrapfrance.best/jouer?daily=1&autostart=1
+> Jouer au défi de la semaine|https://dailyrapfrance.best/jouer?daily=1&autostart=1
 
 Si quelque chose te plaît, ou te gêne, réponds à ce mail : je lis tout et je corrige vite.
 

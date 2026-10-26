@@ -12,7 +12,7 @@ import BrandMark from "@/components/BrandMark";
  *  - Un seul axe de défilement : vertical. Les thèmes sont des AFFICHES portrait sur deux
  *    colonnes (trois sur tablette, quatre sur ordinateur), rangées par catégorie.
  *  - Une barre collante : recherche + onglets de catégorie (l'onglet suit le défilement).
- *  - Le défi du jour en tête, en pleine largeur.
+ *  - Le défi de la semaine en tête, en pleine largeur.
  *  - Lenis (scroll fluide du site) : on passe par son API pour les sauts de catégorie.
  */
 
@@ -162,7 +162,7 @@ export default function ThemePicker({
               style={{ "--poster-bg": "linear-gradient(120deg, #1b0507 0%, #8a0010 55%, #f0001c 130%)" } as React.CSSProperties}
             >
               <BrandMark className="poster-mark !w-[46%] !-top-[30%] !-right-[8%]" size="46%" />
-              <span className="poster-tag inline-flex items-center gap-1"><Flame size={11} /> Défi du jour</span>
+              <span className="poster-tag inline-flex items-center gap-1"><Flame size={11} /> Défi de la semaine</span>
               <span className="relative poster-title !text-[1.7rem] mt-6">{dailyTheme.label.replace(/^Blind Test /i, "")}</span>
               <span className="relative poster-sub">{dailyTheme.text} — le même thème pour tout le monde aujourd&apos;hui.</span>
             </button>

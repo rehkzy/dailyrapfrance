@@ -43,15 +43,15 @@ export const MODE_LANDINGS: Landing[] = [
     slug: "solo",
     kind: "mode",
     title: "Blind test rap français en solo",
-    metaTitle: "Blind Test Rap Français Solo — Gratuit, Défi du Jour et Classement | DailyRapFrance",
+    metaTitle: "Blind Test Rap Français Solo — Gratuit, Défi de la Semaine et Classement | DailyRapFrance",
     description:
-      "Joue au blind test rap français en solo, gratuitement et inscription en 10 secondes : défi du jour, série de jours, variantes Survie et Sprint, classement par thème. 40+ thèmes, extraits Deezer.",
+      "Joue au blind test rap français en solo, gratuitement et inscription en 10 secondes : défi de la semaine, série de jours, variantes Survie et Sprint, classement par thème. 40+ thèmes, extraits Deezer.",
     intro:
       "Cinq minutes dans le métro ou une heure sur le canapé : le mode solo te propose un extrait, un chrono, et trois questions — qui chante, quel titre, qui est en feat. Chaque jour, un défi commun à tous les joueurs change à minuit ; ta série de jours grandit tant que tu reviens.",
     playHref: "/jouer?mode=solo",
     playLabel: "Jouer en solo",
     faq: [
-      { q: "Comment fonctionne le défi du jour ?", a: "Un thème est tiré pour tout le monde et change chaque jour à minuit (heure de Paris). Tu peux le rejouer autant de fois que tu veux ; ton meilleur score du jour et ta série de jours consécutifs sont conservés sur ton appareil, et dans ton profil si tu es connecté." },
+      { q: "Comment fonctionne le défi de la semaine ?", a: "Un thème est tiré pour tout le monde et change chaque lundi à minuit (heure de Paris). Tu peux le rejouer autant de fois que tu veux ; ton meilleur score de la semaine et ta série de jours consécutifs sont conservés sur ton appareil, et dans ton profil si tu es connecté." },
       { q: "Qu'est-ce que les variantes Survie et Sprint ?", a: "Survie : la partie s'arrête au premier extrait entièrement raté, le score c'est la distance. Sprint : 20 extraits de 8 secondes, sans joker, que de l'instinct. Chaque variante a son propre classement." },
       ...COMMON_FAQ,
     ],

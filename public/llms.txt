@@ -5,11 +5,11 @@
 ## Ce que c'est
 - Un extrait de 30 secondes (fourni par Deezer) démarre ; le joueur doit trouver l'artiste, le titre et, s'il y en a un, le featuring. Titre et artiste : 1 point chacun ; featuring : 2 points ; bonus de rapidité.
 - Deux niveaux : Facile (3 propositions) ou Difficile (écrire la réponse, tolérance aux fautes).
-- Plus de 40 thèmes : époques (90s, 2000s, 2010s, récent), styles (drill, trap, cloud, boom bap, mélodique, conscient…), régions (93, 91, 92, 77, 78, Marseille, Lyon, Nord, Île-de-France), blind tests dédiés à un seul artiste (Ninho, Booba, PNL, SCH, JUL, Nekfeu, Werenoi, Aya Nakamura…), Top 50 du moment, défi du jour.
+- Plus de 40 thèmes : époques (90s, 2000s, 2010s, récent), styles (drill, trap, cloud, boom bap, mélodique, conscient…), régions (93, 91, 92, 77, 78, Marseille, Lyon, Nord, Île-de-France), blind tests dédiés à un seul artiste (Ninho, Booba, PNL, SCH, JUL, Nekfeu, Werenoi, Aya Nakamura…), Top 50 du moment, défi de la semaine.
 - Variantes : Classique, Survie (la partie s'arrête au premier extrait raté), Sprint (20 extraits de 8 s).
 
 ## Façons de jouer
-- Solo : https://dailyrapfrance.best/blindtest/solo — défi du jour (change à minuit, heure de Paris), série de jours, classement par thème.
+- Solo : https://dailyrapfrance.best/blindtest/solo — défi de la semaine (change chaque lundi, heure de Paris), série de jours, classement par thème.
 - Entre amis sur un seul téléphone (2 à 8 joueurs, buzzer) : https://dailyrapfrance.best/blindtest/entre-amis
 - En ligne à distance avec un code de salon : https://dailyrapfrance.best/blindtest/en-ligne
 - En soirée, écran partagé sur la TV + téléphones en manette + gages : https://dailyrapfrance.best/blindtest/soiree

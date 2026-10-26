@@ -29,14 +29,14 @@ type GameChallenge = {
 const GAMES: GameChallenge[] = [
   {
     id: "blindtest",
-    label: "Blind Test — défi du jour",
+    label: "Blind Test — défi de la semaine",
     url: (o) => {
       const daily = getDailyTheme();
       return `${o}/blindtest?theme=${daily.id}`;
     },
     text: (n) => {
       const daily = getDailyTheme();
-      return `${n}, je te défie sur le défi du jour du Blind Test Rap Français (thème : ${daily.label}) — viens battre mon score 🔥`;
+      return `${n}, je te défie sur le défi de la semaine du Blind Test Rap Français (thème : ${daily.label}) — viens battre mon score 🔥`;
     },
   },
   {

@@ -107,7 +107,7 @@ export default function LaunchAnnouncement() {
             rap français
           </h2>
           <p className="text-sm text-ink-muted mt-3">
-            100% gratuit, en ligne, solo ou entre potes. Défi du jour, classement, salons privés — tout est déjà là.
+            100% gratuit, en ligne, solo ou entre potes. Défi de la semaine, classement, salons privés — tout est déjà là.
           </p>
         </div>
 

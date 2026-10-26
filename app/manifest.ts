@@ -20,7 +20,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     // Raccourcis (appui long sur l'icône) — les trois gestes les plus fréquents.
     shortcuts: [
-      { name: "Défi du jour", short_name: "Défi", url: "/jouer?daily=1&autostart=1", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Défi de la semaine", short_name: "Défi", url: "/jouer?daily=1&autostart=1", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Lancer une soirée", short_name: "Soirée", url: "/jouer?mode=party", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
       { name: "Entre potes", short_name: "Potes", url: "/jouer?mode=local", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
     ],

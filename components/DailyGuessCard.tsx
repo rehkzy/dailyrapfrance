@@ -5,7 +5,7 @@ import { Zap } from "lucide-react";
 import { getStreak } from "@/lib/dailyStreak";
 
 // Carte d'entrée vers "Devine du jour" sur le hub — un rituel de 30 secondes, distinct
-// de la partie complète du Défi du jour. Affiche la série en cours si elle existe, pour
+// de la partie complète du Défi de la semaine. Affiche la série en cours si elle existe, pour
 // donner une raison concrète de cliquer ("ne casse pas ta série").
 export default function DailyGuessCard() {
   const [streak, setStreak] = useState(0);

@@ -16,7 +16,7 @@ export type ThemeOption = {
 export const THEME_CATEGORIES = ["Du moment", "Époques", "Styles", "Régions", "Artistes"] as const;
 
 // Catalogue unique — utilisé à la fois par le wizard solo/local, le salon en ligne, les pages
-// SEO (/blindtest/[slug]) et le défi du jour. Chaque id doit exister dans lib/themeSources.ts
+// SEO (/blindtest/[slug]) et le défi de la semaine. Chaque id doit exister dans lib/themeSources.ts
 // (sauf "mix" et "pop" qui sont calculés) pour que le pool sache d'où tirer les titres.
 // Mis à jour le 25/10/2026 : classements 2026, Flammes 2026, NRJ Music Awards 2026.
 export const THEME_OPTIONS: ThemeOption[] = [
@@ -124,15 +124,23 @@ export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époq
   (t) => t.id
 );
 
-// Défi du jour — un thème imposé, identique pour tout le monde, qui change à minuit. Calculé
+// Défi de la semaine — un thème imposé, identique pour tout le monde, qui change chaque lundi à minuit. Calculé
 // à partir de la date (pas de hasard, pas d'état serveur à synchroniser) : le même jour donne
 // toujours le même thème pour tous les joueurs, et il change tout seul le lendemain.
 // Les thèmes à pool très restreint (régions à un seul nom) sont exclus du tirage.
 const DAILY_EXCLUDED = new Set(["mix", "78", "31", "lagui-sadek"]);
 const DAILY_POOL = THEME_OPTIONS.filter((t) => !DAILY_EXCLUDED.has(t.id));
 
+function weekIndexParis(): number {
+  const today = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(new Date());
+  const t = new Date(`${today}T00:00:00Z`);
+  const back = (t.getUTCDay() + 6) % 7;
+  return Math.floor((t.getTime() - back * 86_400_000) / (7 * 86_400_000));
+}
+
 export function getDailyTheme(): ThemeOption {
-  const dayIndex = Math.floor(Date.now() / 86_400_000);
+  // Défi de la SEMAINE : même thème du lundi au dimanche (heure de Paris).
+  const dayIndex = Math.floor(weekIndexParis());
   // Pas aléatoire mais "mélangé" : un pas premier par rapport à la taille du pool évite
   // d'enchaîner deux thèmes voisins dans la liste (deux artistes d'affilée, etc.).
   const step = 7;

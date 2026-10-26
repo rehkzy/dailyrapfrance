@@ -121,7 +121,7 @@ export default function InstallPrompt() {
             <p className="font-display font-bold text-sm leading-tight">Garde le blind test sous la main</p>
             <p className="text-[11px] text-ink-muted mt-0.5">
               {platform === "ios"
-                ? "Trois touches dans Safari et le défi du jour est sur ton écran d'accueil, plein écran."
+                ? "Trois touches dans Safari et le défi de la semaine est sur ton écran d'accueil, plein écran."
                 : "Sur ton écran d'accueil en un tap — idéal pour lancer une soirée."}
             </p>
           </div>

@@ -160,7 +160,7 @@ export default async function AProposPage() {
           </h2>
           <div className="grid sm:grid-cols-2 gap-3 mb-6">
             {[
-              { href: "/jouer?mode=solo", t: "Solo", s: "Le défi du jour, une série à entretenir, un classement." },
+              { href: "/jouer?mode=solo", t: "Solo", s: "Le défi de la semaine, une série à entretenir, un classement." },
               { href: "/jouer?mode=local", t: "Entre potes", s: "Un téléphone, un buzzer, jusqu'à huit joueurs." },
               { href: "/jouer?mode=online", t: "Salon en ligne", s: "Un code à partager, chacun joue de chez lui." },
               { href: "/jouer?mode=party", t: "Soirée TV", s: "L'écran sur la télé, les téléphones en manette, un gage pour le dernier." },

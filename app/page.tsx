@@ -10,7 +10,7 @@ import { themeSlug } from "@/lib/seo";
 
 /*
  * Accueil v2 — construit autour d'une seule idée : on vient ici pour jouer, maintenant ou
- * samedi soir. Dans l'ordre : le défi du jour (une action), les quatre façons de jouer, les
+ * samedi soir. Dans l'ordre : le défi de la semaine (une action), les quatre façons de jouer, les
  * soirées enregistrées (si on en a), comment marche une soirée, l'app sur l'écran d'accueil,
  * le reste de l'arcade, et la communauté.
  */
@@ -54,7 +54,7 @@ const POPULAR_THEME_LINKS = THEME_OPTIONS.filter((t) => t.id !== "mix")
 export default function Home() {
   return (
     <>
-      {/* Hero : la promesse en une ligne, puis directement le défi du jour. */}
+      {/* Hero : la promesse en une ligne, puis directement le défi de la semaine. */}
       <section className="relative overflow-hidden">
         <div className="brand-glow" aria-hidden="true" />
         <div className="max-w-5xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-8">
@@ -189,7 +189,7 @@ export default function Home() {
                 Belgique, en Suisse ou au Québec.
               </p>
               <p className="text-sm text-ink-muted leading-relaxed">
-                Seul pour le classement et le défi du jour, entre amis sur un téléphone, à distance avec un code, en soirée sur la TV
+                Seul pour le classement et le défi de la semaine, entre amis sur un téléphone, à distance avec un code, en soirée sur la TV
                 avec des gages, ou en devinant le clip : même jeu, mêmes extraits Deezer renouvelés à chaque partie.
               </p>
               <div className="flex flex-wrap gap-2 mt-4">
