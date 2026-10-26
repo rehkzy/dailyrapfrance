@@ -24,6 +24,13 @@ const MODES = [
     Icon: User,
   },
   {
+    href: "/jouer?mode=clips",
+    label: "Devine le clip",
+    sub: "Swipe, regarde, réponds. Clips officiels, lancés après l'intro.",
+    tag: "Nouveau · vidéo",
+    Icon: Clapperboard,
+  },
+  {
     href: "/jouer?mode=local",
     label: "Entre potes",
     sub: "Un seul téléphone, un buzzer, les pseudos de tout le monde.",
@@ -77,17 +84,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Quatre façons de jouer */}
+      {/* Cinq façons de jouer */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16" aria-labelledby="modes-title">
         <div className="flex items-end justify-between mb-5">
           <div>
             <h2 id="modes-title" className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
-              Quatre façons de jouer
+              Cinq façons de jouer
             </h2>
-            <p className="text-sm text-ink-muted mt-1">Seul dans le métro ou à huit sur un canapé — même jeu, mêmes 40 thèmes.</p>
+            <p className="text-sm text-ink-muted mt-1">Seul dans le métro ou à huit sur un canapé — même jeu, mêmes 80 thèmes.</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {MODES.map((m) => (
             <a key={m.href} href={m.href} className="mode-tile min-h-[168px] sm:min-h-[196px]" data-active={m.featured ? "true" : undefined}>
               <span className="mode-wash" aria-hidden="true" />
@@ -106,9 +113,8 @@ export default function Home() {
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16" aria-labelledby="defis-title">
         <h2 id="defis-title" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Envie d&apos;autre chose ?</h2>
         <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { href: "/jouer?mode=clips", Icon: Clapperboard, t: "Devine le clip", s: "Swipe, regarde, réponds. Clips officiels, lancés après l'intro. Nouveau." },
             { href: "/jouer?mode=solo&v=survival&theme=mix", Icon: Skull, t: "Survie", s: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
             { href: "/jouer?mode=solo&v=sprint&theme=pop", Icon: Timer, t: "Sprint", s: "20 extraits, 8 secondes chacun. Que de l'instinct." },
             { href: "/jouer?mode=solo&theme=random&autostart=1", Icon: Shuffle, t: "Thème surprise", s: "Un thème tiré au sort, lancé direct." },

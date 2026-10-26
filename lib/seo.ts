@@ -45,7 +45,7 @@ export const MODE_LANDINGS: Landing[] = [
     title: "Blind test rap français en solo",
     metaTitle: "Blind Test Rap Français Solo — Gratuit, Défi de la Semaine et Classement | DailyRapFrance",
     description:
-      "Joue au blind test rap français en solo, gratuitement et inscription en 10 secondes : défi de la semaine, série de jours, variantes Survie et Sprint, classement par thème. 40+ thèmes, extraits Deezer.",
+      "Joue au blind test rap français en solo, gratuitement et inscription en 10 secondes : défi de la semaine, série de jours, variantes Survie et Sprint, classement par thème. 80+ thèmes, extraits Deezer.",
     intro:
       "Cinq minutes dans le métro ou une heure sur le canapé : le mode solo te propose un extrait, un chrono, et trois questions — qui chante, quel titre, qui est en feat. Chaque jour, un défi commun à tous les joueurs change à minuit ; ta série de jours grandit tant que tu reviens.",
     playHref: "/jouer?mode=solo",

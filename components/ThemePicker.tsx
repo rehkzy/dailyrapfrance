@@ -164,7 +164,7 @@ export default function ThemePicker({
               <BrandMark className="poster-mark !w-[46%] !-top-[30%] !-right-[8%]" size="46%" />
               <span className="poster-tag inline-flex items-center gap-1"><Flame size={11} /> Défi de la semaine</span>
               <span className="relative poster-title !text-[1.7rem] mt-6">{dailyTheme.label.replace(/^Blind Test /i, "")}</span>
-              <span className="relative poster-sub">{dailyTheme.text} — le même thème pour tout le monde aujourd&apos;hui.</span>
+              <span className="relative poster-sub">{dailyTheme.text} — le même thème pour tout le monde cette semaine.</span>
             </button>
           )}
 

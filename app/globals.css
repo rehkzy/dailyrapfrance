@@ -146,6 +146,8 @@ body.game-immersive #game-intro {
   }
 }
 /* v3 : le jeu est un écran d'app — pas de pied de page ni de texte éditorial sous la scène */
+body:has(.stage) header,
+body:has(.stage) #site-announcement,
 body:has(.stage) footer,
 body:has(.stage) #seo-editorial,
 body:has(.stage) #game-intro,
@@ -2190,7 +2192,13 @@ html { overflow-x: clip; }
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 @media (min-width: 640px) { .poster { flex-basis: 46%; } }
-@media (min-width: 1024px) { .deck { overflow: visible; margin: 0; padding: 0; } .poster { flex: 1 1 0; max-width: none; aspect-ratio: 3 / 4; } }
+/* Desktop : plus de carrousel, une grille (3 + 2) — cinq affiches sur une seule ligne de 672 px
+   étaient trop étroites, les titres débordaient. */
+@media (min-width: 1024px) {
+  .deck { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; margin: 0; padding: 0; }
+  .poster { flex: none; max-width: none; aspect-ratio: 4 / 3; }
+  .deck .poster .poster-title { font-size: 28px; }
+}
 .poster[data-active="true"] { border-color: #fff; transform: translateY(-4px); }
 .poster .poster-mark {
   position: absolute;

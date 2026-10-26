@@ -31,7 +31,7 @@ const jsonLd = {
       name: "Blind Test Rap Français",
       alternateName: "Blind test rap FR DailyRapFrance",
       description:
-        "Blind test dédié au rap français, en ligne, gratuit, inscription en 10 secondes. Plus de 45 thèmes (époques, styles, régions), mode solo, multijoueur local sur le même écran, salons privés à distance et mode soirée sur TV avec gages.",
+        "Blind test dédié au rap français, en ligne, gratuit, inscription en 10 secondes. Plus de 80 thèmes (époques, styles, régions), mode solo, multijoueur local sur le même écran, salons privés à distance et mode soirée sur TV avec gages.",
       genre: ["Quiz musical", "Jeu de soirée"],
       gamePlatform: "Navigateur web (mobile, tablette, ordinateur, TV)",
       playMode: ["SinglePlayer", "MultiPlayer"],
@@ -75,7 +75,7 @@ const jsonLd = {
           name: "Quels thèmes de rap français sont disponibles ?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Plus de 45 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et 2010, la drill, la trap, l'afro, le jersey club, le cloud rap, les scènes régionales (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles), des blind tests dédiés à un seul artiste, le Top 50 et un défi de la semaine qui change chaque lundi.",
+            text: "Plus de 80 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et 2010, la drill, la trap, l'afro, le jersey club, le cloud rap, les scènes régionales (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles), des blind tests dédiés à un seul artiste, le Top 50 et un défi de la semaine qui change chaque lundi.",
           },
         },
       ],
@@ -148,7 +148,7 @@ export default function BlindTestPage() {
 
         <h3 className="font-display text-lg text-ink font-medium mb-1.5">Quels thèmes de rap français sont disponibles ?</h3>
         <p className="mb-5">
-          Plus de 45 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la
+          Plus de 80 thèmes : les stars de 2026 (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola), la
           nouvelle génération (La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23), les années 90, 2000 et
           2010, la drill, la trap, l&apos;afro, le jersey club, le cloud rap, les scènes régionales
           (Paris, 93, 91, 92, 94, Marseille, Lyon, Lille, Toulouse, Belgique, Suisse, Québec, Antilles),

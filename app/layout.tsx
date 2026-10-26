@@ -140,7 +140,7 @@ const JSONLD_SITE = {
         "Salon en ligne à distance avec code",
         "Mode soirée : écran TV + téléphones en manette + gages",
         "Variantes Survie et Sprint",
-        "40+ thèmes rap français",
+        "80+ thèmes rap français",
       ],
       publisher: { "@id": "https://dailyrapfrance.best/#org" },
     },

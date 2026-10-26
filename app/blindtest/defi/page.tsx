@@ -76,14 +76,16 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
             : "Défi terminé — voici le classement final."}
         </p>
 
-        <div className="flex items-center gap-2 mb-8 flex-wrap">
-          {isCurrent && playHref && (
-            <a href={playHref} className="sticker h-12 px-6"><Play size={16} fill="currentColor" /> Jouer le défi</a>
-          )}
-          <span className="inline-flex items-center gap-1.5 text-sm text-ink-muted h-12 px-3"><Users size={14} /> {ranking.length} participant{ranking.length > 1 ? "s" : ""}</span>
-          <span className="flex-1" />
-          <a href={`/blindtest/defi?s=${shiftWeek(key, -1)}`} aria-label="Semaine précédente" className="w-10 h-10 rounded-full glass grid place-items-center text-ink-muted hover:text-ink"><ChevronLeft size={16} /></a>
-          {!isCurrent && <a href={`/blindtest/defi?s=${shiftWeek(key, 1)}`} aria-label="Semaine suivante" className="w-10 h-10 rounded-full glass grid place-items-center text-ink-muted hover:text-ink"><ChevronRight size={16} /></a>}
+        {isCurrent && playHref && (
+          <a href={playHref} className="sticker h-14 w-full sm:w-auto px-8 mb-6"><Play size={16} fill="currentColor" /> Jouer le défi</a>
+        )}
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <span className="inline-flex items-center gap-1.5 text-sm text-ink-muted"><Users size={14} /> {ranking.length} participant{ranking.length > 1 ? "s" : ""}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <a href={`/blindtest/defi?s=${shiftWeek(key, -1)}`} aria-label="Semaine précédente" className="w-10 h-10 rounded-full glass grid place-items-center text-ink-muted hover:text-ink"><ChevronLeft size={16} /></a>
+            <span className="text-xs text-ink-faint px-1">Semaine du {frDate(key)}</span>
+            <a href={isCurrent ? "#" : `/blindtest/defi?s=${shiftWeek(key, 1)}`} aria-label="Semaine suivante" aria-disabled={isCurrent} className={`w-10 h-10 rounded-full glass grid place-items-center ${isCurrent ? "opacity-30 pointer-events-none" : "text-ink-muted hover:text-ink"}`}><ChevronRight size={16} /></a>
+          </span>
         </div>
 
         {ranking.length === 0 ? (

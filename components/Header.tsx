@@ -103,8 +103,8 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
 
           <p className="text-xs font-semibold text-ink-faint mb-2">Jouer</p>
           <div className="grid grid-cols-2 gap-2 mb-6">
-            {MODES.map((m) => (
-              <a key={m.href} href={m.href} className="mode-tile min-h-[104px] p-3.5">
+            {MODES.map((m, i) => (
+              <a key={m.href} href={m.href} className={`mode-tile min-h-[104px] p-3.5 ${i === MODES.length - 1 && MODES.length % 2 === 1 ? "col-span-2" : ""}`}>
                 <span className="mode-wash" aria-hidden="true" />
                 <span className="mode-icon !w-8 !h-8 !rounded-lg !top-3 !left-3"><m.Icon size={15} /></span>
                 <span className="relative text-sm font-semibold">{m.label}</span>

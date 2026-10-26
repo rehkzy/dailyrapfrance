@@ -28,52 +28,31 @@ type GameChallenge = {
 
 const GAMES: GameChallenge[] = [
   {
-    id: "blindtest",
-    label: "Blind Test — défi de la semaine",
-    url: (o) => {
-      const daily = getDailyTheme();
-      return `${o}/blindtest?theme=${daily.id}`;
-    },
+    id: "defi",
+    label: "Défi de la semaine",
+    url: (o) => `${o}/jouer?daily=1&autostart=1`,
     text: (n) => {
       const daily = getDailyTheme();
       return `${n}, je te défie sur le défi de la semaine du Blind Test Rap Français (thème : ${daily.label}) — viens battre mon score 🔥`;
     },
   },
   {
-    id: "tracklist",
-    label: "La Tracklist",
-    url: (o) => `${o}/jeux/tracklist`,
-    text: (n) => `${n}, t'as trouvé le morceau mystère du jour ? Même son pour tout le monde — viens comparer 🎯`,
+    id: "local",
+    label: "Blind test entre potes",
+    url: (o) => `${o}/jouer?mode=local`,
+    text: (n) => `${n}, on se fait un blind test rap FR ce soir ? Un téléphone, un buzzer, les points 🎤`,
   },
   {
-    id: "plus-haut",
-    label: "Plus Haut, Plus Bas",
-    url: (o) => `${o}/jeux/plus-haut`,
-    text: (n) => `${n}, viens battre ma série sur Plus Haut, Plus Bas — qui connaît le mieux les streams ? 📈`,
+    id: "online",
+    label: "Salon en ligne",
+    url: (o) => `${o}/jouer?mode=online`,
+    text: (n) => `${n}, je t'attends dans un salon de blind test rap FR — chacun sur son téléphone, on verra qui reconnaît le plus vite 🔥`,
   },
   {
-    id: "tribunal",
-    label: "Le Tribunal",
-    url: (o) => `${o}/jeux/tribunal`,
-    text: (n) => `${n}, le duel du jour est chaud — viens voter avant que ça ferme ⚖️`,
-  },
-  {
-    id: "pronos",
-    label: "Coach A&R",
-    url: (o) => `${o}/jeux/pronos`,
-    text: (n) => `${n}, pose tes 3 pronos de la semaine — on compare nos flairs d'A&R 🔮`,
-  },
-  {
-    id: "punchline",
-    label: "La Punchline",
-    url: (o) => `${o}/jeux/punchline`,
-    text: (n) => `${n}, sauras-tu reconnaître qui a dit quoi ? Viens te mesurer sur La Punchline 🎤`,
-  },
-  {
-    id: "ghostwriter",
-    label: "Ghostwriter",
-    url: (o) => `${o}/jeux/ghostwriter`,
-    text: (n) => `${n}, une IA imite des rappeurs — viens voir si tu démasques mieux que moi 👻`,
+    id: "clips",
+    label: "Devine le clip",
+    url: (o) => `${o}/jouer?mode=clips`,
+    text: (n) => `${n}, 10 clips, 15 secondes chacun, tu reconnais qui est à l'écran ? Viens battre mon score 🎬`,
   },
 ];
 

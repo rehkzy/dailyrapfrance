@@ -20,11 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
  * La cover officielle de chaque jeu (dans /public/jeux) sert de fond de carte.
  */
 const GAME_META: Record<string, { label: string; cover: string; href: string }> = {
-  "jeu-tracklist": { label: "La Tracklist", cover: "/jeux/tracklist.png", href: "/jeux/tracklist" },
-  "jeu-plus-haut": { label: "Plus Haut, Plus Bas", cover: "/jeux/plus-haut.png", href: "/jeux/plus-haut" },
-  "jeu-pronos": { label: "Coach A&R", cover: "/jeux/coach-ar.png", href: "/jeux/pronos" },
-  "jeu-punchline": { label: "La Punchline", cover: "/jeux/punchline.png", href: "/jeux/punchline" },
-  "jeu-ghostwriter": { label: "Ghostwriter", cover: "/jeux/ghostwriter.png", href: "/jeux/ghostwriter" },
+  "jeu-tracklist": { label: "La Tracklist", cover: "/jeux/tracklist.png", href: "/jouer" },
+  "jeu-plus-haut": { label: "Plus Haut, Plus Bas", cover: "/jeux/plus-haut.png", href: "/jouer" },
+  "jeu-pronos": { label: "Coach A&R", cover: "/jeux/coach-ar.png", href: "/jouer" },
+  "jeu-punchline": { label: "La Punchline", cover: "/jeux/punchline.png", href: "/jouer" },
+  "jeu-ghostwriter": { label: "Ghostwriter", cover: "/jeux/ghostwriter.png", href: "/jouer" },
 };
 const BLIND_TEST_META = { label: "Blind Test", cover: "/jeux/blind-test.png", href: "/jouer?play=1" };
 

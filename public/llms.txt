@@ -5,7 +5,7 @@
 ## Ce que c'est
 - Un extrait de 30 secondes (fourni par Deezer) démarre ; le joueur doit trouver l'artiste, le titre et, s'il y en a un, le featuring. Titre et artiste : 1 point chacun ; featuring : 2 points ; bonus de rapidité.
 - Deux niveaux : Facile (3 propositions) ou Difficile (écrire la réponse, tolérance aux fautes).
-- Plus de 40 thèmes : époques (90s, 2000s, 2010s, récent), styles (drill, trap, cloud, boom bap, mélodique, conscient…), régions (93, 91, 92, 77, 78, Marseille, Lyon, Nord, Île-de-France), blind tests dédiés à un seul artiste (Ninho, Booba, PNL, SCH, JUL, Nekfeu, Werenoi, Aya Nakamura…), Top 50 du moment, défi de la semaine.
+- Plus de 80 thèmes : époques (90s, 2000s, 2010s, récent), styles (drill, trap, cloud, boom bap, mélodique, conscient…), régions (93, 91, 92, 77, 78, Marseille, Lyon, Nord, Île-de-France), blind tests dédiés à un seul artiste (Ninho, Booba, PNL, SCH, JUL, Nekfeu, Werenoi, Aya Nakamura…), Top 50 du moment, défi de la semaine.
 - Variantes : Classique, Survie (la partie s'arrête au premier extrait raté), Sprint (20 extraits de 8 s).
 
 ## Façons de jouer
