@@ -55,11 +55,12 @@ export default function ThemePicker({
   // Ordre de la pile : tendances d'abord, puis le reste mélangé (stable pendant la session)
   const swipeOrder = useMemo(() => {
     const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "random");
-    const hot = pool.filter((t) => trendingThemes.has(t.id));
-    const rest = pool.filter((t) => !trendingThemes.has(t.id)).sort(() => Math.random() - 0.5);
-    return [...hot, ...rest];
+    const daily = pool.filter((t) => t.id === dailyTheme?.id);
+    const hot = pool.filter((t) => t.id !== dailyTheme?.id && trendingThemes.has(t.id));
+    const rest = pool.filter((t) => t.id !== dailyTheme?.id && !trendingThemes.has(t.id)).sort(() => Math.random() - 0.5);
+    return [...daily, ...hot, ...rest];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trendingThemes.size]);
+  }, [trendingThemes.size, dailyTheme?.id]);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
@@ -73,19 +74,6 @@ export default function ThemePicker({
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        const cat = (visible?.target as HTMLElement | undefined)?.dataset.category;
-        if (cat) setActiveCategory(cat);
-      },
-      { rootMargin: "-160px 0px -65% 0px", threshold: 0 }
-    );
-    Object.values(sectionRefs.current).forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [themePhotos]);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 600);
@@ -100,6 +88,47 @@ export default function ThemePicker({
     if (!q) return null;
     return THEME_OPTIONS.filter((t) => `${t.label} ${t.text} ${t.keywords ?? ""}`.toLowerCase().includes(q));
   }, [query]);
+
+  // L'onglet de catégorie suit le défilement : la catégorie active est la dernière dont le
+  // titre est passé sous la barre collante. Calcul direct à chaque scroll (l'ancien
+  // IntersectionObserver ne voyait que les sections qui changeaient d'état, et n'observait
+  // rien quand les sections n'étaient pas encore montées).
+  useEffect(() => {
+    if (view !== "grid" || filtered) return;
+    const LINE = 190; // hauteur de la barre collante + marge
+    let raf = 0;
+    const compute = () => {
+      raf = 0;
+      let current: string = THEME_CATEGORIES[0];
+      for (const cat of THEME_CATEGORIES) {
+        const el = sectionRefs.current[cat];
+        if (el && el.getBoundingClientRect().top <= LINE) current = cat;
+      }
+      setActiveCategory((prev) => (prev === current ? prev : current));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(compute);
+    };
+    compute();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, filtered]);
+
+  // Défilement différé vers une catégorie demandée depuis le mode Swipe
+  const pendingScrollRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (view !== "grid" || !pendingScrollRef.current) return;
+    const cat = pendingScrollRef.current;
+    pendingScrollRef.current = null;
+    const id = setTimeout(() => scrollToEl(sectionRefs.current[cat], -150), 350);
+    return () => clearTimeout(id);
+  }, [view]);
 
   function backToTop() {
     const lenis = (window as unknown as { __lenis?: { scrollTo: (target: number, opts?: object) => void } }).__lenis;
@@ -145,7 +174,17 @@ export default function ThemePicker({
               <button
                 key={cat}
                 type="button"
-                onClick={() => scrollToEl(sectionRefs.current[cat], -150)}
+                onClick={() => {
+                  if (view === "swipe") {
+                    // En mode Swipe, les sections n'existent pas : on bascule sur la grille, puis on y va
+                    // une fois la grille montée et mesurée (effet ci-dessous).
+                    pendingScrollRef.current = cat;
+                    switchView("grid");
+                    setActiveCategory(cat);
+                  } else {
+                    scrollToEl(sectionRefs.current[cat], -150);
+                  }
+                }}
                 aria-pressed={activeCategory === cat}
                 className={`shrink-0 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors ${
                   activeCategory === cat ? "bg-white text-black" : "bg-white/8 text-ink-muted hover:text-ink"
@@ -156,7 +195,7 @@ export default function ThemePicker({
             ))}
           </div>
         )}
-        {selected && (
+        {selected && view !== "swipe" && (
           <p className="text-xs text-ink-faint mt-2.5">
             Sélection : <span className="text-ink font-semibold">{selected.label}</span>
           </p>
@@ -165,24 +204,13 @@ export default function ThemePicker({
 
       {!filtered && (
         <div className="segmented max-w-xs -mt-2" role="tablist" aria-label="Affichage des thèmes">
-          <button type="button" role="tab" aria-pressed={view === "swipe"} onClick={() => switchView("swipe")}><Layers size={14} className="inline -mt-0.5 mr-1" /> Je glisse</button>
+          <button type="button" role="tab" aria-pressed={view === "swipe"} onClick={() => switchView("swipe")}><Layers size={14} className="inline -mt-0.5 mr-1" /> Swipe</button>
           <button type="button" role="tab" aria-pressed={view === "grid"} onClick={() => switchView("grid")}><LayoutGrid size={14} className="inline -mt-0.5 mr-1" /> Tout voir</button>
         </div>
       )}
 
       {!filtered && view === "swipe" ? (
-        <>
-          {dailyTheme && (
-            <button type="button" onClick={() => onSelect(dailyTheme.id)} className="action-row" data-primary="true">
-              <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><Flame size={20} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">Défi de la semaine — {dailyTheme.label.replace(/^Blind Test /i, "")}</span>
-                <span className="block text-xs text-white/80 truncate">{dailyTheme.text}</span>
-              </span>
-            </button>
-          )}
-          <ThemeSwipe themes={swipeOrder} photos={themePhotos} trending={trendingThemes} onPlay={onSelect} />
-        </>
+        <ThemeSwipe themes={swipeOrder} photos={themePhotos} trending={trendingThemes} highlightId={dailyTheme?.id} onPlay={onSelect} />
       ) : filtered ? (
         filtered.length === 0 ? (
           <p className="text-sm text-ink-faint text-center py-10">Rien pour « {query} ». Essaie un artiste, une époque ou une ville.</p>

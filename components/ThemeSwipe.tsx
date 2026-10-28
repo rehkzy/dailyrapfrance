@@ -18,11 +18,13 @@ export default function ThemeSwipe({
   themes,
   photos,
   trending,
+  highlightId,
   onPlay,
 }: {
   themes: ThemeOption[];
   photos: Record<string, string | string[]>;
   trending: Set<string>;
+  highlightId?: string | null;
   onPlay: (id: string) => void;
 }) {
   const [index, setIndex] = useState(0);
@@ -110,7 +112,7 @@ export default function ThemeSwipe({
           role="button"
           aria-label={`${current.label} — glisser à droite pour jouer, à gauche pour passer`}
         >
-          <ThemeCover Icon={current.Icon} label={current.label} index={index} photoUrl={photos[current.id]} tag={trending.has(current.id) ? "Tendance" : current.category === "Artistes" ? "Artiste" : undefined} />
+          <ThemeCover Icon={current.Icon} label={current.label} index={index} photoUrl={photos[current.id]} tag={current.id === highlightId ? "🔥 Défi de la semaine" : trending.has(current.id) ? "Tendance" : current.category === "Artistes" ? "Artiste" : undefined} />
           <span className="swipe-stamp swipe-stamp-yes" style={{ opacity: likeOpacity }}>JOUER</span>
           <span className="swipe-stamp swipe-stamp-no" style={{ opacity: nopeOpacity }}>SUIVANT</span>
           <span className="swipe-caption">

@@ -2945,7 +2945,8 @@ body .reel-feed {
    Choix du thème en pile de cartes (glisser à droite = jouer, à gauche = suivant)
    --------------------------------------------------------------------------------------- */
 .swipe-wrap { max-width: 400px; margin: 0 auto; user-select: none; -webkit-user-select: none; }
-.swipe-stack { position: relative; aspect-ratio: 3 / 4; }
+/* La pile tient dans l'écran (barre collante + boutons compris) : largeur dérivée de la hauteur dispo */
+.swipe-stack { position: relative; aspect-ratio: 3 / 4; width: min(100%, calc((100dvh - 470px) * 0.75)); min-width: 210px; margin: 0 auto; }
 .swipe-card {
   position: absolute; inset: 0;
   border-radius: 22px;
@@ -2977,9 +2978,9 @@ body .reel-feed {
 }
 .swipe-stamp-yes { left: 18px; color: #fff; border-color: #fff; background: rgba(240, 0, 28, 0.85); }
 .swipe-stamp-no { right: 18px; color: #fff; border-color: rgba(255, 255, 255, 0.85); background: rgba(0, 0, 0, 0.6); transform: rotate(14deg); }
-.swipe-actions { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 18px; }
+.swipe-actions { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 14px; }
 .swipe-btn {
-  width: 68px; height: 68px; border-radius: 50%;
+  width: 60px; height: 60px; border-radius: 50%;
   display: grid; place-items: center;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
