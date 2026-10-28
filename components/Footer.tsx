@@ -10,6 +10,7 @@ const columns = [
       { href: "/jouer?mode=online", label: "Salon en ligne" },
       { href: "/jouer?mode=party", label: "Soirée TV" },
       { href: "/jouer?mode=clips", label: "Devine le clip" },
+      { href: "/creer", label: "Créer mon blind test" },
     ],
   },
   {

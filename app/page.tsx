@@ -1,8 +1,8 @@
-import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy, Clapperboard } from "lucide-react";
+import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy, Clapperboard, Sparkles } from "lucide-react";
 import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
 import SocialLinks from "@/components/SocialLinks";
-import { BrandTile } from "@/components/BrandMark";
+import BrandMark, { BrandTile } from "@/components/BrandMark";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { THEME_OPTIONS } from "@/lib/themes";
@@ -84,6 +84,23 @@ export default function Home() {
         </div>
       </section>
 
+      {/* NOUVEAU — le constructeur : la fonctionnalité qu'on met en avant */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4" aria-labelledby="creer-title">
+        <a href="/creer" className="builder-card block p-6 sm:p-8">
+          <BrandMark className="mark-watermark text-white" size="50%" />
+          <div className="relative md:flex md:items-center md:gap-8">
+            <div className="flex-1">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-white bg-white/15 rounded-full px-2.5 py-1 mb-4"><Sparkles size={12} /> Nouveau</span>
+              <h2 id="creer-title" className="poster-title text-3xl sm:text-4xl md:text-5xl text-white max-w-xl">Crée ton blind test avec tes morceaux.</h2>
+              <p className="mt-3 text-sm sm:text-base text-white/85 max-w-lg">Anniversaire, soirée, mariage, classe, bureau : choisis les titres, donne un nom, envoie le lien. Chacun joue sur son téléphone, sans compte. Deux minutes de préparation.</p>
+            </div>
+            <div className="mt-6 md:mt-0 shrink-0">
+              <span className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full md:w-auto !bg-white !text-[#8a0010]"><Sparkles size={18} /> Créer le mien</span>
+            </div>
+          </div>
+        </a>
+      </section>
+
       {/* Cinq façons de jouer */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16" aria-labelledby="modes-title">
         <div className="flex items-end justify-between mb-5">
@@ -113,8 +130,9 @@ export default function Home() {
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16" aria-labelledby="defis-title">
         <h2 id="defis-title" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Envie d&apos;autre chose ?</h2>
         <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
+            { href: "/creer", Icon: Sparkles, t: "Le tien", s: "Tes morceaux, ton nom, ton lien. Nouveau." },
             { href: "/jouer?mode=solo&v=survival&theme=mix", Icon: Skull, t: "Survie", s: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
             { href: "/jouer?mode=solo&v=sprint&theme=pop", Icon: Timer, t: "Sprint", s: "20 extraits, 8 secondes chacun. Que de l'instinct." },
             { href: "/jouer?mode=solo&theme=random&autostart=1", Icon: Shuffle, t: "Thème surprise", s: "Un thème tiré au sort, lancé direct." },

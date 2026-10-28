@@ -2886,3 +2886,109 @@ body .reel-feed {
   .sticker { padding-left: 16px; padding-right: 16px; font-size: 15px; line-height: 1.15; }
   .sticker.text-lg { font-size: 15px; }
 }
+
+/* ---------------------------------------------------------------------------------------
+   Grand écran (ordinateur) : on a la place, on s'en sert.
+   --------------------------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  /* Deck des modes : les 5 affiches sur une ligne, format affiche */
+  .deck { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+  .poster { aspect-ratio: 4 / 5; }
+  .deck .poster .poster-title { font-size: clamp(22px, 1.9vw, 30px); }
+  /* Thèmes : plus de colonnes */
+  .theme-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+  /* Écran de jeu : scène à gauche, réponses à droite */
+  .feed-slide {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 440px;
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+  .feed-top { grid-column: 1 / -1; }
+  .feed-players { grid-column: 1 / -1; }
+  .feed-scene { grid-column: 1; grid-row: 2; }
+  .feed-bottom { grid-column: 2; grid-row: 2; align-self: center; max-width: none; margin: 0; }
+  .feed-rail { position: static; flex-direction: row; gap: 22px; grid-column: 2; grid-row: 2; align-self: end; justify-self: start; margin-bottom: 28px; }
+  .feed-disc { width: min(34vh, 320px); margin-bottom: -64px; }
+  .feed-timer { width: 136px; height: 136px; }
+  .feed-timer .score-num { font-size: 3.4rem; }
+  .feed .answer { min-height: 60px; }
+  /* Fin de partie : le feed devient une page qui défile, deux colonnes */
+  .feed-final .feed-slide { display: block; max-width: none; padding-left: 0; padding-right: 0; }
+  .feed-final .feed-slide-scroll { padding-left: 40px; padding-right: 40px; }
+}
+@media (min-width: 1280px) {
+  .theme-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* Carte « Crée ton blind test » (accueil) — la nouveauté qu'on met en avant */
+.builder-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #3a0a0f 0%, #8a0010 55%, #f0001c 120%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px rgba(240, 0, 28, 0.25);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.builder-card:hover { transform: translateY(-2px); box-shadow: 0 30px 70px rgba(240, 0, 28, 0.35); }
+@media (min-width: 1024px) {
+  /* 6 affiches : 3 + 3 */
+  .deck { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+}
+
+/* ---------------------------------------------------------------------------------------
+   Choix du thème en pile de cartes (glisser à droite = jouer, à gauche = suivant)
+   --------------------------------------------------------------------------------------- */
+.swipe-wrap { max-width: 400px; margin: 0 auto; user-select: none; -webkit-user-select: none; }
+.swipe-stack { position: relative; aspect-ratio: 3 / 4; }
+.swipe-card {
+  position: absolute; inset: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  transform-origin: 50% 110%;
+  will-change: transform;
+}
+.swipe-card .theme-poster { position: absolute; inset: 0; aspect-ratio: auto; border-radius: 22px; }
+.swipe-card .theme-poster-label { display: none; }
+.swipe-card .theme-poster-icon { width: 60%; height: 60%; }
+.swipe-card-top { cursor: grab; touch-action: pan-y; }
+.swipe-card-top[data-dragging="true"] { cursor: grabbing; }
+.swipe-caption {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 72px 20px 22px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.85));
+  color: #fff;
+  text-align: left;
+  pointer-events: none;
+}
+.swipe-stamp {
+  position: absolute; top: 24px;
+  font-family: var(--font-display);
+  font-weight: 900; font-size: 30px; letter-spacing: 0.06em;
+  padding: 4px 12px; border: 4px solid; border-radius: 10px;
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+.swipe-stamp-yes { left: 18px; color: #fff; border-color: #fff; background: rgba(240, 0, 28, 0.85); }
+.swipe-stamp-no { right: 18px; color: #fff; border-color: rgba(255, 255, 255, 0.85); background: rgba(0, 0, 0, 0.6); transform: rotate(14deg); }
+.swipe-actions { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 18px; }
+.swipe-btn {
+  width: 68px; height: 68px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--ink);
+  transition: transform 0.12s;
+}
+.swipe-btn:active { transform: scale(0.92); }
+.swipe-btn:disabled { opacity: 0.3; }
+.swipe-btn-sm { width: 44px; height: 44px; font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.swipe-btn-no { color: #fff; }
+.swipe-btn-yes { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 12px 30px rgba(240, 0, 28, 0.45); }
+.swipe-counter { font-family: var(--font-mono); }

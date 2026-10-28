@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Tv, User, Globe, Clapperboard } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Tv, User, Globe, Clapperboard, Sparkles } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
@@ -20,6 +20,7 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 const NAV = [
   { href: "/", label: "Accueil", Icon: Home },
   { href: "/jouer", label: "Jouer", Icon: Play },
+  { href: "/creer", label: "Créer", Icon: Sparkles },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
@@ -30,6 +31,7 @@ const MODES = [
   { href: "/jouer?mode=local", label: "Entre potes", sub: "Un écran, un buzzer", Icon: Users },
   { href: "/jouer?mode=online", label: "Salon en ligne", sub: "Un code, chacun chez soi", Icon: Globe },
   { href: "/jouer?mode=party", label: "Soirée TV", sub: "Téléphones + gages", Icon: Tv },
+  { href: "/creer", label: "Crée le tien", sub: "Tes morceaux, ton lien — nouveau", Icon: Sparkles },
 ];
 
 const socials = [

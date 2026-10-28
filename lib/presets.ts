@@ -32,6 +32,7 @@ export const SURVIVAL_POOL = 30;
 export type GameConfig = {
   mode: GameMode;
   theme: string;
+  custom?: string; // blind test personnalisé : code encodé (lib/customBlindtest.ts)
   rounds: number;
   seconds: number;
   answerMode: AnswerMode;
@@ -134,6 +135,7 @@ export function configToSearch(c: GameConfig, extra?: Record<string, string>): s
   const p = new URLSearchParams();
   p.set("mode", c.mode);
   p.set("theme", c.theme);
+  if (c.custom) p.set("custom", c.custom);
   if (c.rounds !== DEFAULT_CONFIG.rounds) p.set("rounds", String(c.rounds));
   if (c.seconds !== DEFAULT_CONFIG.seconds) p.set("secs", String(c.seconds));
   if (c.answerMode !== DEFAULT_CONFIG.answerMode) p.set("answer", c.answerMode);
@@ -154,8 +156,13 @@ export function parseConfig(params: URLSearchParams, validTheme: (id: string) =>
   const out: Partial<GameConfig> = {};
   const mode = params.get("mode");
   if (mode === "solo" || mode === "local" || mode === "online" || mode === "party") out.mode = mode;
+  const custom = params.get("custom");
+  if (custom) {
+    out.custom = custom;
+    out.theme = "custom";
+  }
   const theme = params.get("theme");
-  if (theme && (theme === "random" || validTheme(theme))) out.theme = theme;
+  if (!custom && theme && (theme === "random" || validTheme(theme))) out.theme = theme;
   const v = params.get("v");
   if (v === "classic" || v === "survival" || v === "sprint") out.variant = v;
   const media = params.get("media");

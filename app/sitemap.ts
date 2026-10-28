@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE}/blindtest`, lastModified: now, changeFrequency: "daily", priority: 1 },
         ...MODE_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.9 })),
     ...THEME_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 })),
+    { url: `${SITE}/blindtest/creer`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${SITE}/blindtest/classement`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
     { url: `${SITE}/a-propos`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];

@@ -7,6 +7,7 @@ import { weeklyNumberFor } from "@/lib/dailyStreak";
 
 // "survival:93" → "Survie · Rappeurs du 93" ; "93" → "Rappeurs du 93"
 function themeLabel(raw: string) {
+  if (raw === "custom") return "Blind test perso";
   if (raw.startsWith("defi:")) return `Défi de la semaine #${weeklyNumberFor(raw.slice(5))}`;
   const [a, b] = raw.includes(":") ? raw.split(":") : [null, raw];
   const label = THEME_OPTIONS.find((t) => t.id === b)?.label ?? b;

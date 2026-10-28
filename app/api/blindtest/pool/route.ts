@@ -105,6 +105,17 @@ export async function GET(req: NextRequest) {
   try {
     let raw: DeezerTrackSummary[] = [];
 
+    // Blind test personnalisé : liste d'IDs Deezer choisie par la personne (constructeur).
+    const idsParam = searchParams.get("ids");
+    if (idsParam) {
+      const ids = idsParam.split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 40);
+      const detailed = await Promise.all(ids.map((id) => fetchTrackDetail(id)));
+      const ordered = detailed.filter((t): t is NonNullable<typeof t> => !!t && !!t.preview).map(toGameTrack);
+      const shuffle = searchParams.get("order") !== "keep";
+      const tracks = (shuffle ? [...ordered].sort(() => Math.random() - 0.5) : ordered).slice(0, count);
+      return NextResponse.json({ tracks });
+    }
+
     const artistListsById = THEME_ARTISTS;
 
     const fixed = FIXED_TRACK_THEMES[themeId];

@@ -6,7 +6,7 @@ import {
   RotateCcw, Users, User, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   X, VolumeX, Volume2, Lightbulb, Sliders,
-  SpellCheck, PartyPopper, Swords, Trophy, Clapperboard,
+  SpellCheck, PartyPopper, Swords, Trophy, Clapperboard, Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -25,6 +25,7 @@ import { DRMark3D } from "@/components/BlindTestLogo";
 import BlindTestRoom from "@/components/BlindTestRoom";
 import BrandLoader from "@/components/BrandLoader";
 import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
+import { decodeCustomSet, CUSTOM_THEME_ID } from "@/lib/customBlindtest";
 import ResultTicket from "@/components/ResultTicket";
 import SavedPresets from "@/components/SavedPresets";
 import DailyCard from "@/components/DailyCard";
@@ -50,12 +51,13 @@ const RemoteSalonIcon = RemoteSalonIconBase as unknown as LucideIcon;
 
 // « clips » n'est pas un mode du blind test audio : la tuile envoie vers le feed vertical
 // « Devine le clip » (/jouer?mode=clips), rendu par app/jouer/page.tsx à la place de ce composant.
-const MODE_TILES: { id: Mode | "clips"; label: string; Icon: LucideIcon; desc: string; tag: string }[] = [
+const MODE_TILES: { id: Mode | "clips" | "custom"; label: string; Icon: LucideIcon; desc: string; tag: string }[] = [
   { id: "solo", label: "Solo", Icon: User, desc: "À ton rythme, score sauvegardé.", tag: "1 joueur" },
   { id: "clips", label: "Devine le clip", Icon: Clapperboard, desc: "Swipe, regarde, réponds. Clips officiels, sans l'intro.", tag: "Nouveau · vidéo" },
   { id: "local", label: "Entre potes", Icon: Users, desc: "Un écran, un buzzer, les pseudos.", tag: "2 à 8 joueurs" },
   { id: "online", label: "Salon en ligne", Icon: RemoteSalonIcon, desc: "Un code, chacun sur son téléphone.", tag: "À distance" },
   { id: "party", label: "Soirée TV", Icon: PartyPopper, desc: "Écran partagé, téléphones en manette, un gage pour le dernier.", tag: "2 à 8 + TV" },
+  { id: "custom", label: "Le tien", Icon: Sparkles, desc: "Tes morceaux, ton nom, un lien à envoyer.", tag: "Nouveau · perso" },
 ];
 
 type Track = {
@@ -101,7 +103,7 @@ export default function BlindTest() {
   // Lien profond — transporte une configuration complète (preset, défi d'un pote, raccourci
   // d'app) : /jouer?mode=local&theme=93&rounds=15&secs=25&players=A|B&autostart=1
   const deepLink = useMemo(() => {
-    const cfg = parseConfig(searchParams, (id) => THEME_OPTIONS.some((t) => t.id === id));
+    const cfg = parseConfig(searchParams, (id) => id === CUSTOM_THEME_ID ? !!searchParams.get("custom") : THEME_OPTIONS.some((t) => t.id === id));
     const isDaily = searchParams.get("daily") === "1";
     return {
       ...cfg,
@@ -116,13 +118,17 @@ export default function BlindTest() {
   }, [searchParams]);
   const deepLinkTheme = deepLink.theme ?? null;
   const deepLinkMode = deepLink.mode ?? null;
+  // Blind test personnalisé (constructeur /creer) : les titres sont dans l'URL, pas de choix de thème.
+  const customCode = searchParams.get("custom");
+  const customSet = useMemo(() => decodeCustomSet(customCode), [customCode]);
+  const isCustom = !!customSet;
 
   // Lien profond : mode + thème → direct aux réglages ; mode solo seul → direct au thème.
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(
-    deepLinkTheme && deepLinkMode ? 2 : deepLinkTheme || deepLinkMode === "solo" ? 1 : 0
+    isCustom ? (deepLinkMode ? 2 : 0) : deepLinkTheme && deepLinkMode ? 2 : deepLinkTheme || deepLinkMode === "solo" ? 1 : 0
   );
   const [mode, setMode] = useState<Mode | null>(joinRoomCode ? "online" : deepLinkMode);
-  const [themeId, setThemeId] = useState<string>(deepLinkTheme ?? "mix");
+  const [themeId, setThemeId] = useState<string>(isCustom ? CUSTOM_THEME_ID : deepLinkTheme ?? "mix");
   const [variant, setVariant] = useState<Variant>(deepLink.variant ?? "classic");
   // Source : extrait audio Deezer ou clip YouTube (mode « Devine le clip »).
   const [media, setMedia] = useState<"audio" | "clip">(deepLink.media ?? "audio");
@@ -160,12 +166,13 @@ export default function BlindTest() {
   // Réglages effectifs : le Sprint impose ses règles (8 s, 20 extraits, sans joker), la
   // Survie tire un pool large et s'arrête au premier raté.
   const effectiveSeconds = variant === "sprint" ? SPRINT_SECONDS : roundSeconds;
-  const effectiveRounds = variant === "sprint" ? SPRINT_ROUNDS : variant === "survival" ? SURVIVAL_POOL : roundCount;
+  const effectiveRounds = customSet ? customSet.i.length : variant === "sprint" ? SPRINT_ROUNDS : variant === "survival" ? SURVIVAL_POOL : roundCount;
   const effectiveJokers = variant === "sprint" ? 0 : jokerCount;
   const jokersEnabled = jokersEnabledBase && effectiveJokers > 0;
   const currentConfig: GameConfig = {
     mode: mode ?? "solo",
     theme: themeId,
+    ...(customCode ? { custom: customCode } : {}),
     rounds: roundCount,
     seconds: roundSeconds,
     answerMode: answerMode ?? "qcm",
@@ -394,7 +401,9 @@ export default function BlindTest() {
       setThemeId(playTheme);
     }
     try {
-      const res = await fetch(`/api/blindtest/pool?${buildQuery(playTheme, effectiveRounds)}`);
+      const poolQuery = buildQuery(playTheme, effectiveRounds);
+      if (customSet) poolQuery.set("ids", customSet.i.join(","));
+      const res = await fetch(`/api/blindtest/pool?${poolQuery}`);
       const data = await res.json();
       let pool: Track[] = data.tracks ?? [];
       if (pool.length < 3) {
@@ -830,6 +839,15 @@ export default function BlindTest() {
   // Appui maintenu sur la scène = pause (son + chrono), relâcher = reprise.
   const holdRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; since: number | null }>({ timer: null, since: null });
   const [held, setHeld] = useState(false);
+  // Grand écran (≥ 1024 px) : certains panneaux s'ouvrent d'office, il y a la place.
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   function holdStart() {
     if (!started || revealed) return;
     holdRef.current.timer = setTimeout(() => {
@@ -1024,7 +1042,7 @@ export default function BlindTest() {
   // ---------------------------------------------------------------------------------------
   // v3 "La Scène" — barre haute commune aux écrans de préparation et de fin
   // ---------------------------------------------------------------------------------------
-  const themeLabelNow = themeId === "random" ? "Thème surprise" : THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId;
+  const themeLabelNow = customSet ? customSet.t : themeId === "random" ? "Thème surprise" : THEME_OPTIONS.find((t) => t.id === themeId)?.label ?? themeId;
   const modeLabelNow = MODE_TILES.find((m) => m.id === mode)?.label ?? "Solo";
   const stageTop = (
     <div className="flex items-center justify-between gap-3 pt-4 pb-2">
@@ -1060,8 +1078,8 @@ export default function BlindTest() {
   if (phase === "setup" || phase === "loading") {
     const canContinue = wizardStep === 0 ? !!mode && (mode !== "local" || playerNames.filter((n) => n.trim()).length >= 2) : true;
     return (
-      <div className="stage blindtest-shell px-5 sm:px-6" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
-        <div className="max-w-2xl mx-auto">
+      <div className="stage blindtest-shell px-5 sm:px-6 lg:px-10" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
+        <div className="max-w-2xl lg:max-w-6xl mx-auto">
           {stageTop}
 
           {phase === "loading" ? (
@@ -1071,9 +1089,18 @@ export default function BlindTest() {
             </div>
           ) : wizardStep === 0 ? (
             <>
-              <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
-              <h2 className="stage-title mb-2">Comment on joue<br />ce soir ?</h2>
-              <p className="text-sm text-ink-muted mb-5">Choisis une carte, puis le thème. Le reste se règle en un écran.</p>
+              <div className="lg:flex lg:items-end lg:justify-between lg:gap-10 lg:mb-6">
+                <div>
+                  <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
+                  <h2 className="stage-title mb-2">Comment on joue<br />ce soir ?</h2>
+                  <p className="text-sm text-ink-muted mb-5 lg:mb-0">Choisis une carte, puis le thème. Le reste se règle en un écran.</p>
+                </div>
+                {!mode && (
+                  <div className="hidden lg:block w-[380px] shrink-0">
+                    <DailyCard variant="compact" />
+                  </div>
+                )}
+              </div>
 
               {deepLink.from && (
                 <div className="challenge-banner mb-5">
@@ -1094,6 +1121,7 @@ export default function BlindTest() {
                     "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)",
                     "linear-gradient(160deg, #1b0507 0%, #5c000b 60%, #a3121b 120%)",
                     "linear-gradient(160deg, #f0001c 0%, #ff3b4e 55%, #ffb199 140%)",
+                    "linear-gradient(160deg, #120305 0%, #3a0a0f 50%, #ff3b4e 150%)",
                   ];
                   return (
                     <button
@@ -1110,9 +1138,13 @@ export default function BlindTest() {
                           window.location.assign("/jouer?mode=clips");
                           return;
                         }
+                        if (m.id === "custom") {
+                          window.location.assign("/creer");
+                          return;
+                        }
                         setMode(m.id);
                         setSetupError(null);
-                        if (m.id === "solo") setTimeout(() => setWizardStep(1), 260);
+                        if (m.id === "solo") setTimeout(() => setWizardStep(isCustom ? 2 : 1), 260);
                         // Entre potes : le panneau des pseudos apparaît sous le deck — on l'amène
                         // à l'écran, sinon on ne sait pas qu'il y a une étape de plus.
                         if (m.id === "local") setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
@@ -1122,6 +1154,7 @@ export default function BlindTest() {
                       <span className="poster-tag">{m.tag}</span>
                       {isActive && <span className="poster-check"><Check size={16} strokeWidth={3} /></span>}
                       {m.id === "clips" && <span className="poster-check" aria-hidden><Clapperboard size={16} strokeWidth={2.5} /></span>}
+                      {m.id === "custom" && <span className="poster-check" aria-hidden><Sparkles size={16} strokeWidth={2.5} /></span>}
                       <span className="relative poster-title">{m.label}</span>
                       <span className="relative poster-sub">{m.desc}</span>
                     </button>
@@ -1130,7 +1163,7 @@ export default function BlindTest() {
               </div>
 
               {mode === "local" && (
-                <div id="players-panel" className="ticket p-5 mt-2 mb-6 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
+                <div id="players-panel" className="ticket p-5 mt-2 mb-6 lg:max-w-xl animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
                   <div className="flex items-baseline justify-between mb-1">
                     <p className="font-display text-xl font-bold">Qui joue ?</p>
                     <span className="text-xs text-ink-faint">{playerNames.filter((n) => n.trim()).length} / 8</span>
@@ -1168,7 +1201,7 @@ export default function BlindTest() {
 
               {!mode && (
                 <div className="mt-2 space-y-6">
-                  <DailyCard variant="compact" />
+                  <div className="lg:hidden"><DailyCard variant="compact" /></div>
                   <SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} />
                 </div>
               )}
@@ -1191,21 +1224,22 @@ export default function BlindTest() {
             </>
           ) : (
             <>
-              <button type="button" onClick={() => setWizardStep(1)} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]">
-                <ChevronLeft size={16} /> Thèmes
+              <button type="button" onClick={() => setWizardStep(isCustom ? 0 : 1)} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]">
+                <ChevronLeft size={16} /> {isCustom ? "Modes" : "Thèmes"}
               </button>
               <h2 className="stage-title mb-5">Dernier<br />réglage.</h2>
 
-              <div className="ticket mb-5">
+              <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+              <div className="ticket mb-5 lg:mb-0">
                 <div className="p-5 flex items-center gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="stage-kicker mb-1">{modeLabelNow}</p>
+                    <p className="stage-kicker mb-1">{modeLabelNow}{isCustom ? " · Blind test perso" : ""}</p>
                     <p className="font-display text-2xl font-extrabold leading-tight truncate">{themeLabelNow}</p>
                     <p className="text-xs text-ink-faint mt-1 truncate">
                       {mode === "local" ? playerNames.filter((n) => n.trim()).join(", ") : `${effectiveRounds} extraits · ${effectiveSeconds} s chacun`}
                     </p>
                   </div>
-                  <button type="button" onClick={() => setWizardStep(1)} className="sticker sticker-ghost sticker-sm">Changer</button>
+                  {!isCustom && <button type="button" onClick={() => setWizardStep(1)} className="sticker sticker-ghost sticker-sm">Changer</button>}
                 </div>
                 <div className="ticket-cut" />
                 <div className="p-5 space-y-5">
@@ -1242,7 +1276,7 @@ export default function BlindTest() {
                 </div>
               </div>
 
-              <details className="group adv-card ticket mb-6">
+              <details className="group adv-card ticket mb-6 lg:mb-0" open={wide || undefined}>
                 <summary className="cursor-pointer flex items-center gap-4 p-5 min-h-[72px]">
                   <span className="w-11 h-11 rounded-xl bg-white/8 grid place-items-center shrink-0 text-ink"><Sliders size={18} /></span>
                   <span className="flex-1 min-w-0">
@@ -1257,14 +1291,14 @@ export default function BlindTest() {
                 <div className="px-5 pb-5 space-y-5">
                   {variant === "classic" && (
                     <>
-                      <div>
+                      {!isCustom && <div>
                         <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
                         <div className="segmented">
                           {[10, 15, 20, 30].map((n) => (
                             <button key={n} type="button" aria-pressed={roundCount === n} onClick={() => { sfx.click(); setRoundCount(n); }}>{n}</button>
                           ))}
                         </div>
-                      </div>
+                      </div>}
                       <div>
                         <p className="text-xs font-semibold text-ink-faint mb-2">Temps par manche</p>
                         <div className="segmented">
@@ -1307,6 +1341,8 @@ export default function BlindTest() {
                 </div>
               </details>
 
+              </div>
+
               {setupError && <p className="text-sm text-riseNeg mb-4">{setupError}</p>}
             </>
           )}
@@ -1322,8 +1358,8 @@ export default function BlindTest() {
                   <Icon icon="game-icons:play-button" width={20} /> Lancer la partie
                 </button>
               ) : (
-                <button type="button" disabled={!canContinue} onClick={() => { setSetupError(null); setWizardStep(1); }} className="sticker w-full h-16 text-lg">
-                  {!mode ? "Choisis un mode pour continuer" : mode === "local" && !canContinue ? "Ajoute au moins 2 joueurs" : "Choisir le thème"} {canContinue && <ChevronRight size={18} />}
+                <button type="button" disabled={!canContinue} onClick={() => { setSetupError(null); setWizardStep(isCustom ? 2 : 1); }} className="sticker w-full h-16 text-lg">
+                  {!mode ? "Choisis un mode pour continuer" : mode === "local" && !canContinue ? "Ajoute au moins 2 joueurs" : isCustom ? "Continuer" : "Choisir le thème"} {canContinue && <ChevronRight size={18} />}
                 </button>
               )}
             </div>
@@ -1356,8 +1392,10 @@ export default function BlindTest() {
     return (
       <div className="feed feed-final" data-lenis-prevent>
         {showConfetti && <Confetti />}
-        <div className="feed-slide feed-slide-scroll max-w-xl mx-auto w-full">
+        <div className="feed-slide feed-slide-scroll max-w-xl lg:max-w-6xl mx-auto w-full lg:px-10">
           {stageTop}
+          <div className="lg:grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10 lg:items-start">
+          <div>
           <h2 className="stage-title mt-4 mb-5">{solo ? (perfect === roundOutcomes.length && perfect > 0 ? "Sans faute." : topScore >= roundOutcomes.length * 2 ? "Solide." : "Fini.") : `${ranked[0]?.name} gagne.`}</h2>
 
           <ResultTicket
@@ -1376,6 +1414,8 @@ export default function BlindTest() {
             leaderboardHref={solo ? (isDailyRun ? "/blindtest/defi" : "/blindtest/classement") : undefined}
             podium={solo ? undefined : ranked.map((p) => ({ name: p.name, score: p.score }))}
           />
+          </div>
+          <div>
 
           {solo && scoreSaveStatus === "guest" && (
             <button type="button" onClick={() => setShowAuth(true)} className="mt-4 w-full ticket p-4 flex items-center gap-3 text-left">
@@ -1419,6 +1459,8 @@ export default function BlindTest() {
               </div>
             </details>
           )}
+          </div>
+          </div>
         </div>
       </div>
     );

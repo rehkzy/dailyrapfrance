@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X, Flame, ArrowUp } from "lucide-react";
+import { Search, X, Flame, ArrowUp, LayoutGrid, Layers } from "lucide-react";
+import ThemeSwipe from "@/components/ThemeSwipe";
 import { THEME_OPTIONS, THEME_CATEGORIES, FEATURED_THEME_IDS, PHOTO_THEME_IDS, type ThemeOption } from "@/lib/themes";
 import ThemeCover from "@/components/ThemeCover";
 import BrandMark from "@/components/BrandMark";
@@ -37,6 +38,28 @@ export default function ThemePicker({
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>(THEME_CATEGORIES[0]);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  // Vue « pile de cartes » (glisser) ou grille complète. Par défaut la pile sur téléphone —
+  // c'est le geste que tout le monde a dans les doigts — la grille sur grand écran.
+  const [view, setView] = useState<"swipe" | "grid">("grid");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("drf-theme-view");
+      if (saved === "swipe" || saved === "grid") setView(saved);
+      else if (window.matchMedia("(max-width: 639px)").matches) setView("swipe");
+    } catch {}
+  }, []);
+  function switchView(v: "swipe" | "grid") {
+    setView(v);
+    try { localStorage.setItem("drf-theme-view", v); } catch {}
+  }
+  // Ordre de la pile : tendances d'abord, puis le reste mélangé (stable pendant la session)
+  const swipeOrder = useMemo(() => {
+    const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "random");
+    const hot = pool.filter((t) => trendingThemes.has(t.id));
+    const rest = pool.filter((t) => !trendingThemes.has(t.id)).sort(() => Math.random() - 0.5);
+    return [...hot, ...rest];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trendingThemes.size]);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
@@ -140,7 +163,27 @@ export default function ThemePicker({
         )}
       </div>
 
-      {filtered ? (
+      {!filtered && (
+        <div className="segmented max-w-xs -mt-2" role="tablist" aria-label="Affichage des thèmes">
+          <button type="button" role="tab" aria-pressed={view === "swipe"} onClick={() => switchView("swipe")}><Layers size={14} className="inline -mt-0.5 mr-1" /> Je glisse</button>
+          <button type="button" role="tab" aria-pressed={view === "grid"} onClick={() => switchView("grid")}><LayoutGrid size={14} className="inline -mt-0.5 mr-1" /> Tout voir</button>
+        </div>
+      )}
+
+      {!filtered && view === "swipe" ? (
+        <>
+          {dailyTheme && (
+            <button type="button" onClick={() => onSelect(dailyTheme.id)} className="action-row" data-primary="true">
+              <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><Flame size={20} /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold">Défi de la semaine — {dailyTheme.label.replace(/^Blind Test /i, "")}</span>
+                <span className="block text-xs text-white/80 truncate">{dailyTheme.text}</span>
+              </span>
+            </button>
+          )}
+          <ThemeSwipe themes={swipeOrder} photos={themePhotos} trending={trendingThemes} onPlay={onSelect} />
+        </>
+      ) : filtered ? (
         filtered.length === 0 ? (
           <p className="text-sm text-ink-faint text-center py-10">Rien pour « {query} ». Essaie un artiste, une époque ou une ville.</p>
         ) : (
