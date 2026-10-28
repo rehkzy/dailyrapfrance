@@ -1,4 +1,4 @@
-import { LogIn } from "lucide-react";
+import { LogIn, User as UserIcon, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import AccountSettingsForm from "@/components/AccountSettingsForm";
 import StatsBlock from "@/components/StatsBlock";
@@ -60,6 +60,16 @@ export default async function ParametresPage() {
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Mon compte</h1>
       <p className="text-ink-muted mb-10">Ton pseudo, ta photo, et tes statistiques de jeu.</p>
 
+      {profile?.username && (
+        <a href={`/profil/${profile.username}`} className="action-row mb-6" data-primary="true">
+          <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><UserIcon size={20} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">Voir mon profil</span>
+            <span className="block text-xs text-white/80">Tes parties, tes points forts, tes blind tests, ton parrainage.</span>
+          </span>
+          <ChevronRight size={18} className="shrink-0" />
+        </a>
+      )}
       {profile?.username && <ShareProfileCard username={profile.username} />}
 
       <div className="card p-5 mb-8">
@@ -72,15 +82,6 @@ export default async function ParametresPage() {
         initialAvatarUrl={profile?.avatar_url ?? null}
         username={profile?.username ?? null}
       />
-
-      {profile?.username && (
-        <a
-          href={`/profil/${profile.username}`}
-          className="inline-flex items-center gap-2 text-sm text-gold hover:text-glow transition-colors mb-8"
-        >
-          Voir mon profil public →
-        </a>
-      )}
 
       <StatsBlock games={scores ?? []} />
     </section>

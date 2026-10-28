@@ -87,10 +87,10 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
         </h2>
         <p className="mt-3 text-sm sm:text-base text-white/80 max-w-md">{theme.text}. 10 extraits, le même thème pour tout le monde du lundi au dimanche. Rejoue autant que tu veux : seul ton meilleur score compte au classement.</p>
 
-        <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="mt-6 flex flex-col xl:flex-row xl:items-center gap-3">
           <a
             href={href}
-            className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full sm:w-auto"
+            className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full xl:w-auto"
           >
             <Play size={20} fill="currentColor" />
             {done ? "Rejouer le défi" : "Jouer le défi de la semaine"}
@@ -98,12 +98,12 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
           <button
             type="button"
             onClick={invite}
-            className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-sm font-medium text-white transition-colors w-full sm:w-auto"
+            className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-sm font-medium text-white transition-colors w-full xl:w-auto"
           >
             <Share2 size={16} />
             Défier un pote
           </button>
-          <a href="/blindtest/defi" className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-sm font-medium text-white/85 hover:text-white w-full sm:w-auto">
+          <a href="/blindtest/defi" className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-sm font-medium text-white/85 hover:text-white w-full xl:w-auto">
             Classement du défi →
           </a>
         </div>

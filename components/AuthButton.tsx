@@ -85,11 +85,11 @@ export default function AuthButton({ variant = "desktop" }: { variant?: "desktop
         )}
         <p className="text-sm text-ink-muted truncate flex-1">{name}</p>
         <a
-          href="/parametres"
+          href="/profil"
           className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg glass text-ink-muted hover:text-gold transition-colors"
         >
           <UserIcon size={14} />
-          Compte
+          Mon profil
         </a>
         <button
           onClick={signOut}

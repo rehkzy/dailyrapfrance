@@ -2942,45 +2942,70 @@ body .reel-feed {
 }
 
 /* ---------------------------------------------------------------------------------------
-   Choix du thème en pile de cartes (glisser à droite = jouer, à gauche = suivant)
+   Swipe ton thème — plein écran sur téléphone, encart large sur ordinateur
    --------------------------------------------------------------------------------------- */
-.swipe-wrap { max-width: 400px; margin: 0 auto; user-select: none; -webkit-user-select: none; }
-/* La pile tient dans l'écran (barre collante + boutons compris) : largeur dérivée de la hauteur dispo */
-.swipe-stack { position: relative; aspect-ratio: 3 / 4; width: min(100%, calc((100dvh - 470px) * 0.75)); min-width: 210px; margin: 0 auto; }
+.swipe-screen {
+  position: fixed; inset: 0; z-index: 70;
+  background: #070404;
+  color: var(--ink);
+  display: flex; flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 14px);
+  user-select: none; -webkit-user-select: none;
+  overscroll-behavior: contain;
+}
+.swipe-top { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 12px; }
+.swipe-cats { display: flex; gap: 6px; overflow-x: auto; padding: 12px 0 6px; }
+.swipe-cat { flex: 0 0 auto; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--ink-2); background: rgba(255,255,255,0.08); }
+.swipe-cat[aria-pressed="true"] { background: #fff; color: #000; }
+.swipe-stage { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; padding: 8px 0; }
+.swipe-stack { position: relative; width: 100%; height: 100%; max-width: 440px; }
 .swipe-card {
   position: absolute; inset: 0;
-  border-radius: 22px;
+  border-radius: 26px;
   overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
   transform-origin: 50% 110%;
   will-change: transform;
+  background: #120305;
 }
-.swipe-card .theme-poster { position: absolute; inset: 0; aspect-ratio: auto; border-radius: 22px; }
-.swipe-card .theme-poster-label { display: none; }
-.swipe-card .theme-poster-icon { width: 60%; height: 60%; }
-.swipe-card-top { cursor: grab; touch-action: pan-y; }
+.swipe-card .theme-poster { position: absolute; inset: 0; aspect-ratio: auto; border-radius: 26px; border: 0; }
+.swipe-card .theme-poster-label, .swipe-card .theme-poster-tag { display: none; }
+.swipe-card .theme-poster-icon { width: 55%; height: 55%; }
+.swipe-card .theme-poster-photos img { object-position: center 20%; }
+.swipe-card-top { cursor: grab; touch-action: none; }
 .swipe-card-top[data-dragging="true"] { cursor: grabbing; }
+.swipe-tint { position: absolute; inset: 0; pointer-events: none; }
+.swipe-tint-yes { background: var(--red); }
+.swipe-tint-no { background: #000; }
 .swipe-caption {
   position: absolute; left: 0; right: 0; bottom: 0;
-  padding: 72px 20px 22px;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.85));
-  color: #fff;
-  text-align: left;
-  pointer-events: none;
+  padding: 90px 22px 22px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.55) 35%, rgba(0, 0, 0, 0.92));
+  color: #fff; text-align: left;
 }
+.swipe-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; background: var(--red); color: #fff; border-radius: 999px; padding: 4px 10px; }
+.swipe-badge-soft { background: rgba(255,255,255,0.18); }
+.swipe-play-pill { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; height: 44px; padding: 0 18px; border-radius: 999px; background: #fff; color: #000; font-weight: 800; font-size: 14px; }
 .swipe-stamp {
-  position: absolute; top: 24px;
+  position: absolute; top: 26px;
   font-family: var(--font-display);
-  font-weight: 900; font-size: 30px; letter-spacing: 0.06em;
-  padding: 4px 12px; border: 4px solid; border-radius: 10px;
+  font-weight: 900; font-size: 34px; letter-spacing: 0.06em;
+  padding: 4px 14px; border: 4px solid; border-radius: 12px;
   transform: rotate(-14deg);
   pointer-events: none;
 }
-.swipe-stamp-yes { left: 18px; color: #fff; border-color: #fff; background: rgba(240, 0, 28, 0.85); }
-.swipe-stamp-no { right: 18px; color: #fff; border-color: rgba(255, 255, 255, 0.85); background: rgba(0, 0, 0, 0.6); transform: rotate(14deg); }
-.swipe-actions { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 14px; }
+.swipe-stamp-yes { left: 20px; color: #fff; border-color: #fff; background: rgba(240, 0, 28, 0.9); }
+.swipe-stamp-no { right: 20px; color: #fff; border-color: rgba(255, 255, 255, 0.9); background: rgba(0, 0, 0, 0.65); transform: rotate(14deg); }
+.swipe-hint {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.45); color: #fff; text-align: center; padding: 24px; pointer-events: none;
+}
+.swipe-hint-hand { font-size: 56px; animation: swipe-hand 1.6s ease-in-out infinite; }
+.swipe-hint-text { font-weight: 700; font-size: 15px; max-width: 220px; }
+@keyframes swipe-hand { 0%, 100% { transform: translateX(-40px) rotate(-10deg); } 50% { transform: translateX(40px) rotate(10deg); } }
+.swipe-actions { display: flex; align-items: center; justify-content: center; gap: 16px; padding-top: 12px; }
 .swipe-btn {
-  width: 60px; height: 60px; border-radius: 50%;
+  width: 64px; height: 64px; border-radius: 50%;
   display: grid; place-items: center;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -2989,10 +3014,16 @@ body .reel-feed {
 }
 .swipe-btn:active { transform: scale(0.92); }
 .swipe-btn:disabled { opacity: 0.3; }
-.swipe-btn-sm { width: 44px; height: 44px; font-size: 12px; font-weight: 700; color: var(--ink-3); }
+.swipe-btn-sm { width: 46px; height: 46px; color: var(--ink-3); }
 .swipe-btn-no { color: #fff; }
-.swipe-btn-yes { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 12px 30px rgba(240, 0, 28, 0.45); }
-.swipe-counter { font-family: var(--font-mono); }
+.swipe-btn-yes { width: 76px; height: 76px; background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 14px 34px rgba(240, 0, 28, 0.5); }
+@media (min-width: 1024px) {
+  /* Ordinateur : pas de plein écran, un grand encart centré dans la page */
+  .swipe-screen { position: relative; inset: auto; z-index: auto; height: 760px; max-height: 80vh; border-radius: 28px; border: 1px solid rgba(255,255,255,0.08); padding: 16px 20px 20px; }
+  .swipe-stack { max-width: 460px; }
+}
+body:has(.swipe-screen) header, body:has(.swipe-screen) #site-announcement { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .swipe-hint-hand { animation: none; } }
 
 /* Carte parrainage */
 .referral-card {
@@ -3004,3 +3035,11 @@ body .reel-feed {
   box-shadow: 0 20px 50px rgba(240, 0, 28, 0.28);
 }
 .referral-card::after { content: ""; position: absolute; right: -40px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); pointer-events: none; }
+
+/* Accueil : carte « Partie libre », pendant sombre de la carte rouge du défi */
+.free-card {
+  position: relative; overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(160deg, #141011 0%, #0b0708 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

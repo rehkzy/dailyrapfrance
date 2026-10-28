@@ -1,4 +1,4 @@
-import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy, Clapperboard, Sparkles } from "lucide-react";
+import { ArrowRight, User, Users, Globe, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy, Clapperboard, Sparkles, Play } from "lucide-react";
 import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
 import SocialLinks from "@/components/SocialLinks";
@@ -81,7 +81,32 @@ export default function Home() {
             Reconnais le son avant tes potes.
           </h1>
 
-          <DailyCard />
+          {/* Deux façons de commencer, à égalité : le défi commun, ou une partie comme on veut. */}
+          <div className="grid gap-4 md:grid-cols-[1.15fr_1fr] md:items-stretch">
+            <DailyCard />
+            <div className="free-card p-6 sm:p-8 flex flex-col">
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-ink-muted mb-5">
+                <span className="w-2 h-2 rounded-full bg-white/60" aria-hidden="true" />
+                Partie libre
+              </span>
+              <h2 className="poster-title text-3xl sm:text-4xl md:text-5xl max-w-md">Je choisis mon mode et mon thème.</h2>
+              <p className="mt-3 text-sm sm:text-base text-ink-muted max-w-md">Solo, entre potes sur un téléphone, en ligne, en soirée sur la TV, ou le clip — et plus de 80 thèmes.</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {[
+                  { href: "/jouer?mode=solo", l: "Solo" },
+                  { href: "/jouer?mode=clips", l: "Devine le clip" },
+                  { href: "/jouer?mode=local", l: "Entre potes" },
+                  { href: "/jouer?mode=online", l: "Salon en ligne" },
+                  { href: "/jouer?mode=party", l: "Soirée TV" },
+                ].map((m) => (
+                  <a key={m.href} href={m.href} className="h-9 px-3.5 rounded-full bg-white/8 border border-white/10 text-xs font-semibold hover:bg-white/14 inline-flex items-center">{m.l}</a>
+                ))}
+              </div>
+              <div className="mt-auto pt-6">
+                <a href="/jouer" className="sticker w-full h-14 text-base"><Play size={18} fill="currentColor" /> Lancer une partie</a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -96,7 +121,7 @@ export default function Home() {
               <p className="mt-3 text-sm sm:text-base text-white/85 max-w-lg">Anniversaire, soirée, mariage, classe, bureau : choisis les titres ou colle ta playlist Spotify, donne un nom, envoie le lien. Chacun joue sur son téléphone, sans compte. Deux minutes de préparation.</p>
             </div>
             <div className="mt-6 md:mt-0 shrink-0">
-              <span className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full md:w-auto !bg-white !text-[#8a0010]"><Sparkles size={18} /> Créer mon blind test</span>
+              <span className="inline-flex items-center justify-center gap-2.5 h-14 px-7 rounded-full text-base font-bold w-full md:w-auto" style={{ background: "#fff", color: "#8a0010", boxShadow: "0 10px 30px rgba(0,0,0,0.35)" }}><Sparkles size={18} /> Créer mon blind test</span>
             </div>
           </div>
         </a>

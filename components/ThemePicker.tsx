@@ -210,7 +210,7 @@ export default function ThemePicker({
       )}
 
       {!filtered && view === "swipe" ? (
-        <ThemeSwipe themes={swipeOrder} photos={themePhotos} trending={trendingThemes} highlightId={dailyTheme?.id} onPlay={onSelect} />
+        <ThemeSwipe themes={swipeOrder} photos={themePhotos} trending={trendingThemes} highlightId={dailyTheme?.id} onPlay={onSelect} onClose={() => switchView("grid")} />
       ) : filtered ? (
         filtered.length === 0 ? (
           <p className="text-sm text-ink-faint text-center py-10">Rien pour « {query} ». Essaie un artiste, une époque ou une ville.</p>

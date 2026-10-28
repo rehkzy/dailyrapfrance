@@ -1,13 +1,13 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Gamepad2, Users, Trophy, Settings, type LucideIcon } from "lucide-react";
+import { Gamepad2, Users, Trophy, User, type LucideIcon } from "lucide-react";
 
 const TABS: { href: string; label: string; Icon: LucideIcon; match: (path: string) => boolean }[] = [
   { href: "/jouer", label: "Jouer", Icon: Gamepad2, match: (p) => p === "/jouer" },
   { href: "/amis", label: "Amis", Icon: Users, match: (p) => p === "/amis" },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy, match: (p) => p === "/blindtest/classement" },
-  { href: "/parametres", label: "Compte", Icon: Settings, match: (p) => p === "/parametres" },
+  { href: "/profil", label: "Profil", Icon: User, match: (p) => p.startsWith("/profil") || p === "/parametres" },
 ];
 
 // Contenu de la barre — sans positionnement fixe, pour pouvoir l'empiler à l'intérieur d'un
