@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Plus, Check, X, Play, Pause, Share2, ChevronUp, ChevronDown, Link2, Trash2, Music2, Sparkles, ChevronRight, Users } from "lucide-react";
+import { Search, Plus, Check, X, Play, Pause, Share2, ChevronUp, ChevronDown, Link2, Trash2, Music2, Sparkles, ChevronRight, Users, Save, Globe, Lock, LogIn, Pencil } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useUser } from "@/lib/useUser";
+import SignInCta from "@/components/SignInCta";
 import { Icon } from "@iconify/react";
 import { encodeCustomSet, customPlayHref, listSavedCustoms, saveCustom, removeCustom, CUSTOM_MIN, CUSTOM_MAX, type CustomTrack, type SavedCustom } from "@/lib/customBlindtest";
 import { shareOrCopy } from "@/lib/share";
@@ -17,6 +20,13 @@ import { sfx } from "@/lib/sfx";
  */
 
 type SearchArtist = { id: number; name: string; picture: string | null; fans: number };
+type SavedItem = {
+  id: string; slug: string; title: string; description: string | null; track_ids: number[];
+  settings: { s?: number; a?: "qcm" | "text" }; is_public: boolean; plays: number; created_at: string; user_id: string;
+  profiles?: { username?: string; display_name?: string; avatar_url?: string } | { username?: string; display_name?: string; avatar_url?: string }[] | null;
+};
+function itemHref(it: SavedItem, extra = "") { return `/b/${it.slug}${extra}`; }
+function itemAuthor(it: SavedItem) { const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles; return p?.display_name ?? p?.username ?? "Un joueur"; }
 
 export default function BlindTestBuilder() {
   const [title, setTitle] = useState("");
@@ -37,7 +47,82 @@ export default function BlindTestBuilder() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Compte : enregistrer dans son profil, rendre public, lien court /b/<slug>
+  const { user } = useUser();
+  const searchParams = useSearchParams();
+  const [mine, setMine] = useState<SavedItem[]>([]);
+  const [community, setCommunity] = useState<SavedItem[]>([]);
+  const [editing, setEditing] = useState<SavedItem | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [askLogin, setAskLogin] = useState(false);
+
   useEffect(() => setSaved(listSavedCustoms()), []);
+
+  const loadLists = async () => {
+    try {
+      const res = await fetch("/api/blindtest/custom", { cache: "no-store" });
+      const data = await res.json();
+      setMine(data.mine ?? []);
+      setCommunity(data.community ?? []);
+    } catch {}
+  };
+  useEffect(() => { void loadLists(); }, [user?.id]);
+
+  // Modifier un blind test enregistré : /creer?b=<slug>
+  useEffect(() => {
+    const slug = searchParams.get("b");
+    if (!slug) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/blindtest/custom?slug=${encodeURIComponent(slug)}`);
+        const data = await res.json();
+        const it: SavedItem | undefined = data.item;
+        if (!it) return;
+        const pool = await fetch(`/api/blindtest/pool?ids=${it.track_ids.join(",")}&order=keep&count=40`).then((r) => r.json());
+        setTracks((pool.tracks ?? []).map(normalize));
+        setTitle(it.title);
+        setDescription(it.description ?? "");
+        setIsPublic(it.is_public);
+        setSecs(it.settings?.s ?? null);
+        setAnswer(it.settings?.a ?? null);
+        setEditing(it);
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  async function saveToProfile() {
+    if (!code) return;
+    if (!user) {
+      setAskLogin(true);
+      return;
+    }
+    setSaving("busy");
+    try {
+      const res = await fetch("/api/blindtest/custom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editing?.id, title: finalTitle, description, trackIds: tracks.map((t) => t.id), settings: { s: secs ?? undefined, a: answer ?? undefined }, isPublic }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.item) throw new Error(data.error ?? "save");
+      setEditing(data.item);
+      setSaving("done");
+      flash(editing ? "Modifications enregistrées" : "Enregistré dans ton profil");
+      void loadLists();
+      setTimeout(() => setSaving("idle"), 2000);
+    } catch {
+      setSaving("error");
+      setTimeout(() => setSaving("idle"), 2500);
+    }
+  }
+  async function deleteSaved(it: SavedItem) {
+    await fetch(`/api/blindtest/custom?id=${it.id}`, { method: "DELETE" });
+    if (editing?.id === it.id) setEditing(null);
+    void loadLists();
+  }
 
   // Recherche avec léger délai (on ne tape pas une requête par touche)
   useEffect(() => {
@@ -184,7 +269,7 @@ export default function BlindTestBuilder() {
   async function share(c = code, t = finalTitle, n = tracks.length) {
     if (!c) return;
     persist();
-    const url = `https://dailyrapfrance.best${customPlayHref(c)}`;
+    const url = `https://dailyrapfrance.best${editing && c === code ? itemHref(editing) : customPlayHref(c)}`;
     const res = await shareOrCopy({ title: `${t} — Blind test`, text: `🎤 ${t} : un blind test de ${n} titres, fait maison. Tu joues ?\n${url}`, url });
     if (res === "copied") flash("Lien copié — envoie-le dans le groupe");
   }
@@ -350,6 +435,42 @@ export default function BlindTestBuilder() {
               <p className="text-xs text-ink-faint">L&apos;ordre des titres est mélangé à chaque partie. Barème habituel : titre 1 pt, artiste 1 pt, featuring 2 pts.</p>
             </div>
 
+            {/* Enregistrer dans son profil (compte) + public */}
+            <div className="ticket p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Save size={18} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg font-bold leading-tight">{editing ? "Modifier ce blind test" : "Enregistrer dans mon profil"}</p>
+                  <p className="text-xs text-ink-faint mt-0.5">Pour le retrouver sur tous tes appareils, le rejouer, et avoir un lien court. {!user && "Compte gratuit, en 10 secondes."}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-ink-faint mb-1.5 block" htmlFor="bt-desc">Une ligne pour les autres (optionnel)</label>
+                <input id="bt-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={160} placeholder="Le blind test officiel de la soirée du 12…" className="answer-input !min-h-[46px] !text-sm" />
+              </div>
+              <button type="button" role="switch" aria-checked={isPublic} onClick={() => { sfx.click(); setIsPublic((v) => !v); }} className="w-full flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/8 p-3.5 text-left">
+                <span className={`w-9 h-9 rounded-lg grid place-items-center shrink-0 ${isPublic ? "bg-gold text-white" : "bg-white/8 text-ink-muted"}`}>{isPublic ? <Globe size={16} /> : <Lock size={16} />}</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-semibold">{isPublic ? "Public — jouable par tout le monde" : "Privé — seulement avec le lien"}</span>
+                  <span className="block text-xs text-ink-faint">{isPublic ? "Apparaît dans les blind tests de la communauté, avec ton pseudo." : "Rends-le public pour qu'il apparaisse dans la communauté."}</span>
+                </span>
+                <span className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${isPublic ? "bg-gold" : "bg-white/10"}`}><span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${isPublic ? "translate-x-5" : ""}`} /></span>
+              </button>
+              {askLogin && !user ? (
+                <div className="rounded-xl bg-white/[0.04] border border-white/8 p-4">
+                  <p className="text-sm font-semibold mb-3 inline-flex items-center gap-2"><LogIn size={15} className="text-gold" /> Connecte-toi pour enregistrer</p>
+                  <SignInCta label="Continuer avec Google" />
+                </div>
+              ) : (
+                <button type="button" disabled={!ready || saving === "busy"} onClick={saveToProfile} className="sticker w-full h-14 disabled:opacity-40">
+                  {saving === "busy" ? "Enregistrement…" : saving === "done" ? <><Check size={18} strokeWidth={3} /> Enregistré</> : saving === "error" ? "Échec — réessaie" : <><Save size={18} /> {editing ? "Enregistrer les modifications" : "Enregistrer dans mon profil"}</>}
+                </button>
+              )}
+              {editing && (
+                <p className="text-xs text-ink-muted break-all">Lien court : <a href={itemHref(editing)} className="text-glow font-semibold">dailyrapfrance.best{itemHref(editing)}</a> · {editing.plays} partie{editing.plays > 1 ? "s" : ""}</p>
+              )}
+            </div>
+
             {ready && (
               <div className="grid grid-cols-2 gap-2.5">
                 <button type="button" onClick={() => play("local")} className="sticker sticker-ghost h-14"><Users size={16} /> Entre potes</button>
@@ -359,10 +480,34 @@ export default function BlindTestBuilder() {
           </div>
         </div>
 
-        {/* Mes blind tests */}
+        {/* Mes blind tests enregistrés (compte) */}
+        {mine.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-bold mb-1">Mes blind tests</h2>
+            <p className="text-xs text-ink-faint mb-3">Enregistrés dans ton profil — rejoue, modifie, partage le lien court.</p>
+            <div className="ticket divide-y divide-white/6">
+              {mine.map((it) => (
+                <div key={it.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${it.is_public ? "bg-gold/15 text-gold" : "bg-white/6 text-ink-muted"}`}>{it.is_public ? <Globe size={17} /> : <Lock size={17} />}</span>
+                  <a href={itemHref(it)} className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold truncate">{it.title}</span>
+                    <span className="block text-xs text-ink-faint">{it.track_ids.length} titres · {it.plays} partie{it.plays > 1 ? "s" : ""} · {it.is_public ? "public" : "privé"}</span>
+                  </a>
+                  <a href={`/creer?b=${it.slug}`} aria-label="Modifier" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Pencil size={15} /></a>
+                  <button type="button" onClick={() => { const url = `https://dailyrapfrance.best${itemHref(it)}`; void shareOrCopy({ title: `${it.title} — Blind test`, text: `🎤 ${it.title} : un blind test de ${it.track_ids.length} titres, fait maison. Tu joues ?\n${url}`, url }).then((r) => r === "copied" && flash("Lien copié")); }} aria-label="Partager" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Share2 size={15} /></button>
+                  <a href={itemHref(it)} aria-label="Jouer" className="w-10 h-10 rounded-full bg-gold text-white grid place-items-center"><Play size={15} fill="currentColor" /></a>
+                  <button type="button" onClick={() => deleteSaved(it)} aria-label="Supprimer" className="w-10 h-10 rounded-full grid place-items-center text-ink-faint hover:text-riseNeg"><Trash2 size={15} /></button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Sur cet appareil (sans compte) */}
         {saved.length > 0 && (
           <section className="mt-10">
-            <h2 className="font-display text-xl font-bold mb-3">Mes blind tests</h2>
+            <h2 className="font-display text-xl font-bold mb-1">Sur cet appareil</h2>
+            <p className="text-xs text-ink-faint mb-3">Créés sans compte — ils ne sont que sur ce téléphone. Enregistre-les dans ton profil pour les garder.</p>
             <div className="ticket divide-y divide-white/6">
               {saved.map((s) => (
                 <div key={s.code} className="flex items-center gap-3 px-4 py-3">
@@ -375,6 +520,25 @@ export default function BlindTestBuilder() {
                   <a href={customPlayHref(s.code)} aria-label="Jouer" className="w-10 h-10 rounded-full bg-gold text-white grid place-items-center"><Play size={15} fill="currentColor" /></a>
                   <button type="button" onClick={() => { removeCustom(s.code); setSaved(listSavedCustoms()); }} aria-label="Supprimer" className="w-10 h-10 rounded-full grid place-items-center text-ink-faint hover:text-riseNeg"><Trash2 size={15} /></button>
                 </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {community.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-bold mb-1">Blind tests de la communauté</h2>
+            <p className="text-xs text-ink-faint mb-3">Créés par les joueurs et rendus publics. <a href="/blindtests" className="text-glow font-semibold">Tout voir →</a></p>
+            <div className="grid sm:grid-cols-2 gap-2.5">
+              {community.slice(0, 6).map((it) => (
+                <a key={it.id} href={itemHref(it)} className="ticket p-4 flex items-center gap-3">
+                  <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold truncate">{it.title}</span>
+                    <span className="block text-xs text-ink-faint truncate">{it.track_ids.length} titres · par {itemAuthor(it)} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>
+                  </span>
+                  <Play size={16} className="text-gold shrink-0" fill="currentColor" />
+                </a>
               ))}
             </div>
           </section>

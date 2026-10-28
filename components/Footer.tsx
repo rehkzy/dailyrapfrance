@@ -19,6 +19,8 @@ const columns = [
       { href: "/blindtest/classement", label: "Classement" },
       { href: "/amis", label: "Amis" },
       { href: "/parametres", label: "Mon compte" },
+      { href: "/parrainage", label: "Parrainage · 2 places Kaaris" },
+      { href: "/blindtests", label: "Blind tests des joueurs" },
     ],
   },
   {

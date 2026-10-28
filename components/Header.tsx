@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Tv, User, Globe, Clapperboard, Sparkles } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Clapperboard, Sparkles, Gift } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
@@ -14,7 +14,7 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
  * En-tête v2 — un seul objectif : amener au jeu en un tap.
  *  - Desktop : logo, 4 liens, et un bouton rouge "Jouer" toujours visible.
  *  - Mobile : logo + bouton "Jouer" + menu. Le tiroir contient le défi de la semaine (compact),
- *    les 5 façons de jouer en tuiles, puis les pages secondaires.
+ *    puis un bouton Jouer, le défi, « Créer mon blind test », et les pages.
  */
 
 const NAV = [
@@ -25,13 +25,12 @@ const NAV = [
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
-const MODES = [
-  { href: "/jouer?mode=solo", label: "Solo", sub: "À ton rythme", Icon: User },
-  { href: "/jouer?mode=clips", label: "Devine le clip", sub: "Swipe, regarde, réponds", Icon: Clapperboard },
-  { href: "/jouer?mode=local", label: "Entre potes", sub: "Un écran, un buzzer", Icon: Users },
-  { href: "/jouer?mode=online", label: "Salon en ligne", sub: "Un code, chacun chez soi", Icon: Globe },
-  { href: "/jouer?mode=party", label: "Soirée TV", sub: "Téléphones + gages", Icon: Tv },
-  { href: "/creer", label: "Crée le tien", sub: "Tes morceaux, ton lien — nouveau", Icon: Sparkles },
+const DRAWER_LINKS: { href: string; label: string; sub?: string; Icon: typeof Home }[] = [
+  { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
+  { href: "/amis", label: "Amis", Icon: Users },
+  { href: "/parrainage", label: "Parrainage", sub: "2 places Kaaris · Stade de France", Icon: Gift },
+  { href: "/blindtests", label: "Blind tests des joueurs", Icon: Clapperboard },
+  { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
 const socials = [
@@ -99,33 +98,28 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
         </div>
 
         <div className="flex-1 min-h-0 px-5 pt-4 pb-8 overflow-y-auto overscroll-contain" data-lenis-prevent>
-          <div className="mb-5">
+          {/* Hiérarchie : 1 action (jouer), 1 rendez-vous (le défi), 1 nouveauté (créer), puis les
+              pages. Les modes de jeu se choisissent dans /jouer, pas dans un menu. */}
+          <a href="/jouer" className="sticker w-full h-14 mb-3"><Play size={18} fill="currentColor" /> Jouer</a>
+          <div className="mb-3">
             <DailyCard variant="compact" />
           </div>
+          <a href="/creer" className="action-row mb-5">
+            <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-gold/15 text-gold"><Sparkles size={20} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">Créer mon blind test <span className="ml-1 text-[10px] font-bold uppercase tracking-wider text-gold">Nouveau</span></span>
+              <span className="block text-xs text-ink-faint">Mes morceaux, mon lien à envoyer</span>
+            </span>
+          </a>
 
-          <p className="text-xs font-semibold text-ink-faint mb-2">Jouer</p>
-          <div className="grid grid-cols-2 gap-2 mb-6">
-            {MODES.map((m, i) => (
-              <a key={m.href} href={m.href} className={`mode-tile min-h-[104px] p-3.5 ${i === MODES.length - 1 && MODES.length % 2 === 1 ? "col-span-2" : ""}`}>
-                <span className="mode-wash" aria-hidden="true" />
-                <span className="mode-icon !w-8 !h-8 !rounded-lg !top-3 !left-3"><m.Icon size={15} /></span>
-                <span className="relative text-sm font-semibold">{m.label}</span>
-                <span className="relative text-[11px] text-ink-faint">{m.sub}</span>
-              </a>
-            ))}
-          </div>
-
-          <nav className="space-y-1 mb-6">
-            {NAV.filter((n) => n.href !== "/jouer").map((item) => {
+          <nav className="space-y-0.5 mb-6">
+            {DRAWER_LINKS.map((item) => {
               const active = isActive(pathname, item.href);
               return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"}`}
-                >
+                <a key={item.href} href={item.href} className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors ${active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"}`}>
                   <item.Icon size={18} className={active ? "text-gold" : "text-ink-faint"} />
-                  <span className="text-[15px] font-medium">{item.label}</span>
+                  <span className="text-[15px] font-medium flex-1">{item.label}</span>
+                  {item.sub && <span className="text-[11px] text-ink-faint">{item.sub}</span>}
                 </a>
               );
             })}

@@ -3,6 +3,7 @@ import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
 import SocialLinks from "@/components/SocialLinks";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
+import ReferralCard from "@/components/ReferralCard";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { THEME_OPTIONS } from "@/lib/themes";
@@ -95,10 +96,15 @@ export default function Home() {
               <p className="mt-3 text-sm sm:text-base text-white/85 max-w-lg">Anniversaire, soirée, mariage, classe, bureau : choisis les titres ou colle ta playlist Spotify, donne un nom, envoie le lien. Chacun joue sur son téléphone, sans compte. Deux minutes de préparation.</p>
             </div>
             <div className="mt-6 md:mt-0 shrink-0">
-              <span className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full md:w-auto !bg-white !text-[#8a0010]"><Sparkles size={18} /> Créer le mien</span>
+              <span className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full md:w-auto !bg-white !text-[#8a0010]"><Sparkles size={18} /> Créer mon blind test</span>
             </div>
           </div>
         </a>
+      </section>
+
+      {/* Parrainage — le lot du moment */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4">
+        <ReferralCard compact />
       </section>
 
       {/* Cinq façons de jouer */}
@@ -132,7 +138,7 @@ export default function Home() {
         <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
-            { href: "/creer", Icon: Sparkles, t: "Le tien", s: "Tes morceaux, ton nom, ton lien. Nouveau." },
+            { href: "/creer", Icon: Sparkles, t: "Créer mon blind test", s: "Mes morceaux, mon nom, mon lien. Nouveau." },
             { href: "/jouer?mode=solo&v=survival&theme=mix", Icon: Skull, t: "Survie", s: "Un son raté et c'est fini. Jusqu'où tu vas ?" },
             { href: "/jouer?mode=solo&v=sprint&theme=pop", Icon: Timer, t: "Sprint", s: "20 extraits, 8 secondes chacun. Que de l'instinct." },
             { href: "/jouer?mode=solo&theme=random&autostart=1", Icon: Shuffle, t: "Thème surprise", s: "Un thème tiré au sort, lancé direct." },

@@ -10,6 +10,7 @@ import SitePresence from "@/components/SitePresence";
 import SiteAnnouncement from "@/components/SiteAnnouncement";
 import ActivityTracker from "@/components/ActivityTracker";
 import InstallPrompt from "@/components/InstallPrompt";
+import ReferralCapture from "@/components/ReferralCapture";
 import { AppComingSoonModal } from "@/components/AppComingSoon";
 
 const APPLE_ICON_DATA_URI = (() => {
@@ -175,6 +176,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         <Footer />
         <InstallPrompt />
+        <ReferralCapture />
         <AppComingSoonModal />
       </body>
     </html>

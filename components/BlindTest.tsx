@@ -57,7 +57,7 @@ const MODE_TILES: { id: Mode | "clips" | "custom"; label: string; Icon: LucideIc
   { id: "local", label: "Entre potes", Icon: Users, desc: "Un écran, un buzzer, les pseudos.", tag: "2 à 8 joueurs" },
   { id: "online", label: "Salon en ligne", Icon: RemoteSalonIcon, desc: "Un code, chacun sur son téléphone.", tag: "À distance" },
   { id: "party", label: "Soirée TV", Icon: PartyPopper, desc: "Écran partagé, téléphones en manette, un gage pour le dernier.", tag: "2 à 8 + TV" },
-  { id: "custom", label: "Le tien", Icon: Sparkles, desc: "Tes morceaux, ton nom, un lien à envoyer.", tag: "Nouveau · perso" },
+  { id: "custom", label: "Créer mon blind test", Icon: Sparkles, desc: "Mes morceaux, mon nom, un lien à envoyer.", tag: "Nouveau" },
 ];
 
 type Track = {
@@ -122,6 +122,7 @@ export default function BlindTest() {
   const customCode = searchParams.get("custom");
   const customSet = useMemo(() => decodeCustomSet(customCode), [customCode]);
   const isCustom = !!customSet;
+  const customSlug = searchParams.get("b");
 
   // Lien profond : mode + thème → direct aux réglages ; mode solo seul → direct au thème.
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2>(
@@ -173,6 +174,7 @@ export default function BlindTest() {
     mode: mode ?? "solo",
     theme: themeId,
     ...(customCode ? { custom: customCode } : {}),
+    ...(customSlug ? { b: customSlug } : {}),
     rounds: roundCount,
     seconds: roundSeconds,
     answerMode: answerMode ?? "qcm",
@@ -431,6 +433,10 @@ export default function BlindTest() {
           setPhase("setup");
           return;
         }
+      }
+      if (customSlug) {
+        // Blind test enregistré : +1 partie (compteur public, non bloquant)
+        fetch("/api/blindtest/custom/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: customSlug }) }).catch(() => {});
       }
       setTracks(pool);
       setPreviewOverride({});

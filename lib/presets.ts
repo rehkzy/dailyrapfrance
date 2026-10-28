@@ -33,6 +33,7 @@ export type GameConfig = {
   mode: GameMode;
   theme: string;
   custom?: string; // blind test personnalisé : code encodé (lib/customBlindtest.ts)
+  b?: string; // slug d'un blind test enregistré (compteur de parties)
   rounds: number;
   seconds: number;
   answerMode: AnswerMode;
@@ -136,6 +137,7 @@ export function configToSearch(c: GameConfig, extra?: Record<string, string>): s
   p.set("mode", c.mode);
   p.set("theme", c.theme);
   if (c.custom) p.set("custom", c.custom);
+  if (c.b) p.set("b", c.b);
   if (c.rounds !== DEFAULT_CONFIG.rounds) p.set("rounds", String(c.rounds));
   if (c.seconds !== DEFAULT_CONFIG.seconds) p.set("secs", String(c.seconds));
   if (c.answerMode !== DEFAULT_CONFIG.answerMode) p.set("answer", c.answerMode);
@@ -160,6 +162,8 @@ export function parseConfig(params: URLSearchParams, validTheme: (id: string) =>
   if (custom) {
     out.custom = custom;
     out.theme = "custom";
+    const b = params.get("b");
+    if (b && /^[a-z0-9]{4,16}$/.test(b)) out.b = b;
   }
   const theme = params.get("theme");
   if (!custom && theme && (theme === "random" || validTheme(theme))) out.theme = theme;

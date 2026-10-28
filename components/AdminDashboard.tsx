@@ -6,10 +6,11 @@ import {
   Users, Gamepad2, Radio, TrendingUp, Trophy, Search, Trash2, RefreshCcw,
   Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send, Globe,
   X, Eye, Instagram, Share2, Music2, Twitter, Gamepad, Calendar, Clock,
-  LayoutGrid, Settings as SettingsIcon,
+  LayoutGrid, Settings as SettingsIcon, Gift,
 } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 import AdminClipsTab from "@/components/AdminClipsTab";
+import AdminReferralsTab from "@/components/AdminReferralsTab";
 
 /*
  * Back-office DailyRapFrance — 4 onglets :
@@ -78,6 +79,7 @@ const TABS = [
   { id: "email", label: "Mails", Icon: Mail },
   { id: "settings", label: "Pilotage", Icon: SettingsIcon },
   { id: "clips", label: "Clips", Icon: Clapperboard },
+  { id: "referrals", label: "Parrainage", Icon: Gift },
 ] as const;
 
 function themeLabel(id: string) {
@@ -191,6 +193,7 @@ export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
         )}
         {tab === "settings" && <SettingsTab />}
         {tab === "clips" && <AdminClipsTab />}
+        {tab === "referrals" && <AdminReferralsTab />}
       </div>
     </div>
   );
