@@ -1031,8 +1031,17 @@ export default function BlindTest() {
       <a href="/" aria-label="DailyRapFrance — accueil" className="inline-flex items-center">
         <img src="/logo.svg" alt="DailyRapFrance" className="h-6 sm:h-7 w-auto" />
       </a>
+      {/* Le header du site est masqué sur l'écran de jeu : on garde une vraie navigation ici
+          (liens texte dès la tablette, icônes seules sur téléphone). */}
+      <nav className="hidden md:flex items-center gap-0.5 text-[13px] font-semibold text-ink-muted whitespace-nowrap" aria-label="Navigation">
+        <a href="/" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">Accueil</a>
+        <a href="/blindtest/defi" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">Défi</a>
+        <a href="/blindtest/classement" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">Classement</a>
+        <a href="/amis" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">Amis</a>
+        <a href="/a-propos" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">À propos</a>
+      </nav>
       <div className="flex items-center gap-1.5">
-        <a href="/blindtest/classement" aria-label="Classement" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink">
+        <a href="/blindtest/classement" aria-label="Classement" className="md:hidden w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink">
           <Trophy size={17} />
         </a>
         {user ? (
@@ -1040,7 +1049,7 @@ export default function BlindTest() {
             <User size={17} />
           </a>
         ) : (
-          <button type="button" onClick={() => setShowAuth(true)} className="h-10 px-3.5 rounded-full bg-white/6 text-xs font-semibold text-ink-muted hover:text-ink">
+          <button type="button" onClick={() => setShowAuth(true)} className="h-10 px-3.5 rounded-full bg-white/6 text-xs font-semibold text-ink-muted hover:text-ink whitespace-nowrap">
             Se connecter
           </button>
         )}
