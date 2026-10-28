@@ -4,7 +4,7 @@ import BlindTestBuilder from "@/components/BlindTestBuilder";
 export const metadata: Metadata = {
   title: "Crée ton blind test rap — Tes morceaux, ton lien, gratuit | DailyRapFrance",
   description:
-    "Construis ton propre blind test en 2 minutes : cherche les titres (ou colle une playlist Deezer), donne un nom, envoie le lien. Anniversaire, soirée, classe, team building — se joue sans compte, sur tout téléphone.",
+    "Construis ton propre blind test en 2 minutes : cherche les titres (ou colle une playlist Spotify ou Deezer), donne un nom, envoie le lien. Anniversaire, soirée, classe, team building — se joue sans compte, sur tout téléphone.",
   alternates: { canonical: "https://dailyrapfrance.best/blindtest/creer" },
   openGraph: {
     title: "Crée ton blind test — DailyRapFrance",

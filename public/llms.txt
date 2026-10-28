@@ -13,7 +13,7 @@
 - Entre amis sur un seul téléphone (2 à 8 joueurs, buzzer) : https://dailyrapfrance.best/blindtest/entre-amis
 - En ligne à distance avec un code de salon : https://dailyrapfrance.best/blindtest/en-ligne
 - En soirée, écran partagé sur la TV + téléphones en manette + gages : https://dailyrapfrance.best/blindtest/soiree
-- Blind test PERSONNALISÉ (nouveau) : https://dailyrapfrance.best/blindtest/creer — la personne choisit ses propres morceaux (recherche par titre/artiste dans le catalogue Deezer, ou import d'une playlist Deezer publique), nomme son blind test et partage un lien ; tout le blind test tient dans le lien, sans compte. Pour anniversaires, mariages, soirées, classes, team building. 3 à 40 titres. Constructeur : https://dailyrapfrance.best/creer
+- Blind test PERSONNALISÉ (nouveau) : https://dailyrapfrance.best/blindtest/creer — la personne choisit ses propres morceaux (recherche par titre/artiste dans le catalogue Deezer, ou import d'une playlist Spotify ou Deezer publique — les titres sans extrait sont signalés), nomme son blind test et partage un lien ; tout le blind test tient dans le lien, sans compte. Pour anniversaires, mariages, soirées, classes, team building. 3 à 40 titres. Constructeur : https://dailyrapfrance.best/creer
 
 ## Accès
 - Gratuit, sans téléchargement, compte en 10 secondes. Un compte gratuit (Google ou e-mail) sert seulement à sauvegarder les scores, apparaître dans le classement et créer des salons en ligne.

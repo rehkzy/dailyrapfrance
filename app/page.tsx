@@ -92,7 +92,7 @@ export default function Home() {
             <div className="flex-1">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-white bg-white/15 rounded-full px-2.5 py-1 mb-4"><Sparkles size={12} /> Nouveau</span>
               <h2 id="creer-title" className="poster-title text-3xl sm:text-4xl md:text-5xl text-white max-w-xl">Crée ton blind test avec tes morceaux.</h2>
-              <p className="mt-3 text-sm sm:text-base text-white/85 max-w-lg">Anniversaire, soirée, mariage, classe, bureau : choisis les titres, donne un nom, envoie le lien. Chacun joue sur son téléphone, sans compte. Deux minutes de préparation.</p>
+              <p className="mt-3 text-sm sm:text-base text-white/85 max-w-lg">Anniversaire, soirée, mariage, classe, bureau : choisis les titres ou colle ta playlist Spotify, donne un nom, envoie le lien. Chacun joue sur son téléphone, sans compte. Deux minutes de préparation.</p>
             </div>
             <div className="mt-6 md:mt-0 shrink-0">
               <span className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full md:w-auto !bg-white !text-[#8a0010]"><Sparkles size={18} /> Créer le mien</span>

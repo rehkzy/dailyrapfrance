@@ -13,7 +13,7 @@ const url = `${SITE}/blindtest/creer`;
 export const metadata: Metadata = {
   title: "Créer son blind test personnalisé — Gratuit, avec ses propres morceaux | DailyRapFrance",
   description:
-    "Crée un blind test avec tes morceaux : anniversaire, mariage, soirée, classe, team building. Cherche les titres ou colle une playlist Deezer, partage le lien, chacun joue sur son téléphone. Gratuit, sans appli.",
+    "Crée un blind test avec tes morceaux : anniversaire, mariage, soirée, classe, team building. Cherche les titres ou colle une playlist Spotify ou Deezer, partage le lien, chacun joue sur son téléphone. Gratuit, sans appli.",
   alternates: { canonical: url },
   openGraph: { title: "Créer son blind test personnalisé — DailyRapFrance", description: "Tes morceaux, tes règles, un lien à envoyer.", url, type: "website", images: [{ url: "/og.png", width: 1200, height: 630 }] },
 };
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 const FAQ = [
   { q: "Comment créer un blind test personnalisé ?", a: "Ouvre dailyrapfrance.best/creer, cherche tes titres ou artistes (catalogue Deezer, extraits officiels de 30 secondes) ou colle le lien d'une playlist Deezer publique, donne un nom, et touche « Jouer » ou « Envoyer le lien ». De 3 à 40 morceaux." },
   { q: "Faut-il un compte ou une appli ?", a: "Non. Tout le blind test est contenu dans le lien : la personne qui le reçoit joue directement dans son navigateur, sur téléphone, tablette, ordinateur ou TV. Un compte gratuit sert seulement à sauvegarder ses scores." },
-  { q: "Peut-on importer une playlist Spotify ou Apple Music ?", a: "Pas directement : ces services exigent une connexion et ne fournissent plus d'extraits aux sites tiers. Cherche les titres un par un (quelques secondes chacun), ou recrée la liste sur Deezer et colle son lien." },
+  { q: "Peut-on importer une playlist Spotify ?", a: "Oui : colle le lien d'une playlist Spotify publique, chaque morceau est retrouvé dans le catalogue des extraits (Deezer). Les titres introuvables te sont listés : ils ne peuvent pas entrer dans le blind test. Les playlists Deezer publiques s'importent aussi. Apple Music et YouTube : pas encore." },
   { q: "Peut-on jouer à plusieurs sur un blind test personnalisé ?", a: "Oui : en solo chacun de son côté avec le lien, ou « Entre potes » sur un seul téléphone avec un buzzer et les pseudos de chacun (2 à 8 joueurs). Les titres sont mélangés à chaque partie." },
   { q: "Est-ce que je retrouve mes blind tests ?", a: "Ils sont mémorisés sur ton appareil dans « Mes blind tests » sur la page de création, avec un bouton pour rejouer ou renvoyer le lien." },
   { q: "Ça marche pour d'autres styles que le rap ?", a: "Oui. Le catalogue est celui de Deezer : variété, pop, années 80, dessins animés, tout ce qui a un extrait de 30 secondes." },
@@ -66,7 +66,7 @@ export default function CreerLandingPage() {
         <div className="flex items-center gap-2 text-xs font-semibold text-gold mb-3"><BrandMark size={12} /> Nouveau · Gratuit · Sans appli</div>
         <h1 className="poster-title text-3xl sm:text-5xl mb-5">Crée ton blind test personnalisé, avec tes morceaux</h1>
         <p className="text-base sm:text-lg text-ink-muted leading-relaxed max-w-2xl">
-          Cherche les titres (ou colle une playlist Deezer), donne un nom, envoie le lien. Les invités jouent sur leur téléphone, sans compte ni installation, avec les extraits officiels de 30 secondes. Trois à quarante morceaux, deux minutes de préparation.
+          Cherche les titres (ou colle une playlist Spotify ou Deezer), donne un nom, envoie le lien. Les invités jouent sur leur téléphone, sans compte ni installation, avec les extraits officiels de 30 secondes. Trois à quarante morceaux, deux minutes de préparation.
         </p>
         <div className="mt-7 flex flex-col sm:flex-row gap-3">
           <a href="/creer" className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full sm:w-auto"><Sparkles size={18} /> Créer mon blind test</a>
@@ -95,7 +95,7 @@ export default function CreerLandingPage() {
           <h2 id="how-h" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-3">Comment ça marche</h2>
           <ol className="space-y-2.5">
             {[
-              ["Choisis les morceaux", "Une recherche par titre ou artiste, le top d'un artiste en un tap, ou une playlist Deezer collée.", Link2],
+              ["Choisis les morceaux", "Une recherche par titre ou artiste, le top d'un artiste en un tap, ou une playlist Spotify / Deezer collée.", Link2],
               ["Nomme et règle", "« Anniv de Sarah », « Que du 2016 »… Impose le temps par extrait si tu veux, ou laisse libre.", Sparkles],
               ["Joue ou partage", "Un lien à envoyer dans le groupe, ou « Entre potes » sur un seul écran avec les pseudos.", Users],
             ].map(([t, s, I], i) => {

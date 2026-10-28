@@ -27,6 +27,8 @@ export default function BlindTestBuilder() {
   const [artistBusy, setArtistBusy] = useState<number | null>(null);
   const [playlistUrl, setPlaylistUrl] = useState("");
   const [playlistState, setPlaylistState] = useState<"idle" | "loading" | "ok" | "other" | "invalid" | "unreachable">("idle");
+  const [missing, setMissing] = useState<{ title: string; artist: string }[]>([]);
+  const [importNote, setImportNote] = useState<string | null>(null);
   const [secs, setSecs] = useState<number | null>(null);
   const [answer, setAnswer] = useState<"qcm" | "text" | null>(null);
   const [playingId, setPlayingId] = useState<number | null>(null);
@@ -115,6 +117,8 @@ export default function BlindTestBuilder() {
     const url = playlistUrl.trim();
     if (!url) return;
     setPlaylistState("loading");
+    setMissing([]);
+    setImportNote(null);
     try {
       const res = await fetch(`/api/blindtest/playlist?url=${encodeURIComponent(url)}`);
       const data = await res.json();
@@ -123,12 +127,18 @@ export default function BlindTestBuilder() {
         return;
       }
       const list: CustomTrack[] = (data.tracks ?? []).map(normalize);
+      let added = 0;
       setTracks((prev) => {
         const have = new Set(prev.map((t) => t.id));
         const fresh = list.filter((t) => !have.has(t.id)).slice(0, Math.max(0, CUSTOM_MAX - prev.length));
-        flash(`${fresh.length} titres importés`);
+        added = fresh.length;
         return [...prev, ...fresh];
       });
+      const miss: { title: string; artist: string }[] = data.missing ?? [];
+      setMissing(miss);
+      const src = data.source === "spotify" ? "Spotify" : "Deezer";
+      setImportNote(`${list.length} titre${list.length > 1 ? "s" : ""} retrouvé${list.length > 1 ? "s" : ""} depuis ${src}${miss.length ? `, ${miss.length} indisponible${miss.length > 1 ? "s" : ""}` : ""}${data.truncated ? ` (les ${CUSTOM_MAX} premiers de ${data.truncated})` : ""}.`);
+      flash(`${added} titres ajoutés`);
       if (!title.trim() && data.title) setTitle(String(data.title).slice(0, 60));
       setPlaylistState("ok");
       setPlaylistUrl("");
@@ -253,15 +263,25 @@ export default function BlindTestBuilder() {
 
             {/* Import playlist */}
             <div className="ticket p-5">
-              <p className="text-xs font-semibold text-ink-faint mb-1 inline-flex items-center gap-1.5"><Link2 size={13} /> Ou colle une playlist Deezer</p>
-              <p className="text-xs text-ink-faint mb-3">Playlist publique — tous ses titres avec extrait sont ajoutés d&apos;un coup.</p>
+              <p className="text-xs font-semibold text-ink-faint mb-1 inline-flex items-center gap-1.5"><Link2 size={13} /> Ou colle une playlist Spotify ou Deezer</p>
+              <p className="text-xs text-ink-faint mb-3">Playlist publique. Pour Spotify, chaque titre est retrouvé dans le catalogue des extraits ; ceux qui n&apos;y sont pas te sont signalés.</p>
               <div className="flex gap-2">
-                <input value={playlistUrl} onChange={(e) => { setPlaylistUrl(e.target.value); setPlaylistState("idle"); }} placeholder="https://www.deezer.com/fr/playlist/…" className="answer-input !min-h-[48px] !text-sm flex-1" inputMode="url" />
+                <input value={playlistUrl} onChange={(e) => { setPlaylistUrl(e.target.value); setPlaylistState("idle"); }} placeholder="https://open.spotify.com/playlist/… ou deezer.com/playlist/…" className="answer-input !min-h-[48px] !text-sm flex-1" inputMode="url" />
                 <button type="button" onClick={importPlaylist} disabled={!playlistUrl.trim() || playlistState === "loading"} className="sticker sticker-ghost sticker-sm shrink-0">{playlistState === "loading" ? "…" : "Importer"}</button>
               </div>
-              {playlistState === "other" && <p className="text-xs text-riseNeg mt-2">Spotify, Apple Music et YouTube ne peuvent pas être importés directement (leurs catalogues demandent une connexion et ne fournissent plus d&apos;extraits). Cherche les titres ci-dessus, ou recrée la liste sur Deezer puis colle son lien.</p>}
-              {playlistState === "invalid" && <p className="text-xs text-riseNeg mt-2">Ce n&apos;est pas un lien de playlist Deezer.</p>}
-              {playlistState === "unreachable" && <p className="text-xs text-riseNeg mt-2">Playlist introuvable — elle est peut-être privée.</p>}
+              {playlistState === "other" && <p className="text-xs text-riseNeg mt-2">Apple Music et YouTube ne sont pas importables pour l&apos;instant. Colle une playlist Spotify ou Deezer, ou cherche les titres ci-dessus.</p>}
+              {playlistState === "invalid" && <p className="text-xs text-riseNeg mt-2">Ce n&apos;est pas un lien de playlist Spotify ou Deezer.</p>}
+              {playlistState === "unreachable" && <p className="text-xs text-riseNeg mt-2">Playlist introuvable — vérifie qu&apos;elle est publique (sur Spotify : « Ajouter au profil » / visibilité publique).</p>}
+              {playlistState === "loading" && <p className="text-xs text-ink-faint mt-2 animate-pulse">On retrouve chaque morceau… quelques secondes pour une grande playlist.</p>}
+              {importNote && <p className="text-xs text-ink-muted mt-2">{importNote}</p>}
+              {missing.length > 0 && (
+                <details className="mt-2 text-xs">
+                  <summary className="cursor-pointer text-riseNeg font-semibold">{missing.length} morceau{missing.length > 1 ? "x" : ""} ne pourr{missing.length > 1 ? "ont" : "a"} pas être mis dans le blind test (pas d&apos;extrait disponible)</summary>
+                  <ul className="mt-1.5 space-y-0.5 text-ink-faint">
+                    {missing.map((m, i) => <li key={i}>• {m.title} — {m.artist}</li>)}
+                  </ul>
+                </details>
+              )}
             </div>
           </div>
 
