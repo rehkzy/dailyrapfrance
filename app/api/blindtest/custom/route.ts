@@ -16,7 +16,7 @@ function makeSlug(len = 7): string {
   return s;
 }
 
-const SELECT = "id, slug, title, description, track_ids, settings, is_public, plays, created_at, user_id, profiles(username, display_name, avatar_url, verified)";
+const SELECT = "id, slug, title, description, cover, featured, track_ids, settings, is_public, plays, created_at, user_id, profiles(username, display_name, avatar_url, verified)";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const [mine, community] = await Promise.all([
     user ? supabase.from("custom_blindtests").select(SELECT).eq("user_id", user.id).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-    supabase.from("custom_blindtests").select(SELECT).eq("is_public", true).order("plays", { ascending: false }).limit(24),
+    supabase.from("custom_blindtests").select(SELECT).eq("is_public", true).order("featured", { ascending: false }).order("plays", { ascending: false }).limit(24),
   ]);
   return NextResponse.json({ mine: mine.data ?? [], community: community.data ?? [] });
 }
@@ -45,12 +45,13 @@ export async function POST(req: NextRequest) {
   const trackIds: number[] = Array.isArray(body?.trackIds) ? body.trackIds.map(Number).filter((n: number) => Number.isInteger(n) && n > 0).slice(0, CUSTOM_MAX) : [];
   const settings = body?.settings && typeof body.settings === "object" ? { s: body.settings.s ?? undefined, a: body.settings.a ?? undefined } : {};
   const isPublic = !!body?.isPublic;
+  const cover = typeof body?.cover === "string" && /^https?:\/\//.test(body.cover) ? body.cover.slice(0, 500) : null;
   if (!title || trackIds.length < CUSTOM_MIN) return NextResponse.json({ error: "invalid" }, { status: 400 });
 
   if (body?.id) {
     const { data, error } = await supabase
       .from("custom_blindtests")
-      .update({ title, description, track_ids: trackIds, settings, is_public: isPublic, updated_at: new Date().toISOString() })
+      .update({ title, description, cover, track_ids: trackIds, settings, is_public: isPublic, updated_at: new Date().toISOString() })
       .eq("id", body.id)
       .eq("user_id", user.id)
       .select(SELECT)
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
   for (let attempt = 0; attempt < 4; attempt++) {
     const { data, error } = await supabase
       .from("custom_blindtests")
-      .insert({ slug: makeSlug(), user_id: user.id, title, description, track_ids: trackIds, settings, is_public: isPublic })
+      .insert({ slug: makeSlug(), user_id: user.id, title, description, cover, track_ids: trackIds, settings, is_public: isPublic })
       .select(SELECT)
       .maybeSingle();
     if (!error && data) return NextResponse.json({ item: data });

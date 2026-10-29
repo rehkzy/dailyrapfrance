@@ -121,7 +121,7 @@ export default function AmisPage() {
     return (
       <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
-        <BackToGame />
+        <BackToGame fallback="/profil" />
         <div className="max-w-sm mx-auto card p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4">
             <LogIn size={20} />
@@ -152,7 +152,7 @@ export default function AmisPage() {
   return (
     <>
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
-      <BackToGame />
+      <BackToGame fallback="/profil" />
       <p className="stage-kicker mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Amis</h1>
       <p className="text-ink-muted mb-10">

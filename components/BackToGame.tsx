@@ -14,7 +14,7 @@ import { ChevronLeft } from "lucide-react";
  * cas (ou s'il n'y a simplement pas d'historique), on retombe sur le hub /jouer, jamais
  * sur un jeu en particulier.
  */
-export default function BackToGame() {
+export default function BackToGame({ fallback = "/jouer" }: { fallback?: string }) {
   const router = useRouter();
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
@@ -32,7 +32,7 @@ export default function BackToGame() {
 
   return (
     <a
-      href="/jouer"
+      href={fallback}
       onClick={handleClick}
       className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mb-5 min-h-[40px] mr-4"
     >

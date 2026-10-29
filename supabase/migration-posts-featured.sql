@@ -16,3 +16,6 @@ create policy "media_posts_public_read" on public.media_posts for select using (
 
 -- Blind tests mis en avant par l'équipe (communauté)
 alter table public.custom_blindtests add column if not exists featured boolean not null default false;
+
+-- Couverture d'un blind test perso
+alter table public.custom_blindtests add column if not exists cover text;

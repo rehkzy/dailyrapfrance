@@ -255,6 +255,9 @@ export default function ThemePicker({
               </section>
             );
           })}
+
+          {/* Par les joueurs — les blind tests publics de la communauté, à la suite des thèmes */}
+          <CommunitySection />
         </>
       )}
 
@@ -264,5 +267,44 @@ export default function ThemePicker({
         </button>
       )}
     </div>
+  );
+}
+
+type CommunityItem = { id: string; slug: string; title: string; cover?: string | null; track_ids: number[]; plays: number; featured?: boolean; profiles?: { username?: string; display_name?: string; verified?: boolean } | { username?: string; display_name?: string; verified?: boolean }[] | null };
+
+/* Les blind tests publics des joueurs, en fin de grille : c'est ici qu'on choisit « à quoi
+   jouer », donc c'est ici qu'ils ont leur place — pas dans un menu à part. */
+function CommunitySection() {
+  const [items, setItems] = useState<CommunityItem[] | null>(null);
+  useEffect(() => {
+    fetch("/api/blindtest/custom").then((r) => r.json()).then((d) => setItems((d.community ?? []).slice(0, 12))).catch(() => setItems([]));
+  }, []);
+  if (!items || items.length === 0) return null;
+  return (
+    <section data-category="Par les joueurs" className="scroll-mt-40">
+      <div className="flex items-baseline justify-between mb-3">
+        <h3 className="font-display text-2xl font-extrabold tracking-tight">Par les joueurs</h3>
+        <a href="/blindtests" className="text-xs font-semibold text-glow">Tout voir →</a>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+        {items.map((it) => {
+          const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles;
+          return (
+            <a key={it.id} href={`/b/${it.slug}`} className="ticket overflow-hidden flex flex-col">
+              <span className="block relative aspect-[4/3] bg-gradient-to-br from-[#3a0a0f] to-[#8a0010]">
+                {it.cover && <img src={it.cover} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
+                {it.featured && <span className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur text-[10px] font-bold text-gold px-2 py-0.5">★ Sélection</span>}
+                <span className="absolute right-2 bottom-2 rounded-full bg-black/60 backdrop-blur text-[10px] font-bold text-white px-2 py-0.5">{it.track_ids.length} titres</span>
+              </span>
+              <span className="p-3 min-w-0">
+                <span className="block text-sm font-semibold truncate">{it.title}</span>
+                <span className="block text-[11px] text-ink-faint truncate">par {p?.display_name ?? p?.username ?? "un joueur"} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>
+              </span>
+            </a>
+          );
+        })}
+      </div>
+      <p className="text-xs text-ink-faint mt-3">Le tien peut être ici : <a href="/creer" className="text-glow font-semibold">crée ton blind test</a> et rends-le public.</p>
+    </section>
   );
 }

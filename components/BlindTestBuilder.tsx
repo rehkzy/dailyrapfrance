@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Plus, Check, X, Play, Pause, Share2, ChevronUp, ChevronDown, Link2, Trash2, Music2, Sparkles, ChevronRight, Users, Save, Globe, Lock, LogIn, Pencil } from "lucide-react";
+import { Search, Plus, Check, X, Play, Pause, Image as ImageIcon, Loader2, Share2, ChevronUp, ChevronDown, Link2, Trash2, Music2, Sparkles, ChevronRight, Users, Save, Globe, Lock, LogIn, Pencil } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useUser } from "@/lib/useUser";
+import { createClient } from "@/lib/supabase/client";
 import SignInCta from "@/components/SignInCta";
 import { Icon } from "@iconify/react";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -22,7 +23,7 @@ import { sfx } from "@/lib/sfx";
 
 type SearchArtist = { id: number; name: string; picture: string | null; fans: number };
 type SavedItem = {
-  id: string; slug: string; title: string; description: string | null; track_ids: number[];
+  id: string; slug: string; title: string; description: string | null; cover?: string | null; track_ids: number[];
   settings: { s?: number; a?: "qcm" | "text" }; is_public: boolean; plays: number; created_at: string; user_id: string;
   profiles?: { username?: string; display_name?: string; avatar_url?: string; verified?: boolean } | { username?: string; display_name?: string; avatar_url?: string; verified?: boolean }[] | null;
 };
@@ -57,6 +58,9 @@ export default function BlindTestBuilder() {
   const [editing, setEditing] = useState<SavedItem | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [description, setDescription] = useState("");
+  const [cover, setCover] = useState<string | null>(null);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const coverInput = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState<"idle" | "busy" | "done" | "error">("idle");
   const [askLogin, setAskLogin] = useState(false);
 
@@ -94,6 +98,7 @@ export default function BlindTestBuilder() {
         setTitle(it.title);
         setDescription(it.description ?? "");
         setIsPublic(it.is_public);
+        setCover(it.cover ?? null);
         setSecs(it.settings?.s ?? null);
         setAnswer(it.settings?.a ?? null);
         setEditing(it);
@@ -101,6 +106,24 @@ export default function BlindTestBuilder() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  async function onCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) { if (!user) setAskLogin(true); return; }
+    if (!file.type.startsWith("image/") || file.size > 6 * 1024 * 1024) { flash("Image JPG/PNG/WebP, 6 Mo max"); return; }
+    setCoverBusy(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/cover-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { cacheControl: "3600", upsert: true });
+      if (error) { flash("Envoi impossible — réessaie"); return; }
+      setCover(supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl);
+    } finally {
+      setCoverBusy(false);
+    }
+  }
 
   async function saveToProfile() {
     if (!code) return;
@@ -113,7 +136,7 @@ export default function BlindTestBuilder() {
       const res = await fetch("/api/blindtest/custom", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editing?.id, title: finalTitle, description, trackIds: tracks.map((t) => t.id), settings: { s: secs ?? undefined, a: answer ?? undefined }, isPublic }),
+        body: JSON.stringify({ id: editing?.id, title: finalTitle, description, trackIds: tracks.map((t) => t.id), settings: { s: secs ?? undefined, a: answer ?? undefined }, isPublic, cover }),
       });
       const data = await res.json();
       if (!res.ok || !data.item) throw new Error(data.error ?? "save");
@@ -297,13 +320,13 @@ export default function BlindTestBuilder() {
           <section className="mb-7" aria-labelledby="mine-title">
             <div className="flex items-baseline justify-between mb-2.5">
               <h2 id="mine-title" className="font-display text-lg font-bold">Mes blind tests <span className="text-ink-faint font-semibold text-sm">({mine.length + saved.length})</span></h2>
-              {editing && <button type="button" onClick={() => { setEditing(null); setTitle(""); setTracks([]); setDescription(""); setIsPublic(false); }} className="text-xs font-semibold text-glow inline-flex items-center gap-1"><Plus size={12} /> Nouveau</button>}
+              {editing && <button type="button" onClick={() => { setEditing(null); setTitle(""); setTracks([]); setDescription(""); setIsPublic(false); setCover(null); }} className="text-xs font-semibold text-glow inline-flex items-center gap-1"><Plus size={12} /> Nouveau</button>}
             </div>
             <div className="flex gap-2.5 overflow-x-auto -mx-5 px-5 pb-1 snap-x" style={{ scrollbarWidth: "none" }}>
               {mine.map((it) => (
                 <div key={it.id} className={`ticket p-3.5 w-[230px] shrink-0 snap-start flex flex-col gap-2.5 ${editing?.id === it.id ? "!border-gold" : ""}`}>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 ${it.is_public ? "bg-gold/15 text-gold" : "bg-white/6 text-ink-muted"}`}>{it.is_public ? <Globe size={14} /> : <Lock size={14} />}</span>
+                    {it.cover ? <img src={it.cover} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" /> : <span className={`w-9 h-9 rounded-lg grid place-items-center shrink-0 ${it.is_public ? "bg-gold/15 text-gold" : "bg-white/6 text-ink-muted"}`}>{it.is_public ? <Globe size={14} /> : <Lock size={14} />}</span>}
                     <a href={itemHref(it)} className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold truncate">{it.title}</span>
                       <span className="block text-[11px] text-ink-faint truncate">{it.track_ids.length} titres · {it.plays} partie{it.plays > 1 ? "s" : ""} · {it.is_public ? "public" : "privé"}</span>
@@ -490,6 +513,21 @@ export default function BlindTestBuilder() {
                   <p className="text-xs text-ink-faint mt-0.5">Pour le retrouver sur tous tes appareils, le rejouer, et avoir un lien court. {!user && "Compte gratuit, en 10 secondes."}</p>
                 </div>
               </div>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => coverInput.current?.click()} disabled={coverBusy} aria-label="Choisir une couverture" className="relative w-20 h-20 rounded-xl overflow-hidden bg-white/6 border border-white/10 shrink-0 grid place-items-center text-ink-faint hover:text-ink">
+                  {cover ? <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <ImageIcon size={20} />}
+                  {coverBusy && <span className="absolute inset-0 bg-black/50 grid place-items-center"><Loader2 size={18} className="animate-spin text-white" /></span>}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Couverture</p>
+                  <p className="text-xs text-ink-faint">Une image pour ton blind test (carré, 6 Mo max). Sinon, l&apos;icône par défaut.</p>
+                  <div className="flex gap-2 mt-1.5">
+                    <button type="button" onClick={() => coverInput.current?.click()} className="text-xs font-semibold text-glow">{cover ? "Changer" : "Ajouter une image"}</button>
+                    {cover && <button type="button" onClick={() => setCover(null)} className="text-xs font-semibold text-ink-faint hover:text-ink">Retirer</button>}
+                  </div>
+                </div>
+                <input ref={coverInput} type="file" accept="image/*" className="hidden" onChange={onCoverFile} />
+              </div>
               <div>
                 <label className="text-xs text-ink-faint mb-1.5 block" htmlFor="bt-desc">Une ligne pour les autres (optionnel)</label>
                 <input id="bt-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={160} placeholder="Le blind test officiel de la soirée du 12…" className="answer-input !min-h-[46px] !text-sm" />
@@ -533,7 +571,7 @@ export default function BlindTestBuilder() {
             <div className="grid sm:grid-cols-2 gap-2.5">
               {community.slice(0, 6).map((it) => (
                 <a key={it.id} href={itemHref(it)} className="ticket p-4 flex items-center gap-3">
-                  <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>
+                  {it.cover ? <img src={it.cover} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" /> : <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold truncate">{it.title}</span>
                     <span className="block text-xs text-ink-faint truncate">{it.track_ids.length} titres · par {itemAuthor(it)}{itemVerified(it) && <VerifiedBadge size={12} className="ml-1" />} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>

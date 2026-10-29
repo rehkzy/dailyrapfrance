@@ -22,7 +22,7 @@ export default function ParrainagePage() {
   return (
     <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
-        <BackToGame />
+        <BackToGame fallback="/profil" />
         <p className="stage-kicker mb-2 inline-flex items-center gap-1.5"><Gift size={13} /> Parrainage</p>
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Invite tes potes, gagne le Stade de France.</h1>
         <p className="text-ink-muted mb-6">{REFERRAL_CONTEST.rule}</p>

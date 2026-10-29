@@ -1066,9 +1066,26 @@ export default function BlindTest() {
               {/* ÉTAPE 0 — deux portes, pas plus : seul ou à plusieurs. Puis 3 choix max. */}
               {branch === null ? (
                 <>
-                  <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
-                  <h2 className="stage-title mb-2">Tu joues<br />comment ?</h2>
-                  <p className="text-sm text-ink-muted mb-5">Deux portes. Le reste se règle en un écran.</p>
+                  {customSet ? (
+                    <>
+                      <p className="stage-kicker mt-4 mb-2 inline-flex items-center gap-1.5"><Sparkles size={13} /> Blind test perso</p>
+                      <h2 className="stage-title mb-3">{customSet.t}</h2>
+                      <div className="ticket p-4 mb-5 flex items-center gap-3">
+                        <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={22} /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold">{customSet.i.length} titres{customSet.s ? ` · extraits de ${customSet.s} s` : ""}{customSet.a === "text" ? " · réponse à écrire" : customSet.a === "qcm" ? " · QCM" : ""}</span>
+                          <span className="block text-xs text-ink-faint truncate">{customSet.d || "Fait maison sur DailyRapFrance. Tu joues comment ?"}</span>
+                        </span>
+                        <a href="/jouer" className="text-xs font-semibold text-ink-faint hover:text-ink shrink-0">Quitter</a>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
+                      <h2 className="stage-title mb-2">Tu joues<br />comment ?</h2>
+                      <p className="text-sm text-ink-muted mb-5">Deux portes. Le reste se règle en un écran.</p>
+                    </>
+                  )}
                   {deepLink.from && (
                     <div className="challenge-banner mb-5">
                       <Swords size={18} className="text-gold shrink-0" />
@@ -1079,29 +1096,29 @@ export default function BlindTest() {
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    <button type="button" onClick={() => { sfx.click(); setBranch("solo"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #3a0a0f 0%, #8a0010 60%, #f0001c 130%)" } as CSSProperties}>
+                    <button type="button" onClick={() => { sfx.click(); if (customSet) { setMode("solo"); setSetupError(null); setWizardStep(2); } else setBranch("solo"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #3a0a0f 0%, #8a0010 60%, #f0001c 130%)" } as CSSProperties}>
                       <span className="door-icon"><User size={24} /></span>
                       <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">Seul</span>
                       <span className="door-sub">À ton rythme, score sauvegardé</span>
                     </button>
-                    <button type="button" onClick={() => { sfx.click(); setBranch("multi"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)" } as CSSProperties}>
+                    <button type="button" onClick={() => { sfx.click(); if (customSet) { setBranch("multi"); setMode("local"); setSetupError(null); setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); } else setBranch("multi"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)" } as CSSProperties}>
                       <span className="door-icon"><Users size={24} /></span>
                       <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">À plusieurs</span>
-                      <span className="door-sub">Même écran, en ligne ou sur la TV</span>
+                      <span className="door-sub">{customSet ? "Sur le même téléphone, avec un buzzer" : "Même écran, en ligne ou sur la TV"}</span>
                     </button>
                   </div>
-                  <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3">
+                  {!customSet && <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3">
                     <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/10 text-white"><Icon icon="game-icons:play-button" width={22} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold">Partie rapide</span>
                       <span className="block text-xs text-ink-faint">Solo · Top 50 · 10 extraits — ça démarre tout de suite.</span>
                     </span>
                     <ChevronRight size={18} className="shrink-0 text-ink-faint" />
-                  </a>
-                  <DailyCard variant="compact" />
-                  <div className="mt-6"><SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} /></div>
+                  </a>}
+                  {!customSet && <DailyCard variant="compact" />}
+                  {!customSet && <div className="mt-6"><SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} /></div>}
                 </>
               ) : branch === "solo" ? (
                 <>
@@ -1136,18 +1153,18 @@ export default function BlindTest() {
                       <span className="min-w-0 flex-1"><span className="choice-title">Sur le même téléphone</span><span className="choice-sub">2 à 8 joueurs, un buzzer, les pseudos de chacun.</span></span>
                       {mode === "local" ? <Check size={18} strokeWidth={3} className="shrink-0" /> : <ChevronRight size={18} className="shrink-0 text-ink-faint" />}
                     </button>
-                    <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="choice">
+                    {!customSet && <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:wifi-router" width={24} /></span>
                       <span className="min-w-0 flex-1"><span className="choice-title">Chacun sur son téléphone</span><span className="choice-sub">Un salon en ligne : crée-le ou rejoins-le avec un code.</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
-                    </button>
-                    <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="choice">
+                    </button>}
+                    {!customSet && <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:tv" width={24} /></span>
                       <span className="min-w-0 flex-1"><span className="choice-title">Soirée sur la TV</span><span className="choice-sub">L'écran partagé sur la télé, les téléphones en manette, un gage pour le dernier.</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
-                    </button>
+                    </button>}
                   </div>
-                  <p className="text-xs text-ink-faint mt-4">Tu as un code ? <a href="/jouer?mode=online" className="text-glow font-semibold">Rejoindre un salon →</a></p>
+                  {!customSet && <p className="text-xs text-ink-faint mt-4">Tu as un code ? <a href="/jouer?mode=online" className="text-glow font-semibold">Rejoindre un salon →</a></p>}
                 </>
               )}
 

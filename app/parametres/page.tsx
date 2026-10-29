@@ -20,7 +20,7 @@ export default async function ParametresPage() {
   if (!user) {
     return (
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
-        <BackToGame />
+        <BackToGame fallback="/profil" />
         <div className="max-w-sm mx-auto ticket p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4"><LogIn size={20} /></div>
           <p className="font-display text-xl font-bold mb-2">Connecte-toi</p>

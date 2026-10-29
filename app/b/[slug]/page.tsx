@@ -11,12 +11,12 @@ import { encodeCustomSet, customPlayHref } from "@/lib/customBlindtest";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("custom_blindtests").select("title, description, track_ids").eq("slug", slug).maybeSingle();
+  const { data } = await supabase.from("custom_blindtests").select("title, description, cover, track_ids").eq("slug", slug).maybeSingle();
   if (!data) return { title: "Blind test introuvable — DailyRapFrance" };
   return {
     title: `${data.title} — Blind test | DailyRapFrance`,
     description: data.description || `Un blind test de ${data.track_ids.length} titres, fait maison. Tu joues ?`,
-    openGraph: { title: `${data.title} — Blind test`, description: data.description || `${data.track_ids.length} titres, fait maison sur DailyRapFrance.`, images: [{ url: "/og.png", width: 1200, height: 630 }] },
+    openGraph: { title: `${data.title} — Blind test`, description: data.description || `${data.track_ids.length} titres, fait maison sur DailyRapFrance.`, images: [data.cover ? { url: data.cover } : { url: "/og.png", width: 1200, height: 630 }] },
   };
 }
 

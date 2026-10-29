@@ -1,7 +1,6 @@
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { Medal, Flame, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { weeklyNumberFor } from "@/lib/dailyStreak";
@@ -43,7 +42,6 @@ export default async function ClassementPage() {
   return (
     <>
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
-      <BackToGame />
 
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Classement</h1>
       <p className="text-ink-muted mb-6">

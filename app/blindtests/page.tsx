@@ -17,7 +17,7 @@ export default async function CommunityPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("custom_blindtests")
-    .select("id, slug, title, description, track_ids, plays, featured, created_at, profiles(username, display_name, verified)")
+    .select("id, slug, title, description, cover, track_ids, plays, featured, created_at, profiles(username, display_name, verified)")
     .eq("is_public", true)
     .order("featured", { ascending: false })
     .order("plays", { ascending: false })
@@ -26,7 +26,7 @@ export default async function CommunityPage() {
   return (
     <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
-        <BackToGame />
+        <BackToGame fallback="/jouer" />
         <p className="stage-kicker mb-2 inline-flex items-center gap-1.5"><Users size={13} /> Communauté</p>
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Les blind tests des joueurs</h1>
         <p className="text-ink-muted mb-6">Créés avec le constructeur et rendus publics. Chacun se joue en solo ou entre potes.</p>
@@ -39,7 +39,7 @@ export default async function CommunityPage() {
               const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles;
               return (
                 <a key={it.id} href={`/b/${it.slug}`} className="ticket p-4 flex items-center gap-3">
-                  <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>
+                  {it.cover ? <img src={it.cover} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" /> : <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold truncate">{it.featured && <span className="text-gold mr-1" title="Sélection DailyRap">★</span>}{it.title}</span>
                     {it.description && <span className="block text-xs text-ink-muted truncate">{it.description}</span>}

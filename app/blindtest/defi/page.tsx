@@ -65,7 +65,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
   return (
     <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
-        <BackToGame />
+        <BackToGame fallback="/blindtest/classement" />
 
         <p className="stage-kicker mb-2 flex items-center gap-1.5"><Flame size={13} /> Défi de la semaine #{number}</p>
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">

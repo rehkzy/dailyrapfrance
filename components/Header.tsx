@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Clapperboard, Sparkles, Gift, Newspaper } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Sparkles, Gift, Newspaper } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
@@ -32,7 +32,6 @@ const DRAWER_LINKS: { href: string; label: string; sub?: string; Icon: typeof Ho
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
   { href: "/amis", label: "Amis", Icon: Users },
   { href: "/parrainage", label: "Parrainage", sub: "2 places Kaaris · Stade de France", Icon: Gift },
-  { href: "/blindtests", label: "Blind tests des joueurs", Icon: Clapperboard },
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 

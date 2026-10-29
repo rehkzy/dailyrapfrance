@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import AddFriendButton from "@/components/AddFriendButton";
 import FriendPlayButtons from "@/components/FriendPlayButtons";
 import ReferralCard from "@/components/ReferralCard";
-import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
 import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
 import { weekKey, weeklyNumber, weeklyNumberFor } from "@/lib/dailyStreak";
@@ -73,7 +72,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   return (
     <>
       <section className="max-w-2xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-32">
-        <BackToGame />
 
         {/* 1. Identité : bannière, avatar, bio, badges mis en avant */}
         <div className="ticket overflow-hidden mb-4">
