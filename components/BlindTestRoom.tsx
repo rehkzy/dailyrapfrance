@@ -50,7 +50,7 @@ type RoomRow = {
   gages_enabled: boolean;
   gages_intensity: "soft" | "hard";
 };
-type PlayerRow = { room_id: string; user_id: string; display_name: string };
+type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; done_round?: number | null };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string; bonus?: number | null };
 
 export default function BlindTestRoomWrapper(props: {
@@ -162,6 +162,10 @@ function BlindTestRoom({
             });
           });
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` }, (payload) => {
+        const row = payload.new as PlayerRow;
+        setPlayers((prev) => prev.map((p) => (p.user_id === row.user_id ? { ...p, ...row } : p)));
+      })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_round_solves", filter: `room_id=eq.${room.id}` }, (payload) => {
         setSolves((prev) => [...prev, payload.new as SolveRow]);
       })
@@ -267,6 +271,27 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, room?.round_started_at, room?.current_round]);
 
+  // « Je suis prêt » (lobby) et « J'ai fini / Passer » (manche) — chacun sur sa ligne room_players.
+  const me = players.find((p) => p.user_id === user.id);
+  async function toggleReady() {
+    const r = roomRef.current;
+    if (!r) return;
+    const next = !me?.ready;
+    setPlayers((prev) => prev.map((p) => (p.user_id === user.id ? { ...p, ready: next } : p)));
+    sfx.click();
+    await supabase.from("room_players").update({ ready: next }).eq("room_id", r.id).eq("user_id", user.id);
+  }
+  async function markDone() {
+    const r = roomRef.current;
+    if (!r) return;
+    const round = r.current_round;
+    setPlayers((prev) => prev.map((p) => (p.user_id === user.id ? { ...p, done_round: round } : p)));
+    sfx.click();
+    await supabase.from("room_players").update({ done_round: round }).eq("room_id", r.id).eq("user_id", user.id);
+  }
+  const readyCount = players.filter((p) => p.ready).length;
+  const allReady = players.length > 0 && readyCount === players.length;
+
   const endRoundEarly = useCallback(async () => {
     const r = roomRef.current;
     if (!r) return;
@@ -274,6 +299,25 @@ function BlindTestRoom({
     await supabase.from("rooms").update({ round_started_at: past }).eq("id", r.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Quand TOUS les joueurs ont fini la manche (tout trouvé, ou « Passer »), l'hôte l'écourte
+  // automatiquement : on ne fait plus attendre la fin du chrono pour rien.
+  const doneAllRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isHost || !room || screen !== "playing" || revealed || showIntro || players.length === 0) return;
+    const t = room.tracks[room.current_round];
+    if (!t) return;
+    const fields = applicableFieldsFor(room.theme, t);
+    const rs = solves.filter((sv) => sv.round_index === room.current_round);
+    const everyoneDone = players.every((p) => p.done_round === room.current_round || fields.every((f) => rs.some((sv) => sv.field === f && sv.user_id === p.user_id)));
+    const key = `${room.id}:${room.current_round}`;
+    if (everyoneDone && doneAllRef.current !== key) {
+      doneAllRef.current = key;
+      const id = setTimeout(() => void endRoundEarly(), 700);
+      return () => clearTimeout(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players, solves, room?.current_round, screen, revealed, showIntro, isHost]);
 
   // (Volontairement pas d'arrêt automatique de la manche dès que tous les champs sont
   // trouvés.) Avant, dès qu'UN joueur trouvait tout, la manche s'arrêtait pour TOUT LE
@@ -451,6 +495,7 @@ function BlindTestRoom({
 
   async function startGame() {
     unlockAudio();
+    if (roomRef.current) void supabase.from("room_players").update({ ready: false, done_round: null }).eq("room_id", roomRef.current.id);
     if (!room) return;
     setBusy(true);
     try {
@@ -682,7 +727,7 @@ function BlindTestRoom({
 
   async function shareRoom() {
     if (!room) return;
-    const url = `${window.location.origin}/blindtest?room=${room.code}`;
+    const url = `${window.location.origin}/jouer?room=${room.code}`;
     const text = `Rejoins ma partie de Blind Test DailyRapFrance ! Code : ${room.code}`;
     if (navigator.share) {
       try {
@@ -829,24 +874,30 @@ function BlindTestRoom({
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {players.map((p) => (
-                <span key={p.user_id} className="bg-white/8 rounded-full px-3 py-1 text-sm flex items-center gap-1.5">
+                <span key={p.user_id} className={`rounded-full px-3 py-1.5 text-sm flex items-center gap-1.5 border ${p.ready ? "bg-gold/15 border-gold/50 text-ink" : "bg-white/6 border-white/10 text-ink-muted"}`}>
                   {p.user_id === room.host_id && <Icon icon="game-icons:crown" width={12} className="text-gold" />}
                   {p.display_name}
+                  {p.ready ? <Check size={13} strokeWidth={3} className="text-gold" /> : <span className="w-2 h-2 rounded-full bg-white/20" aria-label="pas encore prêt" />}
                 </span>
               ))}
             </div>
+            <p className="text-xs text-ink-faint mt-3">{readyCount} / {players.length} prêt{readyCount > 1 ? "s" : ""}</p>
           </div>
+
+          <button type="button" onClick={toggleReady} aria-pressed={!!me?.ready} className={`w-full h-14 mb-3 ${me?.ready ? "sticker sticker-ghost" : "sticker"}`}>
+            {me?.ready ? <><Check size={18} strokeWidth={3} /> Prêt — en attente des autres</> : <><Icon icon="game-icons:thumb-up" width={18} /> Je suis prêt</>}
+          </button>
 
           {error && <p className="text-sm text-riseNeg mb-4">{error}</p>}
 
           {isHost ? (
-            <button type="button" onClick={startGame} disabled={busy || players.length < 1} className="sticker w-full h-16 text-lg cta-glow disabled:opacity-50">
-              <Icon icon="game-icons:play-button" width={20} /> {busy ? "Chargement…" : "Démarrer la partie"}
+            <button type="button" onClick={startGame} disabled={busy || players.length < 1} className={`sticker w-full h-16 text-lg disabled:opacity-50 ${allReady ? "cta-glow" : ""}`}>
+              <Icon icon="game-icons:play-button" width={20} /> {busy ? "Chargement…" : allReady ? "Tout le monde est prêt — Démarrer" : `Démarrer (${readyCount}/${players.length} prêts)`}
             </button>
           ) : (
             <div className="flex items-center justify-center gap-3 py-1">
               <BrandLoader size="sm" />
-              <p className="text-sm text-ink-faint font-mono">En attente que l'hôte démarre...</p>
+              <p className="text-sm text-ink-faint">{allReady ? "Tout le monde est prêt — l'hôte lance la partie." : "L'hôte lance la partie quand tout le monde est prêt."}</p>
             </div>
           )}
         </div>
@@ -1167,6 +1218,22 @@ function BlindTestRoom({
 
         {/* Bas : réponses — dès le début de la manche, clic ou pas */}
         <div className="feed-bottom">
+          {!revealed && !showIntro && (() => {
+            const rsNow = solves.filter((sv) => sv.round_index === room.current_round);
+            const isDone = (p: PlayerRow) => p.done_round === room.current_round || applicable.every((f) => rsNow.some((sv) => sv.field === f && sv.user_id === p.user_id));
+            const doneCount = players.filter(isDone).length;
+            const meDone = me ? isDone(me) : false;
+            return (
+              <div className="flex items-center justify-between gap-3 mb-2 px-1">
+                <span className="text-[11px] text-ink-faint">{doneCount} / {players.length} ont fini{doneCount === players.length && players.length > 0 ? " — on passe" : ""}</span>
+                {!meDone ? (
+                  <button type="button" onClick={markDone} className="text-xs font-semibold text-ink-muted hover:text-ink inline-flex items-center gap-1 min-h-[36px] px-2"><SkipForward size={13} /> J&apos;ai fini / Passer</button>
+                ) : (
+                  <span className="text-xs font-semibold text-gold inline-flex items-center gap-1"><Check size={13} strokeWidth={3} /> Fini — on attend les autres</span>
+                )}
+              </div>
+            );
+          })()}
           {!revealed && !showIntro && (
             room.answer_mode === "qcm" ? (
               <QcmChoicesRoom

@@ -6,7 +6,7 @@ import {
   RotateCcw, Users, User, Clock,
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   X, VolumeX, Volume2, Lightbulb, Sliders,
-  SpellCheck, PartyPopper, Swords, Trophy, Clapperboard, Sparkles,
+  SpellCheck, PartyPopper, Swords, Clapperboard, Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -1009,23 +1009,15 @@ export default function BlindTest() {
     if (!user) {
       return (
         <SignInGate
-          title={mode === "party" ? "Un compte pour lancer la soirée" : "Un compte pour le salon en ligne"}
-          description="Les salons privés demandent un compte — c'est lui qui relie les joueurs entre eux. Solo et Local restent jouables sans."
+          title={joinRoomCode ? `Tu es invité dans le salon ${joinRoomCode}` : mode === "party" ? "Un compte pour lancer la soirée" : "Un compte pour le salon en ligne"}
+          description={joinRoomCode ? "Connecte-toi (10 secondes, Google ou e-mail) et tu arrives directement dans le salon." : "Les salons privés demandent un compte — c'est lui qui relie les joueurs entre eux. Solo et Local restent jouables sans."}
           onBack={() => setMode(null)}
         />
       );
     }
     return (
-      <div className="stage blindtest-shell px-5 sm:px-6 pb-10">
+      <div className="stage blindtest-shell px-5 sm:px-6 pb-10 pt-4">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between gap-3 pt-4 pb-2">
-            <a href="/" aria-label="DailyRapFrance — accueil" className="inline-flex items-center">
-              <img src="/logo.svg" alt="DailyRapFrance" className="h-6 sm:h-7 w-auto" />
-            </a>
-            <a href="/blindtest/classement" aria-label="Classement" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink">
-              <Trophy size={17} />
-            </a>
-          </div>
           <BlindTestRoom
             user={user}
             onExit={() => setMode(null)}
