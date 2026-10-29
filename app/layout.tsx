@@ -13,6 +13,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import ReferralCapture from "@/components/ReferralCapture";
 import BottomDock from "@/components/BottomDock";
 import { AppComingSoonModal } from "@/components/AppComingSoon";
+import { jsonLd as toJsonLd } from "@/lib/jsonld";
 
 const APPLE_ICON_DATA_URI = (() => {
   try {
@@ -164,7 +165,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD_SITE) }}
+          dangerouslySetInnerHTML={{ __html: toJsonLd(JSONLD_SITE) }}
         />
         <GoogleAnalytics />
         <ActivityTracker />

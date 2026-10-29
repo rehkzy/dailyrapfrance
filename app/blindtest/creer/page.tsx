@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Play, Check, Sparkles, Link2, Users, PartyPopper, GraduationCap, Briefcase, Cake } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import { SITE } from "@/lib/seo";
+import { jsonLd as toJsonLd } from "@/lib/jsonld";
 
 /*
  * Page d'atterrissage SEO / GEO du constructeur : « blind test personnalisé », « créer son
@@ -56,7 +57,7 @@ export default function CreerLandingPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: toJsonLd(jsonLd) }} />
       <article className="max-w-3xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-16">
         <nav aria-label="Fil d'Ariane" className="text-xs text-ink-faint mb-5 flex items-center gap-1.5 flex-wrap">
           <a href="/" className="hover:text-ink">DailyRapFrance</a><span aria-hidden="true">›</span>

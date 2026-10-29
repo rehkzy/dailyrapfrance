@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminClient } from "@/lib/adminAuth";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ export async function GET() {
           const points = picks.filter((p) => chartIds.has(p.id)).length;
           await supabase.from("pronos").update({ scored: true, points }).eq("id", previous.id);
           if (points > 0) {
-            await supabase.from("blindtest_scores").insert({
+            await adminClient().from("blindtest_scores").insert({
               user_id: user.id, theme: "jeu-pronos", rounds: 3, points,
             });
           }

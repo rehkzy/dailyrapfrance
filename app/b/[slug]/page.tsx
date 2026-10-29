@@ -4,6 +4,7 @@ import { Play, Users, Sparkles, Music2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { encodeCustomSet, customPlayHref } from "@/lib/customBlindtest";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { jsonLd as toJsonLd } from "@/lib/jsonld";
 
 const SITE = "https://dailyrapfrance.best";
 
@@ -20,10 +21,10 @@ async function load(slug: string): Promise<Row | null> {
   const { data } = await supabase.from("custom_blindtests").select("title, description, cover, track_ids, settings, plays, is_public, created_at, profiles(username, display_name, verified)").eq("slug", slug).maybeSingle();
   return (data as Row | null) ?? null;
 }
-function playHref(slug: string, d: Row, mode?: string) {
+function playHref(slug: string, d: Row, mode?: string, autostart = false) {
   const settings = d.settings ?? {};
   const code = encodeCustomSet({ v: 1, t: d.title, i: d.track_ids.map(Number), d: d.description ?? undefined, s: settings.s, a: settings.a });
-  return customPlayHref(code, { b: slug, ...(mode ? { mode } : {}) });
+  return customPlayHref(code, { b: slug, ...(mode ? { mode } : {}), ...(autostart ? { autostart: "1" } : {}) });
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -47,7 +48,7 @@ export default async function ShortLinkPage({ params, searchParams }: { params: 
   const sp = await searchParams;
   const d = await load(slug);
   if (!d) notFound();
-  if (sp.go === "1" || sp.mode) redirect(playHref(slug, d, sp.mode));
+  if (sp.go === "1" || sp.mode) redirect(playHref(slug, d, sp.mode ?? "solo", sp.go === "1" && !sp.mode));
 
   const p = Array.isArray(d.profiles) ? d.profiles[0] : d.profiles;
   const author = p?.display_name ?? p?.username ?? "un joueur";
@@ -66,7 +67,7 @@ export default async function ShortLinkPage({ params, searchParams }: { params: 
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: toJsonLd(jsonLd) }} />
       <section className="max-w-2xl mx-auto px-5 sm:px-6 pt-8 sm:pt-14 pb-32">
         <p className="stage-kicker mb-3 inline-flex items-center gap-1.5"><Sparkles size={13} /> Blind test créé par un joueur</p>
         <div className="ticket overflow-hidden mb-5">
@@ -82,7 +83,7 @@ export default async function ShortLinkPage({ params, searchParams }: { params: 
             </p>
             {d.description && <p className="text-ink-muted mt-3">{d.description}</p>}
             <div className="mt-5 grid sm:grid-cols-2 gap-2.5">
-              <a href={playHref(slug, d)} className="sticker h-14 text-base"><Play size={18} fill="currentColor" /> Jouer en solo</a>
+              <a href={playHref(slug, d, "solo", true)} className="sticker h-14 text-base"><Play size={18} fill="currentColor" /> Jouer en solo</a>
               <a href={playHref(slug, d, "local")} className="sticker sticker-ghost h-14 text-base"><Users size={18} /> Entre potes, même téléphone</a>
             </div>
             <p className="text-[11px] text-ink-faint mt-3">Sans compte, dans le navigateur. Extraits officiels de 30 secondes.</p>

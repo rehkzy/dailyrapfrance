@@ -8,6 +8,7 @@ import { AppStoreCallout } from "@/components/AppComingSoon";
 import { resolveArtist, artistTopTracks } from "@/lib/deezerArtist";
 import { getDailyTheme } from "@/lib/themes";
 import { weeklyNumber } from "@/lib/dailyStreak";
+import { jsonLd as toJsonLd } from "@/lib/jsonld";
 
 /*
  * /blindtest/[slug] — pages d'atterrissage statiques : une par façon de jouer (solo,
@@ -100,7 +101,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: toJsonLd(jsonLd) }} />
 
       <article className="max-w-3xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-16">
         <nav aria-label="Fil d'Ariane" className="text-xs text-ink-faint mb-5 flex items-center gap-1.5 flex-wrap">

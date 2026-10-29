@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import BlindTest from "@/components/BlindTest";
 import BlindTestLogo from "@/components/BlindTestLogo";
 import { THEME_LANDINGS } from "@/lib/seo";
+import { jsonLd as toJsonLd } from "@/lib/jsonld";
 
 export const metadata = {
   title: "Blind Test Rap Français — Gratuit, en Ligne, Compte en 10 Secondes | DailyRapFrance",
@@ -86,7 +87,7 @@ const jsonLd = {
 export default function BlindTestPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: toJsonLd(jsonLd) }} />
       {/* Fond ambiant ancré au viewport — remplace le bg-bg plat qui apparaissait "noir
           brut" dès qu'on descend un peu dans le wizard (liste de thèmes notamment). */}
       <div className="aurora-fixed" aria-hidden="true" />

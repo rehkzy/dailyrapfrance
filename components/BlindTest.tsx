@@ -370,7 +370,11 @@ export default function BlindTest() {
 
   async function maintenanceMessage(): Promise<string | null> {
     try {
-      const { data } = await createClient().from("site_settings").select("value").eq("key", "maintenance").maybeSingle();
+      // Jamais plus de 2,5 s : si la base est lente, on lance la partie quand même.
+      const { data } = await Promise.race([
+        createClient().from("site_settings").select("value").eq("key", "maintenance").maybeSingle(),
+        new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), 2500)),
+      ]);
       const v = data?.value as { enabled?: boolean; message?: string } | undefined;
       return v?.enabled ? (v.message?.trim() || "Le blind test revient dans quelques minutes.") : null;
     } catch {

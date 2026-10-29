@@ -295,7 +295,7 @@ export default function BlindTestBuilder() {
     if (!code) return;
     sfx.click();
     persist();
-    window.location.assign(customPlayHref(code, { mode }));
+    window.location.assign(customPlayHref(code, mode === "solo" ? { mode, autostart: "1" } : { mode }));
   }
 
   async function share(c = code, t = finalTitle, n = tracks.length) {
