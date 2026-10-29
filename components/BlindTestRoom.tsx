@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
 import { Icon } from "@iconify/react";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
@@ -98,6 +99,16 @@ function BlindTestRoom({
   const [replaying, setReplaying] = useState(false);
   const [room, setRoom] = useState<RoomRow | null>(null);
   const [players, setPlayers] = useState<PlayerRow[]>([]);
+  // Comptes certifiés parmi les joueurs (badge à côté du pseudo, comme partout ailleurs)
+  const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const ids = players.map((p) => p.user_id).filter((id) => !verifiedIds.has(id));
+    if (!ids.length) return;
+    supabase.from("profiles").select("id").eq("verified", true).in("id", ids).then(({ data }) => {
+      if (data?.length) setVerifiedIds((prev) => new Set([...prev, ...data.map((d) => d.id as string)]));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players]);
   const [solves, setSolves] = useState<SolveRow[]>([]);
 
   const [started, setStarted] = useState(false);
@@ -873,6 +884,7 @@ function BlindTestRoom({
                 <span key={p.user_id} className={`rounded-full px-3 py-1.5 text-sm flex items-center gap-1.5 border ${p.ready ? "bg-gold/15 border-gold/50 text-ink" : "bg-white/6 border-white/10 text-ink-muted"}`}>
                   {p.user_id === room.host_id && <Icon icon="game-icons:crown" width={12} className="text-gold" />}
                   {p.display_name}
+                  {verifiedIds.has(p.user_id) && <VerifiedBadge size={13} />}
                   {p.ready ? <Check size={13} strokeWidth={3} className="text-gold" /> : <span className="w-2 h-2 rounded-full bg-white/20" aria-label="pas encore prêt" />}
                 </span>
               ))}
@@ -1134,6 +1146,7 @@ function BlindTestRoom({
             <span key={p.user_id} className="player-chip" data-buzzed={p.user_id === user.id}>
               <span className="avatar">{(p.display_name ?? "?").slice(0, 2).toUpperCase()}</span>
               {p.display_name}
+              {verifiedIds.has(p.user_id) && <VerifiedBadge size={12} />}
               <b>{scoreFor(p.user_id)}</b>
             </span>
           ))}

@@ -4,6 +4,7 @@ import SavedPresets from "@/components/SavedPresets";
 import SocialLinks from "@/components/SocialLinks";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
 import ReferralCard from "@/components/ReferralCard";
+import ActivityFeed from "@/components/ActivityFeed";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { THEME_OPTIONS } from "@/lib/themes";
@@ -109,6 +110,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Connecté : le fil des potes, avant tout le reste */}
+      <ActivityFeed />
 
       {/* NOUVEAU — le constructeur : la fonctionnalité qu'on met en avant */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4" aria-labelledby="creer-title">
