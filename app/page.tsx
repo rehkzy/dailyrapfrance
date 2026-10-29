@@ -5,6 +5,10 @@ import SocialLinks from "@/components/SocialLinks";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
 import ReferralCard from "@/components/ReferralCard";
 import ActivityFeed from "@/components/ActivityFeed";
+import TrendingStrip from "@/components/TrendingStrip";
+import NewsList from "@/components/NewsList";
+import { getNews } from "@/lib/news";
+import { ChevronRight, Newspaper } from "lucide-react";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { THEME_OPTIONS } from "@/lib/themes";
@@ -60,7 +64,10 @@ const POPULAR_THEME_LINKS = THEME_OPTIONS.filter((t) => t.id !== "mix")
   .slice(0, 24)
   .map((t) => ({ href: `/blindtest/${themeSlug(t)}`, t: t.label }));
 
-export default function Home() {
+export const revalidate = 1800;
+
+export default async function Home() {
+  const news = (await getNews(4)).slice(0, 4);
   return (
     <>
       {/* Hero : la promesse en une ligne, puis directement le défi de la semaine. */}
@@ -113,6 +120,20 @@ export default function Home() {
 
       {/* Connecté : le fil des potes, avant tout le reste */}
       <ActivityFeed />
+
+      {/* Le média : les sons du moment + les dernières actus, entre le jeu et la création */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4">
+        <TrendingStrip />
+      </section>
+      {news.length > 0 && (
+        <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4" aria-labelledby="news-title">
+          <div className="flex items-baseline justify-between mb-2.5">
+            <h2 id="news-title" className="font-display text-lg sm:text-xl font-bold inline-flex items-center gap-1.5"><Newspaper size={16} className="text-gold" /> Dernières actus</h2>
+            <a href="/actu?onglet=actu" className="text-xs font-semibold text-glow inline-flex items-center gap-1">Toute l&apos;actu <ChevronRight size={12} /></a>
+          </div>
+          <NewsList items={news} compact />
+        </section>
+      )}
 
       {/* NOUVEAU — le constructeur : la fonctionnalité qu'on met en avant */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4" aria-labelledby="creer-title">

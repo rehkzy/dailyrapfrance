@@ -1,19 +1,20 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Home, Trophy, Sparkles, User } from "lucide-react";
+import { Home, Newspaper, Sparkles, User } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 
 /*
  * LE menu du site sur téléphone — le même partout, toujours au même endroit : une barre
  * flottante en bas, avec au centre le bouton Jouer, un disque rouge qui porte la flèche de
  * la marque et déborde de la barre (c'est l'élément signature). Quatre destinations autour :
- * Accueil, Classement, Créer, Profil. Sur ordinateur, c'est le header qui joue ce rôle.
+ * Accueil, Actu (le média), Créer, Profil. Le classement vit dans Accueil, Jouer et Profil.
+ * Sur ordinateur, c'est le header qui joue ce rôle.
  * Il s'efface de lui-même pendant une partie (feed) et dans le Swipe plein écran (CSS).
  */
 const LEFT = [
   { href: "/", label: "Accueil", Icon: Home, match: (p: string) => p === "/" },
-  { href: "/blindtest/classement", label: "Classement", Icon: Trophy, match: (p: string) => p.startsWith("/blindtest/classement") || p.startsWith("/blindtest/defi") },
+  { href: "/actu", label: "Actu", Icon: Newspaper, match: (p: string) => p.startsWith("/actu") },
 ];
 const RIGHT = [
   { href: "/creer", label: "Créer", Icon: Sparkles, match: (p: string) => p.startsWith("/creer") || p.startsWith("/blindtests") },

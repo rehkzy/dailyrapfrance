@@ -2243,7 +2243,7 @@ html { overflow-x: clip; }
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.06);
 }
-.segmented > button {
+.segmented > button, .segmented > a {
   min-height: 46px;
   border-radius: 10px;
   font-size: 14px;
@@ -2251,8 +2251,8 @@ html { overflow-x: clip; }
   color: var(--ink-2);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
-.segmented > button[aria-pressed="true"] { background: #fff; color: #0a0505; }
-.segmented > button:not([aria-pressed="true"]):hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+.segmented > button[aria-pressed="true"], .segmented > a[aria-pressed="true"] { background: #fff; color: #0a0505; }
+.segmented > button:not([aria-pressed="true"]):hover, .segmented > a:not([aria-pressed="true"]):hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
 
 /* Ticket de config / de résultat — bord perforé */
 .ticket {

@@ -29,6 +29,7 @@ import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
 import { decodeCustomSet, CUSTOM_THEME_ID } from "@/lib/customBlindtest";
 import ResultTicket from "@/components/ResultTicket";
 import SavedPresets from "@/components/SavedPresets";
+import TrendingStrip from "@/components/TrendingStrip";
 import DailyCard from "@/components/DailyCard";
 import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
 import { markPlayedToday, bumpGamesPlayed, weeklyNumber, weekKey, getStreak, recordDailyScore } from "@/lib/dailyStreak";
@@ -1442,6 +1443,11 @@ export default function BlindTest() {
               </div>
             </details>
           )}
+
+          {/* Le média, même en fin de partie : les sons du moment, à écouter avant de relancer */}
+          <div className="mt-8">
+            <TrendingStrip title="Les sons du moment" limit={8} />
+          </div>
           </div>
           </div>
         </div>

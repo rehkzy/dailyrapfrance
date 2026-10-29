@@ -72,6 +72,13 @@ export default function BlindTestBuilder() {
   };
   useEffect(() => { void loadLists(); }, [user?.id]);
 
+  // Depuis l'actu : /creer?q=<artiste> pré-remplit la recherche
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setQuery(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Modifier un blind test enregistré : /creer?b=<slug>
   useEffect(() => {
     const slug = searchParams.get("b");

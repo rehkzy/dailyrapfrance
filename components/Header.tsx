@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Clapperboard, Sparkles, Gift } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Clapperboard, Sparkles, Gift, Newspaper } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
@@ -20,6 +20,7 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 const NAV = [
   { href: "/", label: "Accueil", Icon: Home },
   { href: "/jouer", label: "Jouer", Icon: Play },
+  { href: "/actu", label: "Actu", Icon: Newspaper },
   { href: "/creer", label: "Créer", Icon: Sparkles },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
   { href: "/parrainage", label: "Parrainage", Icon: Gift },
@@ -27,6 +28,7 @@ const NAV = [
 ];
 
 const DRAWER_LINKS: { href: string; label: string; sub?: string; Icon: typeof Home }[] = [
+  { href: "/actu", label: "Actu & tendances", sub: "Sons du moment, sorties, articles", Icon: Newspaper },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
   { href: "/amis", label: "Amis", Icon: Users },
   { href: "/parrainage", label: "Parrainage", sub: "2 places Kaaris · Stade de France", Icon: Gift },

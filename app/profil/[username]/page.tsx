@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Calendar, Play, Flame, Sparkles, Settings, ChevronRight, Swords } from "lucide-react";
+import { Calendar, Play, Flame, Sparkles, Settings, ChevronRight, Swords, Trophy } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/server";
 import AddFriendButton from "@/components/AddFriendButton";
@@ -147,6 +147,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </span>
           </span>
           <Play size={18} className="shrink-0" fill="currentColor" />
+        </a>
+        <a href={isMe ? "/blindtest/classement" : "/blindtest/defi"} className="action-row mb-4">
+          <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-gold/15 text-gold"><Trophy size={20} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">{isMe ? "Classement général" : "Classement du défi"}</span>
+            <span className="block text-xs text-ink-faint">{isMe ? `Ton record : ${bestScore} pts — où tu te places.` : `Compare-toi à ${name} cette semaine.`}</span>
+          </span>
+          <ChevronRight size={16} className="text-ink-faint shrink-0" />
         </a>
 
 
