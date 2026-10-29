@@ -204,6 +204,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
 
   return (
     <div ref={containerRef} className="reel-feed" data-lenis-prevent>
+      <ImmersiveBody />
       {clips.map((clip, i) => {
         const st = states[clip.id];
         const isActive = i === active;
@@ -280,4 +281,13 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
       })}
     </div>
   );
+}
+
+/* Pendant le feed de clips : plein écran, aucun menu du site (header, dock) — comme le blind test. */
+function ImmersiveBody() {
+  useEffect(() => {
+    document.body.classList.add("game-immersive");
+    return () => { document.body.classList.remove("game-immersive"); };
+  }, []);
+  return null;
 }

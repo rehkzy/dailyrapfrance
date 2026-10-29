@@ -2103,7 +2103,7 @@ html { overflow-x: clip; }
   z-index: 0;
 }
 .stage > *:not(.stage-fixed) { position: relative; z-index: 1; }
-.stage > .stage-fixed { position: fixed; z-index: 30; }
+.stage-fixed { position: fixed; z-index: 30; }
 
 /* Titre d'écran — Bricolage 800 très serré, interlignage court */
 .stage-title {
@@ -3077,14 +3077,14 @@ body:has(.swipe-screen) header, body:has(.swipe-screen) #site-announcement { dis
 /* Place réservée sous les pages pour que la barre ne cache rien */
 @media (max-width: 1023px) {
   body { padding-bottom: calc(env(safe-area-inset-bottom) + 92px); }
-  body:has(.feed), body:has(.swipe-screen) { padding-bottom: 0; }
+  body:has(.feed), body:has(.reel-feed), body:has(.swipe-screen) { padding-bottom: 0; }
 }
 /* Pendant une partie ou dans le Swipe plein écran, aucun menu : rien ne doit masquer le jeu */
-body:has(.feed) .brand-dock-wrap, body:has(.swipe-screen) .brand-dock-wrap, body.game-immersive .brand-dock-wrap { display: none !important; }
+body:has(.feed) .brand-dock-wrap, body:has(.reel-feed) .brand-dock-wrap, body:has(.swipe-screen) .brand-dock-wrap, body:has(.party-display) .brand-dock-wrap, body.game-immersive .brand-dock-wrap { display: none !important; }
 
 /* Les barres d'action collantes des écrans de réglage / du constructeur passent AU-DESSUS du menu */
 @media (max-width: 1023px) {
-  .stage > .stage-fixed { bottom: calc(env(safe-area-inset-bottom) + 84px); padding-bottom: 10px !important; }
+  .stage-fixed { bottom: calc(env(safe-area-inset-bottom) + 84px); padding-bottom: 10px !important; }
 }
 
 /* ---------------------------------------------------------------------------------------

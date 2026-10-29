@@ -1055,7 +1055,7 @@ export default function BlindTest() {
   if (phase === "setup" || phase === "loading") {
     const canContinue = wizardStep === 0 ? !!mode && (mode !== "local" || playerNames.filter((n) => n.trim()).length >= 2) : true;
     return (
-      <div className="stage blindtest-shell px-5 sm:px-6 lg:px-10 pt-2" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
+      <div className="stage blindtest-shell px-5 sm:px-6 lg:px-10 pt-2" style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${wizardStep === 2 || (wizardStep === 0 && mode === "local") ? "140px" : "40px"})` }}>
         <div className="max-w-2xl lg:max-w-6xl mx-auto">
           {stageTop}
 

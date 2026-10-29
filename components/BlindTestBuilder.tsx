@@ -307,7 +307,7 @@ export default function BlindTestBuilder() {
   }
 
   return (
-    <div className="stage blindtest-shell px-5 sm:px-6 lg:px-10" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
+    <div className="stage blindtest-shell px-5 sm:px-6 lg:px-10" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 140px)" }}>
       <audio ref={audioRef} onEnded={() => setPlayingId(null)} onPause={() => setPlayingId(null)} />
       <div className="max-w-2xl lg:max-w-6xl mx-auto">
 

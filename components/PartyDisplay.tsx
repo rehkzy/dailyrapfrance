@@ -219,7 +219,7 @@ export default function PartyDisplay({ code }: { code: string }) {
 
   if (notFound) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-center px-6">
+      <div className="party-display min-h-screen flex items-center justify-center text-center px-6">
         <p className="text-ink-muted">
           Salon <span className="font-mono text-gold">{code}</span> introuvable ou fermé.
         </p>
@@ -229,7 +229,7 @@ export default function PartyDisplay({ code }: { code: string }) {
 
   if (!room) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="party-display min-h-screen flex items-center justify-center">
         <span className="w-16 h-16">
           <DRMark3D size="100%" />
         </span>
@@ -241,7 +241,7 @@ export default function PartyDisplay({ code }: { code: string }) {
   const lastPlace = ranked.length > 1 ? ranked[ranked.length - 1] : null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-8 py-10 text-center relative">
+    <div className="party-display min-h-screen flex flex-col items-center justify-center px-8 py-10 text-center relative">
       {room.status === "finished" && ranked.length > 0 && <Confetti />}
 
       {/* Réactions emoji flottantes — envoyées depuis n'importe quel téléphone du salon */}
