@@ -80,8 +80,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             {badges.bestFanOf.length > 0 && (
               <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/15 backdrop-blur px-3 py-1.5 text-xs font-bold text-white">👑 Meilleur fan de {badges.bestFanOf.slice(0, 2).join(" et ")}</span>
             )}
+            {isMe && (
+              <a href="/parametres" aria-label="Réglages du profil" className="absolute right-3 top-3 w-10 h-10 rounded-full bg-black/55 border border-white/15 backdrop-blur grid place-items-center text-white hover:bg-black/70">
+                <Settings size={18} />
+              </a>
+            )}
           </div>
-          <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+          <div className="relative z-10 px-5 sm:px-6 pb-5 sm:pb-6">
           <div className="flex items-end gap-4 min-w-0 -mt-10">
             {profile.avatar_url ? (
               <img src={profile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-[#0b0507] shrink-0" />
@@ -96,7 +101,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 <span className="inline-flex items-center gap-1"><Users size={11} /> {friendsCount ?? 0} ami{(friendsCount ?? 0) > 1 ? "s" : ""}</span>
               </p>
             </div>
-            {isMe && <a href="/parametres" aria-label="Personnaliser mon profil" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink shrink-0 mb-1"><Settings size={17} /></a>}
           </div>
           {profile.bio && <p className="text-sm text-ink-muted mt-3">{profile.bio}</p>}
           {showcase.length > 0 && (
@@ -104,8 +108,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               {showcase.map((b) => <span key={b.id} className="inline-flex items-center gap-1 rounded-full bg-gold/15 border border-gold/40 px-2.5 py-1 text-xs font-semibold">{b.emoji} {b.label}</span>)}
             </div>
           )}
-          {isMe && showcase.length === 0 && unlockedGame.length > 0 && (
-            <a href="/parametres" className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-glow">Mettre des badges en avant <ChevronRight size={12} /></a>
+          {isMe && (
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <a href="/parametres" className="sticker sticker-ghost h-11 text-sm">Modifier le profil</a>
+              <a href="#partager" className="sticker sticker-ghost h-11 text-sm">Partager le profil</a>
+            </div>
           )}
           {!isMe && (
             <div className="mt-4 grid grid-cols-2 gap-2.5">
@@ -266,7 +273,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         )}
 
         {/* 5. Pour soi : parrainage */}
-        {isMe && profile.username && <div className="mt-2"><ShareProfileCard username={profile.username} /></div>}
+        {isMe && profile.username && <div id="partager" className="mt-2 scroll-mt-24"><ShareProfileCard username={profile.username} /></div>}
         {isMe && <div className="mt-4"><ReferralCard compact /></div>}
         {!isMe && viewer && (
           <a href={dailyHref} className="sticker w-full h-14 mt-2"><Swords size={18} /> Défier {name} sur le défi</a>

@@ -1,7 +1,7 @@
-import { LogIn, User as UserIcon, ChevronRight, Trophy } from "lucide-react";
+import { LogIn, User as UserIcon, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import BackToGame from "@/components/BackToGame";
 import { createClient } from "@/lib/supabase/server";
 import AccountSettingsForm from "@/components/AccountSettingsForm";
-import BackToGame from "@/components/BackToGame";
 import SignInCta from "@/components/SignInCta";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { loadProfileBundle } from "@/lib/profileData";
@@ -41,21 +41,19 @@ export default async function ParametresPage() {
 
   return (
     <section className="max-w-2xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-32">
-      <BackToGame />
-      <p className="stage-kicker mb-2">Mon compte</p>
-      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Personnalise ton profil.</h1>
-      <p className="text-ink-muted mb-6">Bannière, photo, pseudo, bio, et les badges que tu veux montrer.</p>
-
-      {profile?.username && (
-        <a href={`/profil/${profile.username}`} className="action-row mb-5" data-primary="true">
-          <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><UserIcon size={20} /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold">Voir mon profil public</span>
-            <span className="block text-xs text-white/80">Tel que les autres le voient.</span>
-          </span>
-          <ChevronRight size={18} className="shrink-0" />
+      <div className="flex items-center justify-between mb-5">
+        <a href={profile?.username ? `/profil/${profile.username}` : "/profil"} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink min-h-[40px]">
+          <ChevronLeft size={16} /> Mon profil
         </a>
-      )}
+        {profile?.username && (
+          <a href={`/profil/${profile.username}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-muted hover:text-ink min-h-[40px]">
+            <UserIcon size={14} /> Voir comme les autres
+          </a>
+        )}
+      </div>
+      <p className="stage-kicker mb-2">Mon compte</p>
+      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Modifier le profil</h1>
+      <p className="text-ink-muted mb-6">Bannière, photo, pseudo, bio, et les badges que tu veux montrer. Chaque bloc s&apos;enregistre seul.</p>
 
       <AccountSettingsForm
         userId={user.id}
