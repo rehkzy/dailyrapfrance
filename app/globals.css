@@ -3107,3 +3107,45 @@ body:has(.feed) .brand-dock-wrap, body:has(.swipe-screen) .brand-dock-wrap, body
   .poster[data-active="true"] .poster-tag { visibility: hidden; }
   .poster .poster-check[aria-hidden] { display: none; } /* icône décorative : la pastille suffit */
 }
+
+/* ---------------------------------------------------------------------------------------
+   Écran de départ : deux « portes » (Seul / À plusieurs), puis des lignes de choix
+   --------------------------------------------------------------------------------------- */
+.door {
+  position: relative; overflow: hidden;
+  aspect-ratio: 1 / 1.05;
+  border-radius: 22px;
+  background: var(--poster-bg, #1a0608);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+  padding: 18px; text-align: left; color: #fff;
+  transition: transform 0.15s, border-color 0.2s;
+}
+.door:active { transform: scale(0.97); }
+.door:hover { border-color: rgba(255, 255, 255, 0.5); }
+.door-icon { width: 46px; height: 46px; border-radius: 14px; background: rgba(255, 255, 255, 0.16); display: grid; place-items: center; margin-bottom: auto; position: relative; }
+.door-title { position: relative; font-family: var(--font-display); font-weight: 800; font-size: clamp(1.6rem, 7vw, 2.2rem); line-height: 0.95; letter-spacing: -0.03em; margin-top: 12px; }
+.door-sub { position: relative; font-size: 12.5px; color: rgba(255, 255, 255, 0.8); margin-top: 6px; line-height: 1.3; }
+@media (min-width: 640px) { .door { aspect-ratio: 16 / 9; } .door-title { font-size: 2.2rem; } }
+@media (min-width: 1024px) { .door { aspect-ratio: 2 / 1; padding: 26px; } }
+
+.choice {
+  width: 100%; display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 18px; text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+}
+.choice:active { transform: scale(0.985); }
+.choice:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); }
+.choice[data-primary="true"] { background: linear-gradient(135deg, #8a0010, #f0001c); border-color: transparent; color: #fff; box-shadow: 0 14px 34px rgba(240, 0, 28, 0.35); }
+.choice-icon { width: 48px; height: 48px; border-radius: 14px; background: rgba(255, 255, 255, 0.1); display: grid; place-items: center; flex: 0 0 auto; }
+.choice[data-primary="true"] .choice-icon { background: rgba(255, 255, 255, 0.18); }
+.choice-title { display: block; font-family: var(--font-display); font-weight: 800; font-size: 17px; line-height: 1.1; }
+.choice-sub { display: block; font-size: 12.5px; color: var(--ink-3); margin-top: 3px; line-height: 1.35; }
+.choice[data-primary="true"] .choice-sub { color: rgba(255, 255, 255, 0.85); }
+.choice-tag { display: inline-block; vertical-align: middle; margin-left: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--red); background: rgba(240, 0, 28, 0.14); border-radius: 6px; padding: 2px 6px; }
+.choice[data-primary="true"] .choice-tag { color: #fff; background: rgba(255, 255, 255, 0.2); }
+@media (min-width: 1024px) { .choice { padding: 18px 20px; } .choice-title { font-size: 19px; } }
