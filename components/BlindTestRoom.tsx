@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/client";
@@ -11,11 +11,10 @@ import { randomGage } from "@/lib/gages";
 import { speedBonus } from "@/lib/scoring";
 import { trackEvent } from "@/lib/track";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, QCM_STAGE_PROMPTS, type QcmField } from "@/lib/qcmStages";
-import Magnetic from "@/components/Magnetic";
 import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
-import BorderMagicButton from "@/components/ui/BorderMagicButton";
+import { DRMark3D } from "@/components/BlindTestLogo";
 import type { User } from "@supabase/supabase-js";
 
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
@@ -745,15 +744,10 @@ function BlindTestRoom({
           </button>
 
           <div className="mb-6">
-            <Magnetic strength={0.15}>
-              <button
-                onClick={shareRoom}
-                className="inline-flex items-center gap-2 sticker px-5 py-2.5 text-sm font-medium transition-colors"
-              >
-                <Share2 size={15} />
-                {shared ? "Lien envoyé !" : "Partager l'invitation"}
-              </button>
-            </Magnetic>
+            <button onClick={shareRoom} className="sticker h-12 px-6">
+              <Share2 size={15} />
+              {shared ? "Lien envoyé !" : "Partager l'invitation"}
+            </button>
           </div>
 
           {party ? (
@@ -803,12 +797,9 @@ function BlindTestRoom({
           {error && <p className="text-sm text-riseNeg mb-4">{error}</p>}
 
           {isHost ? (
-            <Magnetic strength={0.15} className="block w-full">
-              <BorderMagicButton onClick={startGame} disabled={busy || players.length < 1} fullWidth size="lg">
-                {busy ? "Chargement..." : "Démarrer la partie"}
-                {!busy && <Icon icon="game-icons:play-button" width={18} />}
-              </BorderMagicButton>
-            </Magnetic>
+            <button type="button" onClick={startGame} disabled={busy || players.length < 1} className="sticker w-full h-16 text-lg cta-glow disabled:opacity-50">
+              <Icon icon="game-icons:play-button" width={20} /> {busy ? "Chargement…" : "Démarrer la partie"}
+            </button>
           ) : (
             <div className="flex items-center justify-center gap-3 py-1">
               <BrandLoader size="sm" />
@@ -864,8 +855,8 @@ function BlindTestRoom({
                   className={i === 1 ? "text-gold" : "text-ink-faint"}
                 />
                 <div
-                  className={`glass rounded-t-lg w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 ${
-                    i === 1 ? "h-28 border-gold/40" : i === 0 ? "h-20" : "h-14"
+                  className={`rounded-t-xl w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 border border-white/10 ${
+                    i === 1 ? "h-28 bg-gold/20 border-gold/50" : i === 0 ? "h-20 bg-white/8" : "h-14 bg-white/5"
                   }`}
                 >
                   <p className="text-xs font-medium truncate px-1 max-w-full">{p.display_name}</p>
@@ -922,10 +913,9 @@ function BlindTestRoom({
         {closedMessage && <p className="text-sm text-riseNeg mb-4">{closedMessage}</p>}
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {isHost && (
-            <BorderMagicButton onClick={() => setReplaying(true)} size="md">
-              <RotateCcw size={16} />
-              Rejouer — même salon
-            </BorderMagicButton>
+            <button type="button" onClick={() => setReplaying(true)} className="sticker h-14 px-7">
+              <RotateCcw size={16} /> Rejouer — même salon
+            </button>
           )}
           {confirmingQuit ? (
             <span className="inline-flex items-center gap-2 text-xs font-mono uppercase">
@@ -998,155 +988,144 @@ function BlindTestRoom({
       .filter((n): n is string => !!n);
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="feed" data-lenis-prevent>
       <audio
         key={previewOverride[track.id] ?? track.id}
         ref={audioRef}
         src={previewOverride[track.id] ?? track.previewUrl}
         preload="auto"
+        loop
         onError={() => {
           if (started && !revealed) void recoverAudio(true);
           else setAudioError(true);
         }}
       />
+      {track.coverUrl && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
+      <div className="reel-shade" aria-hidden="true" />
 
-      <div className="fixed top-4 inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
+      {/* Notifications (arrivées, départs…) et réactions des autres */}
+      <div className="fixed top-[calc(env(safe-area-inset-top)+64px)] inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
         {notices.map((n) => (
-          <span key={n.id} className="solved-pop ticket rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
-            {n.text}
-          </span>
+          <span key={n.id} className="solved-pop rounded-full bg-black/60 border border-white/10 backdrop-blur px-4 py-2 text-xs font-medium text-ink">{n.text}</span>
         ))}
       </div>
-
-      <div className="fixed inset-x-0 bottom-24 z-40 pointer-events-none flex justify-center">
+      <div className="fixed inset-x-0 bottom-[40%] z-40 pointer-events-none flex justify-center">
         <div className="relative w-full max-w-lg h-0">
           {reactions.map((r) => (
-            <span
-              key={r.id}
-              className="reaction-float absolute left-1/2 bottom-0 -translate-x-1/2 text-3xl"
-              title={r.from}
-            >
-              {r.emoji}
-            </span>
+            <span key={r.id} className="reaction-float absolute left-1/2 bottom-0 -translate-x-1/2 text-4xl" title={r.from}>{r.emoji}</span>
           ))}
         </div>
       </div>
 
-      <div className="sticky top-0 z-20 py-2.5 mb-4 flex items-center justify-between ticket rounded-xl px-4 gap-2">
-        {confirmingQuit ? (
-          <div className="flex items-center gap-2 text-[11px] font-mono uppercase">
-            <span className="text-ink-muted">Fermer pour tous ?</span>
-            <button onClick={leaveRoom} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-2 py-1 transition-colors">
-              Oui
-            </button>
-            <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-2 py-1 transition-colors">
-              Non
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setConfirmingQuit(true)}
-            title={isHost ? "Quitter le salon (le ferme pour tout le monde)" : "Quitter le salon"}
-            className="tap-press shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-ink-faint hover:text-riseNeg transition-colors"
-          >
-            <LogOut size={14} />
-          </button>
-        )}
-        <span className="text-xs font-semibold text-ink-faint">
-          Manche {room.current_round + 1} / {room.tracks.length}
-        </span>
-        <button
-          onClick={copyCode}
-          className="tap-press inline-flex items-center gap-1.5 font-mono text-xs font-semibold tracking-[0.15em] bg-gold/10 border border-gold/30 text-gold rounded-full px-3 py-1.5 hover:bg-gold/20 transition-colors"
-        >
-          {room.code}
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-        </button>
-      </div>
-
-      <div className="flex justify-center gap-1.5 mb-4">
-        {["🔥", "😭", "💀", "🎯", "👀"].map((e) => (
-          <button
-            key={e}
-            onClick={() => sendReaction(e)}
-            className="tap-press w-9 h-9 rounded-full bg-white/6 border border-white/10 text-lg hover:bg-white/10 transition-colors"
-          >
-            {e}
-          </button>
-        ))}
-      </div>
-
-      <div className="ticket p-6 md:p-8 text-center mb-4 min-h-[320px] flex flex-col justify-center">
-        {revealed ? (
-          <div>
-            {track.coverUrl && (
-              <img src={track.coverUrl} alt={track.title} className="w-24 h-24 rounded-lg object-cover mx-auto mb-4" />
-            )}
-            <p className="font-display text-2xl font-medium">{track.title}</p>
-            <p className="text-ink-muted mt-1">{track.artistName}</p>
-            {track.feats.length > 0 && <p className="text-xs text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>}
-            <div className="flex items-center justify-center gap-2 mt-5 flex-wrap">
-              {applicable.map((f) => (
-                <span
-                  key={f}
-                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-mono ${
-                    isSolved(f) ? "bg-gold/15 text-gold" : "bg-white/5 text-ink-faint"
-                  }`}
-                >
-                  {isSolved(f) && <Check size={11} />}
-                  {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Featuring"}
-                  {isSolved(f) && ` — ${finders(f).join(", ")}`}
-                </span>
+      <div key={room.current_round} className="feed-slide">
+        {/* Haut : quitter · progression · code du salon */}
+        <div className="feed-top">
+          {confirmingQuit ? (
+            <div className="flex items-center gap-1 text-xs font-semibold shrink-0">
+              <span className="text-ink-muted">{isHost ? "Fermer ?" : "Quitter ?"}</span>
+              <button onClick={leaveRoom} className="text-riseNeg px-2 py-1 min-h-[36px]">Oui</button>
+              <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint px-2 py-1 min-h-[36px]">Non</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setConfirmingQuit(true)} aria-label={isHost ? "Quitter le salon (le ferme pour tout le monde)" : "Quitter le salon"} className="feed-icon"><LogOut size={15} /></button>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="seg-progress" aria-hidden="true">
+              {room.tracks.map((_, i) => (
+                <span key={i} className="seg" data-state={i < room.current_round ? "done" : i === room.current_round ? "current" : undefined} />
               ))}
             </div>
-            {roundSolves.length === 0 && <p className="mt-4 font-mono text-sm text-ink-faint">Personne n'a trouvé.</p>}
+            <p className="text-[11px] font-semibold text-ink-muted mt-1.5 truncate">Manche {room.current_round + 1} / {room.tracks.length} · {players.length} joueur{players.length > 1 ? "s" : ""}</p>
           </div>
-        ) : showIntro ? (
-          <div className="py-8">
-            <p className="font-mono text-xs text-gold uppercase tracking-[0.24em] mb-2 animate-pulse">
-              Manche {room.current_round + 1}
-            </p>
-            <p className="text-sm text-ink-faint">Prépare-toi...</p>
-          </div>
-        ) : (
-          <>
-            {/* La lecture du son a besoin d'un vrai clic (contrainte des navigateurs,
-                surtout Safari iOS) — mais contrairement à avant, ce clic ne conditionne
-                plus l'accès à la zone de réponse juste en dessous : elle est déjà là pour
-                tout le monde, dès le début de la manche, clic ou pas. */}
-            {!started && (
-              <Magnetic strength={0.2} className="block mb-5">
-                <BorderMagicButton onClick={launchExtract} size="md">
-                  <Icon icon="game-icons:play-button" width={20} /> Lancer le son
-                </BorderMagicButton>
-              </Magnetic>
-            )}
-            {audioError && (
-              <div className="solved-pop max-w-xs mx-auto mb-4 flex items-center gap-2.5 bg-riseNeg/10 border border-riseNeg/30 rounded-xl px-3.5 py-2.5 text-left">
-                <VolumeX size={16} className="text-riseNeg shrink-0" />
-                <p className="text-xs text-ink-muted flex-1">Le son n'a pas pu se charger.</p>
-                <button
-                  type="button"
-                  onClick={retryAudio}
-                  className="tap-press shrink-0 inline-flex items-center gap-1 text-xs font-medium text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-lg px-2.5 py-1.5 transition-colors"
-                >
-                  <RotateCcw size={12} />
-                  Réessayer
-                </button>
+          <button type="button" onClick={copyCode} aria-label="Copier le code du salon" className="h-10 px-3 rounded-full bg-black/45 border border-white/12 backdrop-blur font-mono text-xs font-bold tracking-[0.15em] text-glow inline-flex items-center gap-1.5 shrink-0">
+            {room.code} {copied ? <Check size={12} /> : <Copy size={12} />}
+          </button>
+        </div>
+
+        {/* Joueurs et scores */}
+        <div className="feed-players">
+          {[...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id)).map((p) => (
+            <span key={p.user_id} className="player-chip" data-buzzed={p.user_id === user.id}>
+              <span className="avatar">{(p.display_name ?? "?").slice(0, 2).toUpperCase()}</span>
+              {p.display_name}
+              <b>{scoreFor(p.user_id)}</b>
+            </span>
+          ))}
+        </div>
+
+        {/* Scène */}
+        <div className="feed-scene">
+          {revealed ? (
+            <div className="feed-reveal solved-pop">
+              {track.coverUrl && <img src={track.coverUrl} alt="" className="w-36 h-36 rounded-2xl object-cover mx-auto mb-4 shadow-[0_20px_50px_rgba(0,0,0,0.6)]" />}
+              <p className="font-display text-3xl font-extrabold tracking-tight leading-tight">{track.title}</p>
+              <p className="text-ink-muted text-lg mt-1">{track.artistName}</p>
+              {track.feats.length > 0 && <p className="text-sm text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>}
+              <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
+                {applicable.map((f) => (
+                  <span key={f} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ${isSolved(f) ? "bg-gold text-white" : "bg-white/8 text-ink-faint line-through"}`}>
+                    {isSolved(f) && <Check size={11} strokeWidth={3} />}
+                    {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Feat"}
+                    {isSolved(f) && ` · ${finders(f).join(", ")}`}
+                  </span>
+                ))}
               </div>
-            )}
-            <span className={`font-display text-2xl text-gold block mb-4 ${timeLeft <= 5 ? "urgent-pulse" : ""}`}>{timeLeft}</span>
+              {roundSolves.length === 0 && <p className="mt-4 text-sm text-ink-faint">Personne ne l&apos;a reconnu — il était dur celui-là.</p>}
+              <p className="mt-4 text-xs text-ink-faint">Manche suivante dans un instant…</p>
+            </div>
+          ) : showIntro ? (
+            <div className="text-center">
+              <span className="feed-launch-ring mx-auto" style={{ animation: "none" }}><Icon icon="game-icons:headphones" width={34} /></span>
+              <p className="stage-kicker mt-5">Manche {room.current_round + 1}</p>
+              <p className="font-display text-2xl font-extrabold tracking-tight animate-pulse">Prépare-toi…</p>
+            </div>
+          ) : !started ? (
+            <button type="button" onClick={launchExtract} className="feed-launch">
+              <span className="feed-launch-ring"><Icon icon="game-icons:play-button" width={34} /></span>
+              <span className="stage-kicker mt-5">Manche {room.current_round + 1}</span>
+              <span className="font-display text-2xl font-extrabold tracking-tight">Touche pour lancer le son</span>
+              <span className="text-xs text-ink-faint mt-1">Le chrono tourne pour tout le monde : {timeLeft} s</span>
+            </button>
+          ) : (
+            <>
+              {audioError && (
+                <div className="solved-pop mb-4 flex items-center gap-2.5 bg-riseNeg/15 border border-riseNeg/40 rounded-xl px-3.5 py-2.5 text-left">
+                  <VolumeX size={16} className="text-riseNeg shrink-0" />
+                  <p className="text-xs flex-1">Le son n&apos;a pas pu se charger.</p>
+                  <button type="button" onClick={retryAudio} className="text-xs font-semibold text-riseNeg inline-flex items-center gap-1"><RotateCcw size={12} /> Réessayer</button>
+                </div>
+              )}
+              <div className="feed-disc" aria-hidden="true">
+                <div className="feed-disc-inner vinyl-spin"><DRMark3D size="46%" /></div>
+              </div>
+              <div className="big-timer feed-timer" data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / ROUND_SECONDS) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
+                <span className={`score-num text-5xl ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Rail : réactions + passer (hôte) */}
+        {!revealed && !showIntro && (
+          <div className="feed-rail">
+            {["🔥", "😭", "💀", "🎯", "👀"].map((e) => (
+              <button key={e} type="button" onClick={() => sendReaction(e)} aria-label={`Réagir ${e}`} className="feed-rail-btn">
+                <span className="feed-rail-icon text-xl">{e}</span>
+              </button>
+            ))}
             {isHost && (
-              <button
-                type="button"
-                onClick={endRoundEarly}
-                className="mb-4 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink bg-white/8 rounded-full px-4 py-2 transition-colors"
-              >
-                <SkipForward size={13} />
-                Personne ne trouve — passer
+              <button type="button" onClick={endRoundEarly} className="feed-rail-btn">
+                <span className="feed-rail-icon"><SkipForward size={20} /></span>
+                <span>Passer</span>
               </button>
             )}
-            {room.answer_mode === "qcm" ? (
+          </div>
+        )}
+
+        {/* Bas : réponses — dès le début de la manche, clic ou pas */}
+        <div className="feed-bottom">
+          {!revealed && !showIntro && (
+            room.answer_mode === "qcm" ? (
               <QcmChoicesRoom
                 options={qcmOptions}
                 onPick={(label) => void submitRoomQcmChoice(label)}
@@ -1157,58 +1136,38 @@ function BlindTestRoom({
                 stageCount={roomQcmStages.length}
               />
             ) : (
-            <div className={`space-y-2.5 max-w-sm mx-auto ${flash === "taken" ? "shake-wrong" : ""}`}>
-              {applicable
-                .filter((f) => applicable.includes(f))
-                .map((f) => (
-                  <div key={f}>
-                    {myCorrectFields.has(f) ? (
-                      <div className="solved-pop w-full bg-gold/10 border border-gold/30 rounded-lg px-3 py-2 text-sm text-gold flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <Check size={14} />
-                          {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Featuring"} trouvé
-                        </span>
-                        <span className="text-xs text-ink-faint">
-                          toi{otherFinders(f).length > 0 ? ` + ${otherFinders(f).join(", ")}` : ""}
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <input
-                          value={guess[f]}
-                          onChange={(e) => setGuess((g) => ({ ...g, [f]: e.target.value }))}
-                          onKeyDown={(e) => e.key === "Enter" && submitGuess()}
-                          placeholder={f === "title" ? "Titre (1 pt)" : f === "artist" ? "Artiste (1 pt)" : "Featuring (+2 pts)"}
-                          className={`w-full bg-white/5 border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors ${
-                            f === "feat" ? "border-gold/30 focus:border-gold/60" : "border-white/10 focus:border-gold/50"
-                          }`}
-                        />
-                        {/* Le champ reste tapable même si quelqu'un d'autre l'a déjà — juste
-                            un petit rappel, pas un blocage : chacun garde sa chance de trouver. */}
-                        {isSolved(f) && (
-                          <p className="text-[10px] text-ink-faint mt-1 ml-1">
-                            Déjà trouvé par {otherFinders(f).join(", ")} — tente ta chance quand même !
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                ))}
-              <button onClick={submitGuess} className="w-full bg-gold hover:bg-glow text-white rounded-lg py-2.5 text-sm font-medium">
-                Valider
-              </button>
-            </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2 justify-center">
-        {[...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id)).map((p) => (
-          <span key={p.user_id} className="font-mono text-xs bg-white/8 rounded-full px-3 py-1">
-            {p.display_name} · <span className="text-gold">{scoreFor(p.user_id)}</span>
-          </span>
-        ))}
+              <form
+                onSubmit={(e) => { e.preventDefault(); void submitGuess(); }}
+                className={`space-y-2 ${flash === "taken" ? "shake-wrong" : ""}`}
+              >
+                {applicable.map((f) =>
+                  myCorrectFields.has(f) ? (
+                    <div key={f} className="solved-pop answer !min-h-[52px] !bg-gold/15 !border-gold/40 text-glow text-sm">
+                      <Check size={16} strokeWidth={3} />
+                      {f === "title" ? "Titre" : f === "artist" ? "Artiste" : "Featuring"} trouvé
+                      <span className="ml-auto text-xs text-ink-faint">toi{otherFinders(f).length > 0 ? ` + ${otherFinders(f).join(", ")}` : ""}</span>
+                    </div>
+                  ) : (
+                    <div key={f}>
+                      <input
+                        value={guess[f]}
+                        onChange={(e) => setGuess((g) => ({ ...g, [f]: e.target.value }))}
+                        placeholder={f === "title" ? "Titre (1 pt)" : f === "artist" ? "Artiste (1 pt)" : "Featuring (+2 pts)"}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        className="answer-input"
+                        style={f === "feat" ? { borderColor: "rgba(240,0,28,0.45)" } : undefined}
+                      />
+                      {isSolved(f) && <p className="text-[11px] text-ink-faint mt-1 ml-1">Déjà trouvé par {otherFinders(f).join(", ")} — tente ta chance quand même.</p>}
+                    </div>
+                  )
+                )}
+                <button type="submit" className="sticker w-full h-14"><Check size={18} strokeWidth={3} /> Valider</button>
+              </form>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1291,12 +1250,9 @@ function ReplayPanel({
 
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
 
-      <Magnetic strength={0.15} className="block w-full">
-        <BorderMagicButton onClick={() => onConfirm(theme, rounds, answerMode)} disabled={busy} fullWidth size="lg">
-          {busy ? "Lancement..." : "Relancer la partie"}
-          {!busy && <Icon icon="game-icons:play-button" width={18} />}
-        </BorderMagicButton>
-      </Magnetic>
+      <button type="button" onClick={() => onConfirm(theme, rounds, answerMode)} disabled={busy} className="sticker w-full h-16 text-lg disabled:opacity-50">
+        <Icon icon="game-icons:play-button" width={20} /> {busy ? "Lancement…" : "Relancer la partie"}
+      </button>
     </div>
   );
 }
@@ -1553,11 +1509,9 @@ function RoomMenu({
               Rejoindre
             </button>
           </div>
-          <Magnetic strength={0.15} className="block w-full">
-            <BorderMagicButton onClick={handleCreate} disabled={busy} fullWidth size="lg">
-              {party ? "Lancer la soirée" : "Créer une partie privée"}
-            </BorderMagicButton>
-          </Magnetic>
+          <button type="button" onClick={handleCreate} disabled={busy} className="sticker w-full h-16 text-lg cta-glow disabled:opacity-50">
+            <Icon icon="game-icons:play-button" width={20} /> {party ? "Lancer la soirée" : "Créer une partie privée"}
+          </button>
         </div>
       </div>
     </div>
@@ -1581,36 +1535,24 @@ function QcmChoicesRoom({
   stageIndex: number;
   stageCount: number;
 }) {
+  const keys = ["A", "B", "C", "D"];
   return (
-    <div className="max-w-sm mx-auto">
-      <div className="flex items-center justify-center gap-2.5 mb-3">
-        <p className="text-sm font-semibold">{prompt}</p>
+    <div>
+      <div className="flex items-center justify-between mb-2.5 px-1">
+        <p className="text-sm font-bold">{prompt}</p>
         {stageCount > 1 && (
           <span className="flex items-center gap-1" aria-label={`Étape ${stageIndex + 1} sur ${stageCount}`}>
             {Array.from({ length: stageCount }).map((_, i) => (
-              <span
-                key={i}
-                className={`h-1.5 rounded-full transition-all ${
-                  i < stageIndex ? "w-1.5 bg-gold" : i === stageIndex ? "w-4 bg-gold" : "w-1.5 bg-white/15"
-                }`}
-              />
+              <span key={i} className={`h-1.5 rounded-full transition-all ${i < stageIndex ? "w-1.5 bg-gold" : i === stageIndex ? "w-5 bg-gold" : "w-1.5 bg-white/20"}`} />
             ))}
           </span>
         )}
       </div>
-      <div className="space-y-2.5" key={prompt}>
-        {options.map((label) => (
-          <button
-            key={label}
-            onClick={() => onPick(label)}
-            disabled={disabled}
-            className={`solved-pop w-full text-left rounded-lg px-4 py-3 text-sm font-medium border transition-colors disabled:opacity-50 ${
-              wrongId === label
-                ? "border-riseNeg bg-riseNeg/10 shake-wrong"
-                : "border-white/10 bg-white/5 hover:border-gold/40 hover:bg-white/[0.07]"
-            }`}
-          >
-            {label}
+      <div className="feed-answers" key={prompt}>
+        {options.map((label, i) => (
+          <button key={label} type="button" onClick={() => onPick(label)} disabled={disabled} className="answer solved-pop" data-wrong={wrongId === label}>
+            <span className="answer-key">{keys[i]}</span>
+            <span className="flex-1 truncate">{label}</span>
           </button>
         ))}
       </div>
