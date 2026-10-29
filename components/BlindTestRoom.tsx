@@ -302,6 +302,7 @@ function BlindTestRoom({
     gagesEnabled: boolean,
     gagesIntensity: "soft" | "hard"
   ) {
+    unlockAudio();
     setBusy(true);
     setError(null);
     try {
@@ -382,6 +383,7 @@ function BlindTestRoom({
   }
 
   async function joinRoom() {
+    unlockAudio();
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
     setBusy(true);
@@ -448,6 +450,7 @@ function BlindTestRoom({
   }
 
   async function startGame() {
+    unlockAudio();
     if (!room) return;
     setBusy(true);
     try {
@@ -468,12 +471,46 @@ function BlindTestRoom({
     }
   }
 
-  function launchExtract() {
-    if (revealed) return;
+  // Lecture automatique : le navigateur exige UN geste pour autoriser le son. On le prend
+  // sur les clics qui existent déjà (Créer / Rejoindre / Démarrer) en jouant un silence ;
+  // ensuite chaque manche démarre toute seule, sans bouton. Si malgré tout le navigateur
+  // refuse (page rechargée en pleine partie…), le bouton « Lancer le son » réapparaît.
+  const audioUnlockedRef = useRef(false);
+  const [needsTap, setNeedsTap] = useState(false);
+  const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
+  function unlockAudio() {
+    const a = unlockRef.current;
+    if (!a || audioUnlockedRef.current) return;
+    try {
+      a.src = SILENT_WAV;
+      a.play().then(() => { a.pause(); audioUnlockedRef.current = true; }).catch(() => {});
+    } catch {}
+  }
+  const unlockRef = useRef<HTMLAudioElement | null>(null);
+
+  function launchExtract(auto = false) {
+    if (revealedRef.current) return;
     setStarted(true);
     setAudioError(false);
-    audioRef.current?.play().catch(() => void recoverAudio(true));
+    setNeedsTap(false);
+    const a = audioRef.current;
+    if (!a) return;
+    a.play()
+      .then(() => { audioUnlockedRef.current = true; })
+      .catch(() => {
+        if (auto) {
+          setStarted(false);
+          setNeedsTap(true); // lecture auto refusée : on redemande un tap
+        } else void recoverAudio(true);
+      });
   }
+  // Fin du sas « Prépare-toi » → le son part tout seul
+  useEffect(() => {
+    if (screen !== "playing" || showIntro || revealed || started) return;
+    const t = setTimeout(() => launchExtract(true), 120);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, showIntro, room?.current_round]);
 
   const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
   const autoRecoveredRef = useRef<Set<string>>(new Set());
@@ -705,12 +742,18 @@ function BlindTestRoom({
   }
 
   if (screen === "menu") {
-    return <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onExit={onExit} party={party} />;
+    return (
+      <>
+        <audio ref={unlockRef} preload="auto" />
+        <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onExit={onExit} party={party} />
+      </>
+    );
   }
 
   if (screen === "lobby" && room) {
     return (
       <div className="max-w-lg mx-auto">
+        <audio ref={unlockRef} preload="auto" />
         <div className="fixed top-4 inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
           {notices.map((n) => (
             <span key={n.id} className="solved-pop ticket rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
@@ -1079,8 +1122,8 @@ function BlindTestRoom({
               <p className="stage-kicker mt-5">Manche {room.current_round + 1}</p>
               <p className="font-display text-2xl font-extrabold tracking-tight animate-pulse">Prépare-toi…</p>
             </div>
-          ) : !started ? (
-            <button type="button" onClick={launchExtract} className="feed-launch">
+          ) : !started && needsTap ? (
+            <button type="button" onClick={() => launchExtract()} className="feed-launch">
               <span className="feed-launch-ring"><Icon icon="game-icons:play-button" width={34} /></span>
               <span className="stage-kicker mt-5">Manche {room.current_round + 1}</span>
               <span className="font-display text-2xl font-extrabold tracking-tight">Touche pour lancer le son</span>

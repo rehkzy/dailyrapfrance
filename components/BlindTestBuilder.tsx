@@ -278,15 +278,6 @@ export default function BlindTestBuilder() {
     <div className="stage blindtest-shell px-5 sm:px-6 lg:px-10" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
       <audio ref={audioRef} onEnded={() => setPlayingId(null)} onPause={() => setPlayingId(null)} />
       <div className="max-w-2xl lg:max-w-6xl mx-auto">
-        <div className="flex items-center justify-between gap-3 pt-4 pb-2">
-          <a href="/" aria-label="DailyRapFrance — accueil" className="inline-flex items-center"><img src="/logo.svg" alt="DailyRapFrance" className="h-6 sm:h-7 w-auto" /></a>
-          <nav className="hidden md:flex items-center gap-0.5 text-[13px] font-semibold text-ink-muted whitespace-nowrap" aria-label="Navigation">
-            <a href="/" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">Accueil</a>
-            <a href="/jouer" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">Jouer</a>
-            <a href="/blindtest/classement" className="h-10 px-3 rounded-full hover:text-ink hover:bg-white/6 inline-flex items-center">Classement</a>
-          </nav>
-          <a href="/jouer" className="h-10 px-3.5 rounded-full bg-white/6 text-xs font-semibold text-ink-muted hover:text-ink inline-flex items-center gap-1.5"><Play size={13} fill="currentColor" /> Les thèmes</a>
-        </div>
 
         <p className="stage-kicker mt-4 mb-2 inline-flex items-center gap-1.5"><Sparkles size={13} /> Nouveau · Tes morceaux, tes règles</p>
         <h1 className="stage-title mb-2">Crée ton<br />blind test.</h1>

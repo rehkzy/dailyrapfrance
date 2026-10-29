@@ -40,6 +40,9 @@ export function GameTabBarContent() {
 // bords, comme une dock d'app). Sur la page blind test, utiliser GameTabBarContent empilée
 // dans les blocs fixes déjà en place.
 export default function GameTabBar() {
+  // Remplacée par le menu global (components/BottomDock.tsx) : un seul menu, partout.
+  return null;
+  // eslint-disable-next-line no-unreachable
   return (
     <div
       className="game-tabbar-fixed fixed bottom-0 inset-x-0 z-30 px-4 pt-6 pointer-events-none lg:hidden"

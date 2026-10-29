@@ -22,6 +22,7 @@ const NAV = [
   { href: "/jouer", label: "Jouer", Icon: Play },
   { href: "/creer", label: "Créer", Icon: Sparkles },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
+  { href: "/parrainage", label: "Parrainage", Icon: Gift },
   { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
@@ -192,7 +193,7 @@ export default function Header() {
           {!onGame && (
             <a
               href="/jouer"
-              className="inline-flex items-center gap-1.5 h-10 px-4 sm:px-5 rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors shadow-brand"
+              className="hidden lg:inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors shadow-brand"
             >
               <Play size={15} fill="currentColor" />
               Jouer
