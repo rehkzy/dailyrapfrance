@@ -114,7 +114,7 @@ export default function InstallPrompt() {
   return (
     <>
       {/* Bannière compacte */}
-      <div className="fixed bottom-24 lg:bottom-6 inset-x-0 z-40 px-4 flex justify-center pointer-events-none">
+      <div className="install-prompt fixed bottom-24 lg:bottom-6 inset-x-0 z-40 px-4 flex justify-center pointer-events-none">
         <div className="glass rounded-3xl p-4 pr-3 flex items-center gap-3.5 max-w-md w-full pointer-events-auto shadow-[0_16px_50px_rgba(0,0,0,0.6)]">
           <BrandTile size={44} />
           <div className="min-w-0 flex-1">

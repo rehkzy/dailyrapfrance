@@ -26,6 +26,11 @@ export async function GET() {
     topScores,
     recentlyOnline,
     onlineNow,
+    pendingVerification,
+    verifiedCount,
+    publicBlindtests,
+    referralsCount,
+    gamesToday,
   ] = await Promise.all([
     db.from("profiles").select("id", { count: "exact", head: true }),
     db.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", iso(7 * DAY)),
@@ -60,6 +65,11 @@ export async function GET() {
       .limit(12),
     // En ligne "maintenant" au sens strict : activité dans la dernière minute.
     db.from("profiles").select("id", { count: "exact", head: true }).gte("last_seen_at", iso(60_000)),
+    db.from("profiles").select("id", { count: "exact", head: true }).eq("verified", false).not("verification_requested_at", "is", null),
+    db.from("profiles").select("id", { count: "exact", head: true }).eq("verified", true),
+    db.from("custom_blindtests").select("id", { count: "exact", head: true }).eq("is_public", true),
+    db.from("referrals").select("id", { count: "exact", head: true }),
+    db.from("blindtest_scores").select("id", { count: "exact", head: true }).gte("created_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
   ]);
 
   // Agrégats côté serveur sur la fenêtre 14 jours
@@ -94,6 +104,11 @@ export async function GET() {
       friendships: friendshipsAccepted.count ?? 0,
       avgPoints14d: scores.length ? Math.round((pointsSum / scores.length) * 10) / 10 : 0,
       onlineNow: onlineNow.count ?? 0,
+      pendingVerification: pendingVerification.count ?? 0,
+      verified: verifiedCount.count ?? 0,
+      publicBlindtests: publicBlindtests.count ?? 0,
+      referrals: referralsCount.count ?? 0,
+      gamesToday: gamesToday.count ?? 0,
     },
     days,
     topThemes,

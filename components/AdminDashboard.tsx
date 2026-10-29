@@ -15,7 +15,9 @@ import AdminReferralsTab from "@/components/AdminReferralsTab";
 import VerifiedBadge from "@/components/VerifiedBadge";
 
 /*
- * Back-office DailyRapFrance — 4 onglets :
+ * Briques du back-office (vue d'ensemble, audience, visites, salons, mails, pilotage).
+ * La coquille (sidebar, sections, recherche) est dans components/admin/AdminStudio.tsx.
+ * Historique :
  *  - Vue d'ensemble : compteurs clés, courbe des parties (14 j), thèmes les plus joués,
  *    meilleurs scores, dernières inscriptions.
  *  - Utilisateurs : liste complète (e-mail, provider, dernière connexion, nb de parties),
@@ -42,10 +44,11 @@ type Stats = {
   }[];
 };
 
-type AdminUser = {
+export type AdminUser = {
   id: string; email: string; provider: string; createdAt: string; lastSignInAt: string | null;
-  displayName: string | null; username: string | null; games: number; isOnline: boolean;
-  verified: boolean; verificationRequestedAt: string | null;
+  displayName: string | null; username: string | null; avatarUrl?: string | null; games: number; isOnline: boolean;
+  lastSeenAt?: string | null; verified: boolean; verificationRequestedAt: string | null;
+  isAdmin?: boolean; referrals?: number; customs?: number;
 };
 
 type UserActivity = {
@@ -73,138 +76,18 @@ type AnalyticsData = {
   search: import("@/lib/googleReporting").SearchConsoleReport | null;
 };
 
-const TABS = [
-  { id: "overview", label: "Vue d'ensemble", Icon: LayoutGrid },
-  { id: "audience", label: "Audience", Icon: TrendingUp },
-  { id: "visits", label: "Visites (IP)", Icon: Globe },
-  { id: "users", label: "Utilisateurs", Icon: Users },
-  { id: "rooms", label: "Salons", Icon: Radio },
-  { id: "email", label: "Mails", Icon: Mail },
-  { id: "settings", label: "Pilotage", Icon: SettingsIcon },
-  { id: "clips", label: "Clips", Icon: Clapperboard },
-  { id: "referrals", label: "Parrainage", Icon: Gift },
-] as const;
-
-function themeLabel(id: string) {
+export function themeLabel(id: string) {
   return THEME_OPTIONS.find((t) => t.id === id)?.label ?? id;
 }
 
-function fmtDate(iso: string | null) {
+export function fmtDate(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-export default function AdminDashboard({ adminEmail }: { adminEmail: string }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
-  // Sélection de destinataires partagée entre "Utilisateurs" (cases à cocher) et "Mails"
-  // (ajout manuel + envoi ciblé) — vit ici pour survivre au changement d'onglet.
-  const [recipients, setRecipients] = useState<string[]>([]);
-
-  const addRecipients = useCallback((emails: string[]) => {
-    setRecipients((prev) => Array.from(new Set([...prev, ...emails])));
-  }, []);
-  const removeRecipient = useCallback((email: string) => {
-    setRecipients((prev) => prev.filter((e) => e !== email));
-  }, []);
-  const removeRecipients = useCallback((emails: string[]) => {
-    const drop = new Set(emails);
-    setRecipients((prev) => prev.filter((e) => !drop.has(e)));
-  }, []);
-  const toggleRecipient = useCallback((email: string) => {
-    setRecipients((prev) => (prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]));
-  }, []);
-
-  const activeTab = TABS.find((t) => t.id === tab)!;
-
-  return (
-    <div className="lg:flex lg:items-start lg:gap-8">
-      {/* Sidebar — desktop uniquement (façon Resend : liste verticale, icône + libellé,
-          organisation/compte en haut, pas de barre d'onglets horizontale qui déborde). */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0 lg:sticky lg:top-6">
-        <div className="flex items-center gap-2.5 px-2 mb-6">
-          <span className="w-8 h-8 rounded-lg bg-gold/15 text-gold flex items-center justify-center shrink-0">
-            <ShieldCheck size={16} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">Back-office</p>
-            <p className="text-[11px] text-ink-faint font-mono truncate">{adminEmail}</p>
-          </div>
-        </div>
-
-        <nav className="space-y-0.5">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-left transition-colors ${
-                tab === t.id ? "bg-gold/15 text-gold font-medium" : "text-ink-muted hover:text-ink hover:bg-white/5"
-              }`}
-            >
-              <t.Icon size={16} className="shrink-0" />
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Contenu principal */}
-      <div className="min-w-0 flex-1">
-        {/* En-tête mobile + barre d'onglets horizontale — seulement en dessous de lg,
-            pour ne rien casser sur téléphone où une sidebar verticale n'a pas de sens. */}
-        <div className="lg:hidden mb-6">
-          <h1 className="font-display text-3xl font-semibold flex items-center gap-2.5 mb-1">
-            <ShieldCheck size={26} className="text-gold" /> Back-office
-          </h1>
-          <p className="text-xs text-ink-faint font-mono mb-4">{adminEmail}</p>
-          <div className="flex gap-1 p-1 rounded-full glass overflow-x-auto">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                  tab === t.id ? "bg-gold text-white" : "text-ink-muted hover:text-ink"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Titre de section — desktop uniquement, la sidebar remplace déjà la navigation
-            mobile ci-dessus donc pas besoin d'y dupliquer un titre. */}
-        <div className="hidden lg:flex items-center gap-2.5 mb-6">
-          <activeTab.Icon size={20} className="text-gold" />
-          <h1 className="font-display text-2xl font-semibold">{activeTab.label}</h1>
-        </div>
-
-        {tab === "overview" && <OverviewTab />}
-        {tab === "audience" && <AudienceTab />}
-        {tab === "visits" && <VisitsTab />}
-        {tab === "users" && (
-          <UsersTab
-            recipients={recipients}
-            onToggle={toggleRecipient}
-            onAddRecipients={addRecipients}
-            onRemoveRecipients={removeRecipients}
-            onGoToEmail={() => setTab("email")}
-          />
-        )}
-        {tab === "rooms" && <RoomsTab />}
-        {tab === "email" && (
-          <EmailTab recipients={recipients} onAdd={addRecipients} onRemove={removeRecipient} onClear={() => setRecipients([])} />
-        )}
-        {tab === "settings" && <SettingsTab />}
-        {tab === "clips" && <AdminClipsTab />}
-        {tab === "referrals" && <AdminReferralsTab />}
-      </div>
-    </div>
-  );
-}
-
 // ── Vue d'ensemble ────────────────────────────────────────────────────────
 
-function OverviewTab() {
+export function OverviewTab() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -329,7 +212,7 @@ function BarList({ items, valueSuffix }: { items: { label: string; value: number
   );
 }
 
-function AudienceTab() {
+export function AudienceTab() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -607,7 +490,7 @@ type VisitLog = {
   created_at: string;
 };
 
-function VisitsTab() {
+export function VisitsTab() {
   const [visits, setVisits] = useState<VisitLog[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -747,7 +630,7 @@ function dayGroupLabel(iso: string) {
   return day.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" });
 }
 
-function UserActivityModal({ user, onClose }: { user: AdminUser; onClose: () => void }) {
+export function UserActivityModal({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const [activity, setActivity] = useState<UserActivity | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -903,304 +786,9 @@ function UserActivityModal({ user, onClose }: { user: AdminUser; onClose: () => 
   );
 }
 
-function UsersTab({
-  recipients,
-  onToggle,
-  onAddRecipients,
-  onRemoveRecipients,
-  onGoToEmail,
-}: {
-  recipients: string[];
-  onToggle: (email: string) => void;
-  onAddRecipients: (emails: string[]) => void;
-  onRemoveRecipients: (emails: string[]) => void;
-  onGoToEmail: () => void;
-}) {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [q, setQ] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<AdminUser | null>(null);
-  const [summary, setSummary] = useState<Pick<Stats, "recentUsers" | "recentlyOnline"> | null>(null);
-  const [onlyRequests, setOnlyRequests] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/admin/stats")
-      .then((r) => r.json())
-      .then((d) => !d.error && setSummary({ recentUsers: d.recentUsers, recentlyOnline: d.recentlyOnline }))
-      .catch(() => {});
-  }, []);
-
-  const pageEmails = users.map((u) => u.email).filter(Boolean);
-  const allPageSelected = pageEmails.length > 0 && pageEmails.every((e) => recipients.includes(e));
-
-  const load = useCallback((query: string, p: number, requests = false) => {
-    setLoading(true);
-    fetch(`/api/admin/users?q=${encodeURIComponent(query)}&page=${p}${requests ? "&filter=verification" : ""}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setError(d.error);
-        else {
-          setUsers(d.users);
-          setHasMore(d.hasMore);
-        }
-      })
-      .catch(() => setError("Chargement impossible."))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => load(q, page, onlyRequests), q ? 300 : 0);
-    return () => clearTimeout(t);
-  }, [q, page, load, onlyRequests]);
-
-  async function setVerified(id: string, verified: boolean) {
-    const res = await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, verified }) });
-    const d = await res.json();
-    if (d.error) setError(d.error);
-    else setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, verified, verificationRequestedAt: verified ? u.verificationRequestedAt : null } : u)));
-  }
-
-  async function deleteUser(id: string) {
-    const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
-    const d = await res.json();
-    if (d.error) setError(d.error);
-    else setUsers((prev) => prev.filter((u) => u.id !== id));
-    setConfirming(null);
-  }
-
-  if (error) return <ErrorCard message={error} />;
-
-  return (
-    <div className="space-y-4">
-      {recipients.length > 0 && (
-        <div className="card p-3.5 flex flex-wrap items-center justify-between gap-3 border-gold/30">
-          <span className="text-xs text-ink-muted">
-            <span className="font-semibold text-ink">{recipients.length}</span> destinataire
-            {recipients.length > 1 ? "s" : ""} sélectionné{recipients.length > 1 ? "s" : ""}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onRemoveRecipients(recipients)}
-              className="text-xs text-ink-faint hover:text-ink transition-colors"
-            >
-              Tout désélectionner
-            </button>
-            <button
-              onClick={onGoToEmail}
-              className="bg-gold hover:bg-glow text-white rounded-full px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5 transition-colors"
-            >
-              <Send size={12} /> Envoyer un mail à la sélection
-            </button>
-          </div>
-        </div>
-      )}
-
-      {summary && (
-        <section className="space-y-3">
-          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Aperçu des comptes</p>
-          <div className="grid md:grid-cols-2 gap-5">
-            <div className="card p-5">
-              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
-                <UserPlus size={13} /> Dernières inscriptions
-              </p>
-              {summary.recentUsers.length === 0 ? (
-                <p className="text-xs text-ink-faint">Aucune inscription pour l&apos;instant.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {summary.recentUsers.map((u) => (
-                    <span key={u.id} className="glass rounded-full px-3 py-1.5 text-xs flex items-center gap-2">
-                      {u.display_name ?? u.username ?? "Sans nom"}
-                      <span className="text-ink-faint font-mono">{fmtDate(u.created_at).slice(0, 8)}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="card p-5">
-              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-4 flex items-center gap-2">
-                <Radio size={13} /> Actifs récemment
-              </p>
-              {summary.recentlyOnline.length === 0 ? (
-                <p className="text-xs text-ink-faint">
-                  Personne n&apos;a encore été suivi — ça se remplira au fil des visites.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {summary.recentlyOnline.map((u) => (
-                    <div key={u.id} className="flex items-center gap-2.5 text-sm">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${u.isOnline ? "bg-emerald-400" : "bg-white/15"}`} />
-                      <span className="truncate flex-1">{u.display_name ?? u.username ?? "Sans nom"}</span>
-                      <span className="text-ink-faint text-xs font-mono shrink-0">
-                        {u.isOnline ? "en ligne" : fmtDate(u.last_seen_at)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="space-y-3">
-        <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-ink-faint">Tous les comptes</p>
-        <div className="relative">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" />
-          <input
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Rechercher par e-mail, pseudo ou nom..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gold/50"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => { setOnlyRequests((v) => !v); setPage(1); }}
-          aria-pressed={onlyRequests}
-          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${onlyRequests ? "bg-gold text-white" : "bg-white/6 text-ink-muted hover:text-ink"}`}
-        >
-          <BadgeCheck size={13} /> Demandes de certification
-        </button>
-      </section>
-
-      {loading ? (
-        <Loading />
-      ) : (
-        <div className="card overflow-x-auto" data-lenis-prevent>
-          <table className="w-full text-sm min-w-[720px]">
-            <thead>
-              <tr className="text-left text-[11px] font-mono uppercase tracking-wide text-ink-faint border-b border-white/8">
-                <th className="px-4 py-3 w-10">
-                  <input
-                    type="checkbox"
-                    checked={allPageSelected}
-                    onChange={() =>
-                      allPageSelected ? onRemoveRecipients(pageEmails) : onAddRecipients(pageEmails)
-                    }
-                    className="accent-gold w-4 h-4 rounded cursor-pointer"
-                    aria-label="Sélectionner tous les utilisateurs de la page"
-                  />
-                </th>
-                <th className="px-4 py-3">Utilisateur</th>
-                <th className="px-4 py-3">E-mail</th>
-                <th className="px-4 py-3">Via</th>
-                <th className="px-4 py-3">Parties</th>
-                <th className="px-4 py-3">Inscrit le</th>
-                <th className="px-4 py-3">Dern. connexion</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {users.map((u) => (
-                <tr key={u.id} className={`hover:bg-white/[0.03] ${recipients.includes(u.email) ? "bg-gold/5" : ""}`}>
-                  <td className="px-4 py-3">
-                    {u.email && (
-                      <input
-                        type="checkbox"
-                        checked={recipients.includes(u.email)}
-                        onChange={() => onToggle(u.email)}
-                        className="accent-gold w-4 h-4 rounded cursor-pointer"
-                        aria-label={`Sélectionner ${u.email}`}
-                      />
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => setExpanded(u)}
-                      className="inline-flex items-center gap-2 hover:text-gold transition-colors text-left"
-                    >
-                      <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${u.isOnline ? "bg-emerald-400" : "bg-white/15"}`}
-                        title={u.isOnline ? "En ligne" : "Hors ligne"}
-                      />
-                      <span className="font-medium">{u.displayName ?? "—"}</span>
-                      {u.verified && <VerifiedBadge size={14} />}
-                      {u.username && <span className="text-ink-faint text-xs"> @{u.username}</span>}
-                      {!u.verified && u.verificationRequestedAt && <span className="rounded-full bg-gold/15 text-gold px-2 py-0.5 text-[10px] font-bold">Demande certif</span>}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-ink-muted">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <span className="glass rounded-full px-2 py-0.5 text-[11px] font-mono">{u.provider}</span>
-                  </td>
-                  <td className="px-4 py-3 font-mono">{u.games}</td>
-                  <td className="px-4 py-3 text-ink-faint text-xs font-mono">{fmtDate(u.createdAt)}</td>
-                  <td className="px-4 py-3 text-ink-faint text-xs font-mono">{fmtDate(u.lastSignInAt)}</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => setVerified(u.id, !u.verified)}
-                      className={`mr-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${u.verified ? "bg-gold/15 text-gold hover:bg-gold/25" : "bg-white/6 text-ink-muted hover:text-ink"}`}
-                      title={u.verified ? "Retirer la certification" : "Certifier ce compte"}
-                    >
-                      <BadgeCheck size={13} /> {u.verified ? "Certifié" : "Certifier"}
-                    </button>
-                    {confirming === u.id ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs">
-                        <button onClick={() => deleteUser(u.id)} className="text-riseNeg font-semibold hover:underline">
-                          Confirmer
-                        </button>
-                        <button onClick={() => setConfirming(null)} className="text-ink-faint hover:text-ink">
-                          Annuler
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setConfirming(u.id)}
-                        className="text-ink-faint hover:text-riseNeg transition-colors"
-                        aria-label={`Supprimer ${u.email}`}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {users.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-ink-faint text-sm">
-                    Aucun utilisateur trouvé.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between text-xs font-mono text-ink-faint">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="glass rounded-full px-4 py-2 disabled:opacity-30 hover:text-ink transition-colors"
-        >
-          Page précédente
-        </button>
-        <span>Page {page}</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!hasMore}
-          className="glass rounded-full px-4 py-2 disabled:opacity-30 hover:text-ink transition-colors"
-        >
-          Page suivante
-        </button>
-      </div>
-
-      {expanded && <UserActivityModal user={expanded} onClose={() => setExpanded(null)} />}
-    </div>
-  );
-}
-
 // ── Salons ────────────────────────────────────────────────────────────────
 
-function RoomsTab() {
+export function RoomsTab() {
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1392,7 +980,7 @@ function QuickSendCard() {
   );
 }
 
-function EmailTab({
+export function EmailTab({
   recipients,
   onAdd,
   onRemove,
@@ -1659,7 +1247,7 @@ function EmailTab({
 
 // ── Pilotage ──────────────────────────────────────────────────────────────
 
-function SettingsTab() {
+export function SettingsTab() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -1810,7 +1398,7 @@ function SettingsTab() {
 
 // ── Petits composants ─────────────────────────────────────────────────────
 
-function StatCard({ Icon, label, value, sub }: { Icon: typeof Users; label: string; value: number; sub: string }) {
+export function StatCard({ Icon, label, value, sub }: { Icon: typeof Users; label: string; value: number; sub: string }) {
   return (
     <div className="card p-4">
       <p className="text-xs text-ink-faint flex items-center gap-1.5 mb-1.5">
@@ -1822,7 +1410,7 @@ function StatCard({ Icon, label, value, sub }: { Icon: typeof Users; label: stri
   );
 }
 
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
@@ -1843,10 +1431,10 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-function Loading() {
+export function Loading() {
   return <div className="card p-10 text-center text-sm text-ink-faint">Chargement...</div>;
 }
 
-function ErrorCard({ message }: { message: string }) {
+export function ErrorCard({ message }: { message: string }) {
   return <div className="card p-6 text-sm text-riseNeg">{message}</div>;
 }

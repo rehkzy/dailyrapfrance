@@ -161,6 +161,8 @@ export default function Header() {
   }, [pathname]);
 
   const onGame = isActive(pathname, "/jouer") || isActive(pathname, "/blindtest");
+  // Le studio (/admin) a sa propre coquille : pas de header du site.
+  if (pathname?.startsWith("/admin")) return null;
 
   // En mode app (écran d'accueil iOS, barre de statut translucide), le header passait sous
   // l'heure et la batterie dès qu'on scrollait : on réserve la zone sûre en haut.

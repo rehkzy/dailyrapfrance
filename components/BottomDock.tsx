@@ -23,6 +23,7 @@ const RIGHT = [
 
 export default function BottomDock() {
   const pathname = usePathname() ?? "/";
+  if (pathname.startsWith("/admin")) return null;
   const onPlay = pathname.startsWith("/jouer") || pathname === "/blindtest" || pathname.startsWith("/b/");
   const Item = ({ href, label, Icon, match }: (typeof LEFT)[number]) => {
     const active = match(pathname);

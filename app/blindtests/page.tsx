@@ -17,8 +17,9 @@ export default async function CommunityPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("custom_blindtests")
-    .select("id, slug, title, description, track_ids, plays, created_at, profiles(username, display_name, verified)")
+    .select("id, slug, title, description, track_ids, plays, featured, created_at, profiles(username, display_name, verified)")
     .eq("is_public", true)
+    .order("featured", { ascending: false })
     .order("plays", { ascending: false })
     .limit(60);
   const items = data ?? [];
@@ -40,7 +41,7 @@ export default async function CommunityPage() {
                 <a key={it.id} href={`/b/${it.slug}`} className="ticket p-4 flex items-center gap-3">
                   <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold truncate">{it.title}</span>
+                    <span className="block text-sm font-semibold truncate">{it.featured && <span className="text-gold mr-1" title="Sélection DailyRap">★</span>}{it.title}</span>
                     {it.description && <span className="block text-xs text-ink-muted truncate">{it.description}</span>}
                     <span className="block text-xs text-ink-faint truncate">{it.track_ids.length} titres · par {p?.display_name ?? p?.username ?? "un joueur"}{p?.verified && <VerifiedBadge size={12} className="ml-1" />} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>
                   </span>

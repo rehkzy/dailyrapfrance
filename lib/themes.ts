@@ -139,10 +139,15 @@ function weekIndexParis(): number {
 }
 
 export function getDailyTheme(): ThemeOption {
+  return getWeeklyThemeAt(0);
+}
+
+/** Thème du défi pour la semaine courante + offset (−1 = semaine passée, +1 = prochaine). */
+export function getWeeklyThemeAt(offsetWeeks: number): ThemeOption {
   // Défi de la SEMAINE : même thème du lundi au dimanche (heure de Paris).
-  const dayIndex = Math.floor(weekIndexParis());
+  const dayIndex = Math.floor(weekIndexParis()) + offsetWeeks;
   // Pas aléatoire mais "mélangé" : un pas premier par rapport à la taille du pool évite
   // d'enchaîner deux thèmes voisins dans la liste (deux artistes d'affilée, etc.).
   const step = 7;
-  return DAILY_POOL[(dayIndex * step) % DAILY_POOL.length];
+  return DAILY_POOL[(((dayIndex * step) % DAILY_POOL.length) + DAILY_POOL.length) % DAILY_POOL.length];
 }

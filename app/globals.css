@@ -3195,3 +3195,9 @@ body:has(.feed) .brand-dock-wrap, body:has(.swipe-screen) .brand-dock-wrap, body
 .btn-primary { background: var(--red); box-shadow: 4px 4px 0 #3a0007; border-radius: 14px !important; }
 .btn-primary:hover { background: var(--red-glow); }
 .btn-primary:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #3a0007; }
+
+/* Studio (/admin) : coquille autonome — on masque le chrome du site */
+body:has([data-admin]) footer,
+body:has([data-admin]) #site-announcement,
+body:has([data-admin]) .install-prompt { display: none !important; }
+body:has([data-admin]) .card { background: #0f0a0b; }

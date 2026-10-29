@@ -1,4 +1,6 @@
-import { Flame, Newspaper, Disc3 } from "lucide-react";
+import { Flame, Newspaper, Disc3, ExternalLink } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { BrandTile } from "@/components/BrandMark";
 import { getTrending, getNewReleases } from "@/lib/trending";
 import { getNews } from "@/lib/news";
 import TrendingList from "@/components/TrendingList";
@@ -15,7 +17,10 @@ const TABS = [
   { id: "tendances", label: "Tendances", Icon: Flame },
   { id: "sorties", label: "Sorties", Icon: Disc3 },
   { id: "actu", label: "Actu", Icon: Newspaper },
+  { id: "dailyrap", label: "DailyRap", Icon: null },
 ] as const;
+type Post = { id: string; title: string; url: string; image: string | null; kind: string; body: string | null; pinned: boolean; created_at: string };
+const KIND_LABEL: Record<string, string> = { instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube", x: "X", article: "Article" };
 type Tab = (typeof TABS)[number]["id"];
 
 /*
@@ -28,10 +33,11 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
   const tab: Tab = (TABS.find((t) => t.id === sp.onglet)?.id ?? "tendances") as Tab;
   const genre = sp.genre === "tout" ? "tout" : "rap";
 
-  const [tracks, releases, news] = await Promise.all([
+  const [tracks, releases, news, posts] = await Promise.all([
     tab === "tendances" ? getTrending(genre, 30) : Promise.resolve([]),
     tab === "sorties" ? getNewReleases(18) : Promise.resolve([]),
     tab === "actu" ? getNews(24) : Promise.resolve([]),
+    tab === "dailyrap" ? (async () => { try { const sb = await createClient(); const { data } = await sb.from("media_posts").select("id,title,url,image,kind,body,pinned,created_at").eq("published", true).order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(40); return (data ?? []) as Post[]; } catch { return [] as Post[]; } })() : Promise.resolve([] as Post[]),
   ]);
 
   return (
@@ -42,7 +48,7 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
 
       <nav className="segmented mb-5" aria-label="Rubriques">
         {TABS.map((t) => (
-          <a key={t.id} href={`/actu?onglet=${t.id}`} aria-pressed={tab === t.id} className="inline-flex items-center justify-center gap-1.5"><t.Icon size={14} /> {t.label}</a>
+          <a key={t.id} href={`/actu?onglet=${t.id}`} aria-pressed={tab === t.id} className="inline-flex items-center justify-center gap-1.5">{t.Icon ? <t.Icon size={14} /> : <BrandTile size={14} />} {t.label}</a>
         ))}
       </nav>
 
@@ -63,6 +69,25 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
           <p className="text-[11px] text-ink-faint mb-3">Les derniers ajouts rap FR — du plus récent au plus ancien.</p>
           <TrendingList tracks={releases} numbered={false} />
         </>
+      )}
+
+      {tab === "dailyrap" && (
+        posts.length === 0 ? (
+          <div className="ticket p-6 text-sm text-ink-muted">Rien pour l&apos;instant — nos derniers posts arrivent ici. En attendant : <a href="https://www.instagram.com/dailyrapfrance/" target="_blank" rel="noopener noreferrer" className="text-glow font-semibold">Instagram</a> · <a href="https://www.tiktok.com/@dailyrapfrance" target="_blank" rel="noopener noreferrer" className="text-glow font-semibold">TikTok</a>.</div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-3">
+            {posts.map((p) => (
+              <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" className="ticket overflow-hidden flex flex-col">
+                {p.image ? <img src={p.image} alt="" className="w-full aspect-[4/3] object-cover" loading="lazy" /> : <span className="block w-full h-24 bg-gradient-to-br from-[#3a0a0f] to-[#8a0010]" />}
+                <span className="p-4">
+                  <span className="block text-[11px] font-semibold text-gold mb-1 inline-flex items-center gap-1">{KIND_LABEL[p.kind] ?? p.kind}{p.pinned ? " · épinglé" : ""} <ExternalLink size={10} /></span>
+                  <span className="block font-display text-lg font-bold leading-snug">{p.title}</span>
+                  {p.body && <span className="block text-sm text-ink-muted mt-1">{p.body}</span>}
+                </span>
+              </a>
+            ))}
+          </div>
+        )
       )}
 
       {tab === "actu" && (

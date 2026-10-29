@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adminEmails } from "@/lib/adminAuth";
-import AdminDashboard from "@/components/AdminDashboard";
+import { Suspense } from "react";
+import AdminStudio from "@/components/admin/AdminStudio";
 
 export const metadata = {
   title: "Back-office — DailyRapFrance",
@@ -24,11 +25,10 @@ export default async function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-bg text-ink relative">
-      <div className="aurora-fixed" aria-hidden="true" />
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-10 pb-24">
-        <AdminDashboard adminEmail={user.email} />
-      </div>
-    </main>
+    <div className="min-h-screen bg-[#070404] text-ink" data-admin>
+      <Suspense fallback={null}>
+        <AdminStudio adminEmail={user.email} />
+      </Suspense>
+    </div>
   );
 }
