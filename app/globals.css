@@ -3086,3 +3086,24 @@ body:has(.feed) .brand-dock-wrap, body:has(.swipe-screen) .brand-dock-wrap, body
 @media (max-width: 1023px) {
   .stage > .stage-fixed { bottom: calc(env(safe-area-inset-bottom) + 84px); padding-bottom: 10px !important; }
 }
+
+/* ---------------------------------------------------------------------------------------
+   Choix du mode sur téléphone / tablette : une LISTE verticale, tous les modes visibles
+   d'un coup (plus de carrousel à faire défiler pour découvrir les modes cachés).
+   --------------------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+  .deck { display: flex; flex-direction: column; gap: 10px; overflow: visible; margin: 0; padding: 0; scroll-snap-type: none; }
+  .poster {
+    flex: none; max-width: none; aspect-ratio: auto; min-height: 88px;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; column-gap: 12px;
+    align-items: center; padding: 14px 16px 14px 18px; border-radius: 18px;
+  }
+  .poster .poster-mark { width: 40%; top: -40%; right: -14%; opacity: 0.16; }
+  .poster .poster-tag { position: static; grid-column: 2; grid-row: 1 / span 2; margin: 0; justify-self: end; }
+  .poster .poster-title { grid-column: 1; grid-row: 1; font-size: 22px; line-height: 1; }
+  .poster .poster-sub { grid-column: 1; grid-row: 2; margin-top: 4px; font-size: 12.5px; }
+  .poster .poster-check { top: 50%; right: 14px; transform: translateY(-50%); }
+  .poster[data-active="true"] { transform: none; }
+  .poster[data-active="true"] .poster-tag { visibility: hidden; }
+  .poster .poster-check[aria-hidden] { display: none; } /* icône décorative : la pastille suffit */
+}

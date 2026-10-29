@@ -1083,6 +1083,17 @@ export default function BlindTest() {
                 </div>
               )}
 
+              {!mode && !deepLink.from && (
+                <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3" data-primary="true">
+                  <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><Icon icon="game-icons:play-button" width={22} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold">Partie rapide</span>
+                    <span className="block text-xs text-white/80">Solo · Top 50 · 10 extraits — ça démarre tout de suite.</span>
+                  </span>
+                  <ChevronRight size={18} className="shrink-0" />
+                </a>
+              )}
+              <p className="text-xs font-semibold text-ink-faint mb-2">Ou choisis ton mode</p>
               <div className="deck" role="radiogroup" aria-label="Mode de jeu">
                 {MODE_TILES.map((m, i) => {
                   const isActive = mode === m.id;

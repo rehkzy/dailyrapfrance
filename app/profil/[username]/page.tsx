@@ -9,7 +9,10 @@ import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
 import { THEME_OPTIONS, getDailyTheme } from "@/lib/themes";
 import { weekKey, weeklyNumber, weeklyNumberFor } from "@/lib/dailyStreak";
-import { computeStats, type ScoreRow } from "@/lib/gameStats";
+import { computeStats } from "@/lib/gameStats";
+import { loadProfileBundle } from "@/lib/profileData";
+import { bannerStyle } from "@/lib/badges";
+import ShareProfileCard from "@/components/ShareProfileCard";
 import { configToSearch, DEFAULT_CONFIG } from "@/lib/presets";
 
 export const revalidate = 30;
@@ -41,18 +44,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const { username } = await params;
   const supabase = await createClient();
   const [{ data: profile }, { data: { user: viewer } }] = await Promise.all([
-    supabase.from("profiles").select("id,username,display_name,avatar_url,created_at").eq("username", username).maybeSingle(),
+    supabase.from("profiles").select("id,username,display_name,avatar_url,created_at,banner,bio,showcase").eq("username", username).maybeSingle(),
     supabase.auth.getUser(),
   ]);
   if (!profile) notFound();
   const isMe = viewer?.id === profile.id;
 
-  const [{ data: scoresRaw }, { data: customs }, { count: friendsCount }] = await Promise.all([
-    supabase.from("blindtest_scores").select("theme,rounds,points,created_at").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(300),
-    supabase.from("custom_blindtests").select("id, slug, title, track_ids, plays, is_public").eq("user_id", profile.id).order("plays", { ascending: false }).limit(6),
-    supabase.from("friendships").select("id", { count: "exact", head: true }).eq("status", "accepted").or(`requester_id.eq.${profile.id},addressee_id.eq.${profile.id}`),
-  ]);
-  const scores = ((scoresRaw ?? []) as ScoreRow[]).filter((s) => !s.theme.startsWith("jeu-"));
+  const bundle = await loadProfileBundle(supabase, profile.id);
+  const { scores, customs, friends: friendsCount, badges } = bundle;
+  const allBadges = [...badges.game, ...badges.fans];
+  const showcase = ((profile.showcase ?? []) as string[]).map((id) => allBadges.find((b) => b.id === id)).filter((b): b is NonNullable<typeof b> => !!b && b.unlocked);
+  const unlockedGame = badges.game.filter((b) => b.unlocked);
+  const nextGame = badges.game.filter((b) => !b.unlocked).sort((a, b) => b.progress - a.progress).slice(0, 2);
+  const fanBadges = badges.fans.slice(0, 6);
   const { gamesPlayed, bestScore, avgScore, skills } = computeStats(scores);
   const maxAvg = Math.max(1, ...skills.map((s) => s.avg));
 
@@ -70,15 +74,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
       <section className="max-w-2xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-32">
         <BackToGame />
 
-        {/* 1. Identité */}
-        <div className="ticket p-5 sm:p-6 mb-4">
-          <div className="flex items-center gap-4 min-w-0">
-            {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white/15 shrink-0" />
-            ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gold text-white flex items-center justify-center text-2xl font-extrabold shrink-0" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>{name.slice(0, 1).toUpperCase()}</div>
+        {/* 1. Identité : bannière, avatar, bio, badges mis en avant */}
+        <div className="ticket overflow-hidden mb-4">
+          <div className="h-28 sm:h-40 relative" style={bannerStyle(profile.banner)}>
+            {badges.bestFanOf.length > 0 && (
+              <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/15 backdrop-blur px-3 py-1.5 text-xs font-bold text-white">👑 Meilleur fan de {badges.bestFanOf.slice(0, 2).join(" et ")}</span>
             )}
-            <div className="min-w-0 flex-1">
+          </div>
+          <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+          <div className="flex items-end gap-4 min-w-0 -mt-10">
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-[#0b0507] shrink-0" />
+            ) : (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full text-white flex items-center justify-center text-2xl font-extrabold shrink-0 border-4 border-[#0b0507]" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>{name.slice(0, 1).toUpperCase()}</div>
+            )}
+            <div className="min-w-0 flex-1 pb-1">
               <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">{name}</h1>
               {profile.username && <p className="text-ink-faint text-sm truncate">@{profile.username}{isMe && <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-gold">c&apos;est toi</span>}</p>}
               <p className="flex items-center gap-3 text-xs text-ink-faint mt-1.5 flex-wrap">
@@ -86,14 +96,24 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 <span className="inline-flex items-center gap-1"><Users size={11} /> {friendsCount ?? 0} ami{(friendsCount ?? 0) > 1 ? "s" : ""}</span>
               </p>
             </div>
-            {isMe && <a href="/parametres" aria-label="Réglages du compte" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink shrink-0"><Settings size={17} /></a>}
+            {isMe && <a href="/parametres" aria-label="Personnaliser mon profil" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink shrink-0 mb-1"><Settings size={17} /></a>}
           </div>
+          {profile.bio && <p className="text-sm text-ink-muted mt-3">{profile.bio}</p>}
+          {showcase.length > 0 && (
+            <div className="flex gap-1.5 mt-3 flex-wrap">
+              {showcase.map((b) => <span key={b.id} className="inline-flex items-center gap-1 rounded-full bg-gold/15 border border-gold/40 px-2.5 py-1 text-xs font-semibold">{b.emoji} {b.label}</span>)}
+            </div>
+          )}
+          {isMe && showcase.length === 0 && unlockedGame.length > 0 && (
+            <a href="/parametres" className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-glow">Mettre des badges en avant <ChevronRight size={12} /></a>
+          )}
           {!isMe && (
             <div className="mt-4 grid grid-cols-2 gap-2.5">
               <AddFriendButton targetId={profile.id} />
               <FriendPlayButtons friendName={name} />
             </div>
           )}
+          </div>
         </div>
 
         {/* 2. L'action principale : le défi de la semaine */}
@@ -124,6 +144,54 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </div>
           ))}
         </div>
+
+        {/* Fan de… : les badges d'artiste, le vrai sujet de fierté */}
+        {fanBadges.length > 0 && (
+          <div className="ticket p-5 mb-4">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="stage-kicker">{isMe ? "Tes artistes" : "Ses artistes"}</p>
+              <span className="text-[11px] text-ink-faint">3 parties = Fan · 10 = Grand fan · 25 = Ultra · meilleur score du site = 👑</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {fanBadges.map((b) => (
+                <a key={b.id} href={`/jouer?mode=solo&theme=${encodeURIComponent(b.id.slice(4))}`} className={`rounded-xl p-3 border ${b.unlocked ? "bg-gold/10 border-gold/35" : "bg-white/[0.04] border-white/8"}`}>
+                  <span className="text-2xl">{b.emoji}</span>
+                  <span className="block text-sm font-bold leading-tight mt-1 truncate">{b.label}</span>
+                  <span className="block text-[11px] text-ink-faint mt-0.5 truncate">{b.unlocked ? b.desc : b.hint}</span>
+                  {!b.unlocked || b.progress < 1 ? <span className="block h-1 mt-2 rounded-full bg-white/8 overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${Math.round(b.progress * 100)}%`, background: "linear-gradient(90deg,#780101,#f0001c)" }} /></span> : null}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Succès débloqués + les 2 prochains (à portée) */}
+        {(unlockedGame.length > 0 || isMe) && (
+          <div className="ticket p-5 mb-4">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="stage-kicker">Succès</p>
+              <span className="text-[11px] text-ink-faint">{unlockedGame.length} / {badges.game.length}</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {unlockedGame.map((b) => <span key={b.id} title={b.desc} className="inline-flex items-center gap-1.5 rounded-full bg-white/8 border border-white/10 px-3 py-1.5 text-xs font-semibold">{b.emoji} {b.label}</span>)}
+              {unlockedGame.length === 0 && <span className="text-sm text-ink-faint">Aucun pour l&apos;instant.</span>}
+            </div>
+            {isMe && nextGame.length > 0 && (
+              <div className="mt-4 space-y-2.5">
+                <p className="text-[11px] font-semibold text-ink-faint">À portée</p>
+                {nextGame.map((b) => (
+                  <div key={b.id} className="flex items-center gap-3">
+                    <span className="w-9 h-9 rounded-lg bg-white/5 grid place-items-center text-lg grayscale shrink-0">{b.emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{b.label} <span className="text-ink-faint font-normal">— {b.hint}</span></span>
+                      <span className="block h-1 mt-1.5 rounded-full bg-white/8 overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${Math.round(b.progress * 100)}%`, background: "linear-gradient(90deg,#780101,#f0001c)" }} /></span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {gamesPlayed === 0 && (
           <div className="ticket p-6 text-center mb-4">
@@ -198,7 +266,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         )}
 
         {/* 5. Pour soi : parrainage */}
-        {isMe && <div className="mt-6"><ReferralCard compact /></div>}
+        {isMe && profile.username && <div className="mt-2"><ShareProfileCard username={profile.username} /></div>}
+        {isMe && <div className="mt-4"><ReferralCard compact /></div>}
         {!isMe && viewer && (
           <a href={dailyHref} className="sticker w-full h-14 mt-2"><Swords size={18} /> Défier {name} sur le défi</a>
         )}
