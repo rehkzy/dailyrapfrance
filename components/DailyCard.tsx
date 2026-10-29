@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Play, Check, Share2 } from "lucide-react";
+import { Play, Check, Share2, Flame } from "lucide-react";
 import { getDailyTheme } from "@/lib/themes";
 import { weeklyNumber, formatCountdownLong, msUntilNextWeekly, playedThisWeek, getStreak } from "@/lib/dailyStreak";
 import { configToSearch, DEFAULT_CONFIG } from "@/lib/presets";
@@ -55,7 +55,7 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
     return (
       <a href={href} className="action-row" data-primary={!done}>
         <span className={`w-11 h-11 rounded-xl grid place-items-center shrink-0 ${done ? "bg-gold/15 text-gold" : "bg-white/15 text-white"}`}>
-          {done ? <Check size={20} strokeWidth={3} /> : <BrandMark size={22} />}
+          {done ? <Check size={20} strokeWidth={3} /> : <Flame size={20} />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">Défi de la semaine #{number} — {theme.label}</span>

@@ -7,6 +7,7 @@ import {
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   X, VolumeX, Volume2, Lightbulb, Sliders,
   SpellCheck, PartyPopper, Swords, Clapperboard, Sparkles,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -29,7 +30,6 @@ import { decodeCustomSet, CUSTOM_THEME_ID } from "@/lib/customBlindtest";
 import ResultTicket from "@/components/ResultTicket";
 import SavedPresets from "@/components/SavedPresets";
 import DailyCard from "@/components/DailyCard";
-import BrandMark from "@/components/BrandMark";
 import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
 import { markPlayedToday, bumpGamesPlayed, weeklyNumber, weekKey, getStreak, recordDailyScore } from "@/lib/dailyStreak";
 import type { RoundOutcome } from "@/lib/share";
@@ -1079,14 +1079,14 @@ export default function BlindTest() {
                   )}
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <button type="button" onClick={() => { sfx.click(); setBranch("solo"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #3a0a0f 0%, #8a0010 60%, #f0001c 130%)" } as CSSProperties}>
-                      <BrandMark className="poster-mark" size="90%" />
-                      <span className="door-icon"><User size={26} /></span>
+                      <span className="door-icon"><User size={24} /></span>
+                      <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">Seul</span>
                       <span className="door-sub">À ton rythme, score sauvegardé</span>
                     </button>
                     <button type="button" onClick={() => { sfx.click(); setBranch("multi"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)" } as CSSProperties}>
-                      <BrandMark className="poster-mark" size="90%" />
-                      <span className="door-icon"><Users size={26} /></span>
+                      <span className="door-icon"><Users size={24} /></span>
+                      <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">À plusieurs</span>
                       <span className="door-sub">Même écran, en ligne ou sur la TV</span>
                     </button>
