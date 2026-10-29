@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useUser } from "@/lib/useUser";
 import SignInCta from "@/components/SignInCta";
 import { Icon } from "@iconify/react";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { encodeCustomSet, customPlayHref, listSavedCustoms, saveCustom, removeCustom, CUSTOM_MIN, CUSTOM_MAX, type CustomTrack, type SavedCustom } from "@/lib/customBlindtest";
 import { shareOrCopy } from "@/lib/share";
 import { sfx } from "@/lib/sfx";
@@ -23,10 +24,11 @@ type SearchArtist = { id: number; name: string; picture: string | null; fans: nu
 type SavedItem = {
   id: string; slug: string; title: string; description: string | null; track_ids: number[];
   settings: { s?: number; a?: "qcm" | "text" }; is_public: boolean; plays: number; created_at: string; user_id: string;
-  profiles?: { username?: string; display_name?: string; avatar_url?: string } | { username?: string; display_name?: string; avatar_url?: string }[] | null;
+  profiles?: { username?: string; display_name?: string; avatar_url?: string; verified?: boolean } | { username?: string; display_name?: string; avatar_url?: string; verified?: boolean }[] | null;
 };
 function itemHref(it: SavedItem, extra = "") { return `/b/${it.slug}${extra}`; }
 function itemAuthor(it: SavedItem) { const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles; return p?.display_name ?? p?.username ?? "Un joueur"; }
+function itemVerified(it: SavedItem) { const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles; return !!p?.verified; }
 
 export default function BlindTestBuilder() {
   const [title, setTitle] = useState("");
@@ -283,6 +285,52 @@ export default function BlindTestBuilder() {
         <h1 className="stage-title mb-2">Crée ton<br />blind test.</h1>
         <p className="text-sm text-ink-muted mb-6 max-w-xl">Anniversaire, soirée, mariage, cours, team building : choisis {CUSTOM_MIN} à {CUSTOM_MAX} morceaux, donne un nom, et envoie le lien. Ça se joue sans compte, sur n&apos;importe quel téléphone, avec les extraits officiels de 30 secondes.</p>
 
+        {/* Tes blind tests d'abord — comme les brouillons d'une app : on retrouve ce qu'on a fait avant de créer */}
+        {(mine.length > 0 || saved.length > 0) && (
+          <section className="mb-7" aria-labelledby="mine-title">
+            <div className="flex items-baseline justify-between mb-2.5">
+              <h2 id="mine-title" className="font-display text-lg font-bold">Mes blind tests <span className="text-ink-faint font-semibold text-sm">({mine.length + saved.length})</span></h2>
+              {editing && <button type="button" onClick={() => { setEditing(null); setTitle(""); setTracks([]); setDescription(""); setIsPublic(false); }} className="text-xs font-semibold text-glow inline-flex items-center gap-1"><Plus size={12} /> Nouveau</button>}
+            </div>
+            <div className="flex gap-2.5 overflow-x-auto -mx-5 px-5 pb-1 snap-x" style={{ scrollbarWidth: "none" }}>
+              {mine.map((it) => (
+                <div key={it.id} className={`ticket p-3.5 w-[230px] shrink-0 snap-start flex flex-col gap-2.5 ${editing?.id === it.id ? "!border-gold" : ""}`}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-8 h-8 rounded-lg grid place-items-center shrink-0 ${it.is_public ? "bg-gold/15 text-gold" : "bg-white/6 text-ink-muted"}`}>{it.is_public ? <Globe size={14} /> : <Lock size={14} />}</span>
+                    <a href={itemHref(it)} className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold truncate">{it.title}</span>
+                      <span className="block text-[11px] text-ink-faint truncate">{it.track_ids.length} titres · {it.plays} partie{it.plays > 1 ? "s" : ""} · {it.is_public ? "public" : "privé"}</span>
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <a href={itemHref(it)} className="sticker sticker-sm flex-1 !h-9 !px-3 text-xs"><Play size={13} fill="currentColor" /> Jouer</a>
+                    <a href={`/creer?b=${it.slug}`} aria-label="Modifier" className="w-9 h-9 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Pencil size={14} /></a>
+                    <button type="button" onClick={() => { const url = `https://dailyrapfrance.best${itemHref(it)}`; void shareOrCopy({ title: `${it.title} — Blind test`, text: `🎤 ${it.title} : un blind test de ${it.track_ids.length} titres, fait maison. Tu joues ?\n${url}`, url }).then((r) => r === "copied" && flash("Lien copié")); }} aria-label="Partager" className="w-9 h-9 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Share2 size={14} /></button>
+                    <button type="button" onClick={() => deleteSaved(it)} aria-label="Supprimer" className="w-9 h-9 rounded-full grid place-items-center text-ink-faint hover:text-riseNeg"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              ))}
+              {saved.map((s) => (
+                <div key={s.code} className="ticket p-3.5 w-[230px] shrink-0 snap-start flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-8 h-8 rounded-lg bg-white/6 text-ink-muted grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={15} /></span>
+                    <a href={customPlayHref(s.code)} className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold truncate">{s.title}</span>
+                      <span className="block text-[11px] text-ink-faint truncate">{s.count} titres · sur cet appareil</span>
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <a href={customPlayHref(s.code)} className="sticker sticker-sm flex-1 !h-9 !px-3 text-xs"><Play size={13} fill="currentColor" /> Jouer</a>
+                    <button type="button" onClick={() => share(s.code, s.title, s.count)} aria-label="Partager" className="w-9 h-9 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Share2 size={14} /></button>
+                    <button type="button" onClick={() => { removeCustom(s.code); setSaved(listSavedCustoms()); }} aria-label="Supprimer" className="w-9 h-9 rounded-full grid place-items-center text-ink-faint hover:text-riseNeg"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {saved.length > 0 && <p className="text-[11px] text-ink-faint mt-2">Les blind tests « sur cet appareil » ne sont que sur ce téléphone — enregistre-les dans ton profil pour les garder.</p>}
+          </section>
+        )}
+
         <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
           <div className="space-y-5">
             {/* Nom */}
@@ -471,51 +519,6 @@ export default function BlindTestBuilder() {
           </div>
         </div>
 
-        {/* Mes blind tests enregistrés (compte) */}
-        {mine.length > 0 && (
-          <section className="mt-10">
-            <h2 className="font-display text-xl font-bold mb-1">Mes blind tests</h2>
-            <p className="text-xs text-ink-faint mb-3">Enregistrés dans ton profil — rejoue, modifie, partage le lien court.</p>
-            <div className="ticket divide-y divide-white/6">
-              {mine.map((it) => (
-                <div key={it.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${it.is_public ? "bg-gold/15 text-gold" : "bg-white/6 text-ink-muted"}`}>{it.is_public ? <Globe size={17} /> : <Lock size={17} />}</span>
-                  <a href={itemHref(it)} className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold truncate">{it.title}</span>
-                    <span className="block text-xs text-ink-faint">{it.track_ids.length} titres · {it.plays} partie{it.plays > 1 ? "s" : ""} · {it.is_public ? "public" : "privé"}</span>
-                  </a>
-                  <a href={`/creer?b=${it.slug}`} aria-label="Modifier" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Pencil size={15} /></a>
-                  <button type="button" onClick={() => { const url = `https://dailyrapfrance.best${itemHref(it)}`; void shareOrCopy({ title: `${it.title} — Blind test`, text: `🎤 ${it.title} : un blind test de ${it.track_ids.length} titres, fait maison. Tu joues ?\n${url}`, url }).then((r) => r === "copied" && flash("Lien copié")); }} aria-label="Partager" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Share2 size={15} /></button>
-                  <a href={itemHref(it)} aria-label="Jouer" className="w-10 h-10 rounded-full bg-gold text-white grid place-items-center"><Play size={15} fill="currentColor" /></a>
-                  <button type="button" onClick={() => deleteSaved(it)} aria-label="Supprimer" className="w-10 h-10 rounded-full grid place-items-center text-ink-faint hover:text-riseNeg"><Trash2 size={15} /></button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Sur cet appareil (sans compte) */}
-        {saved.length > 0 && (
-          <section className="mt-10">
-            <h2 className="font-display text-xl font-bold mb-1">Sur cet appareil</h2>
-            <p className="text-xs text-ink-faint mb-3">Créés sans compte — ils ne sont que sur ce téléphone. Enregistre-les dans ton profil pour les garder.</p>
-            <div className="ticket divide-y divide-white/6">
-              {saved.map((s) => (
-                <div key={s.code} className="flex items-center gap-3 px-4 py-3">
-                  <span className="w-10 h-10 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={18} /></span>
-                  <a href={customPlayHref(s.code)} className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold truncate">{s.title}</span>
-                    <span className="block text-xs text-ink-faint">{s.count} titres · {new Date(s.createdAt).toLocaleDateString("fr-FR")}</span>
-                  </a>
-                  <button type="button" onClick={() => share(s.code, s.title, s.count)} aria-label="Partager" className="w-10 h-10 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Share2 size={15} /></button>
-                  <a href={customPlayHref(s.code)} aria-label="Jouer" className="w-10 h-10 rounded-full bg-gold text-white grid place-items-center"><Play size={15} fill="currentColor" /></a>
-                  <button type="button" onClick={() => { removeCustom(s.code); setSaved(listSavedCustoms()); }} aria-label="Supprimer" className="w-10 h-10 rounded-full grid place-items-center text-ink-faint hover:text-riseNeg"><Trash2 size={15} /></button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {community.length > 0 && (
           <section className="mt-10">
             <h2 className="font-display text-xl font-bold mb-1">Blind tests de la communauté</h2>
@@ -526,7 +529,7 @@ export default function BlindTestBuilder() {
                   <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold truncate">{it.title}</span>
-                    <span className="block text-xs text-ink-faint truncate">{it.track_ids.length} titres · par {itemAuthor(it)} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>
+                    <span className="block text-xs text-ink-faint truncate">{it.track_ids.length} titres · par {itemAuthor(it)}{itemVerified(it) && <VerifiedBadge size={12} className="ml-1" />} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>
                   </span>
                   <Play size={16} className="text-gold shrink-0" fill="currentColor" />
                 </a>

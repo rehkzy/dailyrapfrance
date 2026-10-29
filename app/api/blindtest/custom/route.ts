@@ -16,7 +16,7 @@ function makeSlug(len = 7): string {
   return s;
 }
 
-const SELECT = "id, slug, title, description, track_ids, settings, is_public, plays, created_at, user_id, profiles(username, display_name, avatar_url)";
+const SELECT = "id, slug, title, description, track_ids, settings, is_public, plays, created_at, user_id, profiles(username, display_name, avatar_url, verified)";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();

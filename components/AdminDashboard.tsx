@@ -7,10 +7,12 @@ import {
   Megaphone, Wrench, ShieldCheck, Crown, UserPlus, Heart, Mail, Send, Globe,
   X, Eye, Instagram, Share2, Music2, Twitter, Gamepad, Calendar, Clock,
   LayoutGrid, Settings as SettingsIcon, Gift,
+  BadgeCheck,
 } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 import AdminClipsTab from "@/components/AdminClipsTab";
 import AdminReferralsTab from "@/components/AdminReferralsTab";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 /*
  * Back-office DailyRapFrance — 4 onglets :
@@ -43,6 +45,7 @@ type Stats = {
 type AdminUser = {
   id: string; email: string; provider: string; createdAt: string; lastSignInAt: string | null;
   displayName: string | null; username: string | null; games: number; isOnline: boolean;
+  verified: boolean; verificationRequestedAt: string | null;
 };
 
 type UserActivity = {
@@ -922,6 +925,7 @@ function UsersTab({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<AdminUser | null>(null);
   const [summary, setSummary] = useState<Pick<Stats, "recentUsers" | "recentlyOnline"> | null>(null);
+  const [onlyRequests, setOnlyRequests] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/stats")
@@ -933,9 +937,9 @@ function UsersTab({
   const pageEmails = users.map((u) => u.email).filter(Boolean);
   const allPageSelected = pageEmails.length > 0 && pageEmails.every((e) => recipients.includes(e));
 
-  const load = useCallback((query: string, p: number) => {
+  const load = useCallback((query: string, p: number, requests = false) => {
     setLoading(true);
-    fetch(`/api/admin/users?q=${encodeURIComponent(query)}&page=${p}`)
+    fetch(`/api/admin/users?q=${encodeURIComponent(query)}&page=${p}${requests ? "&filter=verification" : ""}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error);
@@ -949,9 +953,16 @@ function UsersTab({
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => load(q, page), q ? 300 : 0);
+    const t = setTimeout(() => load(q, page, onlyRequests), q ? 300 : 0);
     return () => clearTimeout(t);
-  }, [q, page, load]);
+  }, [q, page, load, onlyRequests]);
+
+  async function setVerified(id: string, verified: boolean) {
+    const res = await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, verified }) });
+    const d = await res.json();
+    if (d.error) setError(d.error);
+    else setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, verified, verificationRequestedAt: verified ? u.verificationRequestedAt : null } : u)));
+  }
 
   async function deleteUser(id: string) {
     const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
@@ -1050,6 +1061,14 @@ function UsersTab({
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gold/50"
           />
         </div>
+        <button
+          type="button"
+          onClick={() => { setOnlyRequests((v) => !v); setPage(1); }}
+          aria-pressed={onlyRequests}
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${onlyRequests ? "bg-gold text-white" : "bg-white/6 text-ink-muted hover:text-ink"}`}
+        >
+          <BadgeCheck size={13} /> Demandes de certification
+        </button>
       </section>
 
       {loading ? (
@@ -1103,7 +1122,9 @@ function UsersTab({
                         title={u.isOnline ? "En ligne" : "Hors ligne"}
                       />
                       <span className="font-medium">{u.displayName ?? "—"}</span>
+                      {u.verified && <VerifiedBadge size={14} />}
                       {u.username && <span className="text-ink-faint text-xs"> @{u.username}</span>}
+                      {!u.verified && u.verificationRequestedAt && <span className="rounded-full bg-gold/15 text-gold px-2 py-0.5 text-[10px] font-bold">Demande certif</span>}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-ink-muted">{u.email}</td>
@@ -1113,7 +1134,14 @@ function UsersTab({
                   <td className="px-4 py-3 font-mono">{u.games}</td>
                   <td className="px-4 py-3 text-ink-faint text-xs font-mono">{fmtDate(u.createdAt)}</td>
                   <td className="px-4 py-3 text-ink-faint text-xs font-mono">{fmtDate(u.lastSignInAt)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => setVerified(u.id, !u.verified)}
+                      className={`mr-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${u.verified ? "bg-gold/15 text-gold hover:bg-gold/25" : "bg-white/6 text-ink-muted hover:text-ink"}`}
+                      title={u.verified ? "Retirer la certification" : "Certifier ce compte"}
+                    >
+                      <BadgeCheck size={13} /> {u.verified ? "Certifié" : "Certifier"}
+                    </button>
                     {confirming === u.id ? (
                       <span className="inline-flex items-center gap-1.5 text-xs">
                         <button onClick={() => deleteUser(u.id)} className="text-riseNeg font-semibold hover:underline">

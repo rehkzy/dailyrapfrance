@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Calendar, Play, Flame, Trophy, Gamepad2, TrendingUp, Sparkles, Settings, Users, ChevronRight, Swords } from "lucide-react";
+import { Calendar, Play, Flame, Sparkles, Settings, ChevronRight, Swords } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { createClient } from "@/lib/supabase/server";
 import AddFriendButton from "@/components/AddFriendButton";
@@ -12,6 +12,7 @@ import { weekKey, weeklyNumber, weeklyNumberFor } from "@/lib/dailyStreak";
 import { computeStats } from "@/lib/gameStats";
 import { loadProfileBundle } from "@/lib/profileData";
 import { bannerStyle } from "@/lib/badges";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { configToSearch, DEFAULT_CONFIG } from "@/lib/presets";
 
@@ -44,7 +45,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const { username } = await params;
   const supabase = await createClient();
   const [{ data: profile }, { data: { user: viewer } }] = await Promise.all([
-    supabase.from("profiles").select("id,username,display_name,avatar_url,created_at,banner,bio,showcase").eq("username", username).maybeSingle(),
+    supabase.from("profiles").select("id,username,display_name,avatar_url,created_at,banner,bio,showcase,verified").eq("username", username).maybeSingle(),
     supabase.auth.getUser(),
   ]);
   if (!profile) notFound();
@@ -57,7 +58,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const unlockedGame = badges.game.filter((b) => b.unlocked);
   const nextGame = badges.game.filter((b) => !b.unlocked).sort((a, b) => b.progress - a.progress).slice(0, 2);
   const fanBadges = badges.fans.slice(0, 6);
-  const { gamesPlayed, bestScore, avgScore, skills } = computeStats(scores);
+  const { gamesPlayed, bestScore, skills } = computeStats(scores);
   const maxAvg = Math.max(1, ...skills.map((s) => s.avg));
 
   const daily = getDailyTheme();
@@ -87,20 +88,31 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             )}
           </div>
           <div className="relative z-10 px-5 sm:px-6 pb-5 sm:pb-6">
-          <div className="flex items-end gap-4 min-w-0 -mt-10">
+          {/* Ligne avatar + chiffres (le schéma Instagram : la photo déborde sur la bannière, les
+              compteurs à sa droite, le nom en dessous — rien ne se superpose au texte) */}
+          <div className="flex items-end gap-4 -mt-10 sm:-mt-12">
             {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-[#0b0507] shrink-0" />
+              <img src={profile.avatar_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-[#0f0809] shrink-0" />
             ) : (
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full text-white flex items-center justify-center text-2xl font-extrabold shrink-0 border-4 border-[#0b0507]" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>{name.slice(0, 1).toUpperCase()}</div>
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full text-white flex items-center justify-center text-2xl font-extrabold shrink-0 border-4 border-[#0f0809]" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>{name.slice(0, 1).toUpperCase()}</div>
             )}
-            <div className="min-w-0 flex-1 pb-1">
-              <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">{name}</h1>
-              {profile.username && <p className="text-ink-faint text-sm truncate">@{profile.username}{isMe && <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-gold">c&apos;est toi</span>}</p>}
-              <p className="flex items-center gap-3 text-xs text-ink-faint mt-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1"><Calendar size={11} /> depuis {memberSince}</span>
-                <span className="inline-flex items-center gap-1"><Users size={11} /> {friendsCount ?? 0} ami{(friendsCount ?? 0) > 1 ? "s" : ""}</span>
-              </p>
+            <div className="flex-1 grid grid-cols-3 gap-1 pb-1 pt-12 sm:pt-14">
+              {[
+                { v: gamesPlayed, l: "Parties", href: undefined as string | undefined },
+                { v: bestScore, l: "Record", href: undefined as string | undefined },
+                { v: friendsCount ?? 0, l: (friendsCount ?? 0) > 1 ? "Amis" : "Ami", href: isMe ? "/amis" : undefined },
+              ].map((c) => {
+                const inner = <><span className="block font-display text-xl sm:text-2xl font-extrabold leading-none">{c.v}</span><span className="block text-[11px] text-ink-faint mt-1">{c.l}</span></>;
+                return c.href ? <a key={c.l} href={c.href} className="text-center rounded-xl hover:bg-white/5 py-1">{inner}</a> : <span key={c.l} className="text-center py-1">{inner}</span>;
+              })}
             </div>
+          </div>
+          <div className="mt-3 min-w-0">
+            <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight flex items-center gap-1.5 min-w-0">
+              <span className="truncate">{name}</span>
+              {profile.verified && <VerifiedBadge size={20} />}
+            </h1>
+            <p className="text-ink-faint text-sm truncate">{profile.username && <>@{profile.username} · </>}<span className="inline-flex items-center gap-1"><Calendar size={11} /> depuis {memberSince}</span></p>
           </div>
           {profile.bio && <p className="text-sm text-ink-muted mt-3">{profile.bio}</p>}
           {showcase.length > 0 && (
@@ -110,8 +122,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           )}
           {isMe && (
             <div className="mt-4 grid grid-cols-2 gap-2.5">
-              <a href="/parametres" className="sticker sticker-ghost h-11 text-sm">Modifier le profil</a>
-              <a href="#partager" className="sticker sticker-ghost h-11 text-sm">Partager le profil</a>
+              <a href="/parametres" className="sticker sticker-ghost h-11 text-[13px] whitespace-nowrap !px-3">Modifier le profil</a>
+              <a href="#partager" className="sticker sticker-ghost h-11 text-[13px] whitespace-nowrap !px-3">Partager le profil</a>
             </div>
           )}
           {!isMe && (
@@ -137,20 +149,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <Play size={18} className="shrink-0" fill="currentColor" />
         </a>
 
-        {/* 3. Chiffres */}
-        <div className="grid grid-cols-3 gap-2.5 mb-4">
-          {[
-            { Icon: Gamepad2, v: gamesPlayed, l: "Parties" },
-            { Icon: Trophy, v: bestScore, l: "Record" },
-            { Icon: TrendingUp, v: avgScore, l: "Moyenne" },
-          ].map((s) => (
-            <div key={s.l} className="ticket p-4 text-center">
-              <s.Icon size={15} className="text-gold mx-auto mb-1.5" />
-              <p className="score-num text-2xl">{s.v}</p>
-              <p className="text-[11px] text-ink-faint mt-0.5">{s.l}</p>
-            </div>
-          ))}
-        </div>
 
         {/* Fan de… : les badges d'artiste, le vrai sujet de fierté */}
         {fanBadges.length > 0 && (

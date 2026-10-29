@@ -1,3 +1,4 @@
+import VerifiedBadge from "@/components/VerifiedBadge";
 import type { Metadata } from "next";
 import { Play, Sparkles, Users } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -16,7 +17,7 @@ export default async function CommunityPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("custom_blindtests")
-    .select("id, slug, title, description, track_ids, plays, created_at, profiles(username, display_name)")
+    .select("id, slug, title, description, track_ids, plays, created_at, profiles(username, display_name, verified)")
     .eq("is_public", true)
     .order("plays", { ascending: false })
     .limit(60);
@@ -41,7 +42,7 @@ export default async function CommunityPage() {
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold truncate">{it.title}</span>
                     {it.description && <span className="block text-xs text-ink-muted truncate">{it.description}</span>}
-                    <span className="block text-xs text-ink-faint truncate">{it.track_ids.length} titres · par {p?.display_name ?? p?.username ?? "un joueur"} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>
+                    <span className="block text-xs text-ink-faint truncate">{it.track_ids.length} titres · par {p?.display_name ?? p?.username ?? "un joueur"}{p?.verified && <VerifiedBadge size={12} className="ml-1" />} · {it.plays} partie{it.plays > 1 ? "s" : ""}</span>
                   </span>
                   <Play size={16} className="text-gold shrink-0" fill="currentColor" />
                 </a>

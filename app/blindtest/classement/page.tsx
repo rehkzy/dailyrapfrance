@@ -1,3 +1,4 @@
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { Medal, Flame, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import BackToGame from "@/components/BackToGame";
@@ -33,7 +34,7 @@ export default async function ClassementPage() {
   const supabase = await createClient();
   const { data: scores } = await supabase
     .from("blindtest_scores")
-    .select("id, points, rounds, theme, created_at, profiles(username, display_name, avatar_url)")
+    .select("id, points, rounds, theme, created_at, profiles(username, display_name, avatar_url, verified)")
     .gt("points", 0) // un 0 pointé n'a rien à faire dans un classement
     .not("theme", "like", "jeu-%")
     .order("points", { ascending: false })
@@ -88,7 +89,7 @@ export default async function ClassementPage() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{profile?.display_name ?? "Joueur"}</p>
+                  <p className="text-sm font-medium truncate flex items-center gap-1"><span className="truncate">{profile?.display_name ?? "Joueur"}</span>{profile?.verified && <VerifiedBadge size={14} />}</p>
                   <p className="text-xs text-ink-faint">
                     {themeLabel(s.theme)} · {s.rounds} manches
                   </p>

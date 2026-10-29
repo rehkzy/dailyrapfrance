@@ -1,3 +1,4 @@
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { Medal, Flame, ChevronLeft, ChevronRight, Play, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import BackToGame from "@/components/BackToGame";
@@ -42,7 +43,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("blindtest_scores")
-    .select("id, points, rounds, created_at, user_id, profiles(username, display_name, avatar_url)")
+    .select("id, points, rounds, created_at, user_id, profiles(username, display_name, avatar_url, verified)")
     .eq("theme", `defi:${key}`)
     .order("points", { ascending: false })
     .limit(500);
@@ -107,7 +108,7 @@ export default async function DefiPage({ searchParams }: { searchParams: Promise
                     <div className="w-8 h-8 rounded-full bg-gold/20 text-gold flex items-center justify-center text-xs shrink-0">{(profile?.display_name ?? "?").slice(0, 1).toUpperCase()}</div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{profile?.display_name ?? "Joueur"}</p>
+                    <p className="text-sm font-medium truncate flex items-center gap-1"><span className="truncate">{profile?.display_name ?? "Joueur"}</span>{profile?.verified && <VerifiedBadge size={14} />}</p>
                     <p className="text-xs text-ink-faint">{tries} tentative{tries > 1 ? "s" : ""} · {best.rounds} manches</p>
                   </div>
                   <span className="font-mono text-gold shrink-0">{best.points} pts</span>

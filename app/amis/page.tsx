@@ -9,6 +9,8 @@ import BrandLoader from "@/components/BrandLoader";
 import BackToGame from "@/components/BackToGame";
 import GameTabBar from "@/components/GameTabBar";
 import SignInCta from "@/components/SignInCta";
+import VerifiedBadge from "@/components/VerifiedBadge";
+
 import FriendPlayButtons from "@/components/FriendPlayButtons";
 
 type ProfileLite = {
@@ -16,6 +18,7 @@ type ProfileLite = {
   username: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  verified?: boolean | null;
 };
 
 type FriendshipRow = {
@@ -43,7 +46,7 @@ function ProfileRow({ profile, right }: { profile: ProfileLite; right?: ReactNod
           </div>
         )}
         <span className="min-w-0">
-          <span className="block text-sm font-medium truncate">{profile.display_name ?? "Joueur"}</span>
+          <span className="flex items-center gap-1 text-sm font-medium min-w-0"><span className="truncate">{profile.display_name ?? "Joueur"}</span>{profile.verified && <VerifiedBadge size={14} />}</span>
           {profile.username && <span className="block text-xs text-ink-faint truncate">@{profile.username}</span>}
         </span>
       </a>
@@ -68,7 +71,7 @@ export default function AmisPage() {
     const { data } = await supabase
       .from("friendships")
       .select(
-        "id,status,requester_id,addressee_id,requester:requester_id(id,username,display_name,avatar_url),addressee:addressee_id(id,username,display_name,avatar_url)"
+        "id,status,requester_id,addressee_id,requester:requester_id(id,username,display_name,avatar_url,verified),addressee:addressee_id(id,username,display_name,avatar_url,verified)"
       )
       .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
@@ -90,7 +93,7 @@ export default function AmisPage() {
     const t = setTimeout(() => {
       supabase
         .from("profiles")
-        .select("id,username,display_name,avatar_url")
+        .select("id,username,display_name,avatar_url,verified")
         .ilike("username", `%${query.trim()}%`)
         .neq("id", user.id)
         .limit(8)

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const ids = authList.users.map((u) => u.id);
   const [{ data: profiles }, { data: counts }] = await Promise.all([
-    db.from("profiles").select("id, display_name, username, created_at, last_seen_at").in("id", ids),
+    db.from("profiles").select("id, display_name, username, created_at, last_seen_at, verified, verification_requested_at").in("id", ids),
     db.from("blindtest_scores").select("user_id").in("user_id", ids),
   ]);
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
@@ -39,9 +39,14 @@ export async function GET(req: NextRequest) {
       username: profileById.get(u.id)?.username ?? null,
       games: gamesById.get(u.id) ?? 0,
       isOnline: lastSeenAt ? Date.now() - new Date(lastSeenAt).getTime() < 60_000 : false,
+      verified: !!profileById.get(u.id)?.verified,
+      verificationRequestedAt: profileById.get(u.id)?.verification_requested_at ?? null,
     };
   });
 
+  if (req.nextUrl.searchParams.get("filter") === "verification") {
+    users = users.filter((u) => u.verificationRequestedAt && !u.verified);
+  }
   if (q) {
     users = users.filter(
       (u) =>
@@ -69,6 +74,21 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Impossible de supprimer un compte admin." }, { status: 400 });
   }
   const { error } = await db.auth.admin.deleteUser(id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+// PATCH /api/admin/users { id, verified } — donne ou retire la certification (badge à côté du pseudo).
+export async function PATCH(req: NextRequest) {
+  const gate = await requireAdmin();
+  if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status });
+  const body = (await req.json().catch(() => null)) as { id?: string; verified?: boolean } | null;
+  if (!body?.id || typeof body.verified !== "boolean") return NextResponse.json({ error: "id et verified requis" }, { status: 400 });
+  const db = adminClient();
+  const { error } = await db
+    .from("profiles")
+    .update({ verified: body.verified, ...(body.verified ? {} : { verification_requested_at: null }) })
+    .eq("id", body.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
