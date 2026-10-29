@@ -807,21 +807,17 @@ function BlindTestRoom({
           ))}
         </div>
         {confirmingQuit ? (
-          <div className="flex items-center gap-2 mb-6 text-xs font-mono uppercase tracking-wide">
+          <div className="flex items-center gap-2 mb-6 text-sm">
             <span className="text-ink-muted">{isHost ? "Fermer le salon pour tout le monde ?" : "Quitter le salon ?"}</span>
-            <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} disabled={busy} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1 transition-colors">
-              Confirmer
-            </button>
-            <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1 transition-colors">
-              Annuler
-            </button>
+            <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} disabled={busy} className="sticker sticker-sm">Confirmer</button>
+            <button onClick={() => setConfirmingQuit(false)} className="sticker sticker-ghost sticker-sm">Annuler</button>
           </div>
         ) : (
           <button
             onClick={() => setConfirmingQuit(true)}
-            className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink mb-6 font-mono uppercase tracking-wide"
+            className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mb-6 min-h-[40px]"
           >
-            <ArrowLeft size={14} /> Quitter le salon
+            <ArrowLeft size={16} /> Quitter le salon
           </button>
         )}
         <div className="ticket p-6 md:p-8 text-center">
@@ -860,7 +856,7 @@ function BlindTestRoom({
               href={`/ecran?code=${room.code}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs text-ink-faint hover:text-gold font-mono uppercase tracking-wide mb-6"
+              className="inline-flex items-center gap-2 text-sm text-ink-muted hover:text-ink mb-6"
             >
               <Tv size={13} /> Ouvrir l&apos;écran salon (TV / laptop)
             </a>
@@ -923,12 +919,12 @@ function BlindTestRoom({
     const lastPlace = ranked.length > 1 ? ranked[ranked.length - 1] : null;
     return (
       <div className="max-w-lg mx-auto text-center">
-        <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Terminé</p>
+        <p className="stage-kicker mb-4">Terminé</p>
         <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">Résultats</h2>
 
         {room.gages_enabled && lastPlace && (
           <div className="rounded-2xl p-5 mb-8 border border-gold/40 bg-gold/10 text-left">
-            <p className="font-mono text-[10px] text-gold uppercase tracking-[0.16em] mb-2">
+            <p className="stage-kicker mb-2">
               🎉 Gage pour {lastPlace.display_name}
             </p>
             <p className="text-sm font-medium">{gageText}</p>
@@ -954,7 +950,7 @@ function BlindTestRoom({
                   }`}
                 >
                   <p className="text-xs font-medium truncate px-1 max-w-full">{p.display_name}</p>
-                  <p className="font-mono text-xs text-gold">{scoreFor(p.user_id)}</p>
+                  <p className="stage-kicker">{scoreFor(p.user_id)}</p>
                 </div>
               </div>
             ) : null
@@ -1012,19 +1008,15 @@ function BlindTestRoom({
             </button>
           )}
           {confirmingQuit ? (
-            <span className="inline-flex items-center gap-2 text-xs font-mono uppercase">
+            <span className="inline-flex items-center gap-2 text-sm">
               <span className="text-ink-muted">{isHost ? "Fermer le salon ?" : "Quitter le salon ?"}</span>
-              <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} className="text-riseNeg hover:text-white hover:bg-riseNeg/20 rounded-full px-3 py-1.5 transition-colors">
-                Confirmer
-              </button>
-              <button onClick={() => setConfirmingQuit(false)} className="text-ink-faint hover:text-ink rounded-full px-3 py-1.5 transition-colors">
-                Annuler
-              </button>
+              <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} className="sticker sticker-sm">Confirmer</button>
+              <button onClick={() => setConfirmingQuit(false)} className="sticker sticker-ghost sticker-sm">Annuler</button>
             </span>
           ) : (
             <button
               onClick={() => setConfirmingQuit(true)}
-              className="inline-flex items-center gap-2 bg-white/6 border border-white/10 text-ink-muted hover:text-ink rounded-full px-6 py-3 font-medium transition-colors"
+              className="sticker sticker-ghost h-14 px-7"
             >
               <LogOut size={16} />
               Quitter le salon
@@ -1032,7 +1024,7 @@ function BlindTestRoom({
           )}
         </div>
         {!isHost && (
-          <p className="text-xs text-ink-faint font-mono mt-4">
+          <p className="text-xs text-ink-faint mt-4">
             Seul l'hôte peut relancer une partie dans ce salon.
           </p>
         )}
@@ -1057,7 +1049,7 @@ function BlindTestRoom({
                   if (data) setRoom(data as RoomRow);
                 });
             }}
-            className="text-xs font-mono uppercase text-gold hover:text-glow transition-colors"
+            className="sticker sticker-ghost sticker-sm"
           >
             Réessayer
           </button>
@@ -1306,8 +1298,8 @@ function ReplayPanel({
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-32">
-      <button onClick={onCancel} className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink font-mono uppercase tracking-wide">
-        <ArrowLeft size={14} /> Annuler
+      <button onClick={onCancel} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink min-h-[40px]">
+        <ArrowLeft size={16} /> Annuler
       </button>
       <div className="px-0.5">
         <p className="stage-kicker mb-1">Rejouer — même salon</p>
@@ -1317,22 +1309,14 @@ function ReplayPanel({
           <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); }} />
         </div>
 
-        <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
-        <div className="flex gap-2 mb-6">
+        <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
+        <div className="segmented mb-6">
           {[10, 15, 20].map((n) => (
-            <button
-              key={n}
-              onClick={() => setRounds(n)}
-              className={`rounded-full px-4 py-1.5 text-sm font-mono transition-colors ${
-                rounds === n ? "bg-gold text-white" : "bg-white/6 border border-white/10 text-ink-muted hover:text-ink"
-              }`}
-            >
-              {n}
-            </button>
+            <button key={n} type="button" aria-pressed={rounds === n} onClick={() => { sfx.click(); setRounds(n); }}>{n}</button>
           ))}
         </div>
 
-        <p className="text-xs text-ink-faint mb-2 flex items-center gap-2">
+        <p className="text-xs font-semibold text-ink-faint mb-2 flex items-center gap-2">
           Mode de réponse
           {!answerMode && (
             <span className="inline-flex items-center rounded-full bg-gold/15 text-gold px-2 py-0.5 text-[10px] font-bold">
@@ -1340,20 +1324,12 @@ function ReplayPanel({
             </span>
           )}
         </p>
-        <div className="flex gap-2">
+        <div className="segmented">
           {([
             { id: "qcm" as const, label: "Facile (QCM)" },
             { id: "text" as const, label: "Difficile (écrire)" },
           ]).map((o) => (
-            <button
-              key={o.id}
-              onClick={() => setAnswerMode(o.id)}
-              className={`flex-1 rounded-lg py-2 text-xs font-mono transition-colors ${
-                answerMode === o.id ? "bg-gold text-white" : "bg-white/6 border border-white/10 text-ink-muted hover:text-ink"
-              }`}
-            >
-              {o.label}
-            </button>
+            <button key={o.id} type="button" aria-pressed={answerMode === o.id} onClick={() => { sfx.click(); setAnswerMode(o.id); }}>{o.label}</button>
           ))}
         </div>
       </div>
@@ -1408,9 +1384,9 @@ function RoomMenu({
       {onExit && (
         <button
           onClick={onExit}
-          className="tap-press inline-flex items-center gap-2 bg-white/8 rounded-full pl-3 pr-4 py-2 text-xs font-medium text-ink-muted hover:text-ink hover:border-white/25 border border-white/10 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"
         >
-          <ArrowLeft size={14} className="text-gold" /> Choix du mode
+          <ArrowLeft size={16} /> Retour
         </button>
       )}
       <div className="px-0.5">
@@ -1440,18 +1416,10 @@ function RoomMenu({
           <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); }} />
         </div>
 
-        <p className="text-xs text-ink-faint mb-2">Nombre de manches</p>
-        <div className="flex gap-2 mb-4">
+        <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
+        <div className="segmented mb-4">
           {[10, 15, 20].map((n) => (
-            <button
-              key={n}
-              onClick={() => setRounds(n)}
-              className={`rounded-full px-4 py-1.5 text-sm font-mono transition-colors ${
-                rounds === n ? "bg-gold text-white" : "bg-white/6 border border-white/10 text-ink-muted hover:text-ink"
-              }`}
-            >
-              {n}
-            </button>
+            <button key={n} type="button" aria-pressed={rounds === n} onClick={() => { sfx.click(); setRounds(n); }}>{n}</button>
           ))}
         </div>
 
@@ -1483,10 +1451,8 @@ function RoomMenu({
                     setAnswerMode(o.id);
                     setNeedAnswerMode(false);
                   }}
-                  className={`tap-press rounded-xl border px-3 py-3.5 text-left transition-[border-color,box-shadow,background-color] ${
-                    active
-                      ? "border-gold bg-gold/10 shadow-[0_0_0_1px_rgba(240,0,28,0.35)]"
-                      : "border-white/10 bg-white/6 border border-white/10 hover:border-white/25"
+                  className={`tap-press ticket !rounded-2xl px-3 py-3.5 text-left transition-[border-color,box-shadow,background-color] ${
+                    active ? "!border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.35)]" : "hover:!border-white/25"
                   }`}
                 >
                   <span className="flex items-center justify-between">
@@ -1594,7 +1560,7 @@ function RoomMenu({
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
 
       <div
-        className="fixed bottom-0 inset-x-0 z-30 px-4 pt-4 pointer-events-none"
+        className="stage-fixed bottom-0 inset-x-0 px-4 pt-4 pointer-events-none"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
@@ -1609,13 +1575,9 @@ function RoomMenu({
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-center font-mono tracking-[0.2em] uppercase focus:outline-none focus:border-gold/50 min-h-[44px]"
+              className="answer-input flex-1 !min-h-[48px] text-center font-mono tracking-[0.25em] uppercase"
             />
-            <button
-              onClick={onJoin}
-              disabled={busy || joinCode.trim().length < 5}
-              className="tap-press bg-white/8 hover:bg-white/12 disabled:opacity-40 text-ink rounded-lg px-5 text-sm font-medium min-h-[44px] transition-colors"
-            >
+            <button type="button" onClick={onJoin} disabled={busy || joinCode.trim().length < 5} className="sticker sticker-ghost sticker-sm shrink-0 disabled:opacity-40">
               Rejoindre
             </button>
           </div>

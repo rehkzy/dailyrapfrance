@@ -34,12 +34,9 @@ export default function BackToGame() {
     <a
       href="/jouer"
       onClick={handleClick}
-      className="tap-press group inline-flex items-center gap-2 pl-2.5 pr-4 py-2 mb-6 rounded-full glass border border-gold/25 hover:border-gold/50 hover:bg-gold/10 transition-colors"
+      className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mb-5 min-h-[40px] mr-4"
     >
-      <span className="w-6 h-6 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0 group-hover:bg-gold group-hover:text-white transition-colors">
-        <ChevronLeft size={14} strokeWidth={2.5} />
-      </span>
-      <span className="text-sm font-medium">Retour</span>
+      <ChevronLeft size={16} /> Retour
     </a>
   );
 }

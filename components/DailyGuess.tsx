@@ -280,7 +280,7 @@ export default function DailyGuess() {
           <p className="font-mono text-lg tracking-widest mt-4">{resultGrid}</p>
           <a
             href="/jouer"
-            className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink mt-6 font-mono uppercase tracking-wide"
+            className="sticker sticker-ghost sticker-sm mt-6"
           >
             <RotateCcw size={12} /> Envie de plus ? Lance une vraie partie
           </a>

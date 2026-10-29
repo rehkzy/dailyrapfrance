@@ -3149,3 +3149,37 @@ body:has(.feed) .brand-dock-wrap, body:has(.swipe-screen) .brand-dock-wrap, body
 .choice-tag { display: inline-block; vertical-align: middle; margin-left: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--red); background: rgba(240, 0, 28, 0.14); border-radius: 6px; padding: 2px 6px; }
 .choice[data-primary="true"] .choice-tag { color: #fff; background: rgba(255, 255, 255, 0.2); }
 @media (min-width: 1024px) { .choice { padding: 18px 20px; } .choice-title { font-size: 19px; } }
+
+/* ---------------------------------------------------------------------------------------
+   Harmonisation : les anciens utilitaires (.card, .glass, .game-btn, .btn-primary) prennent
+   le langage v3 (ticket / sticker). Toutes les pages secondaires suivent sans réécriture.
+   --------------------------------------------------------------------------------------- */
+.card {
+  background: #0f0809;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: none;
+}
+.card:hover { border-color: rgba(255, 255, 255, 0.22); background: #120a0b; }
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.game-btn {
+  border-radius: 14px;
+  font-family: var(--font-display);
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-weight: 800;
+}
+.game-btn-primary {
+  background: var(--red);
+  box-shadow: 4px 4px 0 #3a0007;
+}
+.game-btn-primary:hover:not(:disabled) { transform: none; background: var(--red-glow); box-shadow: 4px 4px 0 #3a0007; }
+.game-btn-primary:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #3a0007; }
+.btn-primary { background: var(--red); box-shadow: 4px 4px 0 #3a0007; border-radius: 14px !important; }
+.btn-primary:hover { background: var(--red-glow); }
+.btn-primary:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #3a0007; }

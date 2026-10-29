@@ -19,7 +19,7 @@ export const revalidate = 3600;
 
 const STATS = [
   { value: 2020, suffix: "", label: "Naissance, en plein confinement", Icon: Calendar },
-  { value: 15, suffix: "+", label: "Thèmes de blind test", Icon: Disc3 },
+  { value: 80, suffix: "+", label: "Thèmes de blind test", Icon: Disc3 },
   { value: 3, suffix: "", label: "Réseaux où nous suivre", Icon: Share2 },
   { value: 0, suffix: "", label: "Algorithme entre vous et la scène", Icon: Ban },
 ];
@@ -76,7 +76,7 @@ export default async function AProposPage() {
         <div className="max-w-4xl mx-auto px-6 pt-28 pb-16 md:pt-40 md:pb-20">
           <div className="flex items-center gap-3 mb-8">
             <LogoReveal size={34} />
-            <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase">À propos</p>
+            <p className="stage-kicker">À propos</p>
           </div>
           <h1 className="font-display font-semibold tracking-tight leading-[0.98]">
             <span className="block text-[11vw] md:text-[5vw] lg:text-6xl text-ink-muted">Plus qu'un média,</span>
@@ -111,7 +111,7 @@ export default async function AProposPage() {
       <Reveal>
         <section className="max-w-3xl mx-auto px-6 pb-20 md:pb-28">
           <div className="grid md:grid-cols-[1fr_2fr] gap-4 md:gap-10">
-            <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase pt-1">Notre mission</p>
+            <p className="stage-kicker pt-1">Notre mission</p>
             <div className="space-y-6 text-lg text-ink-muted leading-relaxed">
               <p>
                 DailyRapFrance est né d'une conviction simple : les plus grands artistes de
@@ -144,7 +144,7 @@ export default async function AProposPage() {
       {/* Frise — les grandes étapes, en un coup d'œil avant le récit détaillé */}
       <Reveal>
         <section className="max-w-2xl mx-auto px-6 py-20 md:py-28">
-          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-8">Le parcours</p>
+          <p className="stage-kicker mb-8">Le parcours</p>
           <Timeline items={TIMELINE} />
         </section>
       </Reveal>
@@ -152,7 +152,7 @@ export default async function AProposPage() {
       {/* Le jeu — un seul, poussé à fond : le blind test */}
       <Reveal>
         <section className="max-w-4xl mx-auto px-6 pb-20 md:pb-28">
-          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-3">Ça a grandi</p>
+          <p className="stage-kicker mb-3">Ça a grandi</p>
           <h2 className="font-display text-2xl md:text-3xl font-medium leading-tight mb-6">
             Le média a son jeu : le blind test rap français,
             <br className="hidden md:block" />
@@ -173,7 +173,7 @@ export default async function AProposPage() {
           </div>
           <a
             href="/blindtest"
-            className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-gold hover:text-glow transition-colors"
+            className="sticker sticker-ghost sticker-sm"
           >
             Tout savoir sur le blind test <ArrowRight size={13} />
           </a>
@@ -183,7 +183,7 @@ export default async function AProposPage() {
       {/* Histoire — panneau d'époque qui s'allume au scroll */}
       <Reveal>
         <section className="max-w-3xl mx-auto px-6 py-20 md:py-28">
-          <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">Notre histoire</p>
+          <p className="stage-kicker mb-6">Notre histoire</p>
           <h2 className="font-display text-3xl md:text-4xl font-medium leading-tight mb-10">
             2020 — un compte, une passion,
             <br />
@@ -197,7 +197,7 @@ export default async function AProposPage() {
       {artistPhotos.length > 0 && (
         <Reveal>
           <section className="max-w-4xl mx-auto px-6 pb-20 md:pb-28">
-            <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-6">Suivis de près</p>
+            <p className="stage-kicker mb-6">Suivis de près</p>
             <div className="flex flex-wrap gap-4">
               {artistPhotos.map((a) => (
                 <div key={a.id} className="group flex flex-col items-center gap-2 w-16">
@@ -240,7 +240,7 @@ export default async function AProposPage() {
         <section className="max-w-3xl mx-auto px-6 py-20 md:py-28">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="card p-6">
-              <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4 flex items-center gap-2">
+              <p className="stage-kicker mb-4 flex items-center gap-2">
                 <Trophy size={13} />
                 En ce moment
               </p>
@@ -261,7 +261,7 @@ export default async function AProposPage() {
                           </div>
                         )}
                         <span className="text-sm flex-1 truncate">{profile?.display_name ?? "Joueur"}</span>
-                        <span className="font-mono text-xs text-gold">{s.points} pts</span>
+                        <span className="stage-kicker">{s.points} pts</span>
                       </div>
                     );
                   })}
@@ -296,7 +296,7 @@ export default async function AProposPage() {
       <Reveal>
         <section className="max-w-3xl mx-auto px-6 pb-24 md:pb-32">
           <div className="card p-8 md:p-10">
-            <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Le mot du fondateur</p>
+            <p className="stage-kicker mb-4">Le mot du fondateur</p>
             <p className="text-ink-muted leading-relaxed mb-6">
               En parallèle de DailyRapFrance, j'exerce également en tant que graphiste et
               directeur artistique freelance. Si vous souhaitez découvrir mon univers et mes

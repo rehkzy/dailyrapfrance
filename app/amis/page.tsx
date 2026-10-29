@@ -150,7 +150,7 @@ export default function AmisPage() {
     <>
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
       <BackToGame />
-      <p className="font-mono text-xs text-gold tracking-[0.2em] uppercase mb-4">Blind Test</p>
+      <p className="stage-kicker mb-4">Blind Test</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Amis</h1>
       <p className="text-ink-muted mb-10">
         Ajoute tes potes, défie-les sur le défi de la semaine ou invite-les dans un salon privé.
@@ -190,7 +190,7 @@ export default function AmisPage() {
         <div className="space-y-10">
           {incoming.length > 0 && (
             <div>
-              <p className="flex items-center gap-2 font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">
+              <p className="flex items-center gap-2 stage-kicker mb-3">
                 <Inbox size={13} />
                 Demandes reçues
               </p>
@@ -221,7 +221,7 @@ export default function AmisPage() {
           )}
 
           <div>
-            <p className="flex items-center gap-2 font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">
+            <p className="flex items-center gap-2 stage-kicker mb-3">
               <Users size={13} />
               Tes amis {friends.length > 0 && `(${friends.length})`}
             </p>

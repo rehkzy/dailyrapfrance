@@ -1836,9 +1836,9 @@ function SignInGate({
       {onBack && (
         <button
           onClick={onBack}
-          className="mb-5 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-ink-faint hover:text-ink transition-colors"
+          className="mb-5 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink min-h-[40px]"
         >
-          <ChevronLeft size={13} /> Revenir aux modes de jeu
+          <ChevronLeft size={16} /> Retour
         </button>
       )}
       <button
@@ -1850,7 +1850,7 @@ function SignInGate({
 
       <div className="flex items-center gap-3 my-5" aria-hidden="true">
         <span className="flex-1 h-px bg-white/10" />
-        <span className="text-[11px] font-mono uppercase tracking-wide text-ink-faint">ou avec un e-mail</span>
+        <span className="text-xs text-ink-faint">ou avec un e-mail</span>
         <span className="flex-1 h-px bg-white/10" />
       </div>
 

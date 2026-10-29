@@ -368,7 +368,7 @@ export default function PartyDisplay({ code }: { code: string }) {
           <p className="font-mono text-sm text-gold uppercase tracking-[0.2em] mb-6">Résultats</p>
           {room.gages_enabled && lastPlace && gageText && (
             <div className="rounded-2xl px-6 py-5 mb-8 border border-gold/40 bg-gold/10 max-w-md">
-              <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-2">
+              <p className="stage-kicker mb-2">
                 🎉 Gage pour {lastPlace.display_name}
               </p>
               <p className="text-lg font-semibold">{gageText}</p>

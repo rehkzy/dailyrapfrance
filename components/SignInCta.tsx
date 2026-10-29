@@ -30,7 +30,7 @@ export default function SignInCta({ label = "Se connecter avec Google" }: { labe
 
       <div className="flex items-center gap-3 my-5" aria-hidden="true">
         <span className="flex-1 h-px bg-white/10" />
-        <span className="text-[11px] font-mono uppercase tracking-wide text-ink-faint">ou avec un e-mail</span>
+        <span className="text-xs text-ink-faint">ou avec un e-mail</span>
         <span className="flex-1 h-px bg-white/10" />
       </div>
 

@@ -16,22 +16,22 @@ export default function StatsBlock({ games }: { games: ScoreRow[] }) {
         <div className="card p-4 text-center">
           <Gamepad2 size={16} className="text-gold mx-auto mb-2" />
           <p className="font-display text-xl font-semibold">{gamesPlayed}</p>
-          <p className="text-[11px] text-ink-faint font-mono uppercase tracking-wide mt-0.5">Parties</p>
+          <p className="text-[11px] font-semibold text-ink-faint mt-0.5">Parties</p>
         </div>
         <div className="card p-4 text-center">
           <Trophy size={16} className="text-gold mx-auto mb-2" />
           <p className="font-display text-xl font-semibold">{bestScore}</p>
-          <p className="text-[11px] text-ink-faint font-mono uppercase tracking-wide mt-0.5">Meilleur score</p>
+          <p className="text-[11px] font-semibold text-ink-faint mt-0.5">Meilleur score</p>
         </div>
         <div className="card p-4 text-center">
           <TrendingUp size={16} className="text-gold mx-auto mb-2" />
           <p className="font-display text-xl font-semibold">{avgScore}</p>
-          <p className="text-[11px] text-ink-faint font-mono uppercase tracking-wide mt-0.5">Score moyen</p>
+          <p className="text-[11px] font-semibold text-ink-faint mt-0.5">Score moyen</p>
         </div>
       </div>
 
       <div>
-        <p className="font-mono text-xs text-gold uppercase tracking-[0.16em] mb-3">Compétences</p>
+        <p className="stage-kicker mb-3">Compétences</p>
         {skills.length === 0 ? (
           <div className="card p-8 text-center text-sm text-ink-muted">
             Pas encore assez de parties sur un même thème pour dégager des points forts —
