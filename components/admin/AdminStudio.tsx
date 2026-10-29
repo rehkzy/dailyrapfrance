@@ -7,7 +7,7 @@ import {
   TrendingUp, Globe, Mail, Settings as SettingsIcon, Search, Menu, X, ExternalLink, ShieldCheck,
 } from "lucide-react";
 import { BrandTile } from "@/components/BrandMark";
-import { OverviewTab, AudienceTab, VisitsTab, RoomsTab, EmailTab, SettingsTab } from "@/components/AdminDashboard";
+import { OverviewTab, VisitsTab, RoomsTab, EmailTab, SettingsTab } from "@/components/AdminDashboard";
 import AdminClipsTab from "@/components/AdminClipsTab";
 import AdminReferralsTab from "@/components/AdminReferralsTab";
 import UsersTab from "@/components/admin/UsersTab";
@@ -15,6 +15,7 @@ import CertificationTab from "@/components/admin/CertificationTab";
 import BlindTestsTab from "@/components/admin/BlindTestsTab";
 import PostsTab from "@/components/admin/PostsTab";
 import DefiTab from "@/components/admin/DefiTab";
+import SiteAnalyticsTab from "@/components/admin/SiteAnalyticsTab";
 import { Kpi } from "@/components/admin/ui";
 
 /*
@@ -42,7 +43,7 @@ const GROUPS: { label: string; items: { id: SectionId; label: string; Icon: type
     { id: "defi", label: "Défi de la semaine", Icon: Flame, hint: "Participants, calendrier" },
   ] },
   { label: "Audience", items: [
-    { id: "audience", label: "Analytics", Icon: TrendingUp, hint: "GA4 et Search Console" },
+    { id: "audience", label: "Analytics", Icon: TrendingUp, hint: "Trafic, jeu, joueurs — par période" },
     { id: "visits", label: "Visites", Icon: Globe, hint: "Journal des visites" },
   ] },
   { label: "Communication", items: [{ id: "email", label: "Mails", Icon: Mail, hint: "Envoi ciblé" }] },
@@ -144,7 +145,7 @@ export default function AdminStudio({ adminEmail }: { adminEmail: string }) {
           {section === "posts" && <PostsTab />}
           {section === "rooms" && <RoomsTab />}
           {section === "defi" && <DefiTab />}
-          {section === "audience" && <AudienceTab />}
+          {section === "audience" && <SiteAnalyticsTab />}
           {section === "visits" && <VisitsTab />}
           {section === "email" && <EmailTab recipients={recipients} onAdd={addRecipients} onRemove={removeRecipient} onClear={() => setRecipients([])} />}
           {section === "settings" && <SettingsTab />}

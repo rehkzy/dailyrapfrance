@@ -6,11 +6,19 @@ import { getNews } from "@/lib/news";
 import TrendingList from "@/components/TrendingList";
 import NewsList from "@/components/NewsList";
 
-export const metadata = {
-  title: "Actu & tendances rap français — DailyRapFrance",
-  description: "Les sons du moment, les dernières sorties et l'actu du rap français et de la musique urbaine, par DailyRapFrance. Écoute, puis lance un blind test dessus.",
-  alternates: { canonical: "https://dailyrapfrance.best/actu" },
+const META: Record<string, { title: string; description: string }> = {
+  tendances: { title: "Tendances rap français : les sons du moment — DailyRapFrance", description: "Le top des écoutes rap français et tout genre, mis à jour toutes les 30 minutes. Écoute les extraits, puis lance un blind test sur l'artiste." },
+  sorties: { title: "Nouveautés rap français : les dernières sorties — DailyRapFrance", description: "Les derniers titres rap FR sortis, du plus récent au plus ancien, avec extraits. Teste-toi dessus en blind test." },
+  actu: { title: "Actu rap français du jour — DailyRapFrance", description: "L'actualité du rap français et de la musique urbaine, en continu : sorties, clips, interviews, concerts, sélectionnés par DailyRapFrance." },
+  dailyrap: { title: "DailyRap : nos derniers posts — DailyRapFrance", description: "Les derniers posts de DailyRapFrance : interviews, freestyles, découvertes, coulisses — Instagram, TikTok, YouTube." },
 };
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ onglet?: string }> }) {
+  const sp = await searchParams;
+  const key = sp.onglet && META[sp.onglet] ? sp.onglet : "tendances";
+  const m = META[key];
+  const canonical = key === "tendances" ? "https://dailyrapfrance.best/actu" : `https://dailyrapfrance.best/actu?onglet=${key}`;
+  return { title: m.title, description: m.description, alternates: { canonical }, openGraph: { title: m.title, description: m.description, url: canonical, type: "website" as const } };
+}
 export const revalidate = 1800;
 
 const TABS = [

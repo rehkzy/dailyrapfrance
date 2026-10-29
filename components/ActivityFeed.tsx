@@ -122,7 +122,7 @@ export default function ActivityFeed() {
                 {it.kind === "score" ? (
                   <a href={replayHref(it.theme)} className="sticker sticker-ghost sticker-sm shrink-0 !h-9 !px-3 text-xs whitespace-nowrap">Je fais mieux</a>
                 ) : (
-                  <a href={`/b/${it.slug}`} className="sticker sticker-sm shrink-0 !h-9 !px-3 text-xs"><Play size={12} fill="currentColor" /> Jouer</a>
+                  <a href={`/b/${it.slug}?go=1`} className="sticker sticker-sm shrink-0 !h-9 !px-3 text-xs"><Play size={12} fill="currentColor" /> Jouer</a>
                 )}
               </div>
             );

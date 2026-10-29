@@ -47,3 +47,13 @@ export async function resolveArtist(name: string): Promise<DeezerArtistLite | nu
     return null;
   }
 }
+
+/** Top titres d'un artiste (pour enrichir les pages « Blind test <artiste> »). */
+export async function artistTopTracks(artistId: number, limit = 6): Promise<{ id: number; title: string; cover: string; album: string; rank: number }[]> {
+  try {
+    const top = await deezerFetch<{ data?: { id: number; title_short?: string; title: string; rank?: number; album?: { title?: string; cover_medium?: string } }[] }>(`/artist/${artistId}/top?limit=${limit}`);
+    return (top.data ?? []).map((t) => ({ id: t.id, title: t.title_short ?? t.title, cover: t.album?.cover_medium ?? "", album: t.album?.title ?? "", rank: t.rank ?? 0 }));
+  } catch {
+    return [];
+  }
+}

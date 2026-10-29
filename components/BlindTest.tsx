@@ -13,6 +13,7 @@ import {
 import { Icon } from "@iconify/react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
+import { track as trackEv } from "@/lib/track";
 import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
@@ -384,6 +385,7 @@ export default function BlindTest() {
       setSetupError(`🔧 ${maint}`);
       return;
     }
+    trackEv("game_start", { mode, theme: isCustom ? "custom" : themeId, variant, media, rounds: effectiveRounds, daily: isDailyRun });
     if (!mode) {
       setSetupError("Choisis un mode — Solo, Local ou Salon en ligne.");
       setWizardStep(0);
@@ -784,6 +786,7 @@ export default function BlindTest() {
     const soloPlayer = players[0];
     const perfectRun = mode === "solo" && roundOutcomes.length > 0 && roundOutcomes.every((r) => r.found >= r.total);
     bumpGamesPlayed();
+    trackEv("game_end", { mode, theme: isCustom ? "custom" : themeId, variant, media, points: soloPlayer?.score ?? 0, rounds: roundOutcomes.length, daily: isDailyRun });
     if (deepLink.presetId) touchPreset(deepLink.presetId);
     if (isDailyRun) {
       const st = markPlayedToday();

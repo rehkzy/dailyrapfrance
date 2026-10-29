@@ -5,6 +5,9 @@ import { ALL_LANDINGS, MODE_LANDINGS, THEME_LANDINGS, findLanding, SITE } from "
 import { THEME_CATEGORIES } from "@/lib/themes";
 import BrandMark from "@/components/BrandMark";
 import { AppStoreCallout } from "@/components/AppComingSoon";
+import { resolveArtist, artistTopTracks } from "@/lib/deezerArtist";
+import { getDailyTheme } from "@/lib/themes";
+import { weeklyNumber } from "@/lib/dailyStreak";
 
 /*
  * /blindtest/[slug] — pages d'atterrissage statiques : une par façon de jouer (solo,
@@ -28,8 +31,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: l.metaTitle,
     description: l.description,
     alternates: { canonical: url },
-    openGraph: { title: l.metaTitle, description: l.description, url, type: "website", images: [{ url: "/og.png", width: 1200, height: 630 }] },
-    twitter: { card: "summary_large_image", title: l.metaTitle, description: l.description, images: ["/og.png"] },
+    openGraph: { title: l.metaTitle, description: l.description, url, type: "website", images: [{ url: `${url}/opengraph-image`, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title: l.metaTitle, description: l.description, images: [`${url}/opengraph-image`] },
   };
 }
 
@@ -45,6 +48,14 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
   const l = findLanding(slug);
   if (!l) notFound();
   const url = `${SITE}/blindtest/${l.slug}`;
+
+  // Pages artiste : photo + titres phares (contenu unique, renouvelé chaque jour côté cache)
+  const isArtist = l.kind === "theme" && l.theme?.category === "Artistes";
+  const artistName = isArtist ? l.theme!.label.replace(/^Blind Test /i, "") : null;
+  const artist = artistName ? await resolveArtist(artistName) : null;
+  const topTracks = artist ? await artistTopTracks(artist.id, 6) : [];
+  const daily = getDailyTheme();
+  const isWeekly = l.kind === "theme" && l.theme?.id === daily.id;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -65,6 +76,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
         offers: { "@type": "Offer", price: "0", priceCurrency: "EUR", availability: "https://schema.org/InStock" },
         publisher: { "@type": "Organization", name: "DailyRapFrance", url: SITE },
         isPartOf: { "@id": `${SITE}/blindtest#game` },
+        ...(artistName ? { about: { "@type": "MusicGroup", name: artistName, ...(artist?.picture_big ? { image: artist.picture_big } : {}) } } : {}),
       },
       {
         "@type": "FAQPage",
@@ -102,7 +114,13 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
         <div className="flex items-center gap-2 text-xs font-semibold text-gold mb-3">
           <BrandMark size={12} /> Gratuit · Compte en 10 s · Dans le navigateur
         </div>
-        <h1 className="poster-title text-3xl sm:text-5xl mb-5">{l.title}</h1>
+        <div className="flex items-start gap-4">
+          {artist?.picture_medium && <img src={artist.picture_medium} alt={artistName ?? ""} width={96} height={96} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 border border-white/10" />}
+          <div className="min-w-0">
+            <h1 className="poster-title text-3xl sm:text-5xl mb-3">{l.title}</h1>
+            {isWeekly && <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gold mb-2">🔥 C&apos;est le défi de la semaine #{weeklyNumber()} — même thème pour tout le monde jusqu&apos;à dimanche.</p>}
+          </div>
+        </div>
         <p className="text-base sm:text-lg text-ink-muted leading-relaxed max-w-2xl">{l.intro}</p>
 
         <div className="mt-7 flex flex-col sm:flex-row gap-3">
@@ -130,6 +148,22 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
             </li>
           ))}
         </ul>
+
+        {topTracks.length > 0 && (
+          <section className="mt-12" aria-labelledby="top-h">
+            <h2 id="top-h" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Les titres de {artistName} que tu risques de croiser</h2>
+            <p className="text-sm text-ink-faint mb-4">Les plus écoutés sur Deezer{artist?.nb_fan ? ` — ${artist.nb_fan.toLocaleString("fr-FR")} fans` : ""}. Le blind test pioche dans toute la discographie, pas seulement ici.</p>
+            <ol className="grid sm:grid-cols-2 gap-2">
+              {topTracks.map((t, i) => (
+                <li key={t.id} className="card p-3 flex items-center gap-3">
+                  <span className="text-ink-faint text-xs w-4">{i + 1}</span>
+                  {t.cover ? <img src={t.cover} alt="" width={44} height={44} className="w-11 h-11 rounded-lg object-cover" loading="lazy" /> : <span className="w-11 h-11 rounded-lg bg-white/6" />}
+                  <span className="min-w-0"><span className="block text-sm font-semibold truncate">{t.title}</span><span className="block text-xs text-ink-faint truncate">{t.album}</span></span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
 
         <section className="mt-12" aria-labelledby="modes-h">
           <h2 id="modes-h" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-3">

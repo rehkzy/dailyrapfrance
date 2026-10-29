@@ -333,7 +333,7 @@ export default function BlindTestBuilder() {
                     </a>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <a href={itemHref(it)} className="sticker sticker-sm flex-1 !h-9 !px-3 text-xs"><Play size={13} fill="currentColor" /> Jouer</a>
+                    <a href={itemHref(it, "?go=1")} className="sticker sticker-sm flex-1 !h-9 !px-3 text-xs"><Play size={13} fill="currentColor" /> Jouer</a>
                     <a href={`/creer?b=${it.slug}`} aria-label="Modifier" className="w-9 h-9 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Pencil size={14} /></a>
                     <button type="button" onClick={() => { const url = `https://dailyrapfrance.best${itemHref(it)}`; void shareOrCopy({ title: `${it.title} — Blind test`, text: `🎤 ${it.title} : un blind test de ${it.track_ids.length} titres, fait maison. Tu joues ?\n${url}`, url }).then((r) => r === "copied" && flash("Lien copié")); }} aria-label="Partager" className="w-9 h-9 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink"><Share2 size={14} /></button>
                     <button type="button" onClick={() => deleteSaved(it)} aria-label="Supprimer" className="w-9 h-9 rounded-full grid place-items-center text-ink-faint hover:text-riseNeg"><Trash2 size={14} /></button>
