@@ -19,6 +19,8 @@ export const QCM_STAGE_PROMPTS: Record<QcmField, string> = {
 
 type StageTrack = { id: string; title: string; artistName: string; feats: string[] };
 
+const FALLBACK_ARTISTS = ["Jul", "Ninho", "SCH", "Gazo", "Tiakola", "Damso", "Booba", "PNL", "Niska", "Werenoi", "PLK", "SDM", "Hamza", "Gims", "Soolking", "Naps", "Kaaris", "Nekfeu", "Orelsan", "Vald"];
+
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
@@ -45,7 +47,9 @@ export function qcmStageOptions(field: QcmField, track: StageTrack, pool: StageT
   const forbidden = new Set<string>(
     field === "feat"
       ? [...track.feats, track.artistName].map((s) => s.toLowerCase())
-      : [correct.toLowerCase()]
+      : field === "artist"
+        ? [correct, ...track.feats].map((s) => s.toLowerCase())
+        : [correct.toLowerCase()]
   );
 
   let candidates: string[];
@@ -59,9 +63,13 @@ export function qcmStageOptions(field: QcmField, track: StageTrack, pool: StageT
     candidates = [...pool.flatMap((t) => t.feats), ...pool.map((t) => t.artistName)];
   }
 
+  // Quand le pool ne fournit pas assez de noms différents (thème mono-artiste : presque
+  // tous les morceaux sont du même artiste), on complète avec des artistes connus.
+  const ordered = field === "title" ? shuffle(candidates) : [...shuffle(candidates), ...shuffle(FALLBACK_ARTISTS)];
+
   const distractors: string[] = [];
   const seen = new Set<string>();
-  for (const c of shuffle(candidates)) {
+  for (const c of ordered) {
     if (distractors.length >= 2) break;
     const key = c.trim().toLowerCase();
     if (!key || seen.has(key) || forbidden.has(key)) continue;

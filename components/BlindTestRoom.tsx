@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv, ChevronRight } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
+import { fieldsFor, fieldPrompt, guessableFeats } from "@/lib/fields";
 import { Icon } from "@iconify/react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { createClient } from "@/lib/supabase/client";
@@ -12,7 +13,7 @@ import { sfx } from "@/lib/sfx";
 import { randomGage } from "@/lib/gages";
 import { speedBonus } from "@/lib/scoring";
 import { trackEvent } from "@/lib/track";
-import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, QCM_STAGE_PROMPTS, type QcmField } from "@/lib/qcmStages";
+import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, type QcmField } from "@/lib/qcmStages";
 import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
@@ -22,9 +23,8 @@ import type { User } from "@supabase/supabase-js";
 type Track = { id: string; title: string; artistName: string; previewUrl: string; coverUrl: string | null; feats: string[] };
 type FieldKey = "title" | "artist" | "feat";
 
-function applicableFieldsFor(theme: string | undefined, track: { feats: string[] }): FieldKey[] {
-  const base: FieldKey[] = theme?.startsWith("artist-") ? ["title"] : ["title", "artist"];
-  return track.feats.length ? [...base, "feat"] : base;
+function applicableFieldsFor(theme: string | undefined, track: { artistName: string; feats: string[] }): FieldKey[] {
+  return fieldsFor(theme, track);
 }
 const ROUND_SECONDS = 25;
 // Durée d'affichage du résultat avant que la manche suivante démarre — alignée avec le
@@ -54,15 +54,19 @@ type RoomRow = {
   is_public?: boolean;
   starts_at?: string | null;
   created_at?: string;
+  custom_ids?: number[] | null;
+  custom_title?: string | null;
 };
 type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; done_round?: number | null };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string; bonus?: number | null };
 
+export type RoomCustom = { title: string; ids: number[]; secs?: number; answer?: "qcm" | "text" };
 export default function BlindTestRoomWrapper(props: {
   user: User;
   onExit?: () => void;
   initialCode?: string;
   party?: boolean;
+  custom?: RoomCustom | null;
 }) {
   return <BlindTestRoom {...props} />;
 }
@@ -72,11 +76,13 @@ function BlindTestRoom({
   onExit,
   initialCode,
   party = false,
+  custom = null,
 }: {
   user: User;
   onExit?: () => void;
   initialCode?: string;
   party?: boolean;
+  custom?: RoomCustom | null;
 }) {
   const supabase = createClient();
   const [screen, setScreen] = useState<"menu" | "lobby" | "playing" | "final">("menu");
@@ -453,6 +459,7 @@ function BlindTestRoom({
         gages_enabled: gagesEnabled,
         gages_intensity: gagesIntensity,
         is_public: isPublic,
+        ...(custom ? { custom_ids: custom.ids, custom_title: custom.title } : {}),
       })
       .select()
       .single();
@@ -598,7 +605,7 @@ function BlindTestRoom({
     if (!room) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/blindtest/pool?theme=${room.theme}&count=${room.rounds}`);
+      const res = await fetch(room.custom_ids?.length ? `/api/blindtest/pool?ids=${room.custom_ids.join(",")}&count=${room.custom_ids.length}` : `/api/blindtest/pool?theme=${room.theme}&count=${room.rounds}`);
       const data = await res.json();
       const tracks: Track[] = data.tracks ?? [];
       if (tracks.length < 3) {
@@ -629,8 +636,26 @@ function BlindTestRoom({
       a.src = SILENT_WAV;
       a.play().then(() => { a.pause(); audioUnlockedRef.current = true; }).catch(() => {});
     } catch {}
+    // (la source du vrai extrait est posée par l'effet ci-dessous dès que la manche arrive)
   }
-  const unlockRef = useRef<HTMLAudioElement | null>(null);
+  // UN SEUL élément audio pour toute la vie du salon : débloqué par le premier geste
+  // (Créer / Rejoindre / Démarrer), il garde ce droit de lecture ; on ne change ensuite que
+  // sa source à chaque manche. Avant, un nouvel élément <audio> était créé à chaque manche
+  // — et iOS refuse parfois la lecture automatique sur un élément jamais touché : c'était
+  // le « parfois ça se lance, parfois il faut cliquer ».
+  const unlockRef = audioRef;
+  const sharedAudio = (
+    <audio
+      ref={audioRef}
+      preload="auto"
+      loop
+      onError={() => {
+        if (screen !== "playing") return;
+        if (started && !revealed) void recoverAudio(true);
+        else setAudioError(true);
+      }}
+    />
+  );
 
   function launchExtract(auto = false, attempt = 0) {
     if (revealedRef.current) return;
@@ -658,6 +683,17 @@ function BlindTestRoom({
         } else void recoverAudio(true);
       });
   }
+  const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
+  // La source de l'extrait suit la manche (même élément, nouvelle URL)
+  const previewUrlNow = track ? (previewOverride[track.id] ?? track.previewUrl) : null;
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || !previewUrlNow) return;
+    if (a.src !== previewUrlNow) {
+      a.src = previewUrlNow;
+      a.load();
+    }
+  }, [previewUrlNow]);
   // Fin du sas « Prépare-toi » → le son part tout seul
   useEffect(() => {
     if (screen !== "playing" || showIntro || revealed || started) return;
@@ -666,7 +702,6 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, showIntro, room?.current_round]);
 
-  const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
   const autoRecoveredRef = useRef<Set<string>>(new Set());
   const trackIdRef = useRef<string | null>(null);
   trackIdRef.current = track?.id ?? null;
@@ -732,7 +767,7 @@ function BlindTestRoom({
   const currentQcmField = roomQcmStages.find((f) => !myCorrectFields.has(f)) ?? null;
   const qcmOptions = useMemo(() => {
     if (!track || room?.answer_mode !== "qcm" || !currentQcmField) return [];
-    return qcmStageOptions(currentQcmField, track, (room?.tracks ?? []).filter((t) => t.id !== track.id));
+    return qcmStageOptions(currentQcmField, currentQcmField === "feat" ? { ...track, feats: guessableFeats(room?.theme, track) } : track, (room?.tracks ?? []).filter((t) => t.id !== track.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.id, room?.answer_mode, currentQcmField]);
 
@@ -751,7 +786,7 @@ function BlindTestRoom({
 
   async function submitRoomQcmChoice(chosenLabel: string) {
     if (!room || !track || revealed || qcmChoiceLocked || !currentQcmField) return;
-    if (!qcmIsCorrect(currentQcmField, track, chosenLabel)) {
+    if (!qcmIsCorrect(currentQcmField, { ...track, feats: guessableFeats(room.theme, track) }, chosenLabel)) {
       sfx.wrong();
       setQcmWrongId(chosenLabel);
       setTimeout(() => setQcmWrongId(null), 450);
@@ -782,7 +817,7 @@ function BlindTestRoom({
       if (!value.trim()) continue;
       const match =
         field === "feat"
-          ? track.feats.some((f) => checkGuess(value, f, ""))
+          ? guessableFeats(room.theme, track).some((f) => checkGuess(value, f, ""))
           : field === "title"
           ? checkGuess(value, "", track.title)
           : checkGuess(value, track.artistName, "");
@@ -898,8 +933,8 @@ function BlindTestRoom({
   if (screen === "menu") {
     return (
       <>
-        <audio ref={unlockRef} preload="auto" />
-        <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onQuickMatch={party ? undefined : quickMatch} onExit={onExit} party={party} />
+        {sharedAudio}
+        <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onQuickMatch={party || custom ? undefined : quickMatch} onExit={onExit} party={party} custom={custom} />
       </>
     );
   }
@@ -907,7 +942,7 @@ function BlindTestRoom({
   if (screen === "lobby" && room) {
     return (
       <div className="max-w-lg mx-auto">
-        <audio ref={unlockRef} preload="auto" />
+        {sharedAudio}
         <div className="fixed top-4 inset-x-0 z-40 pointer-events-none flex flex-col items-center gap-2">
           {notices.map((n) => (
             <span key={n.id} className="solved-pop ticket rounded-full px-4 py-2 text-xs font-medium text-ink-muted shadow-lg">
@@ -941,7 +976,7 @@ function BlindTestRoom({
             ) : (
               <>
                 <p className="font-display text-2xl font-extrabold leading-tight">{startsIn !== null && startsIn > 0 ? `Départ dans ${startsIn} s` : "C'est parti !"}</p>
-                <p className="text-sm text-ink-muted mt-1">{players.length} / 8 joueurs · {THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme} · {room.rounds} manches · {room.answer_mode === "qcm" ? "Facile" : "Difficile"}</p>
+                <p className="text-sm text-ink-muted mt-1">{players.length} / 8 joueurs · {room.custom_title ?? THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme} · {room.rounds} manches · {room.answer_mode === "qcm" ? "Facile" : "Difficile"}</p>
               </>
             )}
           </div>
@@ -1202,17 +1237,7 @@ function BlindTestRoom({
 
   return (
     <div className="feed" data-lenis-prevent>
-      <audio
-        key={previewOverride[track.id] ?? track.id}
-        ref={audioRef}
-        src={previewOverride[track.id] ?? track.previewUrl}
-        preload="auto"
-        loop
-        onError={() => {
-          if (started && !revealed) void recoverAudio(true);
-          else setAudioError(true);
-        }}
-      />
+      {sharedAudio}
       {track.coverUrl && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
       <div className="reel-shade" aria-hidden="true" />
 
@@ -1362,7 +1387,7 @@ function BlindTestRoom({
                 disabled={qcmChoiceLocked}
                 lockedNote={qcmChoiceLocked ? "Raté pour cette manche — la réponse arrive à la fin du chrono." : null}
                 wrongId={qcmWrongId}
-                prompt={currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
+                prompt={currentQcmField ? fieldPrompt(currentQcmField, room.theme, track) : ""}
                 stageIndex={currentQcmField ? roomQcmStages.indexOf(currentQcmField) : 0}
                 stageCount={roomQcmStages.length}
               />
@@ -1383,7 +1408,7 @@ function BlindTestRoom({
                       <input
                         value={guess[f]}
                         onChange={(e) => setGuess((g) => ({ ...g, [f]: e.target.value }))}
-                        placeholder={f === "title" ? "Titre (1 pt)" : f === "artist" ? "Artiste (1 pt)" : "Featuring (+2 pts)"}
+                        placeholder={fieldPrompt(f, room.theme, track, "placeholder")}
                         autoComplete="off"
                         autoCorrect="off"
                         autoCapitalize="off"
@@ -1482,6 +1507,7 @@ function RoomMenu({
   onExit,
   party = false,
   onQuickMatch,
+  custom = null,
 }: {
   busy: boolean;
   error: string | null;
@@ -1492,9 +1518,10 @@ function RoomMenu({
   onQuickMatch?: () => void;
   onExit?: () => void;
   party?: boolean;
+  custom?: RoomCustom | null;
 }) {
-  const [rounds, setRounds] = useState(10);
-  const [theme, setTheme] = useState("mix");
+  const [rounds, setRounds] = useState(custom ? custom.ids.length : 10);
+  const [theme, setTheme] = useState(custom ? "custom" : "mix");
   const [surprise, setSurprise] = useState<string | null>(null);
   // 🎲 Un thème au hasard parmi les 80 (jamais « mix ») ; « tout au hasard » tire aussi les règles.
   function randomTheme() {
@@ -1515,7 +1542,7 @@ function RoomMenu({
     setTheme(t.id); setRounds(r); setAnswerMode(a); setNeedAnswerMode(false);
     setSurprise(`🎲 ${t.label.replace(/^Blind Test /i, "")} · ${r} manches · ${a === "qcm" ? "Facile" : "Difficile"}`);
   }
-  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
+  const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(custom?.answer ?? null);
   const [gagesEnabled, setGagesEnabled] = useState(party);
   const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
   const [needAnswerMode, setNeedAnswerMode] = useState(false);
@@ -1574,22 +1601,34 @@ function RoomMenu({
           </button>
         )}
 
-        <div className="flex items-center gap-2 mb-3">
-          <button type="button" onClick={pickRandomTheme} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:perspective-dice-six-faces-random" width={16} /> Thème au hasard</button>
-          <button type="button" onClick={pickRandomAll} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:rolling-dices" width={16} /> Tout au hasard</button>
-        </div>
-        {surprise && <p className="text-xs font-semibold text-gold mb-3 solved-pop">{surprise}</p>}
+        {custom ? (
+          <div className="ticket p-4 mb-6 flex items-center gap-3">
+            <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={22} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold truncate">{custom.title}</span>
+              <span className="block text-xs text-ink-faint">Blind test perso · {custom.ids.length} titres — les mêmes morceaux pour tout le salon, dans le même ordre.</span>
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 mb-3">
+              <button type="button" onClick={pickRandomTheme} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:perspective-dice-six-faces-random" width={16} /> Thème au hasard</button>
+              <button type="button" onClick={pickRandomAll} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:rolling-dices" width={16} /> Tout au hasard</button>
+            </div>
+            {surprise && <p className="text-xs font-semibold text-gold mb-3 solved-pop">{surprise}</p>}
 
-        <div className="mb-6 -mx-1 px-1">
-          <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); setSurprise(null); }} />
-        </div>
+            <div className="mb-6 -mx-1 px-1">
+              <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); setSurprise(null); }} />
+            </div>
 
-        <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
-        <div className="segmented mb-4">
-          {[10, 15, 20].map((n) => (
-            <button key={n} type="button" aria-pressed={rounds === n} onClick={() => { sfx.click(); setRounds(n); }}>{n}</button>
-          ))}
-        </div>
+            <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
+            <div className="segmented mb-4">
+              {[10, 15, 20].map((n) => (
+                <button key={n} type="button" aria-pressed={rounds === n} onClick={() => { sfx.click(); setRounds(n); }}>{n}</button>
+              ))}
+            </div>
+          </>
+        )}
 
         <div
           ref={answerModeRef}

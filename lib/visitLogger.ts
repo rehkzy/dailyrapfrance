@@ -1,5 +1,5 @@
 import "server-only";
-import { geolocation, ipAddress } from "@vercel/functions";
+import { geolocation, ipAddress } from "@vercel/functions/headers";
 import { createClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 

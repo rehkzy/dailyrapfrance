@@ -8,6 +8,7 @@ import { DRMark3D } from "@/components/BlindTestLogo";
 import Confetti from "@/components/Confetti";
 import { randomGage } from "@/lib/gages";
 import { THEME_OPTIONS } from "@/lib/themes";
+import { fieldsFor } from "@/lib/fields";
 
 /*
  * Écran partagé du "mode soirée" — à ouvrir sur une TV, un laptop posé au milieu du salon,
@@ -49,9 +50,8 @@ type RoomRow = {
 type PlayerRow = { room_id: string; user_id: string; display_name: string };
 type SolveRow = { round_index: number; user_id: string; field: FieldKey; bonus?: number | null };
 
-function applicableFieldsFor(theme: string | undefined, track: { feats: string[] }): FieldKey[] {
-  const base: FieldKey[] = theme?.startsWith("artist-") ? ["title"] : ["title", "artist"];
-  return track.feats.length ? [...base, "feat"] : base;
+function applicableFieldsFor(theme: string | undefined, track: { artistName: string; feats: string[] }): FieldKey[] {
+  return fieldsFor(theme, track);
 }
 
 export default function PartyDisplay({ code }: { code: string }) {

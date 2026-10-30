@@ -13,13 +13,14 @@ import {
 import { Icon } from "@iconify/react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx } from "@/lib/sfx";
+import { fieldsFor, fieldPrompt, guessableFeats } from "@/lib/fields";
 import { track as trackEv } from "@/lib/track";
 import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
 import { speedBonus } from "@/lib/scoring";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
-import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel, QCM_STAGE_PROMPTS } from "@/lib/qcmStages";
+import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
@@ -221,16 +222,16 @@ export default function BlindTest() {
   const deadlineRef = useRef<number | null>(null);
 
   const track = tracks[roundIndex];
-  const isSingleArtistTheme = themeId.startsWith("artist-");
-  const baseFields: FieldKey[] = isSingleArtistTheme ? ["title"] : ["title", "artist"];
-  const applicableFields: FieldKey[] = track?.feats?.length ? [...baseFields, "feat"] : baseFields;
+  const applicableFields: FieldKey[] = track ? fieldsFor(isCustom ? "custom" : themeId, track) : ["title", "artist"];
+  // Pour le QCM : les feats à deviner (sans l'artiste du thème quand c'est lui l'invité)
+  const qcmTrack = track ? { ...track, feats: guessableFeats(isCustom ? "custom" : themeId, track) } : track;
 
   const [roundHistory, setRoundHistory] = useState<{ track: Track; solved: Partial<Record<FieldKey, string>>; fast: boolean }[]>([]);
   // Réponse éclair (tous les champs trouvés en moins de 5 s) — sert au ⚡ de la grille partagée.
   const fastRef = useRef(false);
   const trackRef = useRef<Track | undefined>(undefined);
-  const singleArtistRef = useRef(false);
-  singleArtistRef.current = themeId.startsWith("artist-");
+  const singleArtistRef = useRef<string>("mix");
+  singleArtistRef.current = isCustom ? "custom" : themeId;
   trackRef.current = track;
   const solvedRef = useRef<Partial<Record<FieldKey, string>>>({});
   solvedRef.current = solved;
@@ -301,8 +302,7 @@ export default function BlindTest() {
       setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current, fast: fastRef.current }]);
     }
     if (modeRef.current === "solo" && trackRef.current) {
-      const base: FieldKey[] = singleArtistRef.current ? ["title"] : ["title", "artist"];
-      const fields: FieldKey[] = trackRef.current.feats.length ? [...base, "feat"] : base;
+      const fields: FieldKey[] = fieldsFor(singleArtistRef.current, trackRef.current);
       const perfect = fields.every((f) => solvedRef.current[f]);
       setStreak((s) => {
         const next = perfect ? s + 1 : 0;
@@ -480,7 +480,15 @@ export default function BlindTest() {
       clipRef.current?.play();
       return;
     }
-    audioRef.current?.play().catch(() => void recoverAudio(true));
+    const a = audioRef.current;
+    a?.play().catch((err: unknown) => {
+      // Fichier pas encore prêt (nouvelle source) : on relance dès qu'il l'est, sans rien demander.
+      if (a && (err as { name?: string })?.name !== "NotAllowedError") {
+        const retry = () => { a.removeEventListener("canplay", retry); a.play().catch(() => void recoverAudio(true)); };
+        a.addEventListener("canplay", retry, { once: true });
+        setTimeout(() => { a.removeEventListener("canplay", retry); if (a.paused && (deadlineRef.current ?? 0) > Date.now()) a.play().catch(() => void recoverAudio(true)); }, 600);
+      } else void recoverAudio(true);
+    });
     deadlineRef.current = Date.now() + effectiveSeconds * 1000;
     intervalRef.current = setInterval(tick, 1000);
   }
@@ -496,6 +504,15 @@ export default function BlindTest() {
   }
 
   const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
+  // Même élément <audio> d'une manche à l'autre (il garde le droit de lecture donné par le
+  // premier tap — sur iOS un élément neuf peut se voir refuser la lecture auto) ; seule la
+  // source change.
+  const previewUrlNow = track && !isClip ? (previewOverride[track.id] ?? track.previewUrl) : null;
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a || !previewUrlNow) return;
+    if (a.src !== previewUrlNow) { a.src = previewUrlNow; a.load(); }
+  }, [previewUrlNow]);
   const autoRecoveredRef = useRef<Set<string>>(new Set());
 
   const recoverAudio = useCallback(async (auto: boolean) => {
@@ -603,7 +620,7 @@ export default function BlindTest() {
         newlySolved.artist = playerId;
         gained += POINTS.artist;
         sfx.correct();
-      } else if (canFeat && !newlySolved.feat && track.feats.some((f) => isArtistMatch(values.artist, f))) {
+      } else if (canFeat && !newlySolved.feat && guessableFeats(singleArtistRef.current, track).some((f) => isArtistMatch(values.artist, f))) {
         // Un featuring tapé dans la case "Artiste" — on le crédite quand même, sur le bon champ.
         newlySolved.feat = playerId;
         gained += POINTS.feat;
@@ -612,7 +629,7 @@ export default function BlindTest() {
     }
 
     if (canFeat && !newlySolved.feat && values.feat.trim()) {
-      if (track.feats.some((f) => isArtistMatch(values.feat, f))) {
+      if (guessableFeats(singleArtistRef.current, track).some((f) => isArtistMatch(values.feat, f))) {
         newlySolved.feat = playerId;
         gained += POINTS.feat;
         sfx.bonus();
@@ -650,15 +667,15 @@ export default function BlindTest() {
   const currentQcmField = qcmStages.find((f) => !solved[f]) ?? null;
   const qcmOptions = useMemo(() => {
     if (!track || answerMode !== "qcm" || !currentQcmField) return [];
-    return qcmStageOptions(currentQcmField, track, tracks.filter((t) => t.id !== track.id));
+    return qcmStageOptions(currentQcmField, currentQcmField === "feat" ? qcmTrack : track, tracks.filter((t) => t.id !== track.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.id, answerMode, currentQcmField]);
 
   function submitQcmChoice(playerId: string, chosenLabel: string) {
     if (!track || qcmLockedFor || !currentQcmField) return;
-    if (qcmIsCorrect(currentQcmField, track, chosenLabel)) {
+    if (qcmIsCorrect(currentQcmField, qcmTrack, chosenLabel)) {
       const values = { title: "", artist: "", feat: "" };
-      values[currentQcmField] = qcmCorrectLabel(currentQcmField, track);
+      values[currentQcmField] = qcmCorrectLabel(currentQcmField, qcmTrack);
       checkFields(playerId, values);
       // En local : le champ trouvé est crédité au joueur, puis le buzz est rendu —
       // TOUT LE MONDE peut buzzer pour les champs restants et marquer des points.
@@ -775,10 +792,10 @@ export default function BlindTest() {
     () =>
       roundHistory.map((r) => ({
         found: Object.keys(r.solved).length,
-        total: (isSingleArtistTheme ? 1 : 2) + (r.track.feats.length ? 1 : 0),
+        total: fieldsFor(isCustom ? "custom" : themeId, r.track).length,
         fast: r.fast,
       })),
-    [roundHistory, isSingleArtistTheme]
+    [roundHistory, themeId, isCustom]
   );
   const [dailyStreak, setDailyStreak] = useState(0);
   const [streakFrozen, setStreakFrozen] = useState(false);
@@ -1033,6 +1050,7 @@ export default function BlindTest() {
             onExit={() => setMode(null)}
             initialCode={joinRoomCode ?? undefined}
             party={mode === "party"}
+            custom={customSet ? { title: customSet.t, ids: customSet.i, secs: customSet.s, answer: customSet.a } : null}
           />
         </div>
       </div>
@@ -1109,11 +1127,11 @@ export default function BlindTest() {
                       <span className="door-title">Seul</span>
                       <span className="door-sub">À ton rythme, score sauvegardé</span>
                     </button>
-                    <button type="button" onClick={() => { sfx.click(); if (customSet) { setBranch("multi"); setMode("local"); setSetupError(null); setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); } else setBranch("multi"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)" } as CSSProperties}>
+                    <button type="button" onClick={() => { sfx.click(); setBranch("multi"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)" } as CSSProperties}>
                       <span className="door-icon"><Users size={24} /></span>
                       <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">À plusieurs</span>
-                      <span className="door-sub">{customSet ? "Sur le même téléphone, avec un buzzer" : "Même écran, en ligne ou sur la TV"}</span>
+                      <span className="door-sub">{customSet ? "Même téléphone, ou chacun sur le sien" : "Même écran, en ligne ou sur la TV"}</span>
                     </button>
                   </div>
                   {!customSet && <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3">
@@ -1160,16 +1178,16 @@ export default function BlindTest() {
                       <span className="min-w-0 flex-1"><span className="choice-title">Sur le même téléphone</span><span className="choice-sub">2 à 8 joueurs, un buzzer, les pseudos de chacun.</span></span>
                       {mode === "local" ? <Check size={18} strokeWidth={3} className="shrink-0" /> : <ChevronRight size={18} className="shrink-0 text-ink-faint" />}
                     </button>
-                    {!customSet && <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="choice">
+                    <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:wifi-router" width={24} /></span>
-                      <span className="min-w-0 flex-1"><span className="choice-title">Chacun sur son téléphone</span><span className="choice-sub">Un salon en ligne : crée-le ou rejoins-le avec un code.</span></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Chacun sur son téléphone</span><span className="choice-sub">{customSet ? "Un salon en ligne avec tes morceaux : tes potes rejoignent avec un code." : "Un salon en ligne : crée-le ou rejoins-le avec un code."}</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
-                    </button>}
-                    {!customSet && <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="choice">
+                    </button>
+                    <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:tv" width={24} /></span>
                       <span className="min-w-0 flex-1"><span className="choice-title">Soirée sur la TV</span><span className="choice-sub">L'écran partagé sur la télé, les téléphones en manette, un gage pour le dernier.</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
-                    </button>}
+                    </button>
                   </div>
                   {!customSet && <p className="text-xs text-ink-faint mt-4">Tu as un code ? <a href="/jouer?mode=online" className="text-glow font-semibold">Rejoindre un salon →</a></p>}
                 </>
@@ -1490,7 +1508,7 @@ export default function BlindTest() {
     <div className="feed" data-lenis-prevent onTouchStart={swipeStart} onTouchEnd={swipeEnd}>
       {/* `loop` : l'extrait Deezer dure 30 s ; avec le joker +15 s (ou 35/45 s de chrono) il
           s'arrêtait net avant la fin de la manche — il reboucle désormais sur lui-même. */}
-      {!isClip && <audio key={track.id} ref={audioRef} src={previewOverride[track.id] ?? track.previewUrl} preload="auto" loop onError={() => (started ? void recoverAudio(true) : undefined)} />}
+      {!isClip && <audio ref={audioRef} preload="auto" loop onError={() => (started ? void recoverAudio(true) : undefined)} />}
 
       {/* Fond : pochette floutée qui respire (audio) ou clip plein écran (vidéo) */}
       {track.coverUrl && !isClip && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
@@ -1701,7 +1719,7 @@ export default function BlindTest() {
               <div className="flex items-center justify-between mb-2.5 px-1">
                 <p className="text-sm font-bold">
                   {mode === "local" && <span className="text-glow">{activePlayer?.name} — </span>}
-                  {currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
+                  {currentQcmField && track ? fieldPrompt(currentQcmField, isCustom ? "custom" : themeId, track) : ""}
                 </p>
                 {qcmStages.length > 1 && (
                   <span className="flex items-center gap-1" aria-label={`Étape ${(currentQcmField ? qcmStages.indexOf(currentQcmField) : 0) + 1} sur ${qcmStages.length}`}>
@@ -1734,7 +1752,7 @@ export default function BlindTest() {
             >
               {mode === "local" && <p className="text-sm font-bold px-1"><span className="text-glow">{activePlayer?.name}</span> a buzzé</p>}
               <FieldRow value={guess.title} onChange={(v) => setGuess((g) => ({ ...g, title: v }))} placeholder="Titre (1 pt)" solved={!!solved.title} wrongFlash={wrongFlash} />
-              {applicableFields.includes("artist") && <FieldRow value={guess.artist} onChange={(v) => setGuess((g) => ({ ...g, artist: v }))} placeholder="Artiste (1 pt)" solved={!!solved.artist} wrongFlash={wrongFlash} />}
+              {applicableFields.includes("artist") && <FieldRow value={guess.artist} onChange={(v) => setGuess((g) => ({ ...g, artist: v }))} placeholder={track ? fieldPrompt("artist", isCustom ? "custom" : themeId, track, "placeholder") : "Artiste (1 pt)"} solved={!!solved.artist} wrongFlash={wrongFlash} />}
               {applicableFields.includes("feat") && <FieldRow value={guess.feat} onChange={(v) => setGuess((g) => ({ ...g, feat: v }))} placeholder="Featuring (+2 pts)" solved={!!solved.feat} wrongFlash={wrongFlash} gold />}
               <button type="submit" className="sticker w-full h-14"><Check size={18} strokeWidth={3} /> Valider{mode === "local" ? ` — ${activePlayer?.name}` : ""}</button>
             </form>
