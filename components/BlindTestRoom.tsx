@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv } from "lucide-react";
+import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv, ChevronRight } from "lucide-react";
+import { THEME_OPTIONS } from "@/lib/themes";
 import { Icon } from "@iconify/react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { createClient } from "@/lib/supabase/client";
@@ -50,6 +51,9 @@ type RoomRow = {
   answer_mode: "text" | "qcm";
   gages_enabled: boolean;
   gages_intensity: "soft" | "hard";
+  is_public?: boolean;
+  starts_at?: string | null;
+  created_at?: string;
 };
 type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; done_round?: number | null };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string; bonus?: number | null };
@@ -303,6 +307,44 @@ function BlindTestRoom({
   const readyCount = players.filter((p) => p.ready).length;
   const allReady = players.length > 0 && readyCount === players.length;
 
+  /*
+   * Matchmaking — compte à rebours partagé. L'hôte pose `starts_at` dans le salon dès qu'il
+   * y a 2 joueurs (20 s ; une arrivée tardive garantit au moins 8 s), l'enlève s'il
+   * redevient seul, et lance la partie quand le compte arrive à zéro. Tout le monde lit la
+   * même horloge (la ligne du salon est synchronisée en temps réel).
+   */
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (screen !== "lobby" || !room?.is_public) return;
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [screen, room?.is_public]);
+  const startsIn = room?.starts_at ? Math.max(0, Math.ceil((new Date(room.starts_at).getTime() - now) / 1000)) : null;
+  useEffect(() => {
+    if (!isHost || !room?.is_public || screen !== "lobby" || room.status !== "lobby") return;
+    if (players.length >= 2 && players.length < 8) {
+      const target = room.starts_at ? new Date(room.starts_at).getTime() : 0;
+      const minTarget = Date.now() + 8_000;
+      if (!room.starts_at) void supabase.from("rooms").update({ starts_at: new Date(Date.now() + 20_000).toISOString() }).eq("id", room.id);
+      else if (target < minTarget && players.length > (lastCountRef.current ?? 0)) void supabase.from("rooms").update({ starts_at: new Date(minTarget).toISOString() }).eq("id", room.id);
+    } else if (players.length >= 8 && !room.starts_at) {
+      void supabase.from("rooms").update({ starts_at: new Date(Date.now() + 3_000).toISOString() }).eq("id", room.id);
+    } else if (players.length < 2 && room.starts_at) {
+      void supabase.from("rooms").update({ starts_at: null }).eq("id", room.id);
+    }
+    lastCountRef.current = players.length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players.length, room?.starts_at, room?.is_public, screen, isHost]);
+  const lastCountRef = useRef<number | null>(null);
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!isHost || !room?.is_public || screen !== "lobby" || startsIn === null || startsIn > 0 || autoStartedRef.current || busy) return;
+    if (players.length < 2) return;
+    autoStartedRef.current = true;
+    void startGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startsIn, isHost, screen, players.length, busy]);
+
   const endRoundEarly = useCallback(async () => {
     const r = roomRef.current;
     if (!r) return;
@@ -355,7 +397,8 @@ function BlindTestRoom({
     rounds: number,
     answerMode: "text" | "qcm",
     gagesEnabled: boolean,
-    gagesIntensity: "soft" | "hard"
+    gagesIntensity: "soft" | "hard",
+    isPublic = false
   ) {
     unlockAudio();
     setBusy(true);
@@ -409,6 +452,7 @@ function BlindTestRoom({
         answer_mode: answerMode,
         gages_enabled: gagesEnabled,
         gages_intensity: gagesIntensity,
+        is_public: isPublic,
       })
       .select()
       .single();
@@ -435,6 +479,50 @@ function BlindTestRoom({
     setPlayers([{ room_id: data.id, user_id: user.id, display_name: displayName }]);
     setScreen("lobby");
     setBusy(false);
+  }
+
+  /*
+   * Matchmaking — « Trouver des joueurs » : on cherche un salon PUBLIC en attente (créé il y a
+   * moins de 15 min, moins de 8 joueurs, le plus ancien d'abord pour remplir les files) et on
+   * le rejoint ; sinon on en ouvre un, thème au hasard, 10 manches, QCM. Le salon démarre tout
+   * seul : dès 2 joueurs, un compte à rebours de 20 s (prolongé à chaque arrivée, 8 max).
+   */
+  async function quickMatch() {
+    unlockAudio();
+    setBusy(true);
+    setError(null);
+    try {
+      const since = new Date(Date.now() - 15 * 60_000).toISOString();
+      const { data: open } = await supabase
+        .from("rooms")
+        .select("*, room_players(user_id)")
+        .eq("is_public", true)
+        .eq("status", "lobby")
+        .gte("created_at", since)
+        .order("created_at", { ascending: true })
+        .limit(10);
+      const candidate = (open ?? []).find((r) => {
+        const n = (r.room_players as { user_id: string }[] | null)?.length ?? 0;
+        return n >= 1 && n < 8 && r.host_id !== user.id;
+      });
+      if (candidate) {
+        const { error: joinErr } = await supabase.from("room_players").upsert({ room_id: candidate.id, user_id: user.id, display_name: displayName });
+        if (!joinErr) {
+          const { data: existing } = await supabase.from("room_players").select("*").eq("room_id", candidate.id);
+          const { room_players: _rp, ...roomRow } = candidate as RoomRow & { room_players: unknown };
+          setRoom(roomRow as RoomRow);
+          setPlayers([...(existing ?? []).filter((p) => p.user_id !== user.id), { room_id: candidate.id, user_id: user.id, display_name: displayName }]);
+          setScreen("lobby");
+          setBusy(false);
+          return;
+        }
+      }
+    } catch {
+      // on retombe sur la création
+    }
+    const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "custom");
+    const theme = pool[Math.floor(Math.random() * pool.length)]?.id ?? "mix";
+    await createRoom(theme, 10, "qcm", false, "soft", true);
   }
 
   async function joinRoom() {
@@ -544,7 +632,7 @@ function BlindTestRoom({
   }
   const unlockRef = useRef<HTMLAudioElement | null>(null);
 
-  function launchExtract(auto = false) {
+  function launchExtract(auto = false, attempt = 0) {
     if (revealedRef.current) return;
     setStarted(true);
     setAudioError(false);
@@ -553,10 +641,20 @@ function BlindTestRoom({
     if (!a) return;
     a.play()
       .then(() => { audioUnlockedRef.current = true; })
-      .catch(() => {
+      .catch((err: unknown) => {
+        const name = (err as { name?: string })?.name ?? "";
         if (auto) {
+          // Pas une interdiction du navigateur (NotAllowed) mais un « pas encore chargé » /
+          // « interrompu par un nouveau chargement » : on réessaie dès que le fichier est prêt,
+          // sans jamais redemander un tap — c'était ça, le « parfois il faut cliquer ».
+          if (name !== "NotAllowedError" && attempt < 4) {
+            const retry = () => { a.removeEventListener("canplay", retry); launchExtract(true, attempt + 1); };
+            a.addEventListener("canplay", retry, { once: true });
+            setTimeout(() => { a.removeEventListener("canplay", retry); if (!revealedRef.current && a.paused) launchExtract(true, attempt + 1); }, 500);
+            return;
+          }
           setStarted(false);
-          setNeedsTap(true); // lecture auto refusée : on redemande un tap
+          setNeedsTap(true); // lecture auto refusée par le navigateur : on redemande un tap
         } else void recoverAudio(true);
       });
   }
@@ -801,7 +899,7 @@ function BlindTestRoom({
     return (
       <>
         <audio ref={unlockRef} preload="auto" />
-        <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onExit={onExit} party={party} />
+        <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onQuickMatch={party ? undefined : quickMatch} onExit={onExit} party={party} />
       </>
     );
   }
@@ -830,6 +928,23 @@ function BlindTestRoom({
           >
             <ArrowLeft size={16} /> Quitter le salon
           </button>
+        )}
+        {room.is_public && (
+          <div className="ticket p-5 mb-4 text-center" aria-live="polite">
+            <p className="stage-kicker mb-1 inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={13} /> Partie publique</p>
+            {players.length < 2 ? (
+              <>
+                <p className="font-display text-2xl font-extrabold leading-tight">Recherche de joueurs…</p>
+                <p className="text-sm text-ink-muted mt-1">Tu es seul pour l&apos;instant. Dès qu&apos;un joueur arrive, le compte à rebours démarre. Tu peux aussi partager le code à un pote.</p>
+                <div className="flex justify-center gap-1.5 mt-3" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="w-2 h-2 rounded-full bg-gold animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}</div>
+              </>
+            ) : (
+              <>
+                <p className="font-display text-2xl font-extrabold leading-tight">{startsIn !== null && startsIn > 0 ? `Départ dans ${startsIn} s` : "C'est parti !"}</p>
+                <p className="text-sm text-ink-muted mt-1">{players.length} / 8 joueurs · {THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme} · {room.rounds} manches · {room.answer_mode === "qcm" ? "Facile" : "Difficile"}</p>
+              </>
+            )}
+          </div>
         )}
         <div className="ticket p-6 md:p-8 text-center">
           <p className="text-sm font-semibold text-ink-muted mb-2">Code du salon — touche pour copier</p>
@@ -1245,6 +1360,7 @@ function BlindTestRoom({
                 options={qcmOptions}
                 onPick={(label) => void submitRoomQcmChoice(label)}
                 disabled={qcmChoiceLocked}
+                lockedNote={qcmChoiceLocked ? "Raté pour cette manche — la réponse arrive à la fin du chrono." : null}
                 wrongId={qcmWrongId}
                 prompt={currentQcmField ? QCM_STAGE_PROMPTS[currentQcmField] : ""}
                 stageIndex={currentQcmField ? roomQcmStages.indexOf(currentQcmField) : 0}
@@ -1365,6 +1481,7 @@ function RoomMenu({
   onJoin,
   onExit,
   party = false,
+  onQuickMatch,
 }: {
   busy: boolean;
   error: string | null;
@@ -1372,11 +1489,32 @@ function RoomMenu({
   setJoinCode: (v: string) => void;
   onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm", gagesEnabled: boolean, gagesIntensity: "soft" | "hard") => void;
   onJoin: () => void;
+  onQuickMatch?: () => void;
   onExit?: () => void;
   party?: boolean;
 }) {
   const [rounds, setRounds] = useState(10);
   const [theme, setTheme] = useState("mix");
+  const [surprise, setSurprise] = useState<string | null>(null);
+  // 🎲 Un thème au hasard parmi les 80 (jamais « mix ») ; « tout au hasard » tire aussi les règles.
+  function randomTheme() {
+    const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "custom" && t.id !== theme);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  function pickRandomTheme() {
+    sfx.click();
+    const t = randomTheme();
+    setTheme(t.id);
+    setSurprise(`🎲 ${t.label.replace(/^Blind Test /i, "")}`);
+  }
+  function pickRandomAll() {
+    sfx.click();
+    const t = randomTheme();
+    const r = [10, 15, 20][Math.floor(Math.random() * 3)];
+    const a = Math.random() < 0.6 ? "qcm" : "text";
+    setTheme(t.id); setRounds(r); setAnswerMode(a); setNeedAnswerMode(false);
+    setSurprise(`🎲 ${t.label.replace(/^Blind Test /i, "")} · ${r} manches · ${a === "qcm" ? "Facile" : "Difficile"}`);
+  }
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(null);
   const [gagesEnabled, setGagesEnabled] = useState(party);
   const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
@@ -1425,8 +1563,25 @@ function RoomMenu({
           </div>
         )}
 
+        {onQuickMatch && (
+          <button type="button" onClick={onQuickMatch} disabled={busy} className="w-full action-row mb-5" data-primary="true">
+            <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><Icon icon="game-icons:crossed-swords" width={22} /></span>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block text-sm font-semibold">Trouver des joueurs</span>
+              <span className="block text-xs text-white/80">On te met avec des joueurs qui attendent — thème au hasard, 10 manches, ça démarre dès 2 joueurs.</span>
+            </span>
+            <ChevronRight size={18} className="shrink-0" />
+          </button>
+        )}
+
+        <div className="flex items-center gap-2 mb-3">
+          <button type="button" onClick={pickRandomTheme} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:perspective-dice-six-faces-random" width={16} /> Thème au hasard</button>
+          <button type="button" onClick={pickRandomAll} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:rolling-dices" width={16} /> Tout au hasard</button>
+        </div>
+        {surprise && <p className="text-xs font-semibold text-gold mb-3 solved-pop">{surprise}</p>}
+
         <div className="mb-6 -mx-1 px-1">
-          <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); }} />
+          <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); setSurprise(null); }} />
         </div>
 
         <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
@@ -1611,6 +1766,7 @@ function QcmChoicesRoom({
   prompt,
   stageIndex,
   stageCount,
+  lockedNote,
 }: {
   options: string[];
   onPick: (label: string) => void;
@@ -1619,6 +1775,7 @@ function QcmChoicesRoom({
   prompt: string;
   stageIndex: number;
   stageCount: number;
+  lockedNote?: string | null;
 }) {
   const keys = ["A", "B", "C", "D"];
   return (
@@ -1633,9 +1790,10 @@ function QcmChoicesRoom({
           </span>
         )}
       </div>
+      {lockedNote && <p className="text-xs font-semibold text-riseNeg mb-2 px-1 solved-pop">{lockedNote}</p>}
       <div className="feed-answers" key={prompt}>
         {options.map((label, i) => (
-          <button key={label} type="button" onClick={() => onPick(label)} disabled={disabled} className="answer solved-pop" data-wrong={wrongId === label}>
+          <button key={label} type="button" onClick={() => onPick(label)} disabled={disabled} className="answer solved-pop" data-wrong={wrongId === label} style={disabled && lockedNote ? { opacity: 0.45 } : undefined}>
             <span className="answer-key">{keys[i]}</span>
             <span className="flex-1 truncate">{label}</span>
           </button>

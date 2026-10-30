@@ -112,6 +112,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-bouss", label: "Blind Test Bouss", text: "Que des sons de Bouss", Icon: Mic2, category: "Artistes" },
   { id: "artist-maes", label: "Blind Test Maes", text: "Que des sons de Maes", Icon: Mic2, category: "Artistes" },
   { id: "artist-algerino", label: "Blind Test L'Algérino", text: "Que des sons de L'Algérino", Icon: Mic2, category: "Artistes" },
+  { id: "artist-niro", label: "Blind Test Niro", text: "Que des sons de Niro", Icon: Mic2, category: "Artistes" },
 ];
 
 // Mise en avant éditoriale — ces thèmes portent la flamme "tendance" dans les sélecteurs,

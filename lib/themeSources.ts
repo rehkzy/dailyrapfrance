@@ -85,6 +85,7 @@ export const THEME_ARTISTS: Record<string, string[]> = {
   "artist-bouss": ["bouss"],
   "artist-maes": ["maes"],
   "artist-algerino": ["l'algerino"],
+  "artist-niro": ["niro"],
   "artist-rvfleuze": ["la rvfleuze"],
   "artist-gims": ["gims"],
   "artist-plk": ["plk"],
