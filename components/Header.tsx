@@ -167,7 +167,7 @@ export default function Header() {
   // l'heure et la batterie dès qu'on scrollait : on réserve la zone sûre en haut.
   return (
     <header className="nav-panel sticky top-0 z-50 rounded-none border-x-0 border-t-0" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-      <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 h-16 flex items-center gap-3">
         <a href="/" className="flex items-center shrink-0 group/logo" aria-label="DailyRapFrance — accueil">
           <img
             src="/logo.svg"
@@ -176,23 +176,23 @@ export default function Header() {
           />
         </a>
 
-        <nav className="hidden lg:flex items-center gap-1 ml-6" aria-label="Navigation principale">
+        <nav className="hidden lg:flex items-center gap-0.5 ml-4 min-w-0" aria-label="Navigation principale">
           {NAV.map((item) => {
             const active = isActive(pathname, item.href);
             return (
-              <a key={item.href} href={item.href} aria-current={active ? "page" : undefined} className="nav-item" data-active={active}>
+              <a key={item.href} href={item.href} aria-current={active ? "page" : undefined} className="nav-item" title={item.label} data-active={active}>
                 <span className="nav-item-icon"><item.Icon size={15} strokeWidth={active ? 2.5 : 2} /></span>
-                {item.label}
+                <span className="nav-label">{item.label}</span>
               </a>
             );
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
           {!onGame && (
             <a
               href="/jouer"
-              className="hidden lg:inline-flex items-center gap-2 h-10 pl-3 pr-5 rounded-full bg-gold hover:bg-glow text-white text-sm font-bold transition-colors shadow-brand"
+              className="hidden lg:inline-flex items-center gap-2 h-10 pl-3 pr-5 whitespace-nowrap shrink-0 rounded-full bg-gold hover:bg-glow text-white text-sm font-bold transition-colors shadow-brand"
             >
               <BrandMark size={18} className="text-white" />
               Jouer

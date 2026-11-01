@@ -59,19 +59,23 @@ export const metadata: Metadata = {
     "devine le rappeur",
   ],
   icons: {
+    // Le monogramme DR (tuile rouge) partout — PNG nets en premier (Safari ignore le SVG),
+    // avec un paramètre de version pour forcer le rafraîchissement du cache des navigateurs.
     icon: [
-      { url: "/favicon.ico", sizes: "48x48" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon-32.png?v=3", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png?v=3", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png?v=3", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.ico?v=3", sizes: "16x16 32x32 48x48" },
+      { url: "/icon.svg?v=3", type: "image/svg+xml" },
     ],
+    shortcut: [{ url: "/favicon-32.png?v=3" }],
     // Icône iOS incorporée en data: URI (lue au build) : Safari la récupère avec la page
     // elle-même, donc elle passe même si une protection (challenge Vercel, hors-ligne) bloque
     // la requête séparée vers /apple-touch-icon.png — sinon iOS retombe sur une lettre.
     apple: [
       { url: APPLE_ICON_DATA_URI, sizes: "180x180", type: "image/png" },
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png?v=3", sizes: "180x180", type: "image/png" },
     ],
-    shortcut: "/favicon.ico",
   },
   appleWebApp: {
     capable: true,

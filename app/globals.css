@@ -3218,9 +3218,18 @@ body:has([data-admin]) .card { background: #0f0a0b; }
    en pastille blanche avec la tuile rouge (la même grammaire que le dock mobile). */
 .nav-item {
   display: inline-flex; align-items: center; gap: 8px;
-  height: 38px; padding: 0 14px 0 6px; border-radius: 999px;
-  font-size: 14px; font-weight: 600; color: var(--ink-muted);
+  height: 38px; padding: 0 12px 0 6px; border-radius: 999px;
+  font-size: 14px; font-weight: 600; color: var(--ink-muted); white-space: nowrap; flex-shrink: 0;
   transition: background-color 0.15s, color 0.15s;
+}
+.nav-item-icon { flex-shrink: 0; }
+/* Sous 1280px la barre ne tient pas avec tous les libellés : on garde les tuiles seules,
+   seule l'entrée active affiche son nom (le picto + title suffisent pour les autres). */
+@media (max-width: 1279px) {
+  .nav-item { padding: 0 6px; gap: 0; }
+  .nav-item .nav-label { display: none; }
+  .nav-item[data-active="true"] { padding-right: 12px; gap: 8px; }
+  .nav-item[data-active="true"] .nav-label { display: inline; }
 }
 .nav-item-icon {
   width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;

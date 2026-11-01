@@ -56,7 +56,7 @@ export default function AuthButton({ variant = "desktop" }: { variant?: "desktop
     return (
       <button
         onClick={signIn}
-        className={`bg-gold text-white rounded-full text-xs font-medium hover:bg-glow transition-colors ${
+        className={`bg-gold text-white rounded-full text-xs font-medium whitespace-nowrap shrink-0 hover:bg-glow transition-colors ${
           variant === "mobile" ? "w-full py-3 text-sm" : "px-4 py-1.5"
         }`}
       >
