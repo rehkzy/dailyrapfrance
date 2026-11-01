@@ -133,6 +133,7 @@ export default function BlindTest() {
   );
   const [mode, setMode] = useState<Mode | null>(joinRoomCode ? "online" : deepLinkMode);
   // Premier écran : deux choix seulement — seul, ou à plusieurs. Les modes viennent ensuite.
+  const [quickMatchWanted, setQuickMatchWanted] = useState(false);
   const [branch, setBranch] = useState<"solo" | "multi" | null>(deepLinkMode ? (deepLinkMode === "solo" ? "solo" : "multi") : null);
   const [themeId, setThemeId] = useState<string>(isCustom ? CUSTOM_THEME_ID : deepLinkTheme ?? "mix");
   const [variant, setVariant] = useState<Variant>(deepLink.variant ?? "classic");
@@ -1051,6 +1052,7 @@ export default function BlindTest() {
             initialCode={joinRoomCode ?? undefined}
             party={mode === "party"}
             custom={customSet ? { title: customSet.t, ids: customSet.i, secs: customSet.s, answer: customSet.a } : null}
+            autoQuickMatch={quickMatchWanted}
           />
         </div>
       </div>
@@ -1121,17 +1123,17 @@ export default function BlindTest() {
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    <button type="button" onClick={() => { sfx.click(); if (customSet) { setMode("solo"); setSetupError(null); setWizardStep(2); } else setBranch("solo"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #3a0a0f 0%, #8a0010 60%, #f0001c 130%)" } as CSSProperties}>
+                    <button type="button" onClick={() => { sfx.click(); setBranch("solo"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #3a0a0f 0%, #8a0010 60%, #f0001c 130%)" } as CSSProperties}>
                       <span className="door-icon"><User size={24} /></span>
                       <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">Seul</span>
-                      <span className="door-sub">À ton rythme, score sauvegardé</span>
+                      <span className="door-sub">{customSet ? "Extraits audio ou clips" : "À ton rythme, score sauvegardé"}</span>
                     </button>
                     <button type="button" onClick={() => { sfx.click(); setBranch("multi"); }} className="door" style={{ "--poster-bg": "linear-gradient(160deg, #2a0608 0%, #c20016 70%, #ff6b3b 140%)" } as CSSProperties}>
                       <span className="door-icon"><Users size={24} /></span>
                       <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">À plusieurs</span>
-                      <span className="door-sub">{customSet ? "Même téléphone, ou chacun sur le sien" : "Même écran, en ligne ou sur la TV"}</span>
+                      <span className="door-sub">{customSet ? "Même téléphone, en ligne, matchmaking ou TV" : "Même écran, en ligne ou sur la TV"}</span>
                     </button>
                   </div>
                   {!customSet && <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3">
@@ -1149,8 +1151,22 @@ export default function BlindTest() {
                 <>
                   <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"><ChevronLeft size={16} /> Retour</button>
                   <h2 className="stage-title mb-5">Seul.<br />Tu veux quoi ?</h2>
+                  {customSet ? (
                   <div className="space-y-2.5">
-                    <button type="button" onClick={() => { sfx.click(); setMode("solo"); setSetupError(null); setWizardStep(isCustom ? 2 : 1); }} className="choice" data-primary="true">
+                    <button type="button" onClick={() => { sfx.click(); setMode("solo"); setMedia("audio"); setSetupError(null); setWizardStep(2); }} className="choice" data-primary="true">
+                      <span className="choice-icon"><Icon icon="game-icons:headphones" width={24} /></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Extraits audio</span><span className="choice-sub">{customSet.i.length} morceaux de « {customSet.t} », extraits de 30 s.</span></span>
+                      <ChevronRight size={18} className="shrink-0" />
+                    </button>
+                    <button type="button" onClick={() => { sfx.click(); setMode("solo"); setMedia("clip"); setSetupError(null); setWizardStep(2); }} className="choice">
+                      <span className="choice-icon"><Clapperboard size={22} /></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Devine le clip</span><span className="choice-sub">Les clips officiels de tes morceaux (ceux qui en ont un).</span></span>
+                      <ChevronRight size={18} className="shrink-0 text-ink-faint" />
+                    </button>
+                  </div>
+                  ) : (
+                  <div className="space-y-2.5">
+                    <button type="button" onClick={() => { sfx.click(); setMode("solo"); setSetupError(null); setWizardStep(1); }} className="choice" data-primary="true">
                       <span className="choice-icon"><Icon icon="game-icons:headphones" width={24} /></span>
                       <span className="min-w-0 flex-1"><span className="choice-title">Blind test classique</span><span className="choice-sub">Choisis un thème ou un artiste — 80 thèmes, extraits de 30 s.</span></span>
                       <ChevronRight size={18} className="shrink-0" />
@@ -1166,7 +1182,8 @@ export default function BlindTest() {
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
                     </a>
                   </div>
-                  <div className="mt-6"><DailyCard variant="compact" /></div>
+                  )}
+                  {!customSet && <div className="mt-6"><DailyCard variant="compact" /></div>}
                 </>
               ) : (
                 <>
@@ -1178,6 +1195,13 @@ export default function BlindTest() {
                       <span className="min-w-0 flex-1"><span className="choice-title">Sur le même téléphone</span><span className="choice-sub">2 à 8 joueurs, un buzzer, les pseudos de chacun.</span></span>
                       {mode === "local" ? <Check size={18} strokeWidth={3} className="shrink-0" /> : <ChevronRight size={18} className="shrink-0 text-ink-faint" />}
                     </button>
+                    {customSet && (
+                      <button type="button" onClick={() => { sfx.click(); setQuickMatchWanted(true); setMode("online"); }} className="choice">
+                        <span className="choice-icon"><Icon icon="game-icons:crossed-swords" width={24} /></span>
+                        <span className="min-w-0 flex-1"><span className="choice-title">Trouver des joueurs</span><span className="choice-sub">Ton blind test ouvert à tous : on te met avec des joueurs qui attendent, ça démarre dès 2.</span></span>
+                        <ChevronRight size={18} className="shrink-0 text-ink-faint" />
+                      </button>
+                    )}
                     <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:wifi-router" width={24} /></span>
                       <span className="min-w-0 flex-1"><span className="choice-title">Chacun sur son téléphone</span><span className="choice-sub">{customSet ? "Un salon en ligne avec tes morceaux : tes potes rejoignent avec un code." : "Un salon en ligne : crée-le ou rejoins-le avec un code."}</span></span>

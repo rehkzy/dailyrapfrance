@@ -67,6 +67,7 @@ export default function BlindTestRoomWrapper(props: {
   initialCode?: string;
   party?: boolean;
   custom?: RoomCustom | null;
+  autoQuickMatch?: boolean;
 }) {
   return <BlindTestRoom {...props} />;
 }
@@ -77,12 +78,14 @@ function BlindTestRoom({
   initialCode,
   party = false,
   custom = null,
+  autoQuickMatch = false,
 }: {
   user: User;
   onExit?: () => void;
   initialCode?: string;
   party?: boolean;
   custom?: RoomCustom | null;
+  autoQuickMatch?: boolean;
 }) {
   const supabase = createClient();
   const [screen, setScreen] = useState<"menu" | "lobby" | "playing" | "final">("menu");
@@ -310,6 +313,13 @@ function BlindTestRoom({
     sfx.click();
     await supabase.from("room_players").update({ done_round: round }).eq("room_id", r.id).eq("user_id", user.id);
   }
+  const autoMatchRef = useRef(false);
+  useEffect(() => {
+    if (!autoQuickMatch || autoMatchRef.current || screen !== "menu") return;
+    autoMatchRef.current = true;
+    void quickMatch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoQuickMatch]);
   const readyCount = players.filter((p) => p.ready).length;
   const allReady = players.length > 0 && readyCount === players.length;
 
@@ -498,6 +508,12 @@ function BlindTestRoom({
     unlockAudio();
     setBusy(true);
     setError(null);
+    if (custom) {
+      // Blind test perso ouvert au matchmaking : un salon public avec SES morceaux ; les
+      // joueurs qui cherchent une partie peuvent y tomber.
+      await createRoom("custom", custom.ids.length, custom.answer ?? "qcm", false, "soft", true);
+      return;
+    }
     try {
       const since = new Date(Date.now() - 15 * 60_000).toISOString();
       const { data: open } = await supabase
@@ -934,7 +950,7 @@ function BlindTestRoom({
     return (
       <>
         {sharedAudio}
-        <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onQuickMatch={party || custom ? undefined : quickMatch} onExit={onExit} party={party} custom={custom} />
+        <RoomMenu busy={busy} error={error} joinCode={joinCode} setJoinCode={setJoinCode} onCreate={createRoom} onJoin={joinRoom} onQuickMatch={party ? undefined : quickMatch} onExit={onExit} party={party} custom={custom} />
       </>
     );
   }
@@ -1595,7 +1611,7 @@ function RoomMenu({
             <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><Icon icon="game-icons:crossed-swords" width={22} /></span>
             <span className="min-w-0 flex-1 text-left">
               <span className="block text-sm font-semibold">Trouver des joueurs</span>
-              <span className="block text-xs text-white/80">On te met avec des joueurs qui attendent — thème au hasard, 10 manches, ça démarre dès 2 joueurs.</span>
+              <span className="block text-xs text-white/80">{custom ? `Ton blind test « ${custom.title} » ouvert à tous — ça démarre dès 2 joueurs.` : "On te met avec des joueurs qui attendent — thème au hasard, 10 manches, ça démarre dès 2 joueurs."}</span>
             </span>
             <ChevronRight size={18} className="shrink-0" />
           </button>
