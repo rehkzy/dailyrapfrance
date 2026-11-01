@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const [mine, community] = await Promise.all([
     user ? supabase.from("custom_blindtests").select(SELECT).eq("user_id", user.id).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-    supabase.from("custom_blindtests").select(SELECT).eq("is_public", true).order("featured", { ascending: false }).order("plays", { ascending: false }).limit(24),
+    supabase.from("custom_blindtests").select(SELECT).eq("is_public", true).order("featured", { ascending: false }).order("plays", { ascending: false }).limit(searchParams.get("community") === "all" ? 200 : 24),
   ]);
   return NextResponse.json({ mine: mine.data ?? [], community: community.data ?? [] });
 }

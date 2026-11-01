@@ -62,6 +62,9 @@ export default function ThemePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trendingThemes.size, dailyTheme?.id]);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  // Catégorie dynamique : les blind tests que les joueurs ont rendus publics
+  const COMMUNITY_CAT = "Playlists de la communauté";
+  const ALL_CATEGORIES = [...THEME_CATEGORIES, COMMUNITY_CAT];
 
   useEffect(() => {
     fetch("/api/blindtest/trending")
@@ -100,7 +103,7 @@ export default function ThemePicker({
     const compute = () => {
       raf = 0;
       let current: string = THEME_CATEGORIES[0];
-      for (const cat of THEME_CATEGORIES) {
+      for (const cat of ALL_CATEGORIES) {
         const el = sectionRefs.current[cat];
         if (el && el.getBoundingClientRect().top <= LINE) current = cat;
       }
@@ -170,7 +173,7 @@ export default function ThemePicker({
         </div>
         {!filtered && (
           <div className="flex gap-1.5 overflow-x-auto hide-scrollbar mt-2.5 -mx-1 px-1">
-            {THEME_CATEGORIES.map((cat) => (
+            {ALL_CATEGORIES.map((cat) => (
               <button
                 key={cat}
                 type="button"
@@ -256,8 +259,8 @@ export default function ThemePicker({
             );
           })}
 
-          {/* Par les joueurs — les blind tests publics de la communauté, à la suite des thèmes */}
-          <CommunitySection />
+          {/* Playlists de la communauté — tous les blind tests rendus publics par les joueurs */}
+          <CommunitySection title={COMMUNITY_CAT} sectionRef={(el) => { sectionRefs.current[COMMUNITY_CAT] = el; }} />
         </>
       )}
 
@@ -274,20 +277,25 @@ type CommunityItem = { id: string; slug: string; title: string; cover?: string |
 
 /* Les blind tests publics des joueurs, en fin de grille : c'est ici qu'on choisit « à quoi
    jouer », donc c'est ici qu'ils ont leur place — pas dans un menu à part. */
-function CommunitySection() {
+function CommunitySection({ title, sectionRef }: { title: string; sectionRef: (el: HTMLElement | null) => void }) {
   const [items, setItems] = useState<CommunityItem[] | null>(null);
+  const [showAll, setShowAll] = useState(false);
   useEffect(() => {
-    fetch("/api/blindtest/custom").then((r) => r.json()).then((d) => setItems((d.community ?? []).slice(0, 12))).catch(() => setItems([]));
+    fetch("/api/blindtest/custom?community=all").then((r) => r.json()).then((d) => setItems(d.community ?? [])).catch(() => setItems([]));
   }, []);
-  if (!items || items.length === 0) return null;
+  const list = items ?? [];
+  const shown = showAll ? list : list.slice(0, 12);
   return (
-    <section data-category="Par les joueurs" className="scroll-mt-40">
+    <section ref={sectionRef} data-category={title} className="scroll-mt-40 min-h-[70vh]">
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-display text-2xl font-extrabold tracking-tight">Par les joueurs</h3>
-        <a href="/blindtests" className="text-xs font-semibold text-glow">Tout voir →</a>
+        <h3 className="font-display text-2xl font-extrabold tracking-tight">{title}</h3>
+        <span className="text-xs text-ink-faint">{items ? `${list.length} blind test${list.length > 1 ? "s" : ""}` : "…"}</span>
       </div>
+      {items && list.length === 0 && (
+        <div className="ticket p-5 text-sm text-ink-muted">Aucun blind test public pour l&apos;instant. <a href="/creer" className="text-glow font-semibold">Crée le tien</a> et rends-le public : il apparaîtra ici pour tout le monde.</div>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-        {items.map((it) => {
+        {shown.map((it) => {
           const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles;
           return (
             <a key={it.id} href={`/b/${it.slug}`} className="ticket overflow-hidden flex flex-col">
@@ -304,7 +312,10 @@ function CommunitySection() {
           );
         })}
       </div>
-      <p className="text-xs text-ink-faint mt-3">Le tien peut être ici : <a href="/creer" className="text-glow font-semibold">crée ton blind test</a> et rends-le public.</p>
+      {list.length > 12 && !showAll && (
+        <button type="button" onClick={() => setShowAll(true)} className="sticker sticker-ghost sticker-sm mt-3">Voir les {list.length - 12} autres</button>
+      )}
+      {list.length > 0 && <p className="text-xs text-ink-faint mt-3">Le tien peut être ici : <a href="/creer" className="text-glow font-semibold">crée ton blind test</a> et rends-le public.</p>}
     </section>
   );
 }
