@@ -298,7 +298,7 @@ function CommunitySection({ title, sectionRef }: { title: string; sectionRef: (e
         {shown.map((it) => {
           const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles;
           return (
-            <a key={it.id} href={`/b/${it.slug}`} className="ticket overflow-hidden flex flex-col">
+            <a key={it.id} href={`/b/${it.slug}?go=1`} className="ticket overflow-hidden flex flex-col">
               <span className="block relative aspect-[4/3] bg-gradient-to-br from-[#3a0a0f] to-[#8a0010]">
                 {it.cover && <img src={it.cover} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />}
                 {it.featured && <span className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur text-[10px] font-bold text-gold px-2 py-0.5">★ Sélection</span>}

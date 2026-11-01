@@ -38,7 +38,7 @@ export default async function CommunityPage() {
             {items.map((it) => {
               const p = Array.isArray(it.profiles) ? it.profiles[0] : it.profiles;
               return (
-                <a key={it.id} href={`/b/${it.slug}`} className="ticket p-4 flex items-center gap-3">
+                <a key={it.id} href={`/b/${it.slug}?go=1`} className="ticket p-4 flex items-center gap-3">
                   {it.cover ? <img src={it.cover} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" /> : <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={20} /></span>}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold truncate">{it.featured && <span className="text-gold mr-1" title="Sélection DailyRap">★</span>}{it.title}</span>

@@ -43,12 +43,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function ShortLinkPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ mode?: string; go?: string }> }) {
+export default async function ShortLinkPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ mode?: string; go?: string; start?: string }> }) {
   const { slug } = await params;
   const sp = await searchParams;
   const d = await load(slug);
   if (!d) notFound();
-  if (sp.go === "1" || sp.mode) redirect(playHref(slug, d, sp.mode ?? "solo", sp.go === "1" && !sp.mode));
+  // ?go=1 → l'écran du blind test dans Jouer (tous les modes) ; ?mode=solo|local|online|party → direct ; ?start=solo → solo immédiat
+  if (sp.start === "solo") redirect(playHref(slug, d, "solo", true));
+  if (sp.mode) redirect(playHref(slug, d, sp.mode));
+  if (sp.go === "1") redirect(playHref(slug, d));
 
   const p = Array.isArray(d.profiles) ? d.profiles[0] : d.profiles;
   const author = p?.display_name ?? p?.username ?? "un joueur";
@@ -83,10 +86,10 @@ export default async function ShortLinkPage({ params, searchParams }: { params: 
             </p>
             {d.description && <p className="text-ink-muted mt-3">{d.description}</p>}
             <div className="mt-5 grid sm:grid-cols-2 gap-2.5">
-              <a href={playHref(slug, d, "solo", true)} className="sticker h-14 text-base"><Play size={18} fill="currentColor" /> Jouer en solo</a>
-              <a href={playHref(slug, d, "local")} className="sticker sticker-ghost h-14 text-base"><Users size={18} /> Entre potes, même téléphone</a>
+              <a href={playHref(slug, d)} className="sticker h-14 text-base"><Play size={18} fill="currentColor" /> Jouer — choisir le mode</a>
+              <a href={playHref(slug, d, "solo", true)} className="sticker sticker-ghost h-14 text-base"><Users size={18} /> Solo, tout de suite</a>
             </div>
-            <p className="text-[11px] text-ink-faint mt-3">Sans compte, dans le navigateur. Extraits officiels de 30 secondes.</p>
+            <p className="text-[11px] text-ink-faint mt-3">Se joue en solo (extraits ou clips), entre potes sur un téléphone, en salon en ligne, en matchmaking ou en soirée sur la TV. Sans compte pour le solo et le même téléphone.</p>
           </div>
         </div>
         <p className="text-sm text-ink-muted">Envie du tien ? <a href="/creer" className="text-glow font-semibold">Crée ton blind test</a> avec tes morceaux ou ta playlist Spotify, et partage le lien.</p>
