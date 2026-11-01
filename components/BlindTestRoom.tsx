@@ -201,6 +201,9 @@ function BlindTestRoom({
         setSolves((prev) => [...prev, payload.new as SolveRow]);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "rooms", filter: `id=eq.${room.id}` }, () => {
+        // Salon fermé — sauf si on vient d'en changer (fusion matchmaking) : l'événement
+        // concerne l'ancien salon, pas le nouveau.
+        if (roomRef.current && roomRef.current.id !== room.id) return;
         setClosedMessage("Un joueur a quitté — le salon a été fermé.");
         setRoom(null);
         setPlayers([]);
@@ -363,6 +366,54 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players.length, room?.starts_at, room?.is_public, screen, isHost]);
   const lastCountRef = useRef<number | null>(null);
+  // Deux joueurs qui cherchent en même temps créent chacun un salon avant de voir l'autre.
+  // Tant que je suis seul dans mon salon public, je re-regarde toutes les 4 s : s'il existe
+  // un salon du même format plus ancien que le mien avec de la place, je ferme le mien et
+  // je le rejoins (c'est toujours le plus récent qui bouge : pas de ping-pong).
+  const mergingRef = useRef(false);
+  useEffect(() => {
+    if (!isHost || !room?.is_public || screen !== "lobby" || room.status !== "lobby" || players.length !== 1) return;
+    const fmt: MatchFormat = room.format ?? "royale";
+    const myCreated = room.created_at ? new Date(room.created_at).getTime() : Date.now();
+    const id = setInterval(async () => {
+      if (mergingRef.current) return;
+      try {
+        const since = new Date(Date.now() - 15 * 60_000).toISOString();
+        const { data: open } = await supabase
+          .from("rooms")
+          .select("*, room_players(user_id, team)")
+          .eq("is_public", true)
+          .eq("status", "lobby")
+          .eq("format", fmt)
+          .neq("id", room.id)
+          .gte("created_at", since)
+          .order("created_at", { ascending: true })
+          .limit(10);
+        const other = (open ?? []).find((r) => {
+          const rows = (r.room_players as { user_id: string }[] | null) ?? [];
+          const older = r.created_at ? new Date(r.created_at).getTime() < myCreated : true;
+          return older && rows.length >= 1 && rows.length < FORMAT_CAPACITY[fmt] && !rows.some((x) => x.user_id === user.id);
+        });
+        if (!other) return;
+        mergingRef.current = true;
+        const rows = (other.room_players as { user_id: string; team: number | null }[] | null) ?? [];
+        const t1 = rows.filter((x) => x.team === 1).length, t2 = rows.filter((x) => x.team === 2).length;
+        const team = fmt === "2v2" ? (t1 <= t2 ? 1 : 2) : null;
+        const { error: joinErr } = await supabase.from("room_players").upsert({ room_id: other.id, user_id: user.id, display_name: displayName, team });
+        if (joinErr) { mergingRef.current = false; return; }
+        await supabase.from("rooms").delete().eq("id", room.id);
+        const { data: existing } = await supabase.from("room_players").select("*").eq("room_id", other.id);
+        const { room_players: _rp, ...roomRow } = other as RoomRow & { room_players: unknown };
+        setRoom(roomRow as RoomRow);
+        setPlayers([...(existing ?? []).filter((p) => p.user_id !== user.id), { room_id: other.id, user_id: user.id, display_name: displayName, team }]);
+        mergingRef.current = false;
+      } catch {
+        mergingRef.current = false;
+      }
+    }, 4000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, room?.id, room?.is_public, screen, players.length]);
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (!isHost || !room?.is_public || screen !== "lobby" || startsIn === null || startsIn > 0 || autoStartedRef.current || busy) return;
@@ -1083,13 +1134,20 @@ function BlindTestRoom({
             <p className="text-xs text-ink-faint mt-3">{readyCount} / {players.length} prêt{readyCount > 1 ? "s" : ""}</p>
           </div>
 
-          <button type="button" onClick={toggleReady} aria-pressed={!!me?.ready} className={`w-full h-14 mb-3 ${me?.ready ? "sticker sticker-ghost" : "sticker"}`}>
-            {me?.ready ? <><Check size={18} strokeWidth={3} /> Prêt — en attente des autres</> : <><Icon icon="game-icons:thumb-up" width={18} /> Je suis prêt</>}
-          </button>
+          {!room.is_public && (
+            <button type="button" onClick={toggleReady} aria-pressed={!!me?.ready} className={`w-full h-14 mb-3 ${me?.ready ? "sticker sticker-ghost" : "sticker"}`}>
+              {me?.ready ? <><Check size={18} strokeWidth={3} /> Prêt — en attente des autres</> : <><Icon icon="game-icons:thumb-up" width={18} /> Je suis prêt</>}
+            </button>
+          )}
 
           {error && <p className="text-sm text-riseNeg mb-4">{error}</p>}
 
-          {isHost ? (
+          {room.is_public ? (
+            <div className="flex items-center justify-center gap-3 py-1">
+              <BrandLoader size="sm" />
+              <p className="text-sm text-ink-faint">{players.length < (room.format === "royale" || !room.format ? 2 : FORMAT_CAPACITY[room.format]) ? "La partie démarre toute seule dès que les joueurs sont trouvés." : "Ça démarre…"}</p>
+            </div>
+          ) : isHost ? (
             <button type="button" onClick={startGame} disabled={busy || players.length < 1} className={`sticker w-full h-16 text-lg disabled:opacity-50 ${allReady ? "cta-glow" : ""}`}>
               <Icon icon="game-icons:play-button" width={20} /> {busy ? "Chargement…" : allReady ? "Tout le monde est prêt — Démarrer" : `Démarrer (${readyCount}/${players.length} prêts)`}
             </button>
