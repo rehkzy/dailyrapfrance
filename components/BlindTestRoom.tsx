@@ -352,83 +352,29 @@ function BlindTestRoom({
     return () => clearInterval(id);
   }, [screen, room?.is_public]);
   const startsIn = room?.starts_at ? Math.max(0, Math.ceil((new Date(room.starts_at).getTime() - now) / 1000)) : null;
+
+  // Tick matchmaking : présence + arbitre serveur (toutes les 2 s tant qu'on attend)
   useEffect(() => {
-    if (!isHost || !room?.is_public || screen !== "lobby" || room.status !== "lobby") return;
-    const fmt: MatchFormat = room.format ?? "royale";
-    const capacity = FORMAT_CAPACITY[fmt];
-    if (players.length >= capacity) {
-      // Salon complet : départ dans 3 s (si pas déjà plus proche)
-      const target = room.starts_at ? new Date(room.starts_at).getTime() : Infinity;
-      if (target > Date.now() + 3_500) void supabase.from("rooms").update({ starts_at: new Date(Date.now() + 3_000).toISOString() }).eq("id", room.id);
-    } else if (fmt === "royale" && players.length >= 2) {
-      const target = room.starts_at ? new Date(room.starts_at).getTime() : 0;
-      const minTarget = Date.now() + 8_000;
-      if (!room.starts_at) void supabase.from("rooms").update({ starts_at: new Date(Date.now() + 20_000).toISOString() }).eq("id", room.id);
-      else if (target < minTarget && players.length > (lastCountRef.current ?? 0)) void supabase.from("rooms").update({ starts_at: new Date(minTarget).toISOString() }).eq("id", room.id);
-    } else if (room.starts_at) {
-      void supabase.from("rooms").update({ starts_at: null }).eq("id", room.id);
-    }
-    lastCountRef.current = players.length;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [players.length, room?.starts_at, room?.is_public, screen, isHost]);
-  const lastCountRef = useRef<number | null>(null);
-  // Deux joueurs qui cherchent en même temps créent chacun un salon avant de voir l'autre.
-  // Tant que je suis seul dans mon salon public, je re-regarde toutes les 4 s : s'il existe
-  // un salon du même format plus ancien que le mien avec de la place, je ferme le mien et
-  // je le rejoins (c'est toujours le plus récent qui bouge : pas de ping-pong).
-  const mergingRef = useRef(false);
-  useEffect(() => {
-    if (!isHost || !room?.is_public || screen !== "lobby" || room.status !== "lobby" || players.length !== 1) return;
-    const fmt: MatchFormat = room.format ?? "royale";
-    const myCreated = room.created_at ? new Date(room.created_at).getTime() : Date.now();
-    const id = setInterval(async () => {
-      if (mergingRef.current) return;
+    if (screen !== "lobby" || !room?.is_public || room.status !== "lobby") return;
+    let stopped = false;
+    const tick = async () => {
       try {
-        const since = new Date(Date.now() - 15 * 60_000).toISOString();
-        const { data: open } = await supabase
-          .from("rooms")
-          .select("*, room_players(user_id, team)")
-          .eq("is_public", true)
-          .eq("status", "lobby")
-          .eq("format", fmt)
-          .neq("id", room.id)
-          .gte("created_at", since)
-          .order("created_at", { ascending: true })
-          .limit(10);
-        const other = (open ?? []).find((r) => {
-          const rows = (r.room_players as { user_id: string }[] | null) ?? [];
-          const older = r.created_at ? new Date(r.created_at).getTime() < myCreated : true;
-          return older && rows.length >= 1 && rows.length < FORMAT_CAPACITY[fmt] && !rows.some((x) => x.user_id === user.id);
-        });
-        if (!other) return;
-        mergingRef.current = true;
-        const rows = (other.room_players as { user_id: string; team: number | null }[] | null) ?? [];
-        const t1 = rows.filter((x) => x.team === 1).length, t2 = rows.filter((x) => x.team === 2).length;
-        const team = fmt === "2v2" ? (t1 <= t2 ? 1 : 2) : null;
-        const { error: joinErr } = await supabase.from("room_players").upsert({ room_id: other.id, user_id: user.id, display_name: displayName, team });
-        if (joinErr) { mergingRef.current = false; return; }
-        await supabase.from("rooms").delete().eq("id", room.id);
-        const { data: existing } = await supabase.from("room_players").select("*").eq("room_id", other.id);
-        const { room_players: _rp, ...roomRow } = other as RoomRow & { room_players: unknown };
-        setRoom(roomRow as RoomRow);
-        setPlayers([...(existing ?? []).filter((p) => p.user_id !== user.id), { room_id: other.id, user_id: user.id, display_name: displayName, team }]);
-        mergingRef.current = false;
-      } catch {
-        mergingRef.current = false;
-      }
-    }, 4000);
-    return () => clearInterval(id);
+        const res = await fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "tick", roomId: room.id }) });
+        const data = await res.json();
+        if (stopped) return;
+        if (data.gone) { setClosedMessage("Le salon a été fermé."); setRoom(null); setPlayers([]); setScreen("menu"); return; }
+        if (data.room) setRoom(data.room as RoomRow);
+        if (data.players) setPlayers(data.players as PlayerRow[]);
+      } catch {}
+    };
+    void tick();
+    const id = setInterval(tick, 2000);
+    // Fermeture de l'onglet : on prévient (le serveur libère la place tout de suite)
+    const onHide = () => { try { navigator.sendBeacon("/api/rooms/public", new Blob([JSON.stringify({ action: "leave", roomId: room.id })], { type: "application/json" })); } catch {} };
+    window.addEventListener("pagehide", onHide);
+    return () => { stopped = true; clearInterval(id); window.removeEventListener("pagehide", onHide); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, room?.id, room?.is_public, screen, players.length]);
-  const autoStartedRef = useRef(false);
-  useEffect(() => {
-    if (!isHost || !room?.is_public || screen !== "lobby" || startsIn === null || startsIn > 0 || autoStartedRef.current || busy) return;
-    const fmt: MatchFormat = room.format ?? "royale";
-    if (players.length < (fmt === "royale" ? 2 : FORMAT_CAPACITY[fmt])) return;
-    autoStartedRef.current = true;
-    void startGame();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startsIn, isHost, screen, players.length, busy]);
+  }, [screen, room?.id, room?.is_public, room?.status]);
 
   const endRoundEarly = useCallback(async () => {
     const r = roomRef.current;
@@ -576,57 +522,34 @@ function BlindTestRoom({
    * seul : dès 2 joueurs, un compte à rebours de 20 s (prolongé à chaque arrivée, 8 max).
    */
   /*
-   * Matchmaking par format : Duel 1v1 (2 joueurs), 2v2 (4 joueurs, deux équipes), Battle
-   * royale (2 à 8, tout le monde contre tout le monde). On cherche un salon public du même
-   * format qui attend ; sinon on en ouvre un. Dès que le salon est complet (1v1, 2v2) ça
-   * démarre en 3 s ; en battle royale, 20 s après le 2ᵉ joueur (prolongés à chaque arrivée).
+   * Matchmaking — tout se passe côté serveur (/api/rooms/public) : il cherche un salon
+   * public ouvert du format demandé (Duel 1v1 : 2, 2v2 : 4, Battle royale : 2 à 8), sinon il
+   * en crée un ; puis chaque joueur « tique » toutes les 2 s (présence, ménage des fantômes,
+   * compte à rebours, départ). Rien ne dépend de l'hôte.
    */
   async function quickMatch(format: MatchFormat = matchFormat) {
     unlockAudio();
     setBusy(true);
     setError(null);
-    const capacity = FORMAT_CAPACITY[format];
     try {
-      const since = new Date(Date.now() - 15 * 60_000).toISOString();
-      const { data: open } = await supabase
-        .from("rooms")
-        .select("*, room_players(user_id, team)")
-        .eq("is_public", true)
-        .eq("status", "lobby")
-        .eq("format", format)
-        .gte("created_at", since)
-        .order("created_at", { ascending: true })
-        .limit(10);
-      const candidate = (open ?? []).find((r) => {
-        const n = (r.room_players as { user_id: string }[] | null)?.length ?? 0;
-        return n >= 1 && n < capacity && r.host_id !== user.id;
+      const res = await fetch("/api/rooms/public", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "find", format, custom: custom ? { title: custom.title, ids: custom.ids, answer: custom.answer } : undefined }),
       });
-      if (candidate) {
-        const existingRows = (candidate.room_players as { user_id: string; team: number | null }[] | null) ?? [];
-        // 2v2 : on complète l'équipe la moins nombreuse
-        const t1 = existingRows.filter((x) => x.team === 1).length, t2 = existingRows.filter((x) => x.team === 2).length;
-        const team = format === "2v2" ? (t1 <= t2 ? 1 : 2) : null;
-        const { error: joinErr } = await supabase.from("room_players").upsert({ room_id: candidate.id, user_id: user.id, display_name: displayName, team });
-        if (!joinErr) {
-          const { data: existing } = await supabase.from("room_players").select("*").eq("room_id", candidate.id);
-          const { room_players: _rp, ...roomRow } = candidate as RoomRow & { room_players: unknown };
-          setRoom(roomRow as RoomRow);
-          setPlayers([...(existing ?? []).filter((p) => p.user_id !== user.id), { room_id: candidate.id, user_id: user.id, display_name: displayName, team }]);
-          setScreen("lobby");
-          setBusy(false);
-          return;
-        }
+      const data = await res.json();
+      if (!res.ok || !data.room) {
+        setError(data.error === "not_authenticated" ? "Connecte-toi pour jouer en ligne." : `Matchmaking indisponible (${data.error ?? res.status}).`);
+        return;
       }
+      setRoom(data.room as RoomRow);
+      setPlayers((data.players ?? []) as PlayerRow[]);
+      setScreen("lobby");
     } catch {
-      // on retombe sur la création
+      setError("Matchmaking indisponible — réessaie.");
+    } finally {
+      setBusy(false);
     }
-    if (custom) {
-      await createRoom("custom", custom.ids.length, custom.answer ?? "qcm", false, "soft", true, format);
-      return;
-    }
-    const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "custom");
-    const theme = pool[Math.floor(Math.random() * pool.length)]?.id ?? "mix";
-    await createRoom(theme, 10, "qcm", false, "soft", true, format);
   }
 
   async function joinRoom() {
@@ -999,6 +922,14 @@ function BlindTestRoom({
   async function leaveRoom() {
     const r = roomRef.current;
     if (!r) {
+      leaveToMenu();
+      return;
+    }
+    if (r.is_public && r.status === "lobby") {
+      // Salon public : on libère juste sa place (le serveur ferme le salon s'il est vide)
+      setBusy(true);
+      await fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "leave", roomId: r.id }) }).catch(() => {});
+      setBusy(false);
       leaveToMenu();
       return;
     }

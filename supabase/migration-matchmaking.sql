@@ -10,3 +10,6 @@ alter table public.rooms add column if not exists custom_title text;
 -- Formats de matchmaking (duel 1v1, 2v2 en équipes, battle royale) et équipes
 alter table public.rooms add column if not exists format text;
 alter table public.room_players add column if not exists team integer;
+
+-- Présence dans le salon (matchmaking côté serveur : fantômes retirés après 25 s sans signe de vie)
+alter table public.room_players add column if not exists last_seen_at timestamptz default now();
