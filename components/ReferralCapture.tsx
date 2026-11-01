@@ -20,7 +20,7 @@ export default function ReferralCapture() {
     fetch("/api/referral/claim", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) })
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok || ["self", "too_old", "unknown_code", "invalid"].includes(d.reason)) clearPendingReferral();
+        if (d.ok || ["self", "too_old", "unknown_code", "invalid", "already"].includes(d.reason)) clearPendingReferral();
       })
       .catch(() => {});
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps

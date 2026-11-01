@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 
 const STEPS = [
   { Icon: Share2, t: "Envoie ton lien", s: "Dans le groupe, en story, en DM : ton lien est unique." },
-  { Icon: Users, t: "Ton ami crée son compte", s: "Gratuit, en 10 secondes, avec Google ou un e-mail. Il joue tout de suite." },
-  { Icon: Ticket, t: "Une chance de plus", s: "Chaque inscription compte. Pas de limite." },
+  { Icon: Users, t: "Ton ami crée son compte", s: "Gratuit, en 10 secondes, avec Google. Pas de code à taper : s'il est passé par ton lien, on le sait (30 jours). Sinon, il peut saisir ton code dans la semaine." },
+  { Icon: Ticket, t: "Une chance de plus", s: "Chaque inscription compte, et tu suis tout : clics, inscrits, qui a joué." },
   { Icon: Gift, t: "Tirage au sort", s: `${REFERRAL_CONTEST.title}, le ${REFERRAL_CONTEST.date}. Gagnant annoncé sur Instagram.` },
 ];
 

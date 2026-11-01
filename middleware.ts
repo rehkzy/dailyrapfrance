@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
 import { logVisit } from "@/lib/visitLogger";
+import { captureReferral } from "@/lib/referralEdge";
 
 // Signatures des scanners automatisés qui balaient tout Internet à la recherche de
 // sites WordPress vulnérables ou de fichiers malveillants déposés par d'anciens
@@ -39,6 +40,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   );
 
   await supabase.auth.getUser();
+
+  // Lien de parrainage (?ref=CODE) : cookie 30 jours + journal du clic. Le cookie survit au
+  // passage par Google (même navigateur), là où le localStorage seul pouvait se perdre.
+  const refCookie = captureReferral(request, event);
+  if (refCookie) response.cookies.set(refCookie);
 
   // Log de visite (IP + géo, via Vercel) — en tâche de fond, ne ralentit jamais la page.
   event.waitUntil(logVisit(request));
