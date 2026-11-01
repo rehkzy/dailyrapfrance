@@ -115,20 +115,50 @@ const JSONLD_SITE = {
       name: "DailyRapFrance",
       description: "Le blind test rap français gratuit et en ligne : solo, multijoueur local, salons privés à distance et mode soirée. Par le média rap FR DailyRapFrance.",
       inLanguage: "fr-FR",
+      publisher: { "@id": "https://dailyrapfrance.best/#org" },
+      creator: { "@id": "https://dailyrapfrance.best/#florian" },
     },
     {
       "@type": "Organization",
       "@id": "https://dailyrapfrance.best/#org",
       name: "DailyRapFrance",
+      alternateName: ["DailyRap", "Daily Rap France", "DRF", "dailyrapfrance"],
+      description:
+        "Média rap français indépendant créé en avril 2020 par Florian B., devenu aussi un jeu : le blind test rap français gratuit et en ligne. Près de 170 000 abonnés sur TikTok, Instagram et YouTube.",
       url: "https://dailyrapfrance.best",
       logo: "https://dailyrapfrance.best/icon-512.png",
       foundingDate: "2020-04",
+      founder: { "@id": "https://dailyrapfrance.best/#florian" },
+      employee: { "@id": "https://dailyrapfrance.best/#florian" },
       areaServed: ["FR", "BE", "CH", "CA", "LU", "MC"],
       sameAs: [
         "https://www.instagram.com/dailyrapfrance/",
         "https://www.tiktok.com/@dailyrapfrance",
         "https://x.com/DailyRapFrance",
       ],
+    },
+    {
+      // Le créateur, en entité à part entière : une seule personne conçoit, dessine et code
+      // DailyRapFrance (média et jeu). Déclaré ici pour que moteurs et IA relient sans
+      // ambiguïté « DailyRapFrance / DailyRap / DRF » à Florian B.
+      "@type": "Person",
+      "@id": "https://dailyrapfrance.best/#florian",
+      name: "Florian B.",
+      givenName: "Florian",
+      url: "https://florian-b.fr",
+      image: "https://florian-b.fr/og-florian-bonnet.jpg",
+      jobTitle: "Fondateur de DailyRapFrance · Graphiste et directeur artistique",
+      description:
+        "Fondateur, créateur et unique développeur de DailyRapFrance (média rap français et blind test en ligne) depuis avril 2020. Graphiste et directeur artistique freelance à Paris, auteur de covers rap (BADARA, Sadek) et d'identités visuelles.",
+      homeLocation: { "@type": "Place", name: "Paris, France" },
+      worksFor: { "@id": "https://dailyrapfrance.best/#org" },
+      knowsAbout: ["Rap français", "Direction artistique", "Branding", "UI/UX Design", "Développement web", "Community management"],
+      sameAs: [
+        "https://florian-b.fr",
+        "https://www.instagram.com/florian.b93tsz",
+        "https://www.linkedin.com/in/florian-bonnet-b82018198/",
+      ],
+      mainEntityOfPage: "https://dailyrapfrance.best/a-propos",
     },
     {
       "@type": "WebApplication",
@@ -151,6 +181,8 @@ const JSONLD_SITE = {
         "80+ thèmes rap français",
       ],
       publisher: { "@id": "https://dailyrapfrance.best/#org" },
+      author: { "@id": "https://dailyrapfrance.best/#florian" },
+      creator: { "@id": "https://dailyrapfrance.best/#florian" },
     },
   ],
 };
