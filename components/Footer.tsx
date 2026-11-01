@@ -30,6 +30,8 @@ const columns = [
       { href: "/a-propos", label: "Notre histoire" },
       { href: "/blindtest", label: "Le blind test" },
       { href: "/blindtest/soiree", label: "Blind test en soirée" },
+      { href: "/confidentialite", label: "Confidentialité" },
+      { href: "/conditions", label: "Conditions d'utilisation" },
     ],
   },
 ];

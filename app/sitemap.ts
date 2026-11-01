@@ -27,6 +27,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/blindtest/defi`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${SITE}/parrainage`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE}/a-propos`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE}/confidentialite`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE}/conditions`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
   ];
   try {
     const supabase = await createClient();
