@@ -11,6 +11,7 @@ import SiteAnnouncement from "@/components/SiteAnnouncement";
 import ActivityTracker from "@/components/ActivityTracker";
 import InstallPrompt from "@/components/InstallPrompt";
 import ReferralCapture from "@/components/ReferralCapture";
+import OnboardingWelcome from "@/components/OnboardingWelcome";
 import BottomDock from "@/components/BottomDock";
 import { AppComingSoonModal } from "@/components/AppComingSoon";
 import { jsonLd as toJsonLd } from "@/lib/jsonld";
@@ -179,6 +180,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <InstallPrompt />
         <ReferralCapture />
+        <OnboardingWelcome />
         <BottomDock />
         <AppComingSoonModal />
       </body>
