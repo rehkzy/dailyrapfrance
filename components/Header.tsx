@@ -7,7 +7,7 @@ import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Spar
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
-import { BrandTile } from "@/components/BrandMark";
+import BrandMark, { BrandTile } from "@/components/BrandMark";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 /*
@@ -180,12 +180,8 @@ export default function Header() {
           {NAV.map((item) => {
             const active = isActive(pathname, item.href);
             return (
-              <a
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={`px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${active ? "text-gold bg-gold/10" : "text-ink-muted hover:text-ink hover:bg-white/5"}`}
-              >
+              <a key={item.href} href={item.href} aria-current={active ? "page" : undefined} className="nav-item" data-active={active}>
+                <span className="nav-item-icon"><item.Icon size={15} strokeWidth={active ? 2.5 : 2} /></span>
                 {item.label}
               </a>
             );
@@ -196,9 +192,9 @@ export default function Header() {
           {!onGame && (
             <a
               href="/jouer"
-              className="hidden lg:inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-gold hover:bg-glow text-white text-sm font-semibold transition-colors shadow-brand"
+              className="hidden lg:inline-flex items-center gap-2 h-10 pl-3 pr-5 rounded-full bg-gold hover:bg-glow text-white text-sm font-bold transition-colors shadow-brand"
             >
-              <Play size={15} fill="currentColor" />
+              <BrandMark size={18} className="text-white" />
               Jouer
             </a>
           )}
