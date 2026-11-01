@@ -140,6 +140,8 @@ function BlindTestRoom({
   const [guess, setGuess] = useState({ title: "", artist: "", feat: "" });
   const [flash, setFlash] = useState<"ok" | "taken" | null>(null);
   const [qcmChoiceLocked, setQcmChoiceLocked] = useState(false);
+  // « X a quitté » pendant la partie : continuer (tous les points sont pour toi) ou arrêter
+  const [leftPrompt, setLeftPrompt] = useState<string | null>(null);
   const [qcmWrongId, setQcmWrongId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
 
@@ -189,7 +191,10 @@ function BlindTestRoom({
             if (!data) return;
             setPlayers((prev) => {
               const stillHere = new Set((data as PlayerRow[]).map((p) => p.user_id));
-              prev.filter((p) => !stillHere.has(p.user_id)).forEach((p) => pushNotice(`${p.display_name} a quitté le salon`));
+              const gone = prev.filter((p) => !stillHere.has(p.user_id));
+              gone.forEach((p) => pushNotice(`${p.display_name} a quitté le salon`));
+              // En pleine partie : on le dit clairement et on laisse le choix au joueur resté.
+              if (gone.length && roomRef.current?.status === "playing") setLeftPrompt(gone.map((p) => p.display_name).join(", "));
               return data as PlayerRow[];
             });
           });
@@ -205,7 +210,7 @@ function BlindTestRoom({
         // Salon fermé — sauf si on vient d'en changer (fusion matchmaking) : l'événement
         // concerne l'ancien salon, pas le nouveau.
         if (roomRef.current && roomRef.current.id !== room.id) return;
-        setClosedMessage("Un joueur a quitté — le salon a été fermé.");
+        setClosedMessage("Le salon a été fermé.");
         setRoom(null);
         setPlayers([]);
         setSolves([]);
@@ -938,6 +943,21 @@ function BlindTestRoom({
       return;
     }
     setBusy(true);
+    const others = players.filter((p) => p.user_id !== user.id);
+    if (others.length > 0) {
+      // Quelqu'un reste : on lui passe le rôle d'hôte (c'est lui qui fera avancer les
+      // manches) et on se retire — la partie continue pour les autres.
+      const { error: hostErr } = await supabase.from("rooms").update({ host_id: others[0].user_id }).eq("id", r.id);
+      if (hostErr) {
+        setBusy(false);
+        setError(`Impossible de quitter le salon (${hostErr.message}).`);
+        return;
+      }
+      await supabase.from("room_players").delete().eq("room_id", r.id).eq("user_id", user.id);
+      setBusy(false);
+      leaveToMenu();
+      return;
+    }
     const { error: delErr } = await supabase.from("rooms").delete().eq("id", r.id);
     setBusy(false);
     if (delErr) {
@@ -984,7 +1004,7 @@ function BlindTestRoom({
         </div>
         {confirmingQuit ? (
           <div className="flex items-center gap-2 mb-6 text-sm">
-            <span className="text-ink-muted">{isHost ? "Fermer le salon pour tout le monde ?" : "Quitter le salon ?"}</span>
+            <span className="text-ink-muted">{players.length > 1 ? "Quitter le salon ? Les autres continuent sans toi." : "Quitter le salon ?"}</span>
             <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} disabled={busy} className="sticker sticker-sm">Confirmer</button>
             <button onClick={() => setConfirmingQuit(false)} className="sticker sticker-ghost sticker-sm">Annuler</button>
           </div>
@@ -1232,7 +1252,7 @@ function BlindTestRoom({
           )}
           {confirmingQuit ? (
             <span className="inline-flex items-center gap-2 text-sm">
-              <span className="text-ink-muted">{isHost ? "Fermer le salon ?" : "Quitter le salon ?"}</span>
+              <span className="text-ink-muted">{players.length > 1 ? "Quitter ? Les autres continuent." : "Quitter le salon ?"}</span>
               <button onClick={() => (isHost ? leaveRoom() : leaveIndividually())} className="sticker sticker-sm">Confirmer</button>
               <button onClick={() => setConfirmingQuit(false)} className="sticker sticker-ghost sticker-sm">Annuler</button>
             </span>
@@ -1299,6 +1319,27 @@ function BlindTestRoom({
   return (
     <div className="feed" data-lenis-prevent>
       {sharedAudio}
+      {leftPrompt && (
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="left-title">
+          <div className="ticket p-5 w-full max-w-md solved-pop">
+            <p className="stage-kicker mb-1">Abandon</p>
+            <p id="left-title" className="font-display text-2xl font-extrabold leading-tight">{leftPrompt} a quitté la partie.</p>
+            <p className="text-sm text-ink-muted mt-2">
+              {players.length <= 1
+                ? "Tu es seul : tu peux finir le blind test pour prendre tous les points, ou t'arrêter maintenant — les scores restent."
+                : `Il reste ${players.length} joueur${players.length > 1 ? "s" : ""}. La partie continue si tu veux — à toi de voir.`}
+            </p>
+            <div className="grid grid-cols-2 gap-2.5 mt-4">
+              <button type="button" onClick={() => { sfx.click(); setLeftPrompt(null); }} className="sticker h-12 text-sm"><Icon icon="game-icons:play-button" width={16} /> Continuer</button>
+              {isHost ? (
+                <button type="button" onClick={async () => { sfx.click(); setLeftPrompt(null); await supabase.from("rooms").update({ status: "finished" }).eq("id", room.id); }} className="sticker sticker-ghost h-12 text-sm"><Icon icon="game-icons:flag-objective" width={16} /> Arrêter — résultats</button>
+              ) : (
+                <button type="button" onClick={() => { sfx.click(); setLeftPrompt(null); void leaveIndividually(); }} className="sticker sticker-ghost h-12 text-sm"><LogOut size={16} /> Quitter</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {track.coverUrl && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
       <div className="reel-shade" aria-hidden="true" />
 
