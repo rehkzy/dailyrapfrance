@@ -1133,7 +1133,7 @@ export default function BlindTest() {
                       <span className="door-icon"><Users size={24} /></span>
                       <span className="door-go" aria-hidden="true"><ArrowRight size={18} /></span>
                       <span className="door-title">À plusieurs</span>
-                      <span className="door-sub">{customSet ? "Même téléphone, en ligne, matchmaking ou TV" : "Même écran, en ligne ou sur la TV"}</span>
+                      <span className="door-sub">Potes sur ce téléphone, en ligne, matchmaking, TV</span>
                     </button>
                   </div>
                   {!customSet && <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3">
@@ -1188,32 +1188,30 @@ export default function BlindTest() {
               ) : (
                 <>
                   <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"><ChevronLeft size={16} /> Retour</button>
-                  <h2 className="stage-title mb-5">À plusieurs.<br />Vous êtes où ?</h2>
+                  <h2 className="stage-title mb-5">À plusieurs.<br />Avec qui ?</h2>
                   <div className="space-y-2.5">
                     <button type="button" onClick={() => { sfx.click(); setMode("local"); setSetupError(null); setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); }} className="choice" data-primary={mode === "local"} aria-pressed={mode === "local"}>
                       <span className="choice-icon"><Icon icon="game-icons:smartphone" width={24} /></span>
-                      <span className="min-w-0 flex-1"><span className="choice-title">Sur le même téléphone</span><span className="choice-sub">2 à 8 joueurs, un buzzer, les pseudos de chacun.</span></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Avec mes potes, sur ce téléphone</span><span className="choice-sub">On se passe le téléphone : 2 à 8 joueurs, un buzzer, le pseudo de chacun.</span></span>
                       {mode === "local" ? <Check size={18} strokeWidth={3} className="shrink-0" /> : <ChevronRight size={18} className="shrink-0 text-ink-faint" />}
                     </button>
-                    {customSet && (
-                      <button type="button" onClick={() => { sfx.click(); setQuickMatchWanted(true); setMode("online"); }} className="choice">
-                        <span className="choice-icon"><Icon icon="game-icons:crossed-swords" width={24} /></span>
-                        <span className="min-w-0 flex-1"><span className="choice-title">Trouver des joueurs</span><span className="choice-sub">Ton blind test ouvert à tous : on te met avec des joueurs qui attendent, ça démarre dès 2.</span></span>
-                        <ChevronRight size={18} className="shrink-0 text-ink-faint" />
-                      </button>
-                    )}
                     <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:wifi-router" width={24} /></span>
-                      <span className="min-w-0 flex-1"><span className="choice-title">Chacun sur son téléphone</span><span className="choice-sub">{customSet ? "Un salon en ligne avec tes morceaux : tes potes rejoignent avec un code." : "Un salon en ligne : crée-le ou rejoins-le avec un code."}</span></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Inviter mes amis en ligne</span><span className="choice-sub">{customSet ? "Un salon privé avec tes morceaux : tu envoies le lien, chacun joue sur son téléphone." : "Un salon privé : tu envoies le lien ou le code, chacun joue sur son téléphone."}</span></span>
+                      <ChevronRight size={18} className="shrink-0 text-ink-faint" />
+                    </button>
+                    <button type="button" onClick={() => { sfx.click(); setQuickMatchWanted(true); setMode("online"); }} className="choice">
+                      <span className="choice-icon"><Icon icon="game-icons:crossed-swords" width={24} /></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Matchmaking — jouer contre des inconnus</span><span className="choice-sub">{customSet ? "Ton blind test ouvert à tous : on te met avec des joueurs qui attendent, ça démarre dès 2." : "On te met avec des joueurs qui attendent. Thème au hasard, ça démarre dès 2 joueurs."}</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
                     </button>
                     <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:tv" width={24} /></span>
-                      <span className="min-w-0 flex-1"><span className="choice-title">Soirée sur la TV</span><span className="choice-sub">L'écran partagé sur la télé, les téléphones en manette, un gage pour le dernier.</span></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Soirée sur la TV</span><span className="choice-sub">La télé affiche le jeu, chacun répond sur son téléphone, un gage pour le dernier.</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
                     </button>
                   </div>
-                  {!customSet && <p className="text-xs text-ink-faint mt-4">Tu as un code ? <a href="/jouer?mode=online" className="text-glow font-semibold">Rejoindre un salon →</a></p>}
+                  {!customSet && <p className="text-xs text-ink-faint mt-4">Un ami t&apos;a envoyé un code ? <a href="/jouer?mode=online" className="text-glow font-semibold">Rejoindre son salon →</a></p>}
                 </>
               )}
 
