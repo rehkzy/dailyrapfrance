@@ -991,7 +991,7 @@ function BlindTestRoom({
         ) : (
           <button
             onClick={() => setConfirmingQuit(true)}
-            className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mb-6 min-h-[40px]"
+            className="back-link mb-6"
           >
             <ArrowLeft size={16} /> Quitter le salon
           </button>
@@ -1534,7 +1534,7 @@ function ReplayPanel({
 
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-32">
-      <button onClick={onCancel} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink min-h-[40px]">
+      <button onClick={onCancel} className="back-link">
         <ArrowLeft size={16} /> Annuler
       </button>
       <div className="px-0.5">
@@ -1644,7 +1644,7 @@ function RoomMenu({
       {onExit && (
         <button
           onClick={onExit}
-          className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"
+          className="back-link mt-3"
         >
           <ArrowLeft size={16} /> Retour
         </button>

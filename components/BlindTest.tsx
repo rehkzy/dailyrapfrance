@@ -1152,7 +1152,7 @@ export default function BlindTest() {
                 </>
               ) : branch === "solo" ? (
                 <>
-                  <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"><ChevronLeft size={16} /> Retour</button>
+                  <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="back-link mt-3"><ChevronLeft size={16} /> Retour</button>
                   <h2 className="stage-title mb-5">Seul.<br />Tu veux quoi ?</h2>
                   {customSet ? (
                   <div className="space-y-2.5">
@@ -1190,7 +1190,7 @@ export default function BlindTest() {
                 </>
               ) : branch === "match" ? (
                 <>
-                  <button type="button" onClick={() => { setBranch("multi"); }} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"><ChevronLeft size={16} /> Retour</button>
+                  <button type="button" onClick={() => { setBranch("multi"); }} className="back-link mt-3"><ChevronLeft size={16} /> Retour</button>
                   <p className="stage-kicker mt-2 mb-2 inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={13} /> Matchmaking</p>
                   <h2 className="stage-title mb-2">Contre des inconnus.<br />Quel format ?</h2>
                   <p className="text-sm text-ink-muted mb-5">{customSet ? `Avec les morceaux de « ${customSet.t} ».` : "Thème au hasard, 10 manches, réponses à choix."} Dès que les joueurs sont trouvés, la partie démarre toute seule.</p>
@@ -1211,7 +1211,7 @@ export default function BlindTest() {
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"><ChevronLeft size={16} /> Retour</button>
+                  <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="back-link mt-3"><ChevronLeft size={16} /> Retour</button>
                   <h2 className="stage-title mb-5">À plusieurs.<br />Avec qui ?</h2>
                   <div className="space-y-2.5">
                     <button type="button" onClick={() => { sfx.click(); setMode("local"); setSetupError(null); setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); }} className="choice" data-primary={mode === "local"} aria-pressed={mode === "local"}>
@@ -1280,7 +1280,7 @@ export default function BlindTest() {
             </>
           ) : wizardStep === 1 ? (
             <>
-              <button type="button" onClick={() => setWizardStep(0)} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]">
+              <button type="button" onClick={() => setWizardStep(0)} className="back-link mt-3">
                 <ChevronLeft size={16} /> {modeLabelNow}
               </button>
               <h2 className="stage-title mb-5">Choisis<br />ton thème.</h2>
@@ -1296,7 +1296,7 @@ export default function BlindTest() {
             </>
           ) : (
             <>
-              <button type="button" onClick={() => setWizardStep(isCustom ? 0 : 1)} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]">
+              <button type="button" onClick={() => setWizardStep(isCustom ? 0 : 1)} className="back-link mt-3">
                 <ChevronLeft size={16} /> {isCustom ? "Modes" : "Thèmes"}
               </button>
               <h2 className="stage-title mb-5">Dernier<br />réglage.</h2>
@@ -1930,7 +1930,7 @@ function SignInGate({
       {onBack && (
         <button
           onClick={onBack}
-          className="mb-5 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink min-h-[40px]"
+          className="back-link mb-5"
         >
           <ChevronLeft size={16} /> Retour
         </button>

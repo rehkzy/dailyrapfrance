@@ -3201,3 +3201,15 @@ body:has([data-admin]) footer,
 body:has([data-admin]) #site-announcement,
 body:has([data-admin]) .install-prompt { display: none !important; }
 body:has([data-admin]) .card { background: #0f0a0b; }
+
+/* Lien « Retour » — une vraie pastille, visible, même partout (pages, étapes du jeu, salons) */
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 40px; padding: 0 14px 0 10px; border-radius: 999px; margin-bottom: 14px;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--ink); font-size: 14px; font-weight: 600;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.back-link:hover { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.24); }
+.back-link:active { transform: scale(0.96); }
+.back-link svg { color: var(--gold); }

@@ -44,7 +44,7 @@ export default async function ParametresPage() {
   return (
     <section className="max-w-2xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-32">
       <div className="flex items-center justify-between mb-5">
-        <a href={profile?.username ? `/profil/${profile.username}` : "/profil"} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink min-h-[40px]">
+        <a href={profile?.username ? `/profil/${profile.username}` : "/profil"} className="back-link">
           <ChevronLeft size={16} /> Mon profil
         </a>
         {profile?.username && (

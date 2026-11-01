@@ -34,7 +34,7 @@ export default function BackToGame({ fallback = "/jouer" }: { fallback?: string 
     <a
       href={fallback}
       onClick={handleClick}
-      className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mb-5 min-h-[40px] mr-4"
+      className="back-link mb-5 mr-4"
     >
       <ChevronLeft size={16} /> Retour
     </a>
