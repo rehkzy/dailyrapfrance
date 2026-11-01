@@ -26,3 +26,8 @@ create table if not exists public.push_subscriptions (
 alter table public.push_subscriptions enable row level security;
 -- (aucune policy : lecture/écriture uniquement via la clé service, depuis l'API)
 alter table public.rooms add column if not exists notified_phase text;
+
+-- Chacun peut quitter un salon (supprimer SA ligne) — l'API le fait aussi côté serveur
+drop policy if exists "Chacun peut quitter un salon" on public.room_players;
+create policy "Chacun peut quitter un salon" on public.room_players for delete
+  using (auth.uid() = user_id or auth.uid() = (select host_id from public.rooms r where r.id = room_players.room_id));

@@ -170,7 +170,10 @@ function BlindTestRoom({
           .eq("id", room.id)
           .single()
           .then(({ data }) => {
-            if (data) setRoom(data as RoomRow);
+            if (!data) return;
+            const prevHost = roomRef.current?.host_id;
+            if (prevHost && prevHost !== (data as RoomRow).host_id && (data as RoomRow).host_id === user.id) pushNotice("L'hôte est parti — c'est toi qui mènes la partie maintenant");
+            setRoom(data as RoomRow);
           });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` }, (payload) => {
@@ -928,59 +931,31 @@ function BlindTestRoom({
   // Quitter POUR DE VRAI (hôte uniquement) : supprime le salon (cascade → room_players,
   // room_round_solves). Ferme la partie pour tout le monde — c'est pour ça que seul l'hôte
   // y a accès désormais (voir isHost plus bas).
+  // Quitter — hôte ou non, même mécanique : le serveur retire ma ligne, passe la main si
+  // j'étais l'hôte, ferme le salon s'il est vide. Les autres reçoivent la suppression en
+  // temps réel (« X a quitté ») et la partie continue pour eux.
   async function leaveRoom() {
     const r = roomRef.current;
     if (!r) {
       leaveToMenu();
       return;
     }
-    if (r.is_public && r.status === "lobby") {
-      // Salon public : on libère juste sa place (le serveur ferme le salon s'il est vide)
-      setBusy(true);
-      await fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "leave", roomId: r.id }) }).catch(() => {});
-      setBusy(false);
-      leaveToMenu();
-      return;
-    }
     setBusy(true);
-    const others = players.filter((p) => p.user_id !== user.id);
-    if (others.length > 0) {
-      // Quelqu'un reste : on lui passe le rôle d'hôte (c'est lui qui fera avancer les
-      // manches) et on se retire — la partie continue pour les autres.
-      const { error: hostErr } = await supabase.from("rooms").update({ host_id: others[0].user_id }).eq("id", r.id);
-      if (hostErr) {
-        setBusy(false);
-        setError(`Impossible de quitter le salon (${hostErr.message}).`);
-        return;
+    try {
+      const res = await fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "leave", roomId: r.id }) });
+      if (!res.ok) {
+        // Repli : suppression directe (droits RLS), puis fermeture si on est seul
+        await supabase.from("room_players").delete().eq("room_id", r.id).eq("user_id", user.id);
+        if (players.length <= 1) await supabase.from("rooms").delete().eq("id", r.id);
       }
-      await supabase.from("room_players").delete().eq("room_id", r.id).eq("user_id", user.id);
+    } catch {
+      await supabase.from("room_players").delete().eq("room_id", r.id).eq("user_id", user.id).then(() => {});
+    } finally {
       setBusy(false);
       leaveToMenu();
-      return;
     }
-    const { error: delErr } = await supabase.from("rooms").delete().eq("id", r.id);
-    setBusy(false);
-    if (delErr) {
-      setError(`Impossible de quitter le salon (${delErr.message}).`);
-      return;
-    }
-    leaveToMenu();
   }
-
-  // Quitter SEUL (non-hôte) : se retire juste de la liste des joueurs, le salon continue
-  // de tourner normalement pour les autres — c'est cette suppression qui déclenche la
-  // notification "X a quitté le salon" vue par les joueurs restants.
-  async function leaveIndividually() {
-    const r = roomRef.current;
-    if (!r) {
-      leaveToMenu();
-      return;
-    }
-    setBusy(true);
-    await supabase.from("room_players").delete().eq("room_id", r.id).eq("user_id", user.id);
-    setBusy(false);
-    leaveToMenu();
-  }
+  const leaveIndividually = leaveRoom;
 
   if (screen === "menu") {
     return (

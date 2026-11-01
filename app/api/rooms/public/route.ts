@@ -124,13 +124,16 @@ export async function POST(req: NextRequest) {
   if (!body.roomId) return NextResponse.json({ error: "roomId manquant" }, { status: 400 });
 
   if (body.action === "leave") {
+    // Valable pour TOUS les salons (privés compris, en partie ou non) : on se retire ; si
+    // on était l'hôte, le rôle passe au joueur suivant ; si plus personne, le salon est fermé.
+    // Fait côté serveur pour ne pas dépendre des droits RLS du joueur (sur téléphone, la
+    // suppression de sa propre ligne échouait en silence).
     await db.from("room_players").delete().eq("room_id", body.roomId).eq("user_id", user.id);
     const { players, room } = await snapshot(body.roomId);
-    if (room?.is_public && room.status === "lobby") {
-      if (players.length === 0) await db.from("rooms").delete().eq("id", body.roomId);
-      else if (room.host_id === user.id) await db.from("rooms").update({ host_id: players[0].user_id }).eq("id", body.roomId);
-    }
-    return NextResponse.json({ ok: true });
+    if (!room) return NextResponse.json({ ok: true });
+    if (players.length === 0) await db.from("rooms").delete().eq("id", body.roomId);
+    else if (room.host_id === user.id) await db.from("rooms").update({ host_id: players[0].user_id }).eq("id", body.roomId);
+    return NextResponse.json({ ok: true, remaining: players.length });
   }
 
   if (body.action === "tick") {
