@@ -323,6 +323,12 @@ function BlindTestRoom({
     sfx.click();
     await supabase.from("room_players").update({ done_round: round }).eq("room_id", r.id).eq("user_id", user.id);
   }
+  // Ménage opportuniste : à l'ouverture du menu, on demande au serveur de supprimer les salons
+  // vides ou abandonnés (il ne le fait qu'une fois toutes les 10 min).
+  useEffect(() => {
+    if (screen !== "menu") return;
+    fetch("/api/cron/cleanup-rooms", { method: "POST", keepalive: true }).catch(() => {});
+  }, [screen]);
   const autoMatchRef = useRef(false);
   useEffect(() => {
     if (!autoQuickMatch || autoMatchRef.current || screen !== "menu") return;
