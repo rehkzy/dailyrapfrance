@@ -56,8 +56,12 @@ type RoomRow = {
   created_at?: string;
   custom_ids?: number[] | null;
   custom_title?: string | null;
+  format?: MatchFormat | null;
 };
-type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; done_round?: number | null };
+type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; done_round?: number | null; team?: number | null };
+export type MatchFormat = "1v1" | "2v2" | "royale";
+const FORMAT_CAPACITY: Record<MatchFormat, number> = { "1v1": 2, "2v2": 4, royale: 8 };
+const FORMAT_LABEL: Record<MatchFormat, string> = { "1v1": "Duel 1 contre 1", "2v2": "2 contre 2", royale: "Battle royale" };
 type SolveRow = { room_id: string; round_index: number; field: FieldKey; user_id: string; bonus?: number | null };
 
 export type RoomCustom = { title: string; ids: number[]; secs?: number; answer?: "qcm" | "text" };
@@ -68,6 +72,7 @@ export default function BlindTestRoomWrapper(props: {
   party?: boolean;
   custom?: RoomCustom | null;
   autoQuickMatch?: boolean;
+  matchFormat?: MatchFormat;
 }) {
   return <BlindTestRoom {...props} />;
 }
@@ -79,6 +84,7 @@ function BlindTestRoom({
   party = false,
   custom = null,
   autoQuickMatch = false,
+  matchFormat = "royale",
 }: {
   user: User;
   onExit?: () => void;
@@ -86,6 +92,7 @@ function BlindTestRoom({
   party?: boolean;
   custom?: RoomCustom | null;
   autoQuickMatch?: boolean;
+  matchFormat?: MatchFormat;
 }) {
   const supabase = createClient();
   const [screen, setScreen] = useState<"menu" | "lobby" | "playing" | "final">("menu");
@@ -338,14 +345,18 @@ function BlindTestRoom({
   const startsIn = room?.starts_at ? Math.max(0, Math.ceil((new Date(room.starts_at).getTime() - now) / 1000)) : null;
   useEffect(() => {
     if (!isHost || !room?.is_public || screen !== "lobby" || room.status !== "lobby") return;
-    if (players.length >= 2 && players.length < 8) {
+    const fmt: MatchFormat = room.format ?? "royale";
+    const capacity = FORMAT_CAPACITY[fmt];
+    if (players.length >= capacity) {
+      // Salon complet : départ dans 3 s (si pas déjà plus proche)
+      const target = room.starts_at ? new Date(room.starts_at).getTime() : Infinity;
+      if (target > Date.now() + 3_500) void supabase.from("rooms").update({ starts_at: new Date(Date.now() + 3_000).toISOString() }).eq("id", room.id);
+    } else if (fmt === "royale" && players.length >= 2) {
       const target = room.starts_at ? new Date(room.starts_at).getTime() : 0;
       const minTarget = Date.now() + 8_000;
       if (!room.starts_at) void supabase.from("rooms").update({ starts_at: new Date(Date.now() + 20_000).toISOString() }).eq("id", room.id);
       else if (target < minTarget && players.length > (lastCountRef.current ?? 0)) void supabase.from("rooms").update({ starts_at: new Date(minTarget).toISOString() }).eq("id", room.id);
-    } else if (players.length >= 8 && !room.starts_at) {
-      void supabase.from("rooms").update({ starts_at: new Date(Date.now() + 3_000).toISOString() }).eq("id", room.id);
-    } else if (players.length < 2 && room.starts_at) {
+    } else if (room.starts_at) {
       void supabase.from("rooms").update({ starts_at: null }).eq("id", room.id);
     }
     lastCountRef.current = players.length;
@@ -355,7 +366,8 @@ function BlindTestRoom({
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (!isHost || !room?.is_public || screen !== "lobby" || startsIn === null || startsIn > 0 || autoStartedRef.current || busy) return;
-    if (players.length < 2) return;
+    const fmt: MatchFormat = room.format ?? "royale";
+    if (players.length < (fmt === "royale" ? 2 : FORMAT_CAPACITY[fmt])) return;
     autoStartedRef.current = true;
     void startGame();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -414,7 +426,8 @@ function BlindTestRoom({
     answerMode: "text" | "qcm",
     gagesEnabled: boolean,
     gagesIntensity: "soft" | "hard",
-    isPublic = false
+    isPublic = false,
+    format: MatchFormat | null = null
   ) {
     unlockAudio();
     setBusy(true);
@@ -469,6 +482,7 @@ function BlindTestRoom({
         gages_enabled: gagesEnabled,
         gages_intensity: gagesIntensity,
         is_public: isPublic,
+        format,
         ...(custom ? { custom_ids: custom.ids, custom_title: custom.title } : {}),
       })
       .select()
@@ -485,7 +499,7 @@ function BlindTestRoom({
     }
     const { error: joinErr } = await supabase
       .from("room_players")
-      .insert({ room_id: data.id, user_id: user.id, display_name: displayName });
+      .insert({ room_id: data.id, user_id: user.id, display_name: displayName, team: format === "2v2" ? 1 : null });
     if (joinErr) {
       console.error("[createRoom:joinSelf]", joinErr);
       setError(`Salon créé mais impossible de te rejoindre (${joinErr.message}).`);
@@ -493,7 +507,7 @@ function BlindTestRoom({
       return;
     }
     setRoom(data as RoomRow);
-    setPlayers([{ room_id: data.id, user_id: user.id, display_name: displayName }]);
+    setPlayers([{ room_id: data.id, user_id: user.id, display_name: displayName, team: format === "2v2" ? 1 : null }]);
     setScreen("lobby");
     setBusy(false);
   }
@@ -504,37 +518,43 @@ function BlindTestRoom({
    * le rejoint ; sinon on en ouvre un, thème au hasard, 10 manches, QCM. Le salon démarre tout
    * seul : dès 2 joueurs, un compte à rebours de 20 s (prolongé à chaque arrivée, 8 max).
    */
-  async function quickMatch() {
+  /*
+   * Matchmaking par format : Duel 1v1 (2 joueurs), 2v2 (4 joueurs, deux équipes), Battle
+   * royale (2 à 8, tout le monde contre tout le monde). On cherche un salon public du même
+   * format qui attend ; sinon on en ouvre un. Dès que le salon est complet (1v1, 2v2) ça
+   * démarre en 3 s ; en battle royale, 20 s après le 2ᵉ joueur (prolongés à chaque arrivée).
+   */
+  async function quickMatch(format: MatchFormat = matchFormat) {
     unlockAudio();
     setBusy(true);
     setError(null);
-    if (custom) {
-      // Blind test perso ouvert au matchmaking : un salon public avec SES morceaux ; les
-      // joueurs qui cherchent une partie peuvent y tomber.
-      await createRoom("custom", custom.ids.length, custom.answer ?? "qcm", false, "soft", true);
-      return;
-    }
+    const capacity = FORMAT_CAPACITY[format];
     try {
       const since = new Date(Date.now() - 15 * 60_000).toISOString();
       const { data: open } = await supabase
         .from("rooms")
-        .select("*, room_players(user_id)")
+        .select("*, room_players(user_id, team)")
         .eq("is_public", true)
         .eq("status", "lobby")
+        .eq("format", format)
         .gte("created_at", since)
         .order("created_at", { ascending: true })
         .limit(10);
       const candidate = (open ?? []).find((r) => {
         const n = (r.room_players as { user_id: string }[] | null)?.length ?? 0;
-        return n >= 1 && n < 8 && r.host_id !== user.id;
+        return n >= 1 && n < capacity && r.host_id !== user.id;
       });
       if (candidate) {
-        const { error: joinErr } = await supabase.from("room_players").upsert({ room_id: candidate.id, user_id: user.id, display_name: displayName });
+        const existingRows = (candidate.room_players as { user_id: string; team: number | null }[] | null) ?? [];
+        // 2v2 : on complète l'équipe la moins nombreuse
+        const t1 = existingRows.filter((x) => x.team === 1).length, t2 = existingRows.filter((x) => x.team === 2).length;
+        const team = format === "2v2" ? (t1 <= t2 ? 1 : 2) : null;
+        const { error: joinErr } = await supabase.from("room_players").upsert({ room_id: candidate.id, user_id: user.id, display_name: displayName, team });
         if (!joinErr) {
           const { data: existing } = await supabase.from("room_players").select("*").eq("room_id", candidate.id);
           const { room_players: _rp, ...roomRow } = candidate as RoomRow & { room_players: unknown };
           setRoom(roomRow as RoomRow);
-          setPlayers([...(existing ?? []).filter((p) => p.user_id !== user.id), { room_id: candidate.id, user_id: user.id, display_name: displayName }]);
+          setPlayers([...(existing ?? []).filter((p) => p.user_id !== user.id), { room_id: candidate.id, user_id: user.id, display_name: displayName, team }]);
           setScreen("lobby");
           setBusy(false);
           return;
@@ -543,9 +563,13 @@ function BlindTestRoom({
     } catch {
       // on retombe sur la création
     }
+    if (custom) {
+      await createRoom("custom", custom.ids.length, custom.answer ?? "qcm", false, "soft", true, format);
+      return;
+    }
     const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "custom");
     const theme = pool[Math.floor(Math.random() * pool.length)]?.id ?? "mix";
-    await createRoom(theme, 10, "qcm", false, "soft", true);
+    await createRoom(theme, 10, "qcm", false, "soft", true, format);
   }
 
   async function joinRoom() {
@@ -982,17 +1006,17 @@ function BlindTestRoom({
         )}
         {room.is_public && (
           <div className="ticket p-5 mb-4 text-center" aria-live="polite">
-            <p className="stage-kicker mb-1 inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={13} /> Partie publique</p>
-            {players.length < 2 ? (
+            <p className="stage-kicker mb-1 inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={13} /> Matchmaking · {FORMAT_LABEL[room.format ?? "royale"]}</p>
+            {players.length < (room.format === "royale" || !room.format ? 2 : FORMAT_CAPACITY[room.format]) && !(startsIn !== null && startsIn > 0) ? (
               <>
-                <p className="font-display text-2xl font-extrabold leading-tight">Recherche de joueurs…</p>
-                <p className="text-sm text-ink-muted mt-1">Tu es seul pour l&apos;instant. Dès qu&apos;un joueur arrive, le compte à rebours démarre. Tu peux aussi partager le code à un pote.</p>
+                <p className="font-display text-2xl font-extrabold leading-tight">{room.format === "1v1" ? "Recherche d'un adversaire…" : room.format === "2v2" ? `Recherche de joueurs… ${players.length} / 4` : "Recherche de joueurs…"}</p>
+                <p className="text-sm text-ink-muted mt-1">{room.format === "1v1" ? "Dès qu'un adversaire est trouvé, ça démarre." : room.format === "2v2" ? "Deux équipes de deux. Dès que les 4 sont là, ça démarre." : "Dès qu'un joueur arrive, le compte à rebours démarre (jusqu'à 8 joueurs)."} Tu peux aussi partager le code à un pote.</p>
                 <div className="flex justify-center gap-1.5 mt-3" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="w-2 h-2 rounded-full bg-gold animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}</div>
               </>
             ) : (
               <>
                 <p className="font-display text-2xl font-extrabold leading-tight">{startsIn !== null && startsIn > 0 ? `Départ dans ${startsIn} s` : "C'est parti !"}</p>
-                <p className="text-sm text-ink-muted mt-1">{players.length} / 8 joueurs · {room.custom_title ?? THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme} · {room.rounds} manches · {room.answer_mode === "qcm" ? "Facile" : "Difficile"}</p>
+                <p className="text-sm text-ink-muted mt-1">{players.length} / {FORMAT_CAPACITY[room.format ?? "royale"]} joueurs · {room.custom_title ?? THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme} · {room.rounds} manches · {room.answer_mode === "qcm" ? "Facile" : "Difficile"}</p>
               </>
             )}
           </div>
@@ -1048,6 +1072,7 @@ function BlindTestRoom({
             <div className="flex flex-wrap justify-center gap-2">
               {players.map((p) => (
                 <span key={p.user_id} className={`rounded-full px-3 py-1.5 text-sm flex items-center gap-1.5 border ${p.ready ? "bg-gold/15 border-gold/50 text-ink" : "bg-white/6 border-white/10 text-ink-muted"}`}>
+                  {room.format === "2v2" && <span className={`text-[10px] font-extrabold rounded px-1 ${p.team === 2 ? "bg-sky-500/30 text-sky-200" : "bg-gold/30 text-gold"}`}>{p.team === 2 ? "B" : "A"}</span>}
                   {p.user_id === room.host_id && <Icon icon="game-icons:crown" width={12} className="text-gold" />}
                   {p.display_name}
                   {verifiedIds.has(p.user_id) && <VerifiedBadge size={13} />}
@@ -1095,10 +1120,24 @@ function BlindTestRoom({
     }
     const ranked = [...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id));
     const lastPlace = ranked.length > 1 ? ranked[ranked.length - 1] : null;
+    const teamA = players.filter((p) => p.team !== 2).reduce((s, p) => s + scoreFor(p.user_id), 0);
+    const teamB = players.filter((p) => p.team === 2).reduce((s, p) => s + scoreFor(p.user_id), 0);
+    const myTeam = me?.team === 2 ? 2 : 1;
     return (
       <div className="max-w-lg mx-auto text-center">
-        <p className="stage-kicker mb-4">Terminé</p>
-        <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">Résultats</h2>
+        <p className="stage-kicker mb-4">Terminé{room.format ? ` · ${FORMAT_LABEL[room.format]}` : ""}</p>
+        <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">{room.format === "1v1" && ranked[0] ? (ranked[0].user_id === user.id ? "Tu as gagné le duel !" : `${ranked[0].display_name} remporte le duel`) : room.format === "2v2" ? (teamA === teamB ? "Égalité !" : (teamA > teamB ? 1 : 2) === myTeam ? "Ton équipe a gagné !" : "L'autre équipe l'emporte") : "Résultats"}</h2>
+        {room.format === "2v2" && (
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            {[{ n: "Équipe A", v: teamA, t: 1 }, { n: "Équipe B", v: teamB, t: 2 }].map((tm) => (
+              <div key={tm.n} className={`ticket p-4 ${tm.v >= Math.max(teamA, teamB) ? "!border-gold" : ""}`}>
+                <p className="text-xs font-semibold text-ink-faint">{tm.n}{tm.t === myTeam ? " · toi" : ""}</p>
+                <p className="font-display text-3xl font-extrabold">{tm.v}</p>
+                <p className="text-[11px] text-ink-faint truncate">{players.filter((p) => (p.team === 2 ? 2 : 1) === tm.t).map((p) => p.display_name).join(" + ")}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {room.gages_enabled && lastPlace && (
           <div className="rounded-2xl p-5 mb-8 border border-gold/40 bg-gold/10 text-left">
@@ -1531,7 +1570,7 @@ function RoomMenu({
   setJoinCode: (v: string) => void;
   onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm", gagesEnabled: boolean, gagesIntensity: "soft" | "hard") => void;
   onJoin: () => void;
-  onQuickMatch?: () => void;
+  onQuickMatch?: (format: MatchFormat) => void;
   onExit?: () => void;
   party?: boolean;
   custom?: RoomCustom | null;
@@ -1607,14 +1646,15 @@ function RoomMenu({
         )}
 
         {onQuickMatch && (
-          <button type="button" onClick={onQuickMatch} disabled={busy} className="w-full action-row mb-5" data-primary="true">
-            <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><Icon icon="game-icons:crossed-swords" width={22} /></span>
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block text-sm font-semibold">Trouver des joueurs</span>
-              <span className="block text-xs text-white/80">{custom ? `Ton blind test « ${custom.title} » ouvert à tous — ça démarre dès 2 joueurs.` : "On te met avec des joueurs qui attendent — thème au hasard, 10 manches, ça démarre dès 2 joueurs."}</span>
-            </span>
-            <ChevronRight size={18} className="shrink-0" />
-          </button>
+          <div className="ticket p-4 mb-5">
+            <p className="text-sm font-semibold inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={16} className="text-gold" /> Matchmaking — contre des inconnus</p>
+            <p className="text-xs text-ink-faint mt-0.5 mb-3">{custom ? `Ton blind test « ${custom.title} » ouvert à tous.` : "Thème au hasard, 10 manches."} Dès que les joueurs sont trouvés, ça démarre.</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(["1v1", "2v2", "royale"] as MatchFormat[]).map((f) => (
+                <button key={f} type="button" onClick={() => onQuickMatch(f)} disabled={busy} className="sticker sticker-ghost !h-12 !px-2 text-xs disabled:opacity-50">{FORMAT_LABEL[f]}</button>
+              ))}
+            </div>
+          </div>
         )}
 
         {custom ? (

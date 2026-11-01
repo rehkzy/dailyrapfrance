@@ -7,7 +7,8 @@ const columns = [
     links: [
       { href: "/jouer?mode=solo", label: "Solo" },
       { href: "/jouer?mode=local", label: "Entre potes" },
-      { href: "/jouer?mode=online", label: "Salon en ligne" },
+      { href: "/jouer?mode=online", label: "Inviter mes amis en ligne" },
+      { href: "/jouer?mode=online&match=1v1", label: "Matchmaking" },
       { href: "/jouer?mode=party", label: "Soirée TV" },
       { href: "/jouer?mode=clips", label: "Devine le clip" },
       { href: "/creer", label: "Créer mon blind test" },

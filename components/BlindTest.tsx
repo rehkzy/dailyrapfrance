@@ -133,8 +133,10 @@ export default function BlindTest() {
   );
   const [mode, setMode] = useState<Mode | null>(joinRoomCode ? "online" : deepLinkMode);
   // Premier écran : deux choix seulement — seul, ou à plusieurs. Les modes viennent ensuite.
-  const [quickMatchWanted, setQuickMatchWanted] = useState(false);
-  const [branch, setBranch] = useState<"solo" | "multi" | null>(deepLinkMode ? (deepLinkMode === "solo" ? "solo" : "multi") : null);
+  const matchParam = searchParams.get("match");
+  const [quickMatchWanted, setQuickMatchWanted] = useState(matchParam === "1v1" || matchParam === "2v2" || matchParam === "royale");
+  const [quickMatchFormat, setQuickMatchFormat] = useState<"1v1" | "2v2" | "royale">(matchParam === "1v1" || matchParam === "2v2" ? matchParam : "royale");
+  const [branch, setBranch] = useState<"solo" | "multi" | "match" | null>(deepLinkMode ? (deepLinkMode === "solo" ? "solo" : "multi") : null);
   const [themeId, setThemeId] = useState<string>(isCustom ? CUSTOM_THEME_ID : deepLinkTheme ?? "mix");
   const [variant, setVariant] = useState<Variant>(deepLink.variant ?? "classic");
   // Source : extrait audio Deezer ou clip YouTube (mode « Devine le clip »).
@@ -1053,6 +1055,7 @@ export default function BlindTest() {
             party={mode === "party"}
             custom={customSet ? { title: customSet.t, ids: customSet.i, secs: customSet.s, answer: customSet.a } : null}
             autoQuickMatch={quickMatchWanted}
+            matchFormat={quickMatchFormat}
           />
         </div>
       </div>
@@ -1185,6 +1188,27 @@ export default function BlindTest() {
                   )}
                   {!customSet && <div className="mt-6"><DailyCard variant="compact" /></div>}
                 </>
+              ) : branch === "match" ? (
+                <>
+                  <button type="button" onClick={() => { setBranch("multi"); }} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"><ChevronLeft size={16} /> Retour</button>
+                  <p className="stage-kicker mt-2 mb-2 inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={13} /> Matchmaking</p>
+                  <h2 className="stage-title mb-2">Contre des inconnus.<br />Quel format ?</h2>
+                  <p className="text-sm text-ink-muted mb-5">{customSet ? `Avec les morceaux de « ${customSet.t} ».` : "Thème au hasard, 10 manches, réponses à choix."} Dès que les joueurs sont trouvés, la partie démarre toute seule.</p>
+                  <div className="space-y-2.5">
+                    {([
+                      { f: "1v1" as const, icon: "game-icons:duel", title: "Duel — 1 contre 1", sub: "Toi face à un adversaire. Ça démarre dès qu'il est trouvé." },
+                      { f: "2v2" as const, icon: "game-icons:team-idea", title: "2 contre 2", sub: "Deux équipes de deux, les points s'additionnent. Ça démarre à 4 joueurs." },
+                      { f: "royale" as const, icon: "game-icons:crown", title: "Battle royale — tous contre tous", sub: "De 2 à 8 joueurs, un seul gagnant. Départ 20 s après le 2ᵉ joueur." },
+                    ]).map((o) => (
+                      <button key={o.f} type="button" onClick={() => { sfx.click(); try { const u = new URL(window.location.href); u.searchParams.set("mode", "online"); u.searchParams.set("match", o.f); window.history.replaceState(null, "", u.toString()); } catch {} setQuickMatchFormat(o.f); setQuickMatchWanted(true); setMode("online"); }} className="choice" data-primary={o.f === "1v1"}>
+                        <span className="choice-icon"><Icon icon={o.icon} width={24} /></span>
+                        <span className="min-w-0 flex-1"><span className="choice-title">{o.title}</span><span className="choice-sub">{o.sub}</span></span>
+                        <ChevronRight size={18} className="shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-ink-faint mt-4">Il faut un compte (gratuit, 10 s) pour jouer en ligne.</p>
+                </>
               ) : (
                 <>
                   <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink mt-3 min-h-[40px]"><ChevronLeft size={16} /> Retour</button>
@@ -1200,9 +1224,9 @@ export default function BlindTest() {
                       <span className="min-w-0 flex-1"><span className="choice-title">Inviter mes amis en ligne</span><span className="choice-sub">{customSet ? "Un salon privé avec tes morceaux : tu envoies le lien, chacun joue sur son téléphone." : "Un salon privé : tu envoies le lien ou le code, chacun joue sur son téléphone."}</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
                     </button>
-                    <button type="button" onClick={() => { sfx.click(); setQuickMatchWanted(true); setMode("online"); }} className="choice">
+                    <button type="button" onClick={() => { sfx.click(); setBranch("match"); }} className="choice">
                       <span className="choice-icon"><Icon icon="game-icons:crossed-swords" width={24} /></span>
-                      <span className="min-w-0 flex-1"><span className="choice-title">Matchmaking — jouer contre des inconnus</span><span className="choice-sub">{customSet ? "Ton blind test ouvert à tous : on te met avec des joueurs qui attendent, ça démarre dès 2." : "On te met avec des joueurs qui attendent. Thème au hasard, ça démarre dès 2 joueurs."}</span></span>
+                      <span className="min-w-0 flex-1"><span className="choice-title">Matchmaking — contre des inconnus</span><span className="choice-sub">Duel 1 contre 1, 2 contre 2, ou battle royale. Dès que les joueurs sont trouvés, ça démarre.</span></span>
                       <ChevronRight size={18} className="shrink-0 text-ink-faint" />
                     </button>
                     <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="choice">
