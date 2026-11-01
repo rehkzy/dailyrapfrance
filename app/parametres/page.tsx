@@ -3,6 +3,7 @@ import BackToGame from "@/components/BackToGame";
 import { createClient } from "@/lib/supabase/server";
 import AccountSettingsForm from "@/components/AccountSettingsForm";
 import VerificationRequest from "@/components/VerificationRequest";
+import PushToggle from "@/components/PushToggle";
 import SignInCta from "@/components/SignInCta";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { loadProfileBundle } from "@/lib/profileData";
@@ -67,6 +68,9 @@ export default async function ParametresPage() {
         badges={allBadges}
       />
 
+      <div className="mt-4">
+        <PushToggle />
+      </div>
       <div className="mt-4">
         <VerificationRequest userId={user.id} verified={!!profile?.verified} requestedAt={profile?.verification_requested_at ?? null} />
       </div>

@@ -13,3 +13,16 @@ alter table public.room_players add column if not exists team integer;
 
 -- Présence dans le salon (matchmaking côté serveur : fantômes retirés après 25 s sans signe de vie)
 alter table public.room_players add column if not exists last_seen_at timestamptz default now();
+
+-- Notifications push (matchmaking : « adversaire trouvé »)
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  endpoint text not null unique,
+  keys jsonb not null,
+  user_agent text,
+  created_at timestamptz not null default now()
+);
+alter table public.push_subscriptions enable row level security;
+-- (aucune policy : lecture/écriture uniquement via la clé service, depuis l'API)
+alter table public.rooms add column if not exists notified_phase text;

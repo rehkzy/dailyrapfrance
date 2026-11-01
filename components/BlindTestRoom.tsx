@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv, ChevronRight } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { fieldsFor, fieldPrompt, guessableFeats } from "@/lib/fields";
+import { enablePush, pushEnabled, pushSupport } from "@/lib/pushClient";
 import { Icon } from "@iconify/react";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { createClient } from "@/lib/supabase/client";
@@ -345,6 +346,9 @@ function BlindTestRoom({
    * redevient seul, et lance la partie quand le compte arrive à zéro. Tout le monde lit la
    * même horloge (la ligne du salon est synchronisée en temps réel).
    */
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => { setPushOn(pushEnabled()); }, [screen]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (screen !== "lobby" || !room?.is_public) return;
@@ -1000,6 +1004,13 @@ function BlindTestRoom({
                 <p className="font-display text-2xl font-extrabold leading-tight">{room.format === "1v1" ? "Recherche d'un adversaire…" : room.format === "2v2" ? `Recherche de joueurs… ${players.length} / 4` : "Recherche de joueurs…"}</p>
                 <p className="text-sm text-ink-muted mt-1">{room.format === "1v1" ? "Dès qu'un adversaire est trouvé, ça démarre." : room.format === "2v2" ? "Deux équipes de deux. Dès que les 4 sont là, ça démarre." : "Dès qu'un joueur arrive, le compte à rebours démarre (jusqu'à 8 joueurs)."} Tu peux aussi partager le code à un pote.</p>
                 <div className="flex justify-center gap-1.5 mt-3" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="w-2 h-2 rounded-full bg-gold animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}</div>
+                {(() => {
+                  const sup = pushSupport();
+                  if (pushOn) return <p className="text-xs text-gold font-semibold mt-3 inline-flex items-center gap-1.5"><Icon icon="game-icons:bell-shield" width={14} /> On te prévient dès qu'un joueur est trouvé, même téléphone verrouillé.</p>;
+                  if (sup === "ok") return <button type="button" disabled={pushBusy} onClick={async () => { setPushBusy(true); const ok = await enablePush(); setPushOn(ok); setPushBusy(false); if (!ok) setError("Notifications refusées par le navigateur."); }} className="sticker sticker-ghost sticker-sm mt-3"><Icon icon="game-icons:bell-shield" width={14} /> Préviens-moi quand un joueur est trouvé</button>;
+                  if (sup === "ios-needs-install") return <p className="text-[11px] text-ink-faint mt-3">Pour être prévenu téléphone verrouillé : ajoute le site à ton écran d'accueil (Partager → Sur l'écran d'accueil).</p>;
+                  return null;
+                })()}
               </>
             ) : (
               <>

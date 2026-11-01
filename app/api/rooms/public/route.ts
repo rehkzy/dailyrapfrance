@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/adminAuth";
 import { generateRoomCode } from "@/lib/roomCode";
 import { THEME_OPTIONS } from "@/lib/themes";
+import { sendPushToUsers } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -21,7 +22,9 @@ export const maxDuration = 30;
 type Format = "1v1" | "2v2" | "royale";
 const CAPACITY: Record<Format, number> = { "1v1": 2, "2v2": 4, royale: 8 };
 const MIN_START: Record<Format, number> = { "1v1": 2, "2v2": 4, royale: 2 };
-const ALIVE_MS = 25_000;
+// Un joueur qui a verrouillé son téléphone ne tique plus : on lui laisse 90 s (le temps de
+// recevoir la notification et de revenir) avant de le considérer parti.
+const ALIVE_MS = 90_000;
 const ROYALE_COUNTDOWN_MS = 20_000;
 const FULL_COUNTDOWN_MS = 3_000;
 
@@ -165,6 +168,17 @@ export async function POST(req: NextRequest) {
     if (next !== undefined) {
       await db.from("rooms").update({ starts_at: next }).eq("id", room.id).eq("status", "lobby");
       room = { ...room, starts_at: next };
+    }
+    // Joueurs trouvés → on prévient ceux qui ne sont plus sur la page (téléphone verrouillé,
+    // Safari fermé…) : une seule fois par salon.
+    if (room.starts_at && n >= MIN_START[format] && room.notified_phase !== "found") {
+      const { data: claimed } = await db.from("rooms").update({ notified_phase: "found" }).eq("id", room.id).is("notified_phase", null).select("id");
+      if (claimed && claimed.length) {
+        const away = players.filter((p) => !p.last_seen_at || now - new Date(p.last_seen_at).getTime() > 6_000).map((p) => p.user_id);
+        const secs = Math.max(1, Math.round((new Date(room.starts_at).getTime() - now) / 1000));
+        const label = format === "1v1" ? "Adversaire trouvé !" : format === "2v2" ? "Les 4 joueurs sont là !" : "Des joueurs sont là !";
+        void sendPushToUsers(away, { title: label, body: `Ta partie démarre dans ${secs} s — reviens vite.`, url: `/jouer?room=${room.code}`, tag: `room-${room.id}` });
+      }
     }
 
     // 4. départ (n'importe quel membre peut le déclencher ; idempotent)
