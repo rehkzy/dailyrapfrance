@@ -365,9 +365,12 @@ function BlindTestRoom({
   }, [screen, room?.is_public]);
   const startsIn = room?.starts_at ? Math.max(0, Math.ceil((new Date(room.starts_at).getTime() - now) / 1000)) : null;
 
-  // Tick matchmaking : présence + arbitre serveur (toutes les 2 s tant qu'on attend)
+  // Présence + arbitre serveur, dans tous les salons (en attente comme en partie) : toutes
+  // les 2 s en matchmaking, toutes les 8 s sinon. Un joueur qui disparaît sans prévenir est
+  // retiré après 90 s, les autres sont prévenus et choisissent de continuer ou d'arrêter.
   useEffect(() => {
-    if (screen !== "lobby" || !room?.is_public || room.status !== "lobby") return;
+    if ((screen !== "lobby" && screen !== "playing") || !room || room.status === "finished") return;
+    const fast = room.is_public && room.status === "lobby";
     let stopped = false;
     const tick = async () => {
       try {
@@ -375,12 +378,14 @@ function BlindTestRoom({
         const data = await res.json();
         if (stopped) return;
         if (data.gone) { setClosedMessage("Le salon a été fermé."); setRoom(null); setPlayers([]); setScreen("menu"); return; }
-        if (data.room) setRoom(data.room as RoomRow);
-        if (data.players) setPlayers(data.players as PlayerRow[]);
+        if (fast) {
+          if (data.room) setRoom(data.room as RoomRow);
+          if (data.players) setPlayers(data.players as PlayerRow[]);
+        }
       } catch {}
     };
     void tick();
-    const id = setInterval(tick, 2000);
+    const id = setInterval(tick, fast ? 2000 : 8000);
     // Fermeture de l'onglet : on prévient (le serveur libère la place tout de suite)
     const onHide = () => { try { navigator.sendBeacon("/api/rooms/public", new Blob([JSON.stringify({ action: "leave", roomId: room.id })], { type: "application/json" })); } catch {} };
     window.addEventListener("pagehide", onHide);

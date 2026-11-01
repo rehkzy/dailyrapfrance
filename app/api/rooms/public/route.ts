@@ -142,9 +142,10 @@ export async function POST(req: NextRequest) {
     let { room, players } = await snapshot(body.roomId);
     if (!room) return NextResponse.json({ gone: true });
     if (!players.some((p) => p.user_id === user.id)) return NextResponse.json({ error: "not_member" }, { status: 403 });
-    if (!room.is_public || room.status !== "lobby") return NextResponse.json({ room, players });
+    if (room.status === "finished") return NextResponse.json({ room, players });
 
-    // 2. fantômes (onglet fermé sans prévenir)
+    // 2. fantômes (onglet fermé sans prévenir) — dans TOUS les salons, en attente ou en partie :
+    //    le joueur disparu est retiré (les autres voient « X a quitté »), l'hôte réattribué.
     const ghosts = players.filter((p) => !alive(p, now));
     if (ghosts.length) {
       await db.from("room_players").delete().eq("room_id", room.id).in("user_id", ghosts.map((g) => g.user_id));
@@ -155,7 +156,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. compte à rebours
+    if (!room.is_public || room.status !== "lobby") return NextResponse.json({ room, players });
+
+    // 3. compte à rebours (salons publics en attente seulement)
     const format: Format = room.format === "1v1" || room.format === "2v2" ? room.format : "royale";
     const n = players.length;
     const target = room.starts_at ? new Date(room.starts_at).getTime() : null;
