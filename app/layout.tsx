@@ -135,6 +135,7 @@ const JSONLD_SITE = {
         "https://www.instagram.com/dailyrapfrance/",
         "https://www.tiktok.com/@dailyrapfrance",
         "https://x.com/DailyRapFrance",
+        "https://www.wikidata.org/wiki/Q141989278",
       ],
     },
     {
