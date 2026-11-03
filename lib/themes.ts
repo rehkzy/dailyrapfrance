@@ -67,6 +67,10 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "suisse", label: "Suisse", text: "Al-Walid, Makala, Chien Bleu, Slimka, Di-Meh...", Icon: Globe, category: "Régions", keywords: "genève lausanne" },
   { id: "quebec", label: "Québec", text: "Loud, Koriass, Souldia, FouKi, Rowjay...", Icon: Globe, category: "Régions", keywords: "montréal canada" },
   { id: "antilles", label: "Antilles", text: "Meryl, Kalash, Bamby, Creamy G...", Icon: Globe, category: "Régions", keywords: "martinique guadeloupe shatta" },
+  { id: "maghreb", label: "Maghreb", text: "ElGrandeToto, Soolking, Balti, Stormy, Maes, Didine Canon 16...", Icon: Globe, category: "Régions", keywords: "maroc algérie tunisie maghreb darija" },
+  { id: "maroc", label: "Maroc", text: "ElGrandeToto, Stormy, Dizzy DROS, Don Bigg, Tagne, Maes, Lartiste...", Icon: Globe, category: "Régions", keywords: "maroc marocain casablanca rabat darija" },
+  { id: "algerie", label: "Algérie", text: "Soolking, Didine Canon 16, Lotfi Double Kanon, Mister You, Lacrim, Rim'K...", Icon: Globe, category: "Régions", keywords: "algérie algérien alger oran" },
+  { id: "tunisie", label: "Tunisie", text: "Balti, Samara, Kaso, Sanfara, A.L.A, Klay BBJ...", Icon: Globe, category: "Régions", keywords: "tunisie tunisien tunis" },
 
   // --- Artistes
   { id: "artist-jul", label: "Blind Test JUL", text: "Que des sons de JUL", Icon: Mic2, category: "Artistes" },
@@ -113,6 +117,12 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-maes", label: "Blind Test Maes", text: "Que des sons de Maes", Icon: Mic2, category: "Artistes" },
   { id: "artist-algerino", label: "Blind Test L'Algérino", text: "Que des sons de L'Algérino", Icon: Mic2, category: "Artistes" },
   { id: "artist-niro", label: "Blind Test Niro", text: "Que des sons de Niro", Icon: Mic2, category: "Artistes" },
+  { id: "artist-elgrandetoto", label: "Blind Test ElGrandeToto", text: "Que des sons d'ElGrandeToto", Icon: Mic2, category: "Artistes", keywords: "maroc toto" },
+  { id: "artist-stormy", label: "Blind Test Stormy", text: "Que des sons de Stormy", Icon: Mic2, category: "Artistes", keywords: "maroc" },
+  { id: "artist-balti", label: "Blind Test Balti", text: "Que des sons de Balti", Icon: Mic2, category: "Artistes", keywords: "tunisie" },
+  { id: "artist-soolking", label: "Blind Test Soolking", text: "Que des sons de Soolking", Icon: Mic2, category: "Artistes", keywords: "algérie" },
+  { id: "artist-didine", label: "Blind Test Didine Canon 16", text: "Que des sons de Didine Canon 16", Icon: Mic2, category: "Artistes", keywords: "algérie" },
+  { id: "artist-dizzy-dros", label: "Blind Test Dizzy DROS", text: "Que des sons de Dizzy DROS", Icon: Mic2, category: "Artistes", keywords: "maroc" },
 ];
 
 // Mise en avant éditoriale — ces thèmes portent la flamme "tendance" dans les sélecteurs,

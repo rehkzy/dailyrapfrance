@@ -69,6 +69,11 @@ export const THEME_ARTISTS: Record<string, string[]> = {
   suisse: ["al-walid", "makala", "chien bleu", "slimka", "varnish la piscine", "di-meh"],
   quebec: ["loud", "koriass", "souldia", "fouki", "rowjay", "mike shabb"],
   antilles: ["meryl", "kalash", "bamby", "creamy g", "kalash criminel"],
+  // --- Maghreb : scène locale + artistes français originaires du pays ---------------------
+  maroc: ["elgrandetoto", "stormy", "dizzy dros", "don bigg", "7liwa", "tagne", "smallx", "snor", "khtek", "draganov", "lferda", "shayfeen", "maes", "lartiste", "niro", "kofs"],
+  algerie: ["soolking", "didine canon 16", "lotfi double kanon", "flenn", "phobia isaac", "mister you", "lacrim", "rim'k", "l'algérino", "hornet la frappe"],
+  tunisie: ["balti", "samara", "kaso", "sanfara", "a.l.a", "klay bbj", "nordo", "jenjoon", "4lfa"],
+  maghreb: ["elgrandetoto", "soolking", "balti", "stormy", "maes", "didine canon 16", "samara", "lartiste", "dizzy dros", "l'algérino", "draganov", "tagne", "kaso", "lacrim", "mister you", "niro"],
 
   // --- Artistes (un seul) ----------------------------------------------------------------
   "artist-aya": ["aya nakamura"],
@@ -86,6 +91,12 @@ export const THEME_ARTISTS: Record<string, string[]> = {
   "artist-maes": ["maes"],
   "artist-algerino": ["l'algerino"],
   "artist-niro": ["niro"],
+  "artist-elgrandetoto": ["elgrandetoto"],
+  "artist-stormy": ["stormy"],
+  "artist-balti": ["balti"],
+  "artist-soolking": ["soolking"],
+  "artist-didine": ["didine canon 16"],
+  "artist-dizzy-dros": ["dizzy dros"],
   "artist-rvfleuze": ["la rvfleuze"],
   "artist-gims": ["gims"],
   "artist-plk": ["plk"],
@@ -129,6 +140,10 @@ export const THEME_LEAD_OVERRIDES: Record<string, string[]> = {
   belgique: ["damso", "hamza"],
   "nouvelle-pop": ["theodora", "rsko"],
   "69": ["ashe 22", "sasso"],
+  maroc: ["elgrandetoto", "stormy"],
+  algerie: ["soolking", "didine canon 16"],
+  tunisie: ["balti", "samara"],
+  maghreb: ["elgrandetoto", "soolking"],
 };
 
 export function themeLeadArtists(id: string): string[] | null {
