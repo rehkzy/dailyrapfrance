@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { MODE_LANDINGS, THEME_LANDINGS, SITE } from "@/lib/seo";
+import { ARTISTS } from "@/lib/artists";
 import { createClient } from "@/lib/supabase/server";
 
 /*
@@ -16,6 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/blindtest`, lastModified: now, changeFrequency: "daily", priority: 1 },
     ...MODE_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.9 })),
     ...THEME_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8 })),
+    { url: `${SITE}/artistes`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    ...ARTISTS.map((a) => ({ url: `${SITE}/artistes/${a.slug}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.8 })),
     { url: `${SITE}/blindtest/creer`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${SITE}/creer`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE}/actu`, lastModified: now, changeFrequency: "hourly", priority: 0.9 },

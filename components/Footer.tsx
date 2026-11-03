@@ -22,6 +22,7 @@ const columns = [
       { href: "/parametres", label: "Mon compte" },
       { href: "/parrainage", label: "Parrainage · 2 places Kaaris" },
       { href: "/blindtests", label: "Blind tests des joueurs" },
+      { href: "/artistes", label: "Top sons par artiste" },
     ],
   },
   {

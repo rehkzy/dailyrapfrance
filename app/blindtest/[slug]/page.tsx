@@ -163,6 +163,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
                 </li>
               ))}
             </ol>
+            <a href={`/artistes/${l.slug}`} className="inline-flex items-center gap-1.5 text-sm text-gold hover:text-glow mt-4">Voir le top 10 complet et la discographie de {artistName} <ArrowRight size={14} /></a>
           </section>
         )}
 

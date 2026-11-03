@@ -57,3 +57,51 @@ export async function artistTopTracks(artistId: number, limit = 6): Promise<{ id
     return [];
   }
 }
+
+/* ── Données enrichies pour les pages « Top sons de <artiste> » ───────────────────────── */
+
+export type ArtistTopTrack = { id: number; title: string; album: string; cover: string; rank: number; duration: number; explicit: boolean; preview: string; link: string };
+export type ArtistAlbum = { id: number; title: string; cover: string; releaseDate: string; type: string; link: string };
+export type ArtistRelated = { id: number; name: string; picture: string };
+
+/** Top titres détaillés (jusqu'à 50), classés par popularité Deezer. */
+export async function artistTopTracksFull(artistId: number, limit = 10): Promise<ArtistTopTrack[]> {
+  try {
+    const top = await deezerFetch<{ data?: { id: number; title_short?: string; title: string; rank?: number; duration?: number; explicit_lyrics?: boolean; preview?: string; link?: string; album?: { title?: string; cover_medium?: string; cover_big?: string } }[] }>(`/artist/${artistId}/top?limit=${limit}`);
+    return (top.data ?? []).map((t) => ({
+      id: t.id,
+      title: t.title_short ?? t.title,
+      album: t.album?.title ?? "",
+      cover: t.album?.cover_big ?? t.album?.cover_medium ?? "",
+      rank: t.rank ?? 0,
+      duration: t.duration ?? 0,
+      explicit: !!t.explicit_lyrics,
+      preview: t.preview ?? "",
+      link: t.link ?? "",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Discographie (albums, EP, singles) — du plus récent au plus ancien. */
+export async function artistAlbums(artistId: number, limit = 60): Promise<ArtistAlbum[]> {
+  try {
+    const res = await deezerFetch<{ data?: { id: number; title: string; cover_medium?: string; release_date?: string; record_type?: string; link?: string }[] }>(`/artist/${artistId}/albums?limit=${limit}`);
+    return (res.data ?? [])
+      .map((a) => ({ id: a.id, title: a.title, cover: a.cover_medium ?? "", releaseDate: a.release_date ?? "", type: a.record_type ?? "album", link: a.link ?? "" }))
+      .sort((a, b) => (a.releaseDate < b.releaseDate ? 1 : -1));
+  } catch {
+    return [];
+  }
+}
+
+/** Artistes proches selon Deezer — pour le maillage entre pages. */
+export async function artistRelated(artistId: number, limit = 8): Promise<ArtistRelated[]> {
+  try {
+    const res = await deezerFetch<{ data?: { id: number; name: string; picture_medium?: string }[] }>(`/artist/${artistId}/related?limit=${limit}`);
+    return (res.data ?? []).map((a) => ({ id: a.id, name: a.name, picture: a.picture_medium ?? "" }));
+  } catch {
+    return [];
+  }
+}
