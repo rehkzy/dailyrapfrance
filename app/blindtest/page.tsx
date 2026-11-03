@@ -7,12 +7,12 @@ import { jsonLd as toJsonLd } from "@/lib/jsonld";
 export const metadata = {
   title: "Blind Test Rap Français — Gratuit, en Ligne, Compte en 10 Secondes | DailyRapFrance",
   description:
-    "Le blind test rap français gratuit, inscription en 10 secondes : joue direct, en solo, entre potes sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes : 90s, 2000s, cloud rap, 93, 91, Marseille...",
+    "Le blind test rap français gratuit, inscription en 10 secondes : joue direct, en solo, entre potes sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 80+ thèmes : 90s, 2000s, cloud rap, 93, 91, Marseille...",
   alternates: { canonical: "https://dailyrapfrance.best/blindtest" },
   openGraph: {
     title: "Blind Test Rap Français — Gratuit, en Ligne, Compte en 10 Secondes",
     description:
-      "Joue direct, sans compte : solo, multijoueur sur le même écran, salon privé à distance, mode soirée sur TV. 45+ thèmes de rap FR.",
+      "Joue en solo, entre potes sur le même écran, en salon à distance, en matchmaking ou en soirée sur TV. 80+ thèmes de rap FR, compte en 10 secondes.",
     url: "https://dailyrapfrance.best/blindtest",
     type: "website",
   },

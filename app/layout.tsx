@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "Le blind test rap français n°1 : gratuit, en ligne, inscription en 10 secondes. Joue en solo, entre amis sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 45+ thèmes, par DailyRapFrance, média du rap FR depuis 2020.",
+    "Le blind test rap français n°1 : gratuit, en ligne, inscription en 10 secondes. Joue en solo, entre amis sur le même écran, à distance avec un code, ou en soirée sur la TV avec des gages. 80+ thèmes, par DailyRapFrance, média du rap FR depuis 2020.",
   keywords: [
     "blind test rap français",
     "blind test rap",

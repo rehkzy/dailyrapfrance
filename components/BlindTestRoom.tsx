@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv, ChevronRight } from "lucide-react";
+import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv, ChevronRight, MessageCircle } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { fieldsFor, fieldPrompt, guessableFeats } from "@/lib/fields";
 import { enablePush, pushEnabled, pushSupport } from "@/lib/pushClient";
@@ -18,6 +18,7 @@ import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, type QcmField } from "@/l
 import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
+import { LobbyChat, LiveChat } from "@/components/RoomChat";
 import { DRMark3D } from "@/components/BlindTestLogo";
 import type { User } from "@supabase/supabase-js";
 
@@ -105,6 +106,7 @@ function BlindTestRoom({
 
   const [closedMessage, setClosedMessage] = useState<string | null>(null);
   const [confirmingQuit, setConfirmingQuit] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [reactions, setReactions] = useState<{ id: number; emoji: string; from: string }[]>([]);
   const reactionIdRef = useRef(0);
   const roomChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -150,6 +152,7 @@ function BlindTestRoom({
   roomRef.current = room;
 
   const displayName = user.user_metadata?.full_name || user.user_metadata?.name || "Joueur";
+  const avatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
   const isHost = room?.host_id === user.id;
   const track: Track | undefined = room?.tracks?.[room.current_round];
 
@@ -1082,6 +1085,8 @@ function BlindTestRoom({
             <p className="text-xs text-ink-faint mt-3">{readyCount} / {players.length} prêt{readyCount > 1 ? "s" : ""}</p>
           </div>
 
+          <LobbyChat roomId={room.id} userId={user.id} name={me?.display_name ?? displayName} avatarUrl={avatarUrl} />
+
           {!room.is_public && (
             <button type="button" onClick={toggleReady} aria-pressed={!!me?.ready} className={`w-full h-14 mb-3 ${me?.ready ? "sticker sticker-ghost" : "sticker"}`}>
               {me?.ready ? <><Check size={18} strokeWidth={3} /> Prêt — en attente des autres</> : <><Icon icon="game-icons:thumb-up" width={18} /> Je suis prêt</>}
@@ -1426,9 +1431,16 @@ function BlindTestRoom({
           )}
         </div>
 
-        {/* Rail : réactions + passer (hôte) */}
+        {/* Chat façon TikTok Live : fil discret + feuille de saisie */}
+        {!showIntro && <LiveChat roomId={room.id} userId={user.id} name={me?.display_name ?? displayName} avatarUrl={avatarUrl} open={chatOpen} onOpenChange={setChatOpen} />}
+
+        {/* Rail : chat + réactions + passer (hôte) */}
         {!revealed && !showIntro && (
           <div className="feed-rail">
+            <button type="button" onClick={() => setChatOpen((o) => !o)} aria-label="Chat du salon" aria-pressed={chatOpen} className="feed-rail-btn">
+              <span className="feed-rail-icon"><MessageCircle size={20} /></span>
+              <span>Chat</span>
+            </button>
             {["🔥", "😭", "💀", "🎯", "👀"].map((e) => (
               <button key={e} type="button" onClick={() => sendReaction(e)} aria-label={`Réagir ${e}`} className="feed-rail-btn">
                 <span className="feed-rail-icon text-xl">{e}</span>

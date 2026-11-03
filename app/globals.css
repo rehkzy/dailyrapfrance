@@ -3240,3 +3240,71 @@ body:has([data-admin]) .card { background: #0f0a0b; }
 .nav-item:hover .nav-item-icon { background: rgba(240, 0, 28, 0.18); color: var(--glow); transform: translateY(-1px); }
 .nav-item[data-active="true"] { background: #fff; color: #0a0505; }
 .nav-item[data-active="true"] .nav-item-icon { background: var(--red); color: #fff; }
+
+/* ─── Chat de salon (lobby + superposition façon TikTok Live en partie) ─────────── */
+.chat-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+.chat-list::-webkit-scrollbar { display: none; }
+.chat-list-lobby { height: 220px; padding: 2px 0; margin-bottom: 10px; }
+.chat-list-sheet { flex: 1 1 auto; min-height: 0; padding: 4px 0 10px; }
+.chat-msg { display: flex; align-items: flex-start; gap: 8px; animation: chat-in 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.chat-bubble {
+  display: inline-block; max-width: 100%;
+  padding: 7px 11px; border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13.5px; line-height: 1.35; color: var(--ink); word-break: break-word;
+}
+.chat-bubble b { font-weight: 700; color: var(--ink-muted); margin-right: 4px; }
+.chat-msg[data-mine="true"] .chat-bubble { background: rgba(240, 0, 28, 0.18); border-color: rgba(240, 0, 28, 0.3); }
+.chat-msg[data-mine="true"] .chat-bubble b { color: var(--red-glow); }
+@keyframes chat-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.chat-input { display: flex; align-items: center; gap: 8px; }
+.chat-input input {
+  flex: 1; min-width: 0; height: 44px; padding: 0 16px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ink); font-size: 15px; outline: none;
+}
+.chat-input input:focus { border-color: rgba(240, 0, 28, 0.6); }
+.chat-input input::placeholder { color: rgba(245, 232, 232, 0.4); }
+.chat-input button {
+  width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--red); color: #fff; display: grid; place-items: center;
+  transition: transform 0.12s, opacity 0.15s;
+}
+.chat-input button:disabled { opacity: 0.35; }
+.chat-input button:active { transform: scale(0.92); }
+
+/* Fil discret pendant la partie : bas gauche, au-dessus des réponses, jamais sous le rail */
+.chat-live {
+  position: fixed; left: 12px; right: 88px; bottom: calc(env(safe-area-inset-bottom) + 300px);
+  z-index: 3; max-width: 22rem;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+  text-align: left; pointer-events: auto;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22%); mask-image: linear-gradient(180deg, transparent 0, #000 22%);
+}
+.chat-live-row { display: flex; align-items: flex-start; gap: 6px; max-width: 100%; animation: chat-in 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.chat-bubble-live {
+  background: rgba(0, 0, 0, 0.45); border-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  font-size: 12.5px; padding: 5px 10px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.chat-bubble-live b { color: rgba(245, 232, 232, 0.7); }
+@media (min-width: 640px) { .chat-live { left: max(12px, calc(50% - 20rem)); } }
+@media (max-height: 700px) { .chat-live { bottom: calc(env(safe-area-inset-bottom) + 250px); } }
+
+/* Feuille de saisie : monte du bas, laisse la scène visible derrière */
+.chat-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  max-width: 36rem; margin: 0 auto; height: min(62dvh, 520px);
+  display: flex; flex-direction: column;
+  padding: 12px 14px calc(env(safe-area-inset-bottom) + 12px);
+  border-radius: 24px 24px 0 0;
+  background: rgba(10, 6, 7, 0.92); border: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 0;
+  backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.6);
+  animation: chat-sheet-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.chat-sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+@keyframes chat-sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .chat-msg, .chat-live-row, .chat-sheet { animation: none; } }
