@@ -158,6 +158,7 @@ const JSONLD_SITE = {
         "https://florian-b.fr",
         "https://www.instagram.com/florian.b93tsz",
         "https://www.linkedin.com/in/florian-bonnet-b82018198/",
+        "https://www.wikidata.org/wiki/Q141989412",
       ],
       mainEntityOfPage: "https://dailyrapfrance.best/a-propos",
     },
