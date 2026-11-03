@@ -418,7 +418,7 @@ export default async function AProposPage() {
                 <p className="text-sm text-ink-faint">Fondateur et créateur de DailyRapFrance · Graphiste & directeur artistique, Paris</p>
                 <p className="text-xs text-ink-faint mt-1.5 flex flex-wrap gap-x-3">
                   <a href="https://www.instagram.com/florian.b93tsz" target="_blank" rel="me noopener noreferrer" className="hover:text-gold transition-colors">Instagram</a>
-                  <a href="https://www.linkedin.com/in/florian-bonnet-b82018198/" target="_blank" rel="me noopener noreferrer" className="hover:text-gold transition-colors">LinkedIn</a>
+                  <a href="https://www.linkedin.com/in/florian-bnt/" target="_blank" rel="me noopener noreferrer" className="hover:text-gold transition-colors">LinkedIn</a>
                   <a href="https://florian-b.fr" target="_blank" rel="me noopener noreferrer" className="hover:text-gold transition-colors">florian-b.fr</a>
                 </p>
               </div>

@@ -157,7 +157,7 @@ const JSONLD_SITE = {
       sameAs: [
         "https://florian-b.fr",
         "https://www.instagram.com/florian.b93tsz",
-        "https://www.linkedin.com/in/florian-bonnet-b82018198/",
+        "https://www.linkedin.com/in/florian-bnt/",
         "https://www.wikidata.org/wiki/Q141989412",
       ],
       mainEntityOfPage: "https://dailyrapfrance.best/a-propos",
