@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import AccountSettingsForm from "@/components/AccountSettingsForm";
 import VerificationRequest from "@/components/VerificationRequest";
 import PushToggle from "@/components/PushToggle";
+import DeleteAccount from "@/components/DeleteAccount";
 import SignInCta from "@/components/SignInCta";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { loadProfileBundle } from "@/lib/profileData";
@@ -96,6 +97,7 @@ export default async function ParametresPage() {
       </div>
 
       {profile?.username && <div className="mt-4"><ShareProfileCard username={profile.username} /></div>}
+      <DeleteAccount />
     </section>
   );
 }
