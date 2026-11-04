@@ -7,6 +7,7 @@ import ResultTicket from "@/components/ResultTicket";
 import BrandLoader from "@/components/BrandLoader";
 import { sfx } from "@/lib/sfx";
 import { speedBonus } from "@/lib/scoring";
+import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, QCM_STAGE_PROMPTS, type QcmField } from "@/lib/qcmStages";
 import { bumpGamesPlayed } from "@/lib/dailyStreak";
 import { DEFAULT_CONFIG } from "@/lib/presets";
 import type { RoundOutcome } from "@/lib/share";
@@ -30,9 +31,27 @@ type FeedClip = {
   choices: string[];
 };
 
-type SlideState = { answered: string | null; correct: boolean; points: number; elapsed: number };
+// Même grammaire que le blind test audio : on devine dans l'ordre l'artiste, le titre, puis
+// le feat s'il y en a un — chaque étape en QCM, une seule tentative, points et bonus de
+// rapidité identiques. La vidéo montre souvent l'artiste : l'étape « Qui chante ? » est
+// donc facile, mais le titre et le feat font la différence.
+type SlideState = {
+  stage: number;                    // index de l'étape en cours dans `stages`
+  stages: QcmField[];
+  solved: Partial<Record<QcmField, boolean>>;
+  options: string[];                // options de l'étape en cours
+  points: number;
+  elapsed: number;                  // temps au dernier champ trouvé (pour « rapide »)
+  done: boolean;
+  wrong: string | null;             // dernier mauvais choix (flash)
+};
 
-const ROUND_SECONDS = 15;
+const POINTS: Record<QcmField, number> = { title: 1, artist: 1, feat: 2 };
+const ROUND_SECONDS = 25;
+
+function toStageTrack(c: FeedClip) {
+  return { id: String(c.id), title: c.title, artistName: c.artist, feats: c.feats };
+}
 
 export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: number }) {
   const [clips, setClips] = useState<FeedClip[] | null>(null);
@@ -65,7 +84,12 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
 
   const score = useMemo(() => Object.values(states).reduce((s, x) => s + x.points, 0), [states]);
   const outcomes: RoundOutcome[] = useMemo(
-    () => (clips ?? []).map((c) => (states[c.id] ? { found: states[c.id].correct ? 1 : 0, total: 1, fast: states[c.id].correct && states[c.id].elapsed <= 5 } : { found: 0, total: 1 })),
+    () => (clips ?? []).map((c) => {
+      const st = states[c.id];
+      if (!st) return { found: 0, total: 1 };
+      const found = Object.values(st.solved).filter(Boolean).length;
+      return { found, total: st.stages.length, fast: found === st.stages.length && st.elapsed <= 5 };
+    }),
     [clips, states]
   );
 
@@ -102,15 +126,16 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
       if (i !== active) playersRef.current[c.id]?.pause();
     });
     const current = clips[active];
-    if (current && started && !states[current.id]) playersRef.current[current.id]?.play();
+    if (current && started && !states[current.id]?.done) playersRef.current[current.id]?.play();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, clips, started]);
 
   function onPlaying(clipId: number) {
     setPlaying((p) => ({ ...p, [clipId]: true }));
     const current = clips?.[active];
-    if (!current || current.id !== clipId || states[clipId] || startedAtRef.current) return;
+    if (!current || current.id !== clipId || states[clipId]?.done || startedAtRef.current) return;
     startedAtRef.current = Date.now();
+    if (!states[clipId]) setStates((s) => ({ ...s, [clipId]: initState(current) }));
     setTimeLeft(ROUND_SECONDS);
     stopTimer();
     timerRef.current = setInterval(() => {
@@ -118,26 +143,62 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
       const left = Math.max(0, Math.ceil(ROUND_SECONDS - elapsed));
       setTimeLeft(left);
       if (left <= 6) sfx.tick();
-      if (left <= 0) answer(clipId, null);
+      if (left <= 0) timeUp(clipId);
     }, 500);
   }
 
-  function answer(clipId: number, choice: string | null) {
-    const clip = clips?.find((c) => c.id === clipId);
-    if (!clip || states[clipId]) return;
-    stopTimer();
-    const elapsed = startedAtRef.current ? (Date.now() - startedAtRef.current) / 1000 : ROUND_SECONDS;
-    const correct = !!choice && choice === clip.artist;
-    const points = correct ? 1 + speedBonus(elapsed) : 0;
-    if (correct) sfx.correct();
-    else sfx.wrong();
-    setStates((s) => ({ ...s, [clipId]: { answered: choice, correct, points, elapsed } }));
-    // Auto-avance après la révélation (le joueur peut aussi swiper lui-même).
+  function initState(clip: FeedClip): SlideState {
+    const stages = qcmStageOrder(["artist", "title", ...(clip.feats.length ? (["feat"] as QcmField[]) : [])]);
+    const pool = (clips ?? []).map(toStageTrack);
+    return { stage: 0, stages, solved: {}, options: qcmStageOptions(stages[0], toStageTrack(clip), pool), points: 0, elapsed: 0, done: false, wrong: null };
+  }
+
+  function advance(clipId: number) {
     setTimeout(() => {
       const idx = clips!.findIndex((c) => c.id === clipId);
       if (idx >= clips!.length - 1) finish();
       else slidesRef.current[idx + 1]?.scrollIntoView({ behavior: "smooth" });
     }, 2600);
+  }
+
+  function timeUp(clipId: number) {
+    const clip = clips?.find((c) => c.id === clipId);
+    if (!clip) return;
+    stopTimer();
+    sfx.wrong();
+    setStates((s) => ({ ...s, [clipId]: { ...(s[clipId] ?? initState(clip)), done: true } }));
+    advance(clipId);
+  }
+
+  // Une étape à la fois, une seule tentative : bonne réponse → points + bonus, mauvaise → on
+  // passe quand même à l'étape suivante (comme le blind test audio en mode facile).
+  function answer(clipId: number, choice: string) {
+    const clip = clips?.find((c) => c.id === clipId);
+    const st = states[clipId];
+    if (!clip || !st || st.done) return;
+    const field = st.stages[st.stage];
+    const elapsed = startedAtRef.current ? (Date.now() - startedAtRef.current) / 1000 : ROUND_SECONDS;
+    const correct = qcmIsCorrect(field, toStageTrack(clip), choice);
+    const gained = correct ? POINTS[field] + speedBonus(elapsed) : 0;
+    if (correct) sfx.correct(); else sfx.wrong();
+    const nextStage = st.stage + 1;
+    const done = nextStage >= st.stages.length;
+    const pool = (clips ?? []).map(toStageTrack);
+    setStates((s) => ({
+      ...s,
+      [clipId]: {
+        ...st,
+        stage: nextStage,
+        solved: { ...st.solved, [field]: correct },
+        options: done ? [] : qcmStageOptions(st.stages[nextStage], toStageTrack(clip), pool),
+        points: st.points + gained,
+        elapsed: correct ? elapsed : st.elapsed,
+        done,
+        wrong: correct ? null : choice,
+      },
+    }));
+    if (done) { stopTimer(); advance(clipId); }
+    else setTimeout(() => setStates((s) => (s[clipId] ? { ...s, [clipId]: { ...s[clipId], wrong: null } } : s)), 600);
   }
 
   function finish() {
@@ -176,7 +237,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
     );
   }
   if (finished) {
-    const perfect = outcomes.filter((o) => o.found > 0).length;
+    const perfect = outcomes.filter((o) => o.found >= o.total).length;
     return (
       <div className="stage px-5 sm:px-6 pb-10">
         <div className="max-w-xl mx-auto">
@@ -231,7 +292,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
               <a href="/jouer" aria-label="Quitter" className="w-10 h-10 rounded-full bg-black/45 border border-white/10 grid place-items-center text-ink"><X size={16} /></a>
               <div className="flex-1 seg-progress">
                 {clips.map((c, j) => (
-                  <span key={c.id} className="seg" data-state={states[c.id] ? (states[c.id].correct ? "done" : "miss") : j === active ? "current" : undefined} />
+                  <span key={c.id} className="seg" data-state={states[c.id]?.done ? (Object.values(states[c.id].solved).every(Boolean) ? "done" : Object.values(states[c.id].solved).some(Boolean) ? "partial" : "miss") : j === active ? "current" : undefined} />
                 ))}
               </div>
               <span className="score-rail"><span className="score-num text-xl pl-1">{score}</span><span className="text-[11px] text-ink-faint pr-1">pts</span></span>
@@ -242,14 +303,21 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
               {!started && i === 0 ? (
                 <div className="text-center">
                   <p className="stage-kicker mb-1">Devine le clip</p>
-                  <p className="font-display text-2xl font-extrabold tracking-tight mb-4">{clips.length} clips, 15 s chacun. Qui est à l&apos;écran ?</p>
+                  <p className="font-display text-2xl font-extrabold tracking-tight mb-4">{clips.length} clips, {ROUND_SECONDS} s chacun. L&apos;artiste, le titre, le feat.</p>
                   <button type="button" onClick={begin} className="sticker h-16 px-10 text-lg"><Play size={20} fill="currentColor" /> C&apos;est parti</button>
                 </div>
-              ) : st ? (
+              ) : st?.done ? (
                 <div className="solved-pop">
-                  <p className={`text-xs font-bold mb-1 ${st.correct ? "text-[#ffd166]" : "text-riseNeg"}`}>{st.correct ? `Bien vu — +${st.points}` : "Raté"}</p>
-                  <p className="font-display text-3xl font-extrabold tracking-tight leading-none">{clip.artist}</p>
-                  <p className="text-ink-muted mt-1">{clip.title}{clip.feats.length > 0 && ` feat. ${clip.feats.join(", ")}`}</p>
+                  <p className={`text-xs font-bold mb-1 ${st.points > 0 ? "text-[#ffd166]" : "text-riseNeg"}`}>{st.points > 0 ? `+${st.points} pts` : "Raté"}</p>
+                  <p className="font-display text-3xl font-extrabold tracking-tight leading-none">{clip.title}</p>
+                  <p className="text-ink-muted mt-1">{clip.artist}{clip.feats.length > 0 && ` feat. ${clip.feats.slice(0, 3).join(", ")}`}</p>
+                  <span className="flex items-center gap-1.5 mt-3 flex-wrap">
+                    {st.stages.map((f) => (
+                      <span key={f} className={`text-[11px] font-bold rounded-full px-2.5 py-1 ${st.solved[f] ? "bg-[#ffd166] text-[#3a0007]" : "bg-white/10 text-ink-faint"}`}>
+                        {f === "artist" ? "Artiste" : f === "title" ? "Titre" : "Feat"} {st.solved[f] ? "✓" : "✗"}
+                      </span>
+                    ))}
+                  </span>
                   {i < clips.length - 1 && (
                     <button type="button" onClick={() => slidesRef.current[i + 1]?.scrollIntoView({ behavior: "smooth" })} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
                       Clip suivant <ChevronDown size={16} className="animate-bounce" />
@@ -259,14 +327,17 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
               ) : (
                 <>
                   <div className="flex items-center justify-between mb-2.5">
-                    <p className="text-sm font-bold">Qui chante ?</p>
+                    <p className="text-sm font-bold">
+                      {st ? QCM_STAGE_PROMPTS[st.stages[st.stage]] : "Qui chante ?"}
+                      {st && st.stages.length > 1 && <span className="ml-2 text-[11px] font-semibold text-ink-faint">{st.stage + 1}/{st.stages.length}</span>}
+                    </p>
                     {isActive && started && (
                       <span className={`score-num text-2xl ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{playing[clip.id] ? timeLeft : "…"}</span>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    {clip.choices.map((choice, k) => (
-                      <button key={choice} type="button" disabled={!isActive || !started} onClick={() => answer(clip.id, choice)} className="answer">
+                  <div className="space-y-2" key={st?.stage ?? 0}>
+                    {(st?.options ?? clip.choices).map((choice, k) => (
+                      <button key={choice} type="button" disabled={!isActive || !started || !st} onClick={() => answer(clip.id, choice)} className="answer solved-pop" data-wrong={st?.wrong === choice}>
                         <span className="answer-key">{["A", "B", "C"][k]}</span>
                         <span className="flex-1 truncate">{choice}</span>
                       </button>
@@ -275,7 +346,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
                 </>
               )}
             </div>
-            {st?.correct && <span className="reel-check solved-pop"><Check size={28} strokeWidth={3} /></span>}
+            {st?.done && Object.values(st.solved).every(Boolean) && <span className="reel-check solved-pop"><Check size={28} strokeWidth={3} /></span>}
           </section>
         );
       })}
