@@ -3334,3 +3334,33 @@ body:has([data-admin]) .card { background: #0f0a0b; }
     width: auto; border-radius: 20px; padding: 18px;
   }
 }
+
+/* ─── Accueil : les blocs secondaires, repliés — on déplie ce qui intéresse ──────────── */
+.home-folds { display: flex; flex-direction: column; gap: 10px; }
+.home-fold {
+  border-radius: 20px;
+  background: #0f0809;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.home-fold[open] { border-color: rgba(240, 0, 28, 0.35); }
+.home-fold > summary {
+  list-style: none; cursor: pointer;
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; min-height: 68px;
+}
+.home-fold > summary::-webkit-details-marker { display: none; }
+.home-fold > summary:hover { background: rgba(255, 255, 255, 0.03); }
+.home-fold-icon {
+  width: 40px; height: 40px; border-radius: 13px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  background: rgba(240, 0, 28, 0.14); color: var(--red-glow);
+}
+.home-fold-chevron { color: rgba(245, 232, 232, 0.4); flex: 0 0 auto; transition: transform 0.2s; }
+.home-fold[open] .home-fold-chevron { transform: rotate(90deg); }
+.home-fold-body { padding: 4px 18px 20px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.home-fold-body > *:first-child { margin-top: 14px; }
+/* Les sections d'origine gardaient leurs titres et marges : on les resserre dans le pli */
+.home-fold-body h2 { font-size: 1.05rem; }
+.home-fold-body .py-12, .home-fold-body .py-16 { padding-top: 0; padding-bottom: 0; }

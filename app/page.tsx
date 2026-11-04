@@ -8,7 +8,7 @@ import ActivityFeed from "@/components/ActivityFeed";
 import TrendingStrip from "@/components/TrendingStrip";
 import NewsList from "@/components/NewsList";
 import { getNews } from "@/lib/news";
-import { ChevronRight, Newspaper } from "lucide-react";
+import { ChevronRight, Newspaper, Gift, Info } from "lucide-react";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
 import StreakNudge from "@/components/StreakNudge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
@@ -82,18 +82,13 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="brand-glow" aria-hidden="true" />
         <div className="max-w-5xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-8">
-          <div className="flex items-center gap-3 mb-5">
-            <p className="stage-kicker">Blind test rap français</p>
-            <span className="text-ink-faint text-xs" aria-hidden="true">·</span>
-            <p className="text-xs text-ink-faint">Gratuit, par <span className="text-ink-muted font-semibold">DailyRapFrance</span></p>
-            <div className="ml-auto">
-              <LivePlayersBadge />
-            </div>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl">
+              Reconnais le son avant tes potes.
+            </h1>
+            <div className="shrink-0 pt-2 hidden sm:block"><LivePlayersBadge /></div>
           </div>
-
-          <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl mb-8">
-            Reconnais le son avant tes potes.
-          </h1>
+          <p className="text-base sm:text-lg text-ink-muted mb-8">Le blind test rap français. Gratuit, seul, entre potes, en ligne ou sur la TV.</p>
           <StreakNudge />
 
           {/* Deux façons de commencer, à égalité : le défi commun, ou une partie comme on veut. */}
@@ -126,22 +121,14 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Connecté : le fil des potes, avant tout le reste */}
+      {/* Connecté : le fil des potes, et les soirées enregistrées */}
       <ActivityFeed />
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-2"><SavedPresets /></section>
 
-      {/* Le média : les sons du moment + les dernières actus, entre le jeu et la création */}
+      {/* Le média : les sons du moment */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4">
         <TrendingStrip />
       </section>
-      {news.length > 0 && (
-        <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4" aria-labelledby="news-title">
-          <div className="flex items-baseline justify-between mb-2.5">
-            <h2 id="news-title" className="font-display text-lg sm:text-xl font-bold inline-flex items-center gap-1.5"><Newspaper size={16} className="text-gold" /> Dernières actus</h2>
-            <a href="/actu?onglet=actu" className="text-xs font-semibold text-glow inline-flex items-center gap-1">Toute l&apos;actu <ChevronRight size={12} /></a>
-          </div>
-          <NewsList items={news} compact />
-        </section>
-      )}
 
       {/* NOUVEAU — le constructeur : la fonctionnalité qu'on met en avant */}
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4" aria-labelledby="creer-title">
@@ -151,7 +138,7 @@ export default async function Home() {
             <div className="flex-1">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-white bg-white/15 rounded-full px-2.5 py-1 mb-4"><Sparkles size={12} /> Nouveau</span>
               <h2 id="creer-title" className="poster-title text-3xl sm:text-4xl md:text-5xl text-white max-w-xl">Crée ton blind test avec tes morceaux.</h2>
-              <p className="mt-3 text-sm sm:text-base text-white/85 max-w-lg">Anniversaire, soirée, mariage, classe, bureau : choisis les titres ou colle ta playlist Spotify, donne un nom, envoie le lien. Chacun joue sur son téléphone, sans compte. Deux minutes de préparation.</p>
+              <p className="mt-3 text-sm sm:text-base text-white/85 max-w-lg">Anniversaire, soirée, mariage, bureau : tes titres ou ta playlist, un nom, un lien à envoyer. Chacun joue sur son téléphone, sans compte. Deux minutes de préparation.</p>
             </div>
             <div className="mt-6 md:mt-0 shrink-0">
               <span className="inline-flex items-center justify-center gap-2.5 h-14 px-7 rounded-full text-base font-bold w-full md:w-auto" style={{ background: "#fff", color: "#8a0010", boxShadow: "0 10px 30px rgba(0,0,0,0.35)" }}><Sparkles size={18} /> Créer mon blind test</span>
@@ -160,13 +147,19 @@ export default async function Home() {
         </a>
       </section>
 
-      {/* Parrainage — le lot du moment */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-4">
-        <ReferralCard compact />
-      </section>
-
-      {/* Six façons de jouer */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16" aria-labelledby="modes-title">
+      {/* Tout le reste, rangé : chaque bloc se déplie à la demande */}
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-4 pb-12 sm:pb-16" aria-label="Explorer">
+        <div className="home-folds">
+        <details className="home-fold">
+          <summary>
+            <span className="home-fold-icon"><Users size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base sm:text-lg font-bold leading-tight">Six façons de jouer</span>
+              <span className="block text-xs text-ink-faint mt-0.5">Solo, clip, entre potes, en ligne, matchmaking, soirée TV</span>
+            </span>
+            <ChevronRight size={18} className="home-fold-chevron" />
+          </summary>
+          <div className="home-fold-body">
         <div className="flex items-end justify-between mb-5">
           <div>
             <h2 id="modes-title" className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
@@ -188,10 +181,18 @@ export default async function Home() {
             </a>
           ))}
         </div>
-      </section>
-
-      {/* Variantes — des façons de rejouer quand on connaît déjà le jeu */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16" aria-labelledby="defis-title">
+          </div>
+        </details>
+        <details className="home-fold">
+          <summary>
+            <span className="home-fold-icon"><Skull size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base sm:text-lg font-bold leading-tight">Envie d'autre chose ?</span>
+              <span className="block text-xs text-ink-faint mt-0.5">Survie, Sprint, thème surprise, classement</span>
+            </span>
+            <ChevronRight size={18} className="home-fold-chevron" />
+          </summary>
+          <div className="home-fold-body">
         <h2 id="defis-title" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Envie d&apos;autre chose ?</h2>
         <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -213,15 +214,18 @@ export default async function Home() {
             </a>
           ))}
         </div>
-      </section>
-
-      {/* Soirées enregistrées — n'apparaît que s'il y en a */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16">
-        <SavedPresets />
-      </section>
-
-      {/* Comment se passe une soirée — une vraie séquence, donc numérotée */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16 border-t border-white/8" aria-labelledby="party-title">
+          </div>
+        </details>
+        <details className="home-fold">
+          <summary>
+            <span className="home-fold-icon"><Tv size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base sm:text-lg font-bold leading-tight">Organiser une soirée blind test</span>
+              <span className="block text-xs text-ink-faint mt-0.5">TV + téléphones, prête en une minute</span>
+            </span>
+            <ChevronRight size={18} className="home-fold-chevron" />
+          </summary>
+          <div className="home-fold-body">
         <div className="grid md:grid-cols-[1fr_1.2fr] gap-8 md:gap-14 items-center">
           <div>
             <h2 id="party-title" className="font-display text-2xl sm:text-3xl font-bold tracking-tight mb-3">
@@ -253,15 +257,63 @@ export default async function Home() {
             ))}
           </ol>
         </div>
-      </section>
-
-      {/* L'app : bientôt sur les stores, déjà sur l'écran d'accueil */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-12 sm:pb-16" aria-label="Installer l'app">
+          </div>
+        </details>
+        {news.length > 0 && (
+        <details className="home-fold">
+          <summary>
+            <span className="home-fold-icon"><Newspaper size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base sm:text-lg font-bold leading-tight">Dernières actus rap</span>
+              <span className="block text-xs text-ink-faint mt-0.5">Les articles du moment, ouverts chez les médias</span>
+            </span>
+            <ChevronRight size={18} className="home-fold-chevron" />
+          </summary>
+          <div className="home-fold-body">
+          <div className="flex items-baseline justify-between mb-2.5">
+            <h2 id="news-title" className="font-display text-lg sm:text-xl font-bold inline-flex items-center gap-1.5"><Newspaper size={16} className="text-gold" /> Dernières actus</h2>
+            <a href="/actu?onglet=actu" className="text-xs font-semibold text-glow inline-flex items-center gap-1">Toute l&apos;actu <ChevronRight size={12} /></a>
+          </div>
+          <NewsList items={news} compact />
+          </div>
+        </details>
+        )}
+        <details className="home-fold">
+          <summary>
+            <span className="home-fold-icon"><Gift size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base sm:text-lg font-bold leading-tight">Parrainage · 2 places pour Kaaris</span>
+              <span className="block text-xs text-ink-faint mt-0.5">Invite tes potes, gagne le Stade de France</span>
+            </span>
+            <ChevronRight size={18} className="home-fold-chevron" />
+          </summary>
+          <div className="home-fold-body">
+        <ReferralCard compact />
+          </div>
+        </details>
+        <details className="home-fold">
+          <summary>
+            <span className="home-fold-icon"><Smartphone size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base sm:text-lg font-bold leading-tight">L'app sur ton écran d'accueil</span>
+              <span className="block text-xs text-ink-faint mt-0.5">Sans store, en deux gestes</span>
+            </span>
+            <ChevronRight size={18} className="home-fold-chevron" />
+          </summary>
+          <div className="home-fold-body">
         <AppStoreCallout />
-      </section>
-
-      {/* Texte de référence + maillage (SEO/GEO) — présent dans le HTML, replié par défaut */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 py-6 border-t border-white/8">
+          </div>
+        </details>
+        <details className="home-fold">
+          <summary>
+            <span className="home-fold-icon"><Info size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base sm:text-lg font-bold leading-tight">Tout savoir sur le blind test</span>
+              <span className="block text-xs text-ink-faint mt-0.5">Thèmes, modes, accès — pour les curieux</span>
+            </span>
+            <ChevronRight size={18} className="home-fold-chevron" />
+          </summary>
+          <div className="home-fold-body">
         <details className="group">
           <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-sm font-semibold text-ink-muted hover:text-ink min-h-[44px]">
             À propos du blind test rap français — thèmes, modes, accès
@@ -307,6 +359,9 @@ export default async function Home() {
             </div>
           </div>
         </details>
+          </div>
+        </details>
+        </div>
       </section>
 
       {/* Communauté */}
