@@ -94,7 +94,7 @@ export default async function Home() {
         {wall.length > 0 && (
           <div className="hero-wall" aria-hidden="true">
             {wall.map((a, i) => (
-              <img key={a.id} src={artworkAt(a.picture_medium!, 500)} alt="" loading={i < 4 ? "eager" : "lazy"} decoding="async" />
+              <img key={a.id} src={artworkAt(a.picture_medium!, 1000)} alt="" loading={i < 4 ? "eager" : "lazy"} decoding="async" />
             ))}
           </div>
         )}

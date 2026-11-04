@@ -38,7 +38,7 @@ export default function StreakNudge() {
   const next = streak + 1;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="streak-title">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="streak-title">
       <div className="daily-card w-full max-w-sm p-6 solved-pop">
         <div className="relative">
           <button type="button" onClick={() => setOpen(false)} aria-label="Fermer" className="absolute -top-1 -right-1 w-9 h-9 rounded-full bg-black/40 border border-white/10 grid place-items-center text-white/80"><X size={15} /></button>
