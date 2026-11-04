@@ -17,6 +17,7 @@ const columns = [
   {
     title: "Communauté",
     links: [
+      { href: "/blindtest/defi", label: "Défi de la semaine" },
       { href: "/blindtest/classement", label: "Classement" },
       { href: "/amis", label: "Amis" },
       { href: "/parametres", label: "Mon compte" },
@@ -28,6 +29,7 @@ const columns = [
   {
     title: "DailyRapFrance",
     links: [
+      { href: "/actu", label: "Actu & tendances" },
       { href: "/a-propos", label: "Notre histoire" },
       { href: "/blindtest", label: "Le blind test" },
       { href: "/blindtest/soiree", label: "Blind test en soirée" },

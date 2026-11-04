@@ -3416,3 +3416,21 @@ body:has([data-admin]) .card { background: #0f0a0b; }
   .home-folds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
   .home-fold[open] { grid-column: 1 / -1; }
 }
+
+/* ─── Raccourcis de hub (HubLinks) : /jouer, profil, tiroir ───────────────────── */
+.hub-links { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 640px) { .hub-links { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hub-links-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.hub-link {
+  display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 10px 8px 10px;
+  border-radius: 16px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--ink); text-decoration: none; transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.hub-link:hover { border-color: rgba(240, 0, 28, 0.45); background: rgba(255, 255, 255, 0.06); }
+.hub-link:active { transform: scale(0.985); }
+.hub-link-icon { width: 36px; height: 36px; border-radius: 11px; flex: 0 0 auto; display: grid; place-items: center; background: rgba(240, 0, 28, 0.14); color: var(--red-glow); }
+.hub-link-title { display: block; font-size: 13px; font-weight: 700; line-height: 1.15; }
+.hub-link-sub { display: block; font-size: 11px; color: var(--ink-3); margin-top: 2px; line-height: 1.25; }
+.hub-link-go { color: rgba(245, 232, 232, 0.35); flex: 0 0 auto; }
+.hub-links[data-compact="true"] .hub-link { min-height: 48px; padding: 8px 8px 8px 10px; }
+.hub-links[data-compact="true"] .hub-link-icon { width: 30px; height: 30px; border-radius: 9px; }
+.hub-links[data-compact="true"] .hub-link-go { display: none; }

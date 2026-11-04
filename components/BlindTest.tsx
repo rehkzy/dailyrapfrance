@@ -24,6 +24,8 @@ import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@
 import EmailAuthForm from "@/components/EmailAuthForm";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
+import HubLinks from "@/components/HubLinks";
+import { EXPLORE_LINKS } from "@/lib/sitemapNav";
 import { DRMark3D } from "@/components/BlindTestLogo";
 import BlindTestRoom from "@/components/BlindTestRoom";
 import BrandLoader from "@/components/BrandLoader";
@@ -1149,6 +1151,7 @@ export default function BlindTest() {
                   </a>}
                   {!customSet && <DailyCard variant="compact" />}
                   {!customSet && <div className="mt-6"><SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} /></div>}
+                  {!customSet && <div className="mt-7"><HubLinks title="Autour du jeu" links={EXPLORE_LINKS.filter((l) => l.href !== "/blindtest/defi")} /></div>}
                 </>
               ) : branch === "solo" ? (
                 <>

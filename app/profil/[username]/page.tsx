@@ -1,3 +1,5 @@
+import HubLinks from "@/components/HubLinks";
+import { SPACE_LINKS } from "@/lib/sitemapNav";
 import { notFound } from "next/navigation";
 import { Calendar, Play, Flame, Sparkles, Settings, ChevronRight, Swords, Trophy } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -147,6 +149,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </span>
           <Play size={18} className="shrink-0" fill="currentColor" />
         </a>
+        {isMe && <div className="mb-5"><HubLinks title="Mon espace" links={SPACE_LINKS} /></div>}
         <a href={isMe ? "/blindtest/classement" : "/blindtest/defi"} className="action-row mb-4">
           <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-gold/15 text-gold"><Trophy size={20} /></span>
           <span className="min-w-0 flex-1">

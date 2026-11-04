@@ -1,3 +1,4 @@
+import BackToGame from "@/components/BackToGame";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import { ARTISTS } from "@/lib/artists";
@@ -29,6 +30,7 @@ export default async function ArtistsIndex() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: toJsonLd(jsonLd) }} />
       <section className="max-w-3xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-20">
+        <BackToGame />
         <p className="stage-kicker mb-2">Artistes</p>
         <h1 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.02] mb-3">Les meilleurs sons, rappeur par rappeur.</h1>
         <p className="text-ink-muted mb-8">Pour chaque artiste : les 10 titres les plus écoutés (mis à jour chaque jour), la discographie, et son blind test pour vérifier que tu les connais vraiment.</p>

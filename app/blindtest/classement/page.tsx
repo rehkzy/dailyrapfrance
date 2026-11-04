@@ -1,3 +1,4 @@
+import BackToGame from "@/components/BackToGame";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { Medal, Flame, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -42,7 +43,7 @@ export default async function ClassementPage() {
   return (
     <>
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
-
+      <BackToGame />
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Classement</h1>
       <p className="text-ink-muted mb-6">
         Les meilleurs scores solo, tous thèmes confondus. Connecte-toi et termine une partie pour y apparaître.

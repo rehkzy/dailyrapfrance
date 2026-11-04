@@ -1,9 +1,10 @@
 "use client";
 
+import { EXPLORE_LINKS, SPACE_LINKS, MEDIA_LINKS, type NavLink } from "@/lib/sitemapNav";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Info, Home, Sparkles, Gift, Newspaper } from "lucide-react";
+import { Menu as MenuIcon, X as CloseIcon, Play, Trophy, Users, Home, Sparkles, Gift, Newspaper } from "lucide-react";
 import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
@@ -23,16 +24,14 @@ const NAV = [
   { href: "/actu", label: "Actu", Icon: Newspaper },
   { href: "/creer", label: "Créer", Icon: Sparkles },
   { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
+  { href: "/amis", label: "Amis", Icon: Users },
   { href: "/parrainage", label: "Parrainage", Icon: Gift },
-  { href: "/a-propos", label: "À propos", Icon: Info },
 ];
 
-const DRAWER_LINKS: { href: string; label: string; sub?: string; Icon: typeof Home }[] = [
-  { href: "/actu", label: "Actu & tendances", sub: "Sons du moment, sorties, articles", Icon: Newspaper },
-  { href: "/blindtest/classement", label: "Classement", Icon: Trophy },
-  { href: "/amis", label: "Amis", Icon: Users },
-  { href: "/parrainage", label: "Parrainage", sub: "2 places Kaaris · Stade de France", Icon: Gift },
-  { href: "/a-propos", label: "À propos", Icon: Info },
+const DRAWER_GROUPS: { title: string; links: NavLink[] }[] = [
+  { title: "Autour du jeu", links: EXPLORE_LINKS.filter((l) => l.href !== "/blindtest/defi") },
+  { title: "Mon espace", links: SPACE_LINKS },
+  { title: "Le média", links: MEDIA_LINKS },
 ];
 
 const socials = [
@@ -114,17 +113,23 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
             </span>
           </a>
 
-          <nav className="space-y-0.5 mb-6">
-            {DRAWER_LINKS.map((item) => {
-              const active = isActive(pathname, item.href);
-              return (
-                <a key={item.href} href={item.href} className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors ${active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"}`}>
-                  <item.Icon size={18} className={active ? "text-gold" : "text-ink-faint"} />
-                  <span className="text-[15px] font-medium flex-1">{item.label}</span>
-                  {item.sub && <span className="text-[11px] text-ink-faint">{item.sub}</span>}
-                </a>
-              );
-            })}
+          <nav className="space-y-5 mb-6" aria-label="Plan du site">
+            {DRAWER_GROUPS.map((g) => (
+              <div key={g.title}>
+                <p className="stage-kicker mb-2">{g.title}</p>
+                <div className="space-y-0.5">
+                  {g.links.map((item) => {
+                    const active = isActive(pathname, item.href.split("#")[0]);
+                    return (
+                      <a key={item.href} href={item.href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${active ? "bg-gold/12 text-gold" : "text-ink hover:bg-white/5"}`}>
+                        <item.Icon size={18} className={active ? "text-gold" : "text-ink-faint"} />
+                        <span className="text-[15px] font-medium flex-1">{item.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           <div className="flex flex-col gap-4 pt-4 border-t border-white/8">
