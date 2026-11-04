@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Share2, Copy, Check, ImageIcon, Swords, BookmarkPlus, X, RotateCcw, Trophy , Sliders } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Share2, Copy, Check, ImageIcon, Swords, BookmarkPlus, X, RotateCcw, Trophy, Sliders, Flame, ArrowRight } from "lucide-react";
 import { WhatsAppIcon } from "@/components/SocialIcons";
 import { buildShareText, copyText, shareOrCopy, type RoundOutcome } from "@/lib/share";
 import { configToUrl, savePreset, describeConfig, VARIANTS, type GameConfig } from "@/lib/presets";
@@ -29,6 +29,8 @@ export default function ResultTicket({
   onReplaySame,
   leaderboardHref,
   podium,
+  guestCta,
+  nextUp,
 }: {
   points: number;
   rounds: RoundOutcome[];
@@ -44,8 +46,12 @@ export default function ResultTicket({
   onReplaySame?: () => void;
   leaderboardHref?: string;
   podium?: { name: string; score: number }[];
+  /** Invité : le bloc « sauvegarde ce score » — rendu juste sous le score, là où on le lit. */
+  guestCta?: ReactNode;
+  /** La suite proposée (défi de la semaine, retour demain, thème surprise). */
+  nextUp?: { href?: string; title: string; sub: string; icon?: "flame" | "arrow" };
 }) {
-  const [sheet, setSheet] = useState<null | "story" | "save">(null);
+  const [sheet, setSheet] = useState<null | "story" | "save" | "share">(null);
   const [copied, setCopied] = useState(false);
   const [challenged, setChallenged] = useState(false);
   const [presetName, setPresetName] = useState("");
@@ -160,61 +166,58 @@ export default function ResultTicket({
         <div className="ticket-cut" />
 
         <div className="p-6 sm:p-8">
-          <p className="text-sm font-semibold mb-4">Envoie ton résultat — sans spoiler</p>
-          <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-2 px-2 pb-1">
-            {canShare && (
-              <button type="button" onClick={share} className="share-round" data-primary="true">
-                <span>{copied ? <Check size={22} /> : <Share2 size={22} />}</span>
-                Partager
-              </button>
-            )}
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(text)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="share-round"
-              data-primary={!canShare}
-            >
-              <span><WhatsAppIcon /></span>
-              WhatsApp
-            </a>
-            <button type="button" onClick={copy} className="share-round">
-              <span>{copied ? <Check size={22} className="text-gold" /> : <Copy size={22} />}</span>
-              {copied ? "Copié" : "Copier"}
-            </button>
-            <button type="button" onClick={() => setSheet("story")} className="share-round">
-              <span><ImageIcon size={22} /></span>
-              Story
-            </button>
-            <button type="button" onClick={() => setSheet("save")} className="share-round">
-              <span>{savedName ? <Check size={22} className="text-gold" /> : <BookmarkPlus size={22} />}</span>
-              {savedName ? "Enregistrée" : "Enregistrer"}
-            </button>
-          </div>
+          {guestCta && <div className="mb-5">{guestCta}</div>}
 
-          <div className="grid gap-2.5 mt-6">
+          <div className="grid gap-2.5">
             {onReplaySame && (
               <button type="button" onClick={onReplaySame} className="sticker w-full h-16 text-lg cta-glow">
                 <RotateCcw size={20} /> Encore — nouveaux extraits
               </button>
             )}
-            <button type="button" onClick={challenge} className={`sticker w-full ${onReplaySame ? "sticker-ghost" : ""}`}>
-              {challenged ? <Check size={18} /> : <Swords size={18} />}
-              {challenged ? "Défi envoyé" : "Défier un pote sur cette partie"}
-            </button>
             <div className="grid grid-cols-2 gap-2.5">
-              <button type="button" onClick={onReplay} className="sticker sticker-ghost w-full">
-                <Sliders size={16} /> {onReplaySame ? "Changer" : "Rejouer"}
+              <button type="button" onClick={challenge} className="sticker w-full">
+                {challenged ? <Check size={18} /> : <Swords size={18} />}
+                {challenged ? "Défi envoyé" : "Défier un pote"}
+              </button>
+              <button type="button" onClick={() => setSheet("share")} className="sticker sticker-ghost w-full">
+                {copied ? <Check size={18} className="text-gold" /> : <Share2 size={18} />}
+                {copied ? "Copié" : "Partager"}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button type="button" onClick={onReplay} className="sticker sticker-ghost sticker-sm w-full">
+                <Sliders size={15} /> {onReplaySame ? "Changer" : "Rejouer"}
               </button>
               {leaderboardHref ? (
-                <a href={leaderboardHref} className="sticker sticker-ghost w-full">
-                  <Trophy size={16} /> Classement
+                <a href={leaderboardHref} className="sticker sticker-ghost sticker-sm w-full">
+                  <Trophy size={15} /> Classement
                 </a>
               ) : (
-                <a href="/" className="sticker sticker-ghost w-full">Accueil</a>
+                <a href="/" className="sticker sticker-ghost sticker-sm w-full">Accueil</a>
               )}
             </div>
           </div>
+
+          {nextUp && (
+            nextUp.href ? (
+              <a href={nextUp.href} className="mt-5 flex items-center gap-3 rounded-2xl p-4 bg-gradient-to-r from-[#8a0010] to-[#f0001c] text-white">
+                <span className="w-10 h-10 rounded-xl bg-white/15 grid place-items-center shrink-0">{nextUp.icon === "flame" ? <Flame size={18} /> : <ArrowRight size={18} />}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold">{nextUp.title}</span>
+                  <span className="block text-xs text-white/80">{nextUp.sub}</span>
+                </span>
+                <ArrowRight size={16} className="shrink-0 text-white/80" />
+              </a>
+            ) : (
+              <div className="mt-5 flex items-center gap-3 rounded-2xl p-4 bg-white/5 border border-white/10">
+                <span className="w-10 h-10 rounded-xl bg-[#ffd166]/15 text-[#ffd166] grid place-items-center shrink-0"><Flame size={18} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold">{nextUp.title}</span>
+                  <span className="block text-xs text-ink-faint">{nextUp.sub}</span>
+                </span>
+              </div>
+            )
+          )}
         </div>
       </div>
 
@@ -224,12 +227,37 @@ export default function ResultTicket({
           <div className="sheet" role="dialog" aria-modal="true">
             <div className="sheet-handle" />
             <div className="flex items-center justify-between mb-4">
-              <p className="font-display text-lg font-bold">{sheet === "story" ? "Image pour ta story" : "Enregistrer cette soirée"}</p>
+              <p className="font-display text-lg font-bold">{sheet === "story" ? "Image pour ta story" : sheet === "share" ? "Envoie ton résultat — sans spoiler" : "Enregistrer cette soirée"}</p>
               <button type="button" onClick={() => setSheet(null)} aria-label="Fermer" className="w-9 h-9 rounded-full bg-white/8 grid place-items-center">
                 <X size={16} />
               </button>
             </div>
-            {sheet === "story" ? (
+            {sheet === "share" ? (
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-2 px-2 pb-1">
+                {canShare && (
+                  <button type="button" onClick={share} className="share-round" data-primary="true">
+                    <span>{copied ? <Check size={22} /> : <Share2 size={22} />}</span>
+                    Partager
+                  </button>
+                )}
+                <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer" className="share-round" data-primary={!canShare}>
+                  <span><WhatsAppIcon /></span>
+                  WhatsApp
+                </a>
+                <button type="button" onClick={copy} className="share-round">
+                  <span>{copied ? <Check size={22} className="text-gold" /> : <Copy size={22} />}</span>
+                  {copied ? "Copié" : "Copier"}
+                </button>
+                <button type="button" onClick={() => setSheet("story")} className="share-round">
+                  <span><ImageIcon size={22} /></span>
+                  Story
+                </button>
+                <button type="button" onClick={() => setSheet("save")} className="share-round">
+                  <span>{savedName ? <Check size={22} className="text-gold" /> : <BookmarkPlus size={22} />}</span>
+                  {savedName ? "Enregistrée" : "Enregistrer"}
+                </button>
+              </div>
+            ) : sheet === "story" ? (
               <>
                 <ShareScoreCard points={points} themeLabel={themeLabel} rounds={rounds.length} />
               </>

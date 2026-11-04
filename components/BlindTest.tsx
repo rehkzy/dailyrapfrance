@@ -33,8 +33,8 @@ import ResultTicket from "@/components/ResultTicket";
 import SavedPresets from "@/components/SavedPresets";
 import TrendingStrip from "@/components/TrendingStrip";
 import DailyCard from "@/components/DailyCard";
-import { parseConfig, touchPreset, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
-import { markPlayedToday, bumpGamesPlayed, weeklyNumber, weekKey, getStreak, recordDailyScore } from "@/lib/dailyStreak";
+import { parseConfig, touchPreset, configToSearch, DEFAULT_CONFIG, VARIANTS, SPRINT_SECONDS, SPRINT_ROUNDS, SURVIVAL_POOL, type GameConfig, type Preset, type Variant } from "@/lib/presets";
+import { markPlayedToday, bumpGamesPlayed, weeklyNumber, weekKey, getStreak, recordDailyScore, playedThisWeek } from "@/lib/dailyStreak";
 import type { RoundOutcome } from "@/lib/share";
 import ClipPlayer, { type ClipHandle } from "@/components/ClipPlayer";
 
@@ -1454,7 +1454,15 @@ export default function BlindTest() {
     if (solo && topPercent !== null) chips.push({ label: isDailyRun ? `Top ${topPercent}% du défi` : `Top ${topPercent}% sur ce thème` });
     if (solo && bestStreak >= 2) chips.push({ label: `Combo max : ${bestStreak}` });
     if (beat !== null) chips.push(topScore > beat ? { label: `Tu bats ${deepLink.from} (${beat} pts)`, strong: true } : topScore === beat ? { label: `Égalité avec ${deepLink.from}` } : { label: `${deepLink.from} garde la main (${beat} pts)` });
-    const headline = isDailyRun ? `Défi de la semaine #${weeklyNumber()} · ${themeLabelNow}` : `${modeLabelNow} · ${themeLabelNow}`;
+    const headline = isDailyRun ? `Défi de la semaine · ${themeLabelNow}` : `${modeLabelNow} · ${themeLabelNow}`;
+    // La suite : la série (défi joué), le défi de la semaine (pas encore joué), sinon un thème surprise.
+    const nextUp = !solo
+      ? undefined
+      : isDailyRun
+        ? { title: `Reviens demain pour la série`, sub: dailyStreak > 0 ? `Tu passeras à ${dailyStreak + 1} jour${dailyStreak + 1 > 1 ? "s" : ""} d'affilée.` : "Une partie par jour et ta série démarre.", icon: "flame" as const }
+        : !playedThisWeek()
+          ? { href: `/jouer?${configToSearch({ ...DEFAULT_CONFIG, theme: dailyTheme.id }, { daily: "1", autostart: "1" })}`, title: `Le défi de la semaine : ${dailyTheme.label.replace(/^Blind Test /i, "")}`, sub: "Le même thème pour tout le monde, un classement à prendre.", icon: "flame" as const }
+          : { href: "/jouer?mode=solo&theme=random&autostart=1", title: "Thème surprise", sub: "Un thème tiré au sort, lancé direct.", icon: "arrow" as const };
     const subline = solo
       ? variant === "survival"
         ? `${roundOutcomes.filter((r) => r.found > 0).length} sons tenus avant la chute`
@@ -1485,20 +1493,20 @@ export default function BlindTest() {
             onReplaySame={replaySame}
             leaderboardHref={solo ? (isDailyRun ? "/blindtest/defi" : "/blindtest/classement") : undefined}
             podium={solo ? undefined : ranked.map((p) => ({ name: p.name, score: p.score }))}
+            nextUp={nextUp}
+            guestCta={solo && scoreSaveStatus === "guest" ? (
+              <button type="button" onClick={() => setShowAuth(true)} className="w-full rounded-2xl p-4 flex items-center gap-3 text-left bg-white text-[#0a0505]">
+                <span className="w-10 h-10 rounded-xl bg-[#f0001c] text-white grid place-items-center shrink-0"><LogIn size={17} /></span>
+                <span className="flex-1">
+                  <span className="block text-sm font-bold">Sauvegarde ces {topScore} pts</span>
+                  <span className="block text-xs text-black/60">Compte gratuit en 10 s — classement, profil, potes à défier.</span>
+                </span>
+                <ChevronRight size={16} className="text-black/50" />
+              </button>
+            ) : undefined}
           />
           </div>
           <div>
-
-          {solo && scoreSaveStatus === "guest" && (
-            <button type="button" onClick={() => setShowAuth(true)} className="mt-4 w-full ticket p-4 flex items-center gap-3 text-left">
-              <span className="w-10 h-10 rounded-full bg-gold/15 text-gold grid place-items-center shrink-0"><LogIn size={17} /></span>
-              <span className="flex-1">
-                <span className="block text-sm font-semibold">Sauvegarder ce score</span>
-                <span className="block text-xs text-ink-faint">Compte gratuit — classement, profil, amis à défier.</span>
-              </span>
-              <ChevronRight size={16} className="text-ink-faint" />
-            </button>
-          )}
 
           {roundHistory.length > 0 && (
             <details className="mt-6 group" open={!solo}>
