@@ -49,7 +49,7 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
   ]);
 
   return (
-    <section className="max-w-2xl lg:max-w-4xl mx-auto px-5 sm:px-6 pt-8 sm:pt-14 pb-32">
+    <section className="max-w-2xl lg:max-w-4xl mx-auto px-6 sm:px-8 pt-8 sm:pt-14 pb-32">
       <p className="stage-kicker mb-2">Le média</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Actu &amp; tendances</h1>
       <p className="text-ink-muted mb-5">Ce qui tourne en ce moment, les sorties, l&apos;actu — et un blind test dessus en un tap.</p>
@@ -62,11 +62,11 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
 
       {tab === "tendances" && (
         <>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             {[{ id: "rap", label: "Rap FR" }, { id: "tout", label: "Tout genre" }].map((g) => (
               <a key={g.id} href={`/actu?onglet=tendances&genre=${g.id}`} aria-current={genre === g.id ? "page" : undefined} className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors ${genre === g.id ? "bg-white text-black border-white" : "bg-white/6 border-white/10 text-ink-muted hover:text-ink"}`}>{g.label}</a>
             ))}
-            <span className="text-[11px] text-ink-faint ml-auto">Top écoutes · mis à jour toutes les 30 min</span>
+            <span className="text-[11px] text-ink-faint ml-auto whitespace-nowrap">Mis à jour toutes les 30 min</span>
           </div>
           <TrendingList tracks={tracks} />
         </>
