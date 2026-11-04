@@ -50,5 +50,11 @@ export async function claimReferral(
   const { error } = await db.from("referrals").insert({ referrer_id: referrer.id, referred_id: userId, source, ip_hash: ipHash });
   if (error && /duplicate|unique/i.test(error.message)) return { ok: true, reason: "already" };
   if (error) return { ok: false, reason: "db_error" };
+  // Parrain et filleul deviennent amis d'office : c'est le sens d'une invitation, et ça
+  // remplit la page Amis sans demande à accepter. Ignoré si un lien existe déjà.
+  await db.from("friendships").upsert(
+    { requester_id: referrer.id, addressee_id: userId, status: "accepted" },
+    { onConflict: "requester_id,addressee_id", ignoreDuplicates: true }
+  );
   return { ok: true, reason: "ok" };
 }

@@ -1,10 +1,12 @@
-import { LogIn, User as UserIcon, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { LogIn, User as UserIcon, ChevronLeft } from "lucide-react";
 import BackToGame from "@/components/BackToGame";
 import { createClient } from "@/lib/supabase/server";
 import AccountSettingsForm from "@/components/AccountSettingsForm";
 import VerificationRequest from "@/components/VerificationRequest";
 import PushToggle from "@/components/PushToggle";
 import DeleteAccount from "@/components/DeleteAccount";
+import AccountSecurity from "@/components/AccountSecurity";
+import HelpLinks from "@/components/HelpLinks";
 import SignInCta from "@/components/SignInCta";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { loadProfileBundle } from "@/lib/profileData";
@@ -40,7 +42,6 @@ export default async function ParametresPage() {
   ]);
   const displayName = profile?.display_name ?? user.user_metadata?.full_name ?? user.user_metadata?.name ?? "Joueur";
   const allBadges = [...bundle.badges.game, ...bundle.badges.fans];
-  const unlockedCount = allBadges.filter((b) => b.unlocked).length;
 
   return (
     <section className="max-w-2xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-32">
@@ -54,10 +55,11 @@ export default async function ParametresPage() {
           </a>
         )}
       </div>
-      <p className="stage-kicker mb-2">Mon compte</p>
-      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Modifier le profil</h1>
-      <p className="text-ink-muted mb-6">Bannière, photo, pseudo, bio, et les badges que tu veux montrer. Chaque bloc s&apos;enregistre seul.</p>
+      <p className="stage-kicker mb-2">Réglages</p>
+      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Ton compte, de A à Z.</h1>
+      <p className="text-ink-muted mb-8">Profil, connexion, notifications, aide. Chaque bloc s&apos;enregistre seul.</p>
 
+      <h2 className="stage-kicker mb-2.5">Profil</h2>
       <AccountSettingsForm
         userId={user.id}
         username={profile?.username ?? null}
@@ -68,35 +70,21 @@ export default async function ParametresPage() {
         initialShowcase={profile?.showcase ?? []}
         badges={allBadges}
       />
-
-      <div className="mt-4">
-        <PushToggle />
-      </div>
+      {profile?.username && <div className="mt-4"><ShareProfileCard username={profile.username} /></div>}
       <div className="mt-4">
         <VerificationRequest userId={user.id} verified={!!profile?.verified} requestedAt={profile?.verification_requested_at ?? null} />
       </div>
 
-      {/* Tous les succès, avec la progression */}
-      <div className="ticket mt-4">
-        <div className="p-5 flex items-baseline justify-between">
-          <p className="font-display text-lg font-bold inline-flex items-center gap-1.5"><Trophy size={16} className="text-gold" /> Succès</p>
-          <span className="text-xs text-ink-faint">{unlockedCount} / {allBadges.length}</span>
-        </div>
-        <ul className="divide-y divide-white/6">
-          {[...bundle.badges.game, ...bundle.badges.fans].map((b) => (
-            <li key={b.id} className={`flex items-center gap-3 px-5 py-3 ${b.unlocked ? "" : "opacity-70"}`}>
-              <span className={`w-10 h-10 rounded-xl grid place-items-center text-xl shrink-0 ${b.unlocked ? "bg-gold/15" : "bg-white/5 grayscale"}`}>{b.emoji}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold truncate">{b.label}</span>
-                <span className="block text-xs text-ink-faint truncate">{b.unlocked ? b.desc : b.hint ?? b.desc}</span>
-                {!b.unlocked && <span className="block h-1 mt-1.5 rounded-full bg-white/6 overflow-hidden"><span className="block h-full rounded-full" style={{ width: `${Math.round(b.progress * 100)}%`, background: "linear-gradient(90deg,#780101,#f0001c)" }} /></span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <h2 className="stage-kicker mt-10 mb-2.5">Compte et connexion</h2>
+      <AccountSecurity email={user.email ?? null} providers={(user.app_metadata?.providers as string[] | undefined) ?? [user.app_metadata?.provider ?? "email"]} />
 
-      {profile?.username && <div className="mt-4"><ShareProfileCard username={profile.username} /></div>}
+      <h2 className="stage-kicker mt-10 mb-2.5">Notifications</h2>
+      <PushToggle />
+
+      <h2 className="stage-kicker mt-10 mb-2.5">Aide et contact</h2>
+      <HelpLinks username={profile?.username ?? null} />
+
+      <h2 className="stage-kicker mt-10 mb-2.5">Zone sensible</h2>
       <DeleteAccount />
     </section>
   );

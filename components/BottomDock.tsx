@@ -39,7 +39,7 @@ export default function BottomDock() {
       <div className="brand-dock">
         {LEFT.map((i) => <Item key={i.href} {...i} />)}
         <a href="/jouer" aria-label="Jouer" aria-current={onPlay ? "page" : undefined} className="brand-dock-play" data-active={onPlay}>
-          <BrandMark size={30} className="text-white" />
+          <BrandMark size={24} className="text-white" />
           <span>Jouer</span>
         </a>
         {RIGHT.map((i) => <Item key={i.href} {...i} />)}

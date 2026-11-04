@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Search, Users, Inbox, Send, LogIn } from "lucide-react";
+import { Search, Users, Inbox, Send, LogIn, Gift, ChevronRight, Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/useUser";
 import AddFriendButton from "@/components/AddFriendButton";
@@ -39,14 +39,14 @@ function ProfileRow({ profile, right }: { profile: ProfileLite; right?: ReactNod
     <div className="flex items-center gap-3 py-3 px-4">
       <a href={profile.username ? `/profil/${profile.username}` : "#"} className="flex items-center gap-3 min-w-0 flex-1">
         {profile.avatar_url ? (
-          <img src={profile.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+          <img src={profile.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-gold/40 ring-offset-2 ring-offset-[#0f0809]" />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-gold/20 text-gold flex items-center justify-center text-sm font-medium shrink-0">
+          <div className="w-11 h-11 rounded-full text-white flex items-center justify-center text-sm font-extrabold shrink-0 ring-2 ring-gold/40 ring-offset-2 ring-offset-[#0f0809]" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>
             {(profile.display_name ?? "?").slice(0, 1).toUpperCase()}
           </div>
         )}
         <span className="min-w-0">
-          <span className="flex items-center gap-1 text-sm font-medium min-w-0"><span className="truncate">{profile.display_name ?? "Joueur"}</span>{profile.verified && <VerifiedBadge size={14} />}</span>
+          <span className="flex items-center gap-1 text-sm font-semibold min-w-0"><span className="truncate">{profile.display_name ?? "Joueur"}</span>{profile.verified && <VerifiedBadge size={14} />}</span>
           {profile.username && <span className="block text-xs text-ink-faint truncate">@{profile.username}</span>}
         </span>
       </a>
@@ -122,11 +122,11 @@ export default function AmisPage() {
       <>
       <section className="max-w-2xl mx-auto px-6 pt-16 pb-24">
         <BackToGame fallback="/profil" />
-        <div className="max-w-sm mx-auto card p-8 text-center">
+        <div className="max-w-sm mx-auto ticket p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4">
             <LogIn size={20} />
           </div>
-          <p className="font-display text-xl font-medium mb-2">Connecte-toi</p>
+          <p className="font-display text-xl font-bold mb-2">Connecte-toi</p>
           <p className="text-sm text-ink-muted mb-6">
             Il te faut un compte pour ajouter des amis et comparer vos scores.
           </p>
@@ -153,11 +153,19 @@ export default function AmisPage() {
     <>
     <section className="max-w-2xl mx-auto px-6 pt-16 pb-32">
       <BackToGame fallback="/profil" />
-      <p className="stage-kicker mb-4">Blind Test</p>
-      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-3">Amis</h1>
-      <p className="text-ink-muted mb-10">
-        Ajoute tes potes, défie-les sur le défi de la semaine ou invite-les dans un salon privé.
-      </p>
+      <p className="stage-kicker mb-2 inline-flex items-center gap-1.5"><Users size={13} /> Amis</p>
+      <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Tes potes, ton classement.</h1>
+      <p className="text-ink-muted mb-6">Ajoute-les, défie-les sur le défi de la semaine, ouvre-leur un salon.</p>
+
+      {/* Inviter : le vrai moyen d'avoir des amis ici, c'est de les faire venir */}
+      <a href="/parrainage" className="action-row mb-5" data-primary="true">
+        <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/15 text-white"><Gift size={20} /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Inviter un pote avec mon lien</span>
+          <span className="block text-xs text-white/80">Il arrive direct dans tes amis — et ça compte pour les 2 places Kaaris.</span>
+        </span>
+        <ChevronRight size={18} className="shrink-0" />
+      </a>
 
       {/* Recherche */}
       <div className="relative mb-3">
@@ -165,12 +173,13 @@ export default function AmisPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Chercher un pseudo (@...)"
-          className="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-gold/50"
+          placeholder="Chercher un pseudo"
+          className="answer-input !min-h-[52px] !pl-11"
+          autoComplete="off"
         />
       </div>
       {query.trim().length >= 2 && (
-        <div className="card divide-y divide-white/8 overflow-hidden mb-10">
+        <div className="ticket divide-y divide-white/6 overflow-hidden mb-8">
           {searching ? (
             <div className="py-6 flex justify-center">
               <BrandLoader size="sm" />
@@ -190,14 +199,14 @@ export default function AmisPage() {
           <BrandLoader size="md" />
         </div>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-8">
           {incoming.length > 0 && (
             <div>
               <p className="flex items-center gap-2 stage-kicker mb-3">
                 <Inbox size={13} />
                 Demandes reçues
               </p>
-              <div className="card divide-y divide-white/8 overflow-hidden">
+              <div className="ticket divide-y divide-white/6 overflow-hidden">
                 {incoming.map((r) => {
                   const p = otherOf(r);
                   if (!p) return null;
@@ -209,11 +218,11 @@ export default function AmisPage() {
 
           {outgoing.length > 0 && (
             <div>
-              <p className="flex items-center gap-2 font-mono text-xs text-ink-faint uppercase tracking-[0.16em] mb-3">
+              <p className="flex items-center gap-2 stage-kicker mb-3">
                 <Send size={13} />
                 Demandes envoyées
               </p>
-              <div className="card divide-y divide-white/8 overflow-hidden">
+              <div className="ticket divide-y divide-white/6 overflow-hidden">
                 {outgoing.map((r) => {
                   const p = otherOf(r);
                   if (!p) return null;
@@ -229,11 +238,13 @@ export default function AmisPage() {
               Tes amis {friends.length > 0 && `(${friends.length})`}
             </p>
             {friends.length === 0 ? (
-              <div className="card p-8 text-center text-sm text-ink-muted">
-                Pas encore d'amis ajoutés — cherche un pseudo ci-dessus pour commencer.
+              <div className="ticket p-8 text-center">
+                <span className="w-14 h-14 rounded-2xl bg-gold/15 text-gold grid place-items-center mx-auto mb-3"><Swords size={24} /></span>
+                <p className="font-display text-lg font-bold mb-1">Personne à défier pour l&apos;instant</p>
+                <p className="text-sm text-ink-muted">Cherche un pseudo au-dessus, ou envoie ton lien : tes potes arrivent ici tout seuls.</p>
               </div>
             ) : (
-              <div className="card divide-y divide-white/8 overflow-hidden">
+              <div className="ticket divide-y divide-white/6 overflow-hidden">
                 {friends.map((r) => {
                   const p = otherOf(r);
                   if (!p) return null;

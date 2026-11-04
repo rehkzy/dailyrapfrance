@@ -23,7 +23,7 @@ export default function DeleteAccount() {
   }
 
   return (
-    <div className="ticket mt-4 p-5">
+    <div className="ticket p-5">
       <p className="text-xs font-semibold text-ink-faint mb-1 flex items-center gap-1.5"><Trash2 size={13} /> Supprimer mon compte</p>
       <p className="text-sm text-ink-muted">Efface ton profil, tes scores, tes amis, tes messages, tes blind tests et les informations reçues de Google. C&apos;est définitif.</p>
       {!open ? (

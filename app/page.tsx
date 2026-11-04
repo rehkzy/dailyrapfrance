@@ -14,6 +14,8 @@ import StreakNudge from "@/components/StreakNudge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { themeSlug } from "@/lib/seo";
+import { resolveArtist } from "@/lib/deezerArtist";
+import { artworkAt } from "@/lib/artworkSize";
 
 /*
  * Accueil v2 — construit autour d'une seule idée : on vient ici pour jouer, maintenant ou
@@ -74,21 +76,40 @@ const POPULAR_THEME_LINKS = THEME_OPTIONS.filter((t) => t.id !== "mix")
 
 export const revalidate = 1800;
 
+// Les visages du mur d'accueil : les têtes d'affiche des thèmes artiste, résolues côté
+// serveur (cache 24 h chez Deezer, page régénérée toutes les 30 min).
+const WALL_ARTISTS = ["Jul", "Ninho", "SCH", "PNL", "Aya Nakamura", "Gazo", "Werenoi", "Tiakola", "Damso", "Nekfeu", "Booba", "SDM"];
+
 export default async function Home() {
-  const news = (await getNews(4)).slice(0, 4);
+  const [news, wallRaw] = await Promise.all([
+    getNews(4).then((n) => n.slice(0, 4)),
+    Promise.all(WALL_ARTISTS.map((n) => resolveArtist(n).catch(() => null))),
+  ]);
+  const wall = wallRaw.filter((a): a is NonNullable<typeof a> => !!a?.picture_medium);
   return (
     <>
       {/* Hero : la promesse en une ligne, puis directement le défi de la semaine. */}
-      <section className="relative overflow-hidden">
-        <div className="brand-glow" aria-hidden="true" />
-        <div className="max-w-5xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-8">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl">
-              Reconnais le son avant tes potes.
-            </h1>
-            <div className="shrink-0 pt-2 hidden sm:block"><LivePlayersBadge /></div>
+      <section className="relative overflow-hidden hero">
+        {/* Le mur : les visages du rap FR en bichromie, comme sur les affiches de thème. */}
+        {wall.length > 0 && (
+          <div className="hero-wall" aria-hidden="true">
+            {wall.map((a, i) => (
+              <img key={a.id} src={artworkAt(a.picture_medium!, 500)} alt="" loading={i < 4 ? "eager" : "lazy"} decoding="async" />
+            ))}
           </div>
-          <p className="text-base sm:text-lg text-ink-muted mb-8">Le blind test rap français. Gratuit, seul, entre potes, en ligne ou sur la TV.</p>
+        )}
+        <div className="hero-mark" aria-hidden="true"><BrandMark size={520} /></div>
+        <div className="hero-fade" aria-hidden="true" />
+        <div className="relative z-[2] max-w-5xl mx-auto px-5 sm:px-6 pt-12 sm:pt-20 pb-8">
+          <div className="mb-4"><LivePlayersBadge /></div>
+          <h1 className="poster-title text-[2.75rem] sm:text-6xl md:text-7xl max-w-3xl">
+            Reconnais le son <span className="hero-accent">avant tes potes.</span>
+          </h1>
+          <p className="text-base sm:text-lg text-ink-muted mt-3 mb-6 max-w-xl">Le blind test rap français. Gratuit, seul, entre potes, en ligne ou sur la TV.</p>
+          <div className="flex flex-wrap items-center gap-3 mb-10">
+            <a href="/jouer" className="sticker h-14 px-8 text-base"><Play size={18} fill="currentColor" /> Jouer maintenant</a>
+            <a href="/blindtest/defi" className="sticker sticker-ghost h-14 px-6 text-sm"><Flame size={16} /> Le défi de la semaine</a>
+          </div>
           <StreakNudge />
 
           {/* Deux façons de commencer, à égalité : le défi commun, ou une partie comme on veut. */}
