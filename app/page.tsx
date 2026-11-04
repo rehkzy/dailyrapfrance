@@ -92,14 +92,9 @@ export default async function Home() {
             </div>
           </div>
 
-          <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl mb-4">
+          <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl mb-8">
             Reconnais le son avant tes potes.
           </h1>
-          {/* Une phrase visible, sans clic, qui dit ce qu'est DailyRapFrance — pour les visiteurs
-              comme pour les vérificateurs (Google exige que la page d'accueil explique l'app). */}
-          <p className="text-sm sm:text-base text-ink-muted max-w-xl mb-8">
-            DailyRapFrance, le média rap français devenu jeu : un blind test gratuit, en solo, entre potes, en ligne ou sur la TV.
-          </p>
 
           {/* Deux façons de commencer, à égalité : le défi commun, ou une partie comme on veut. */}
           <div className="grid gap-4 md:grid-cols-[1.15fr_1fr] md:items-stretch">
