@@ -45,15 +45,15 @@ const socials = [
 
 export default function Footer() {
   return (
-    <footer className="relative mt-24 border-t border-white/8">
+    <footer className="relative mt-16 md:mt-24 border-t border-white/8">
       <div className="glow-line" />
-      <div className="max-w-6xl mx-auto px-6 py-14 grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="max-w-6xl mx-auto px-6 py-10 md:py-14 grid gap-8 md:gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <img src="/logo.svg" alt="DailyRapFrance" className="h-8 w-auto mb-5" />
+          <img src="/logo.svg" alt="DailyRapFrance" className="h-7 w-auto mb-4" />
           <p className="text-sm text-ink-muted max-w-xs leading-relaxed">
-            Le média du rap français depuis 2020 — et le blind test qu&apos;on lance entre potes, en soirée, ou cinq minutes dans le métro.
+            Le média du rap français depuis 2020 — et son blind test.
           </p>
-          <div className="flex items-center gap-2.5 mt-6">
+          <div className="flex items-center gap-2.5 mt-5 mb-4 md:mb-0">
             {socials.map(({ label, href, Icon }) => (
               <a
                 key={label}
@@ -68,20 +68,22 @@ export default function Footer() {
             ))}
           </div>
         </div>
-        {columns.map((c) => (
-          <div key={c.title}>
-            <p className="text-sm font-semibold mb-3">{c.title}</p>
-            <ul className="space-y-2">
-              {c.links.map((l) => (
-                <li key={l.href}>
-                  <a href={l.href} className="text-sm text-ink-muted hover:text-ink transition-colors">
-                    {l.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <div className="grid grid-cols-3 gap-4 md:contents">
+          {columns.map((c) => (
+            <div key={c.title}>
+              <p className="text-xs md:text-sm font-semibold mb-2.5 md:mb-3">{c.title}</p>
+              <ul className="space-y-1.5 md:space-y-2">
+                {c.links.map((l) => (
+                  <li key={l.href}>
+                    <a href={l.href} className="text-xs md:text-sm text-ink-muted hover:text-ink transition-colors">
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 pb-10 flex items-center justify-between gap-6 text-xs text-ink-faint">

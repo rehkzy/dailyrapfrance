@@ -3364,3 +3364,55 @@ body:has([data-admin]) .card { background: #0f0a0b; }
 /* Les sections d'origine gardaient leurs titres et marges : on les resserre dans le pli */
 .home-fold-body h2 { font-size: 1.05rem; }
 .home-fold-body .py-12, .home-fold-body .py-16 { padding-top: 0; padding-bottom: 0; }
+
+/* Chaque pli a sa propre image : fond, texture, filigrane et pastille — on les reconnaît sans lire */
+.home-fold > summary { position: relative; overflow: hidden; min-height: 84px; isolation: isolate; }
+.home-fold-art {
+  position: absolute; right: -14px; top: 50%; transform: translateY(-50%) rotate(-12deg);
+  color: #fff; opacity: 0.08; pointer-events: none; z-index: 0;
+  transition: transform 0.35s cubic-bezier(.2,.8,.2,1), opacity 0.3s;
+}
+.home-fold > summary:hover .home-fold-art, .home-fold[open] .home-fold-art { transform: translateY(-50%) rotate(-4deg) scale(1.06); opacity: 0.14; }
+.home-fold > summary > *:not(.home-fold-art) { position: relative; z-index: 1; }
+
+/* Rouge — jouer : braise DRF, halo rouge en haut à gauche, filigrane blanc */
+.home-fold[data-tone="red"] { background: radial-gradient(90% 120% at 0% 0%, rgba(240,0,28,0.42), transparent 55%), linear-gradient(160deg, #2a0609 0%, #0f0809 70%); border-color: rgba(240, 0, 28, 0.4); }
+.home-fold[data-tone="red"] .home-fold-icon { background: linear-gradient(135deg, #8a0010, #f0001c); color: #fff; box-shadow: 0 6px 18px rgba(240,0,28,0.45); }
+.home-fold[data-tone="red"] .home-fold-art { color: #ff3b4e; opacity: 0.22; }
+
+/* Braise — variantes : rayures diagonales « danger », lueur rouge sombre en bas */
+.home-fold[data-tone="ember"] { background: repeating-linear-gradient(135deg, rgba(240,0,28,0.07) 0 10px, transparent 10px 24px), radial-gradient(80% 100% at 100% 100%, rgba(138,0,16,0.55), transparent 60%), #120709; border-color: rgba(194, 0, 22, 0.35); }
+.home-fold[data-tone="ember"] .home-fold-icon { background: #1a0608; color: #ff3b4e; border: 1px solid rgba(255,59,78,0.5); }
+.home-fold[data-tone="ember"] .home-fold-art { color: #ff3b4e; opacity: 0.14; }
+
+/* TV — soirée : écran qui éclaire, scanlines, bordure claire */
+.home-fold[data-tone="tv"] { background: repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 4px), radial-gradient(60% 140% at 100% 50%, rgba(255,255,255,0.14), transparent 60%), #0e0c0d; border-color: rgba(255, 255, 255, 0.22); }
+.home-fold[data-tone="tv"] .home-fold-icon { background: #fff; color: #0a0707; box-shadow: 0 0 0 4px rgba(255,255,255,0.08), 0 8px 24px rgba(255,255,255,0.18); }
+.home-fold[data-tone="tv"] .home-fold-art { color: #fff; opacity: 0.12; }
+
+/* Encre — actus : colonnes de journal, lignes réglées */
+.home-fold[data-tone="ink"] { background: repeating-linear-gradient(0deg, transparent 0 13px, rgba(255,255,255,0.045) 13px 14px), linear-gradient(90deg, #0f0809 0%, #141012 100%); border-color: rgba(255,255,255,0.12); }
+.home-fold[data-tone="ink"] .home-fold-icon { background: #f5e8e8; color: #0a0707; border-radius: 6px; }
+.home-fold[data-tone="ink"] .home-fold-art { color: #f5e8e8; opacity: 0.07; }
+
+/* Or — parrainage : ticket doré, perforations, lueur chaude */
+.home-fold[data-tone="gold"] { background: radial-gradient(70% 120% at 100% 0%, rgba(255,209,102,0.28), transparent 55%), linear-gradient(160deg, #1e1407 0%, #120b06 60%); border-color: rgba(255, 209, 102, 0.45); }
+.home-fold[data-tone="gold"] > summary::after { content: ""; position: absolute; left: 62px; top: -6px; bottom: -6px; border-left: 2px dashed rgba(255,209,102,0.3); z-index: 0; }
+.home-fold[data-tone="gold"] .home-fold-icon { background: linear-gradient(135deg, #ffd166, #e8894a); color: #3a0007; box-shadow: 0 6px 18px rgba(255,209,102,0.35); }
+.home-fold[data-tone="gold"] .home-fold-art { color: #ffd166; opacity: 0.2; }
+.home-fold[data-tone="gold"] .font-display { color: #ffe7a8; }
+
+/* Ardoise — l'app : grille d'icônes d'écran d'accueil */
+.home-fold[data-tone="slate"] { background: radial-gradient(rgba(255,255,255,0.12) 1.2px, transparent 1.4px) 0 0 / 18px 18px, radial-gradient(80% 100% at 100% 100%, rgba(240,0,28,0.18), transparent 60%), #0d0a0b; border-color: rgba(255,255,255,0.14); }
+.home-fold[data-tone="slate"] .home-fold-icon { background: #0a0707; color: #fff; border: 1.5px solid rgba(255,255,255,0.35); border-radius: 11px; }
+.home-fold[data-tone="slate"] .home-fold-art { color: #fff; opacity: 0.1; }
+
+/* Papier — infos : sobre, trait fin, pour les curieux */
+.home-fold[data-tone="paper"] { background: #0c0809; border-style: dashed; border-color: rgba(255,255,255,0.2); }
+.home-fold[data-tone="paper"] .home-fold-icon { background: transparent; color: var(--ink-muted); border: 1.5px dashed rgba(255,255,255,0.3); }
+.home-fold[data-tone="paper"] .home-fold-art { opacity: 0.05; }
+
+@media (min-width: 768px) {
+  .home-folds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+  .home-fold[open] { grid-column: 1 / -1; }
+}

@@ -148,10 +148,15 @@ export default async function Home() {
       </section>
 
       {/* Tout le reste, rangé : chaque bloc se déplie à la demande */}
-      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-4 pb-12 sm:pb-16" aria-label="Explorer">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-6 pb-12 sm:pb-16" aria-labelledby="explore-title">
+        <div className="flex items-end justify-between mb-4">
+          <h2 id="explore-title" className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Et aussi</h2>
+          <BrandMark size={22} className="text-gold" />
+        </div>
         <div className="home-folds">
-        <details className="home-fold">
+        <details className="home-fold" data-tone="red">
           <summary>
+            <span className="home-fold-art" aria-hidden="true"><Users size={150} strokeWidth={1} /></span>
             <span className="home-fold-icon"><Users size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-display text-base sm:text-lg font-bold leading-tight">Six façons de jouer</span>
@@ -183,8 +188,9 @@ export default async function Home() {
         </div>
           </div>
         </details>
-        <details className="home-fold">
+        <details className="home-fold" data-tone="ember">
           <summary>
+            <span className="home-fold-art" aria-hidden="true"><Skull size={150} strokeWidth={1} /></span>
             <span className="home-fold-icon"><Skull size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-display text-base sm:text-lg font-bold leading-tight">Envie d'autre chose ?</span>
@@ -216,8 +222,9 @@ export default async function Home() {
         </div>
           </div>
         </details>
-        <details className="home-fold">
+        <details className="home-fold" data-tone="tv">
           <summary>
+            <span className="home-fold-art" aria-hidden="true"><Tv size={150} strokeWidth={1} /></span>
             <span className="home-fold-icon"><Tv size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-display text-base sm:text-lg font-bold leading-tight">Organiser une soirée blind test</span>
@@ -260,8 +267,9 @@ export default async function Home() {
           </div>
         </details>
         {news.length > 0 && (
-        <details className="home-fold">
+        <details className="home-fold" data-tone="ink">
           <summary>
+            <span className="home-fold-art" aria-hidden="true"><Newspaper size={150} strokeWidth={1} /></span>
             <span className="home-fold-icon"><Newspaper size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-display text-base sm:text-lg font-bold leading-tight">Dernières actus rap</span>
@@ -278,8 +286,9 @@ export default async function Home() {
           </div>
         </details>
         )}
-        <details className="home-fold">
+        <details className="home-fold" data-tone="gold">
           <summary>
+            <span className="home-fold-art" aria-hidden="true"><Gift size={150} strokeWidth={1} /></span>
             <span className="home-fold-icon"><Gift size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-display text-base sm:text-lg font-bold leading-tight">Parrainage · 2 places pour Kaaris</span>
@@ -291,8 +300,9 @@ export default async function Home() {
         <ReferralCard compact />
           </div>
         </details>
-        <details className="home-fold">
+        <details className="home-fold" data-tone="slate">
           <summary>
+            <span className="home-fold-art" aria-hidden="true"><Smartphone size={150} strokeWidth={1} /></span>
             <span className="home-fold-icon"><Smartphone size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-display text-base sm:text-lg font-bold leading-tight">L'app sur ton écran d'accueil</span>
@@ -304,8 +314,9 @@ export default async function Home() {
         <AppStoreCallout />
           </div>
         </details>
-        <details className="home-fold">
+        <details className="home-fold" data-tone="paper">
           <summary>
+            <span className="home-fold-art" aria-hidden="true"><Info size={150} strokeWidth={1} /></span>
             <span className="home-fold-icon"><Info size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block font-display text-base sm:text-lg font-bold leading-tight">Tout savoir sur le blind test</span>
