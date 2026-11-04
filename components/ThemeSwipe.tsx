@@ -145,8 +145,8 @@ export default function ThemeSwipe({
           <p className="text-sm text-ink-faint">Rien dans cette catégorie.</p>
         ) : (
           <div className="swipe-stack">
-            {after && <div className="swipe-card" style={{ transform: "translateY(26px) scale(0.9)", opacity: 0.45 }} aria-hidden="true"><ThemeCover Icon={after.Icon} label={after.label} index={index + 2} photoUrl={photos[after.id]} /></div>}
-            {next && <div className="swipe-card" style={{ transform: "translateY(13px) scale(0.95)", opacity: 0.75 }} aria-hidden="true"><ThemeCover Icon={next.Icon} label={next.label} index={index + 1} photoUrl={photos[next.id]} /></div>}
+            {after && <div className="swipe-card" style={{ transform: "translateY(26px) scale(0.9)", opacity: 0.45 }} aria-hidden="true"><ThemeCover size={1000} Icon={after.Icon} label={after.label} index={index + 2} photoUrl={photos[after.id]} /></div>}
+            {next && <div className="swipe-card" style={{ transform: "translateY(13px) scale(0.95)", opacity: 0.75 }} aria-hidden="true"><ThemeCover size={1000} Icon={next.Icon} label={next.label} index={index + 1} photoUrl={photos[next.id]} /></div>}
             <div
               key={current.id}
               className="swipe-card swipe-card-top"
@@ -159,7 +159,7 @@ export default function ThemeSwipe({
               role="group"
               aria-label={`${current.label} — glisser à droite pour jouer, à gauche pour passer`}
             >
-              <ThemeCover Icon={current.Icon} label={current.label} index={index} photoUrl={photos[current.id]} />
+              <ThemeCover size={1000} Icon={current.Icon} label={current.label} index={index} photoUrl={photos[current.id]} />
               <span className="swipe-stamp swipe-stamp-yes" style={{ opacity: yes }}>JOUER</span>
               <span className="swipe-stamp swipe-stamp-no" style={{ opacity: no }}>SUIVANT</span>
               <span className="swipe-tint swipe-tint-yes" style={{ opacity: yes * 0.35 }} aria-hidden="true" />

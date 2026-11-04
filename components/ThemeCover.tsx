@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Check } from "lucide-react";
+import { artworkAt, type ArtworkSize } from "@/lib/artworkSize";
 
 /*
  * Affiche de thème (v3) — format portrait, photo d'artiste en bichromie rouge/noir, grand
@@ -20,6 +21,7 @@ export default function ThemeCover({
   active = false,
   photoUrl,
   tag,
+  size = 500,
 }: {
   Icon: LucideIcon;
   label: string;
@@ -27,6 +29,8 @@ export default function ThemeCover({
   active?: boolean;
   photoUrl?: string | string[] | null;
   tag?: string;
+  /** Taille d'image demandée au CDN : 500 en tuile, 1000 en plein écran (swipe). */
+  size?: ArtworkSize;
 }) {
   const photos = Array.isArray(photoUrl) ? photoUrl.filter(Boolean) : photoUrl ? [photoUrl] : [];
   const clean = label.replace(/^Blind Test /i, "");
@@ -36,7 +40,7 @@ export default function ThemeCover({
       {photos.length > 0 ? (
         <div className="theme-poster-photos" data-count={Math.min(photos.length, 2)}>
           {photos.slice(0, 2).map((src, i) => (
-            <img key={i} src={src} alt="" aria-hidden="true" loading="lazy" />
+            <img key={i} src={artworkAt(src, size)} alt="" aria-hidden="true" loading="lazy" decoding="async" />
           ))}
         </div>
       ) : (
