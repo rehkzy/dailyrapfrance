@@ -97,10 +97,8 @@ export default async function Home() {
           </h1>
           {/* Une phrase visible, sans clic, qui dit ce qu'est DailyRapFrance — pour les visiteurs
               comme pour les vérificateurs (Google exige que la page d'accueil explique l'app). */}
-          <p className="text-sm sm:text-base text-ink-muted max-w-2xl mb-8">
-            DailyRapFrance est un média indépendant du rap français et un jeu de blind test gratuit : un extrait démarre,
-            tu retrouves l'artiste et le titre avant les autres — en solo, entre potes, en ligne ou en soirée sur la TV.
-            Le compte (Google ou e-mail) sert uniquement à sauvegarder tes scores et à jouer avec tes amis.
+          <p className="text-sm sm:text-base text-ink-muted max-w-xl mb-8">
+            DailyRapFrance, le média rap français devenu jeu : un blind test gratuit, en solo, entre potes, en ligne ou sur la TV.
           </p>
 
           {/* Deux façons de commencer, à égalité : le défi commun, ou une partie comme on veut. */}
