@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Play, Check, Share2, Flame } from "lucide-react";
+import { Play, Check, Share2, Flame, Trophy } from "lucide-react";
 import { getDailyTheme } from "@/lib/themes";
 import { weeklyNumber, formatCountdownLong, msUntilNextWeekly, playedThisWeek, getStreak } from "@/lib/dailyStreak";
 import { configToSearch, DEFAULT_CONFIG } from "@/lib/presets";
@@ -68,6 +68,7 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
     );
   }
 
+  const subject = theme.label.replace(/^Blind Test /i, "");
   return (
     <section className="daily-card p-6 sm:p-8" aria-labelledby="daily-title">
       <BrandMark className="mark-watermark text-white" size="58%" />
@@ -75,43 +76,43 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
         <div className="flex items-center justify-between gap-3 mb-5">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-white/85">
             <span className="w-2 h-2 rounded-full bg-glow animate-pulse" aria-hidden="true" />
-            Défi de la semaine #{number}
+            Défi de la semaine
           </span>
-          <span className="font-mono text-xs text-white/70" aria-live="off">
-            {left !== null ? `Nouveau défi dans ${formatCountdownLong(left)}` : ""}
-          </span>
+          {done ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-semibold text-white"><Check size={12} strokeWidth={3} /> Joué cette semaine</span>
+          ) : (
+            <span className="rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-semibold text-white/85">Jusqu'à dimanche</span>
+          )}
         </div>
 
         <h2 id="daily-title" className="poster-title text-4xl sm:text-5xl md:text-6xl text-white max-w-xl">
           {theme.label}
         </h2>
-        <p className="mt-3 text-sm sm:text-base text-white/80 max-w-md">{theme.text}. 10 extraits, le même thème pour tout le monde du lundi au dimanche. Rejoue autant que tu veux : seul ton meilleur score compte au classement.</p>
+        <p className="mt-3 text-sm sm:text-base text-white/80 max-w-md">
+          {theme.id.startsWith("artist-") ? `Que des sons ${/^[aeiouyéèêhAEIOUYÉ]/.test(subject) ? "d'" : "de "}${subject}.` : `${theme.text}.`} 10 extraits, le même thème pour tout le monde. Ton meilleur score compte au classement.
+        </p>
 
-        <div className="mt-6 flex flex-col xl:flex-row xl:items-center gap-3">
-          <a
-            href={href}
-            className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full xl:w-auto"
-          >
+        <div className="mt-6 flex flex-col gap-3">
+          <a href={href} className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full">
             <Play size={20} fill="currentColor" />
-            {done ? "Rejouer le défi" : "Jouer le défi de la semaine"}
+            {done ? "Rejouer pour battre mon score" : "Jouer le défi"}
           </a>
-          <button
-            type="button"
-            onClick={invite}
-            className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-sm font-medium text-white transition-colors w-full xl:w-auto"
-          >
-            <Share2 size={16} />
-            Défier un pote
-          </button>
-          <a href="/blindtest/defi" className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full text-sm font-medium text-white/85 hover:text-white w-full xl:w-auto">
-            Classement du défi →
-          </a>
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" onClick={invite} className="inline-flex items-center justify-center gap-2 h-12 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-sm font-medium text-white transition-colors">
+              <Share2 size={16} /> Défier un pote
+            </button>
+            <a href="/blindtest/defi" className="inline-flex items-center justify-center gap-2 h-12 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-sm font-medium text-white transition-colors">
+              <Trophy size={16} /> Classement
+            </a>
+          </div>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between gap-4 flex-wrap">
-          <StreakStrip />
-          {streak >= 7 && <span className="text-xs text-white/70">Série protégée : un jour manqué est pardonné.</span>}
-        </div>
+        {streak > 0 && (
+          <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between gap-4 flex-wrap">
+            <StreakStrip />
+            {streak >= 7 && <span className="text-xs text-white/70">Série protégée : un jour manqué est pardonné.</span>}
+          </div>
+        )}
       </div>
       {toast && <div className="toast" role="status">{toast}</div>}
     </section>

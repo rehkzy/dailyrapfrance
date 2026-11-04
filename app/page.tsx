@@ -10,6 +10,7 @@ import NewsList from "@/components/NewsList";
 import { getNews } from "@/lib/news";
 import { ChevronRight, Newspaper } from "lucide-react";
 import LivePlayersBadge from "@/components/LivePlayersBadge";
+import StreakNudge from "@/components/StreakNudge";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { themeSlug } from "@/lib/seo";
@@ -81,13 +82,11 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="brand-glow" aria-hidden="true" />
         <div className="max-w-5xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <BrandTile size={40} />
-            <div>
-              <p className="font-display text-base font-semibold leading-tight">DailyRapFrance</p>
-              <p className="text-xs text-ink-faint">Média rap français · blind test gratuit, compte en 10 secondes</p>
-            </div>
-            <div className="ml-auto hidden sm:block">
+          <div className="flex items-center gap-3 mb-5">
+            <p className="stage-kicker">Blind test rap français</p>
+            <span className="text-ink-faint text-xs" aria-hidden="true">·</span>
+            <p className="text-xs text-ink-faint">Gratuit, par <span className="text-ink-muted font-semibold">DailyRapFrance</span></p>
+            <div className="ml-auto">
               <LivePlayersBadge />
             </div>
           </div>
@@ -95,6 +94,7 @@ export default async function Home() {
           <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl mb-8">
             Reconnais le son avant tes potes.
           </h1>
+          <StreakNudge />
 
           {/* Deux façons de commencer, à égalité : le défi commun, ou une partie comme on veut. */}
           <div className="grid gap-4 md:grid-cols-[1.15fr_1fr] md:items-stretch">
@@ -105,7 +105,7 @@ export default async function Home() {
                 Partie libre
               </span>
               <h2 className="poster-title text-3xl sm:text-4xl md:text-5xl max-w-md">Je choisis mon mode et mon thème.</h2>
-              <p className="mt-3 text-sm sm:text-base text-ink-muted max-w-md">Solo, entre potes sur un téléphone, avec tes amis en ligne, en matchmaking contre des inconnus, en soirée sur la TV, ou le clip — et plus de 80 thèmes.</p>
+              <p className="mt-3 text-sm sm:text-base text-ink-muted max-w-md">Plus de 80 thèmes. Seul, entre potes, en ligne ou sur la TV.</p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {[
                   { href: "/jouer?mode=solo", l: "Solo" },
