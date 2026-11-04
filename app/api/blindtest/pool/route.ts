@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveArtist } from "@/lib/deezerArtist";
-import { deezerFetch, fetchTrackDetail, toGameTrack, type DeezerTrackSummary, type DeezerTrackFull } from "@/lib/deezerTrack";
+import { deezerFetch, fetchTrackDetail, toGameTrack, isPlayableTrack, type DeezerTrackSummary, type DeezerTrackFull } from "@/lib/deezerTrack";
 import { THEME_PLAYLISTS, THEME_ARTISTS, ALL_DECADE_PLAYLISTS } from "@/lib/themeSources";
 
 // Pool de titres du blind test — 100% en direct depuis l'API Deezer, aucune base de données.
@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
     if (idsParam) {
       const ids = idsParam.split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 40);
       const detailed = await Promise.all(ids.map((id) => fetchTrackDetail(id)));
-      const ordered = detailed.filter((t): t is NonNullable<typeof t> => !!t && !!t.preview).map(toGameTrack);
+      const ordered = detailed.filter((t): t is NonNullable<typeof t> => !!t && !!t.preview).map(toGameTrack).filter(isPlayableTrack);
       const shuffle = searchParams.get("order") !== "keep";
       const tracks = (shuffle ? [...ordered].sort(() => Math.random() - 0.5) : ordered).slice(0, count);
       return NextResponse.json({ tracks });
@@ -128,7 +128,8 @@ export async function GET(req: NextRequest) {
         .map((full) => {
           const track = toGameTrack(full);
           return fixed.forcedArtistName ? { ...track, artistName: fixed.forcedArtistName } : track;
-        });
+        })
+        .filter(isPlayableTrack);
       return NextResponse.json({ tracks });
     }
 
@@ -160,7 +161,7 @@ export async function GET(req: NextRequest) {
     const detailed = await Promise.all(shuffled.map((t) => fetchTrackDetail(t.id)));
     const tracks = detailed
       .map((full, i) => (full ? toGameTrack(full) : toGameTrack({ ...shuffled[i], contributors: [] })))
-      .filter((t) => t.previewUrl);
+      .filter(isPlayableTrack);
 
     return NextResponse.json({ tracks });
   } catch (err) {

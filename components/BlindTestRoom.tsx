@@ -1385,8 +1385,8 @@ function BlindTestRoom({
             <div className="feed-reveal solved-pop">
               {track.coverUrl && <img src={track.coverUrl} alt="" className="w-36 h-36 rounded-2xl object-cover mx-auto mb-4 shadow-[0_20px_50px_rgba(0,0,0,0.6)]" />}
               <p className="font-display text-3xl font-extrabold tracking-tight leading-tight">{track.title}</p>
-              <p className="text-ink-muted text-lg mt-1">{track.artistName}</p>
-              {track.feats.length > 0 && <p className="text-sm text-ink-faint mt-1">feat. {track.feats.join(", ")}</p>}
+              <p className="text-ink-muted text-lg mt-1 line-clamp-2">{track.artistName}</p>
+              {track.feats.length > 0 && <p className="text-sm text-ink-faint mt-1 line-clamp-2">feat. {track.feats.slice(0, 3).join(", ")}</p>}
               <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
                 {applicable.map((f) => (
                   <span key={f} className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ${isSolved(f) ? "bg-gold text-white" : "bg-white/8 text-ink-faint line-through"}`}>
