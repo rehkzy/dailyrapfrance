@@ -84,17 +84,24 @@ export default async function Home() {
           <div className="flex items-center gap-3 mb-6">
             <BrandTile size={40} />
             <div>
-              <p className="font-display text-base font-semibold leading-tight">Blind test rap français</p>
-              <p className="text-xs text-ink-faint">Gratuit, compte en 10 secondes · par DailyRapFrance</p>
+              <p className="font-display text-base font-semibold leading-tight">DailyRapFrance</p>
+              <p className="text-xs text-ink-faint">Média rap français · blind test gratuit, compte en 10 secondes</p>
             </div>
             <div className="ml-auto hidden sm:block">
               <LivePlayersBadge />
             </div>
           </div>
 
-          <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl mb-8">
+          <h1 className="poster-title text-[2.6rem] sm:text-6xl md:text-7xl max-w-3xl mb-4">
             Reconnais le son avant tes potes.
           </h1>
+          {/* Une phrase visible, sans clic, qui dit ce qu'est DailyRapFrance — pour les visiteurs
+              comme pour les vérificateurs (Google exige que la page d'accueil explique l'app). */}
+          <p className="text-sm sm:text-base text-ink-muted max-w-2xl mb-8">
+            DailyRapFrance est un média indépendant du rap français et un jeu de blind test gratuit : un extrait démarre,
+            tu retrouves l'artiste et le titre avant les autres — en solo, entre potes, en ligne ou en soirée sur la TV.
+            Le compte (Google ou e-mail) sert uniquement à sauvegarder tes scores et à jouer avec tes amis.
+          </p>
 
           {/* Deux façons de commencer, à égalité : le défi commun, ou une partie comme on veut. */}
           <div className="grid gap-4 md:grid-cols-[1.15fr_1fr] md:items-stretch">
