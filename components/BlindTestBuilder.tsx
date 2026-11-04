@@ -1,5 +1,6 @@
 "use client";
 
+import HelpTip from "@/components/HelpTip";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Plus, Check, X, Play, Pause, Image as ImageIcon, Loader2, Share2, ChevronUp, ChevronDown, Link2, Trash2, Music2, Sparkles, ChevronRight, Users, Save, Globe, Lock, LogIn, Pencil } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -501,7 +502,13 @@ export default function BlindTestBuilder() {
                   <button type="button" aria-pressed={answer === "text"} onClick={() => { sfx.click(); setAnswer("text"); }}>Difficile · écrire</button>
                 </div>
               </div>
-              <p className="text-xs text-ink-faint">L&apos;ordre des titres est mélangé à chaque partie. Barème habituel : titre 1 pt, artiste 1 pt, featuring 2 pts.</p>
+              <HelpTip title="Comment se joue ton blind test ?">
+                <ul>
+                  <li><span>🔀</span><span>L'ordre des titres est mélangé à chaque partie.</span></li>
+                  <li><span>🎯</span><span><b>Titre</b> 1 pt · <b>Artiste</b> 1 pt · <b>Featuring</b> 2 pts, plus un bonus de rapidité.</span></li>
+                  <li><span>📱</span><span>Jouable en solo, entre potes, en ligne ou sur la TV, avec le même lien.</span></li>
+                </ul>
+              </HelpTip>
             </div>
 
             {/* Enregistrer dans son profil (compte) + public */}

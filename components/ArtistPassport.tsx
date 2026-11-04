@@ -1,5 +1,6 @@
 "use client";
 
+import HelpTip from "@/components/HelpTip";
 import { useEffect, useState } from "react";
 import { Lock, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -53,9 +54,12 @@ export default function ArtistPassport({ userId }: { userId: string }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="font-mono text-xs text-gold uppercase tracking-[0.16em]">Passeport artiste</p>
-        <p className="text-xs text-ink-faint">
-          {unlockedCount} / {ARTIST_THEMES.length} débloqués
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-ink-faint">{unlockedCount} / {ARTIST_THEMES.length}</p>
+          <HelpTip title="Le passeport artiste">
+            <p>Chaque blind test d'artiste joué débloque sa case. L'étoile ⭐ marque un artiste « maîtrisé » : environ {MASTERY_RATIO} point par manche en moyenne sur ta meilleure partie — une estimation, pas un diplôme.</p>
+          </HelpTip>
+        </div>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {ARTIST_THEMES.map((t) => {
@@ -90,10 +94,7 @@ export default function ArtistPassport({ userId }: { userId: string }) {
           );
         })}
       </div>
-      <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
-        ⭐ = meilleure performance estimée "maîtrisée" (≈ {MASTERY_RATIO} pt/manche en
-        moyenne) — une estimation, pas une certification exacte.
-      </p>
+
     </div>
   );
 }

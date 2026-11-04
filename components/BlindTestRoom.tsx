@@ -1551,7 +1551,6 @@ function ReplayPanel({
       </button>
       <div className="px-0.5">
         <p className="stage-kicker mb-1">Rejouer — même salon</p>
-        <p className="text-xs text-ink-faint mb-4">Même code, mêmes joueurs — change juste le thème ou le nombre de manches.</p>
 
         <div className="mb-6 -mx-1 px-1">
           <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); }} />

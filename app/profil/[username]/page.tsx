@@ -12,6 +12,7 @@ import { computeStats } from "@/lib/gameStats";
 import { loadProfileBundle } from "@/lib/profileData";
 import { bannerStyle } from "@/lib/badges";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import HelpTip from "@/components/HelpTip";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { configToSearch, DEFAULT_CONFIG } from "@/lib/presets";
 
@@ -159,9 +160,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         {/* Fan de… : les badges d'artiste, le vrai sujet de fierté */}
         {fanBadges.length > 0 && (
           <div className="ticket p-5 mb-4">
-            <div className="flex items-baseline justify-between mb-3">
+            <div className="flex items-center justify-between mb-3">
               <p className="stage-kicker">{isMe ? "Tes artistes" : "Ses artistes"}</p>
-              <span className="text-[11px] text-ink-faint">3 parties = Fan · 10 = Grand fan · 25 = Ultra · meilleur score du site = 👑</span>
+              <HelpTip title="Comment on devient fan d'un artiste ?" label="Comment on devient fan ?">
+                <ul>
+                  <li><span>🎤</span><span><b>Fan</b> — 3 parties sur son blind test</span></li>
+                  <li><span>🔥</span><span><b>Grand fan</b> — 10 parties</span></li>
+                  <li><span>⚡</span><span><b>Ultra</b> — 25 parties</span></li>
+                  <li><span>👑</span><span><b>Meilleur fan</b> — le meilleur score du site sur cet artiste</span></li>
+                </ul>
+              </HelpTip>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {fanBadges.map((b) => (

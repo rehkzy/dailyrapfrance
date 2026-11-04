@@ -25,7 +25,7 @@ export default function ParrainagePage() {
         <BackToGame fallback="/profil" />
         <p className="stage-kicker mb-2 inline-flex items-center gap-1.5"><Gift size={13} /> Parrainage</p>
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Invite tes potes, gagne le Stade de France.</h1>
-        <p className="text-ink-muted mb-6">{REFERRAL_CONTEST.rule}</p>
+        <p className="text-ink-muted mb-6">Chaque pote inscrit avec ton lien te donne une chance de plus au tirage.</p>
         <ReferralCard />
         <h2 className="font-display text-xl font-bold mt-10 mb-3">Comment ça marche</h2>
         <ol className="space-y-2.5">

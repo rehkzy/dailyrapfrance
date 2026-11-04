@@ -58,7 +58,7 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
           {done ? <Check size={20} strokeWidth={3} /> : <Flame size={20} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Défi de la semaine #{number} — {theme.label}</span>
+          <span className="block text-sm font-semibold">Défi de la semaine — {theme.label}</span>
           <span className={`block text-xs ${done ? "text-ink-faint" : "text-white/80"}`}>
             {done ? "Déjà joué cette semaine — rejoue pour battre ton score" : theme.text}
           </span>

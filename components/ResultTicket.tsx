@@ -231,7 +231,6 @@ export default function ResultTicket({
             </div>
             {sheet === "story" ? (
               <>
-                <p className="text-xs text-ink-faint mb-4">Format 9:16 avec le logo et ton score — Instagram, TikTok, Snap. Appuie longuement pour enregistrer si le partage ne s&apos;ouvre pas.</p>
                 <ShareScoreCard points={points} themeLabel={themeLabel} rounds={rounds.length} />
               </>
             ) : (
@@ -241,7 +240,7 @@ export default function ResultTicket({
                   save();
                 }}
               >
-                <p className="text-xs text-ink-faint mb-3">{describeConfig(config, themeLabel)} — relançable en un tap depuis l&apos;accueil, avec un lien à envoyer dans le groupe.</p>
+                <p className="text-xs text-ink-muted mb-3">{describeConfig(config, themeLabel)}</p>
                 <input
                   autoFocus
                   value={presetName}

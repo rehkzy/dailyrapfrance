@@ -6,6 +6,7 @@ import { useUser } from "@/lib/useUser";
 import { REFERRAL_CONTEST, referralLink } from "@/lib/referral";
 import { shareOrCopy } from "@/lib/share";
 import SignInCta from "@/components/SignInCta";
+import HelpTip from "@/components/HelpTip";
 
 /*
  * Carte de parrainage — même composant sur /parrainage (complet) et dans le profil / l'accueil
@@ -92,9 +93,21 @@ export default function ReferralCard({ compact = false }: { compact?: boolean })
         <div className="flex items-start gap-3">
           <span className="w-12 h-12 rounded-2xl bg-white/15 text-white grid place-items-center shrink-0"><Gift size={22} /></span>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Parrainage · à gagner</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Parrainage · à gagner</p>
+              {!compact && (
+                <HelpTip title="Comment ça marche ?">
+                  <ul>
+                    <li><span>🔗</span><span>Un pote clique sur ton lien, puis crée son compte — même avec Google, on s'en souvient 30 jours.</span></li>
+                    <li><span>🔑</span><span>Sinon, il peut saisir ton code dans la semaine qui suit son inscription.</span></li>
+                    <li><span>🎟️</span><span>Chaque pote inscrit = 1 chance au tirage. Les doublons sont retirés avant.</span></li>
+                    <li><span>📣</span><span>{REFERRAL_CONTEST.drawLabel}.</span></li>
+                  </ul>
+                </HelpTip>
+              )}
+            </div>
             <h2 id="ref-title" className="font-display text-xl sm:text-2xl font-extrabold leading-tight text-white">{REFERRAL_CONTEST.title}</h2>
-            <p className="text-xs text-white/80 mt-0.5">{REFERRAL_CONTEST.date} · {REFERRAL_CONTEST.rule}</p>
+            <p className="text-xs text-white/80 mt-0.5">{REFERRAL_CONTEST.date} · 1 pote inscrit avec ton lien = 1 chance au tirage</p>
           </div>
         </div>
 
@@ -182,7 +195,7 @@ export default function ReferralCard({ compact = false }: { compact?: boolean })
               </form>
             )}
 
-            {!compact && <p className="text-[11px] text-white/60 mt-3">{REFERRAL_CONTEST.drawLabel}. Un filleul = un compte créé après avoir cliqué sur ton lien (même avec Google, on s'en souvient 30 jours), ou qui a saisi ton code dans la semaine suivant son inscription. Les doublons sont retirés avant le tirage.</p>}
+
           </div>
         ) : (
           <div className="mt-4">
