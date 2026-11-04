@@ -9,7 +9,7 @@ export default function TrendingList({ tracks, numbered = true }: { tracks: Tren
   return (
     <ol className="ticket divide-y divide-white/6">
       {tracks.map((t) => (
-        <li key={t.id} className="flex items-center gap-3 px-4 py-3">
+        <li key={t.id} className="flex items-center gap-3 px-4 sm:px-5 py-3">
           {numbered && <span className={`w-6 text-center font-display font-extrabold text-sm shrink-0 ${t.rank <= 3 ? "text-gold" : "text-ink-faint"}`}>{t.rank}</span>}
           <span className="relative w-12 h-12 shrink-0">
             {t.cover ? <img src={t.cover} alt="" className="w-12 h-12 rounded-lg object-cover" loading="lazy" /> : <span className="block w-12 h-12 rounded-lg bg-white/6" />}
@@ -19,7 +19,7 @@ export default function TrendingList({ tracks, numbered = true }: { tracks: Tren
             <span className="block text-sm font-semibold truncate">{t.title}</span>
             <span className="block text-xs text-ink-faint truncate">{t.artist}</span>
           </span>
-          <a href={`/creer?q=${encodeURIComponent(t.artist)}`} className="sticker sticker-ghost sticker-sm shrink-0 !h-9 !px-3 text-xs whitespace-nowrap" aria-label={`Créer un blind test ${t.artist}`}>
+          <a href={`/creer?q=${encodeURIComponent(t.artist)}`} className="sticker sticker-ghost sticker-sm shrink-0 !h-9 !px-2.5 text-xs whitespace-nowrap" aria-label={`Créer un blind test ${t.artist}`}>
             <Sparkles size={12} /> Blind test
           </a>
         </li>

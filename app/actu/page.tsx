@@ -49,7 +49,7 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
   ]);
 
   return (
-    <section className="max-w-2xl lg:max-w-4xl mx-auto px-6 sm:px-8 pt-8 sm:pt-14 pb-32">
+    <section className="max-w-2xl lg:max-w-4xl mx-auto px-7 sm:px-8 pt-8 sm:pt-14 pb-32">
       <p className="stage-kicker mb-2">Le média</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Actu &amp; tendances</h1>
       <p className="text-ink-muted mb-5">Ce qui tourne en ce moment, les sorties, l&apos;actu — et un blind test dessus en un tap.</p>

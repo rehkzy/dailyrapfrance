@@ -158,7 +158,9 @@ const ClipPlayer = forwardRef<ClipHandle, { videoId: string; start: number; volu
               <span className="mt-4 font-display text-xl font-extrabold text-ink">{coverLabel ?? "Lancer le clip"}</span>
             </button>
           ) : (
-            <div className="clip-cover">{coverLabel ?? "Le clip démarre au tap"}</div>
+            // coverLabel="" : voile sans texte (le bouton « Touche pour lancer le clip » de la scène
+            // s'affiche par-dessus — les deux textes se superposaient et devenaient illisibles).
+            <div className="clip-cover">{coverLabel === "" ? null : coverLabel ?? "Le clip démarre au tap"}</div>
           )
         )}
       </div>

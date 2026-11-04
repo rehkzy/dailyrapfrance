@@ -1560,7 +1560,7 @@ export default function BlindTest() {
       {track.coverUrl && !isClip && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}
       {isClip && track.clip && !revealed && (
         <div className="reel-video">
-          <ClipPlayer key={track.id} ref={clipRef} videoId={track.clip.videoId} start={track.clip.start} volume={trackVolume} onError={() => setAudioError(true)} onPlaying={onClipPlaying} covered={!started} />
+          <ClipPlayer key={track.id} ref={clipRef} videoId={track.clip.videoId} start={track.clip.start} volume={trackVolume} onError={() => setAudioError(true)} onPlaying={onClipPlaying} covered={!started} coverLabel="" />
         </div>
       )}
       <div className="reel-shade" aria-hidden="true" />
