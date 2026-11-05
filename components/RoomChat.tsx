@@ -16,6 +16,7 @@ import { sfx } from "@/lib/sfx";
 export type ChatMessage = { id: number; user_id: string; name: string; avatar_url: string | null; text: string; created_at: string };
 
 const MAX_LEN = 200;
+const QUICK_REPLIES = ["gg 🔥", "trop fort", "chance 😭", "nan mais là", "revanche", "💀"];
 const MIN_INTERVAL_MS = 1200;
 
 export function useRoomChat(roomId: string | undefined) {
@@ -178,7 +179,13 @@ export function LiveChat({ roomId, userId, name, avatarUrl, open, onOpenChange, 
               </div>
             ))}
           </div>
-          <ChatInput autoFocus onSend={(t) => sendMessage(roomId, userId, name, avatarUrl, t)} placeholder="Chambre les autres…" />
+          {/* Réponses rapides : un tap, pas de clavier — l'essentiel d'un chat en pleine partie */}
+          <div className="chat-quick" aria-label="Réponses rapides">
+            {QUICK_REPLIES.map((q) => (
+              <button key={q} type="button" onClick={() => void sendMessage(roomId, userId, name, avatarUrl, q).then((ok) => ok && sfx.click())} className="chat-quick-btn">{q}</button>
+            ))}
+          </div>
+          <ChatInput onSend={(t) => sendMessage(roomId, userId, name, avatarUrl, t)} placeholder="Écrire…" />
         </div>
       )}
     </>

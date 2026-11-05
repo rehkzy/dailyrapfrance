@@ -3295,8 +3295,8 @@ body:has([data-admin]) .card { background: #0f0a0b; }
 
 /* Feuille de saisie : monte du bas, laisse la scène visible derrière */
 .chat-sheet {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
-  max-width: 36rem; margin: 0 auto; height: min(62dvh, 520px);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 120;
+  max-width: 36rem; margin: 0 auto; height: min(46dvh, 420px);
   display: flex; flex-direction: column;
   padding: 12px 14px calc(env(safe-area-inset-bottom) + 12px);
   border-radius: 24px 24px 0 0;
@@ -3498,3 +3498,9 @@ body:has([data-admin]) .card { background: #0f0a0b; }
 
 /* Une feuille ouverte passe devant le menu du bas, qui s'efface le temps de la feuille */
 body:has(.sheet) .brand-dock-wrap { display: none !important; }
+
+/* Chat en partie : réponses rapides sans clavier */
+.chat-quick { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 8px; scrollbar-width: none; }
+.chat-quick::-webkit-scrollbar { display: none; }
+.chat-quick-btn { flex: 0 0 auto; height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--ink); background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); }
+.chat-quick-btn:active { background: rgba(240, 0, 28, 0.35); border-color: rgba(240, 0, 28, 0.6); }
