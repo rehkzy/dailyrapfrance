@@ -206,6 +206,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
     clips?.forEach((c) => playersRef.current[c.id]?.pause());
     bumpGamesPlayed();
     window.dispatchEvent(new Event("drf-game-finished"));
+    sfx.tag();
     setFinished(true);
   }
 

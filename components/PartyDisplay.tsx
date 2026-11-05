@@ -8,6 +8,7 @@ import { DRMark3D } from "@/components/BlindTestLogo";
 import Confetti from "@/components/Confetti";
 import { randomGage } from "@/lib/gages";
 import { THEME_OPTIONS } from "@/lib/themes";
+import { sfx } from "@/lib/sfx";
 import { fieldsFor } from "@/lib/fields";
 
 /*
@@ -72,6 +73,18 @@ export default function PartyDisplay({ code }: { code: string }) {
     () => (typeof window !== "undefined" ? `${window.location.origin}/blindtest?room=${code}` : ""),
     [code]
   );
+
+  // Signature sonore sur la TV : au passage du salon à la partie, et au classement final.
+  const prevStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const st = room?.status ?? null;
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = st;
+    if (!prev || prev === st) return;
+    if (st === "playing" && prev === "lobby") sfx.tag(0.8);
+    if (st === "finished") sfx.tag(0.8);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.status]);
 
   useEffect(() => {
     if (!joinUrl) return;
