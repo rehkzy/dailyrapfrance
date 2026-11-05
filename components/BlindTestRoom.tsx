@@ -610,6 +610,24 @@ function BlindTestRoom({
     setBusy(false);
   }
 
+  // L'adresse de la page suit le salon courant : un lien copié depuis la barre d'adresse
+  // (ou partagé par Safari) pointe sur le bon code, pas sur celui d'un salon précédent
+  // resté dans l'URL. Sans salon, on retire le paramètre.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const u = new URL(window.location.href);
+    const current = u.searchParams.get("room");
+    if (room?.code) {
+      if (current === room.code) return;
+      u.searchParams.set("mode", "online");
+      u.searchParams.set("room", room.code);
+    } else {
+      if (!current) return;
+      u.searchParams.delete("room");
+    }
+    window.history.replaceState(window.history.state, "", u.toString());
+  }, [room?.code]);
+
   const autoJoinedRef = useRef(false);
   useEffect(() => {
     if (!initialCode || autoJoinedRef.current) return;
