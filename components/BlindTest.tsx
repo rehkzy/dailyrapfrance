@@ -272,6 +272,7 @@ export default function BlindTest() {
 
   useEffect(() => clearTimers, [clearTimers]);
 
+  const missReactedRef = useRef(false); // un ad-lib « raté » a déjà joué sur cette manche
   const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stopFade = useCallback(() => {
@@ -346,7 +347,7 @@ export default function BlindTest() {
       // Uniquement l'ad-lib de l'artiste révélé (Kaaris sur un son de Kaaris) — jamais celui
       // d'un autre : trouvé → sa réaction, à chaque fois ; raté → sa vanne, s'il en a une.
       const prefer = trackRef.current.artistName;
-      const secs = allFound ? sfx.gimmick("hit", 1, { prefer, strict: true, force: true }) : nothing ? sfx.gimmick("miss", 0.6, { prefer, strict: true }) : 0;
+      const secs = allFound ? sfx.artistReact(prefer, "hit") : nothing && !missReactedRef.current ? sfx.artistReact(prefer, "miss") : 0;
       if (secs > 0 && a && !a.paused) {
         try { a.volume = 0.25; } catch {}
         setTimeout(() => { try { if (a && !fadeIntervalRef.current) a.volume = 1; } catch {} }, secs * 1000 + 150);
@@ -526,6 +527,7 @@ export default function BlindTest() {
   function launchExtract(force = false) {
     if (!force && (started || revealed)) return;
     stopFade();
+    missReactedRef.current = false;
     sfx.click();
     setStarted(true);
     audioUnlockedRef.current = true;
@@ -746,6 +748,7 @@ export default function BlindTest() {
       return;
     }
     sfx.wrong();
+    if (sfx.artistReact(track.artistName, "miss") > 0) missReactedRef.current = true;
     setQcmWrongId(chosenLabel);
     haptic([30, 30, 30]);
     setTimeout(() => setQcmWrongId(null), 450);
@@ -804,6 +807,7 @@ export default function BlindTest() {
     const gained = checkFields(buzzedBy, guess);
     if (gained === 0) {
       sfx.wrong();
+      if (sfx.artistReact(track.artistName, "miss") > 0) missReactedRef.current = true;
       const nextLocked = new Set(locked);
       nextLocked.add(buzzedBy);
       setLocked(nextLocked);
@@ -828,6 +832,7 @@ export default function BlindTest() {
     const gained = checkFields("solo", guess);
     if (gained === 0) {
       sfx.wrong();
+      if (sfx.artistReact(track.artistName, "miss") > 0) missReactedRef.current = true;
       setWrongFlash(true);
       setTimeout(() => setWrongFlash(false), 450);
       return;

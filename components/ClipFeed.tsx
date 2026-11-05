@@ -166,6 +166,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
     if (!clip) return;
     stopTimer();
     sfx.wrong();
+    sfx.artistReact(clip.artist, "miss");
     setStates((s) => ({ ...s, [clipId]: { ...(s[clipId] ?? initState(clip)), done: true } }));
     advance(clipId);
   }
@@ -181,6 +182,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
     const correct = qcmIsCorrect(field, toStageTrack(clip), choice);
     const gained = correct ? POINTS[field] + speedBonus(elapsed) : 0;
     if (correct) sfx.correct(); else sfx.wrong();
+    sfx.artistReact(clip.artist, correct ? "hit" : "miss");
     const nextStage = st.stage + 1;
     const done = nextStage >= st.stages.length;
     const pool = (clips ?? []).map(toStageTrack);

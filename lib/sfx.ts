@@ -127,6 +127,11 @@ export const sfx = {
       return pick.seconds;
     } catch { return 0; }
   },
+  // Réaction de l'artiste lui-même (et de lui seul) : bonne ou mauvaise réponse sur un de
+  // ses sons, dans tous les modes. Rien si l'artiste n'a pas d'ad-lib.
+  artistReact(artistName: string | null | undefined, mood: "hit" | "miss"): number {
+    return sfx.gimmick(mood, 1, { prefer: artistName, strict: true, force: true, volume: 0.85 });
+  },
   // Joker utilisé
   joker() {
     tone(300, 0, 0.08, "sine", 0.08);
