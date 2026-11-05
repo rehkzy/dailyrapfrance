@@ -22,6 +22,7 @@ export const THEME_CATEGORIES = ["Du moment", "Époques", "Styles", "Régions", 
 export const THEME_OPTIONS: ThemeOption[] = [
   // --- Du moment
   { id: "pop", label: "Top 50", text: "Les sons les plus populaires du moment", Icon: Flame, category: "Du moment" },
+  { id: "sorties", label: "Sorti cette semaine", text: "Les nouveautés rap FR des 15 derniers jours — ça change tout seul", Icon: Sparkles, category: "Du moment", keywords: "nouveautés sorties semaine nouveau son" },
   { id: "hits-2026", label: "Les stars de 2026", text: "Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola...", Icon: Star, category: "Du moment", keywords: "2026 top streams" },
   { id: "viral", label: "Viral TikTok", text: "Les sons rap FR qui tournent en boucle", Icon: TrendingUp, category: "Du moment", keywords: "tiktok viral tendance" },
   { id: "nouvelle-gen", label: "Nouvelle génération", text: "La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23, R2...", Icon: Sparkles, category: "Du moment", keywords: "révélation 2026 nouvelle école" },
@@ -139,7 +140,7 @@ export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époq
 // à partir de la date (pas de hasard, pas d'état serveur à synchroniser) : le même jour donne
 // toujours le même thème pour tous les joueurs, et il change tout seul le lendemain.
 // Les thèmes à pool très restreint (régions à un seul nom) sont exclus du tirage.
-const DAILY_EXCLUDED = new Set(["mix", "78", "31", "lagui-sadek"]);
+const DAILY_EXCLUDED = new Set(["mix", "78", "31", "lagui-sadek", "sorties"]);
 const DAILY_POOL = THEME_OPTIONS.filter((t) => !DAILY_EXCLUDED.has(t.id));
 
 function weekIndexParis(): number {

@@ -140,6 +140,16 @@ export async function GET(req: NextRequest) {
       const names = artistListsById[themeId];
       const lists = await Promise.all(names.map(fetchArtistTopTracks));
       raw = lists.flat();
+    } else if (themeId === "sorties") {
+      // Sorti cette semaine : la playlist éditoriale « nouveautés rap FR », triée par date
+      // d'ajout, fenêtre de 15 jours (élargie si trop maigre). Le thème se renouvelle seul.
+      const list = (await fetchPlaylistTracks(THEME_PLAYLISTS.recent[0])).filter((t) => t.preview);
+      const sorted = [...list].sort((a, b) => (b.time_add ?? 0) - (a.time_add ?? 0));
+      const now = Date.now() / 1000;
+      let fresh = sorted.filter((t) => (t.time_add ?? 0) >= now - 15 * 86_400);
+      if (fresh.length < 10) fresh = sorted.filter((t) => (t.time_add ?? 0) >= now - 30 * 86_400);
+      if (fresh.length < 10) fresh = sorted.slice(0, 25);
+      raw = fresh;
     } else if (themeId === "pop") {
       const lists = await Promise.all(ALL_DECADE_PLAYLISTS.map(fetchPlaylistTracks));
       raw = lists.flat().sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0));

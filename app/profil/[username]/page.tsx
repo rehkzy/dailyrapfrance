@@ -1,5 +1,7 @@
 import HubLinks from "@/components/HubLinks";
 import { SPACE_LINKS } from "@/lib/sitemapNav";
+import { friendsLeaderboard } from "@/lib/friends";
+import { adminClient } from "@/lib/adminAuth";
 import { notFound } from "next/navigation";
 import { Calendar, Play, Flame, Sparkles, Settings, ChevronRight, Swords, Trophy } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -52,6 +54,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   ]);
   if (!profile) notFound();
   const isMe = viewer?.id === profile.id;
+  const board = isMe ? await friendsLeaderboard(adminClient(), profile.id).catch(() => null) : null;
 
   const bundle = await loadProfileBundle(supabase, profile.id);
   const { scores, customs, friends: friendsCount, badges } = bundle;
@@ -149,6 +152,27 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </span>
           <Play size={18} className="shrink-0" fill="currentColor" />
         </a>
+        {isMe && board && board.rows.length > 1 && (
+          <section className="ticket mb-4" aria-label="Classement entre amis">
+            <div className="px-5 pt-4 pb-2 flex items-baseline justify-between">
+              <p className="font-display text-base font-bold inline-flex items-center gap-1.5"><Swords size={15} className="text-gold" /> Chez tes potes</p>
+              <span className="text-[11px] text-ink-faint">Défi de la semaine</span>
+            </div>
+            <ol className="divide-y divide-white/6">
+              {board.rows.slice(0, 5).map((r, i) => (
+                <li key={r.id} className={`flex items-center gap-3 px-5 py-2.5 ${r.me ? "bg-gold/8" : ""}`}>
+                  <span className={`score-num text-lg w-6 shrink-0 ${i === 0 && r.best > 0 ? "text-gold" : "text-ink-faint"}`}>{r.best > 0 ? i + 1 : "–"}</span>
+                  {r.avatar ? <img src={r.avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" /> : <span className="w-8 h-8 rounded-full bg-gold/20 text-gold grid place-items-center text-xs font-bold shrink-0">{r.name.slice(0, 1).toUpperCase()}</span>}
+                  <a href={r.username ? `/profil/${r.username}` : "#"} className="min-w-0 flex-1 text-sm font-semibold truncate">{r.me ? "Toi" : r.name}</a>
+                  <span className="font-display text-sm font-extrabold">{r.best > 0 ? `${r.best} pts` : <span className="text-ink-faint font-normal text-xs">pas joué</span>}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="px-5 py-3 text-xs text-ink-faint">
+              {board.myRank === 1 ? "Tu es devant. Ils vont vouloir leur revanche." : board.above ? `${board.above.name} est devant toi de ${board.above.best - (board.rows.find((r) => r.me)?.best ?? 0)} pts.` : "Joue le défi pour entrer dans le classement."}
+            </p>
+          </section>
+        )}
         {isMe && <div className="mb-5"><HubLinks title="Mon espace" links={SPACE_LINKS} /></div>}
         <a href={isMe ? "/blindtest/classement" : "/blindtest/defi"} className="action-row mb-4">
           <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-gold/15 text-gold"><Trophy size={20} /></span>

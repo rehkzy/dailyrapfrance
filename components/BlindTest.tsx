@@ -18,7 +18,7 @@ import { track as trackEv } from "@/lib/track";
 import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
-import { speedBonus } from "@/lib/scoring";
+import { speedBonus, comboBonus } from "@/lib/scoring";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
@@ -271,6 +271,16 @@ export default function BlindTest() {
 
   useEffect(() => clearTimers, [clearTimers]);
 
+  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopFade = useCallback(() => {
+    if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+    if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+    fadeTimeoutRef.current = null;
+    fadeIntervalRef.current = null;
+    try { if (audioRef.current) audioRef.current.volume = 1; } catch {}
+  }, []);
+
   // Retour haptique (Android / navigateurs qui le supportent — iOS Safari l'ignore sans casser).
   const haptic = useCallback((pattern: number | number[]) => {
     try {
@@ -283,6 +293,9 @@ export default function BlindTest() {
   const advanceRound = useCallback(() => {
     if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
     advanceTimeoutRef.current = null;
+    stopFade();
+    audioRef.current?.pause();
+    clipRef.current?.pause();
     const nothingFound = Object.keys(solvedRef.current).length === 0;
     if (variantRef.current === "survival" && nothingFound) {
       setPhase("final");
@@ -293,7 +306,7 @@ export default function BlindTest() {
       if (next >= tracks.length) setPhase("final");
       return next;
     });
-  }, [tracks.length]);
+  }, [tracks.length, stopFade]);
 
   const revealRound = useCallback(() => {
     blurAndRealign();
@@ -301,8 +314,25 @@ export default function BlindTest() {
     sfx.reveal();
     haptic(Object.keys(solvedRef.current).length ? [18, 40, 18] : 60);
     clearTimers();
-    audioRef.current?.pause();
-    clipRef.current?.pause();
+    // Le son continue pendant la révélation (c'est le moment « ah mais oui ! »), plein
+    // volume, puis fondu juste avant la manche suivante. En sprint on coupe net.
+    const revealMs = variantRef.current === "sprint" ? 1800 : 3800;
+    const a = audioRef.current;
+    if (variantRef.current === "sprint") {
+      a?.pause();
+      clipRef.current?.pause();
+    } else if (a && !a.paused) {
+      const fadeAt = revealMs - 900;
+      fadeTimeoutRef.current = setTimeout(() => {
+        const steps = 9;
+        let i = 0;
+        fadeIntervalRef.current = setInterval(() => {
+          i++;
+          try { a.volume = Math.max(0, 1 - i / steps); } catch {}
+          if (i >= steps) { if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current); fadeIntervalRef.current = null; a.pause(); try { a.volume = 1; } catch {} }
+        }, 90);
+      }, fadeAt);
+    }
     if (trackRef.current) {
       setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current, fast: fastRef.current }]);
     }
@@ -312,9 +342,13 @@ export default function BlindTest() {
       setStreak((s) => {
         const next = perfect ? s + 1 : 0;
         setBestStreak((b) => Math.max(b, next));
-        if (perfect && next > 0 && next % 3 === 0) {
+        // Combo : 3 d'affilée → +2, 5 → +3, puis +3 tous les deux sons parfaits (7, 9…).
+        // Le multiplicateur se voit dans le HUD, le bonus tombe en burst.
+        const bonus = comboBonus(next);
+        if (perfect && bonus > 0) {
           sfx.bonus();
-          awardPoints("solo", 2);
+          awardPoints("solo", bonus);
+          haptic([20, 30, 20, 30, 40]);
           setStreakBurst(next);
           setTimeout(() => setStreakBurst((v) => (v === next ? null : v)), 1700);
         }
@@ -323,7 +357,7 @@ export default function BlindTest() {
     }
     // Durée d'affichage du résultat avant la manche suivante — 3.8s (au lieu de 3.2s),
     // pour laisser le temps de lire le titre/artiste révélés sans que ça paraisse "flash".
-    advanceTimeoutRef.current = setTimeout(advanceRound, variantRef.current === "sprint" ? 1800 : 3800);
+    advanceTimeoutRef.current = setTimeout(advanceRound, revealMs);
   }, [blurAndRealign, clearTimers, advanceRound, haptic]);
 
   const tick = useCallback(() => {
@@ -473,6 +507,7 @@ export default function BlindTest() {
   // l'état « révélé » de la manche précédente (resetRoundState vient de le remettre à zéro).
   function launchExtract(force = false) {
     if (!force && (started || revealed)) return;
+    stopFade();
     sfx.click();
     setStarted(true);
     audioUnlockedRef.current = true;
@@ -790,6 +825,7 @@ export default function BlindTest() {
 
   const [scoreSaveStatus, setScoreSaveStatus] = useState<"idle" | "saved" | "guest">("idle");
   const [topPercent, setTopPercent] = useState<number | null>(null);
+  const [friendStanding, setFriendStanding] = useState<{ rank: number | null; total: number; above: { name: string; points: number } | null; beaten: { name: string; points: number }[] } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   // Bilan manche par manche (champs trouvés / à trouver) — alimente la progression, la grille
   // emoji partagée et le récap.
@@ -838,6 +874,7 @@ export default function BlindTest() {
       .then((data) => {
         setScoreSaveStatus(data.saved ? "saved" : "guest");
         setTopPercent(typeof data.topPercent === "number" ? data.topPercent : null);
+        setFriendStanding(data.friends ?? null);
       })
       .catch(() => setScoreSaveStatus("guest"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -855,6 +892,7 @@ export default function BlindTest() {
     setRoundHistory([]);
     setScoreSaveStatus("idle");
     setTopPercent(null);
+    setFriendStanding(null);
     setShowConfetti(false);
     resetRoundState();
   }
@@ -869,6 +907,7 @@ export default function BlindTest() {
     setRoundHistory([]);
     setScoreSaveStatus("idle");
     setTopPercent(null);
+    setFriendStanding(null);
     setShowConfetti(false);
     resetRoundState();
     void startGame();
@@ -1412,7 +1451,7 @@ export default function BlindTest() {
                     <input type="range" min={0} max={100} value={trackVolume * 100} onChange={(e) => setTrackVolume(Number(e.target.value) / 100)} className="brand-slider flex-1" style={{ "--fill": `${trackVolume * 100}%` } as CSSProperties} aria-label="Volume des extraits" />
                     <span className="font-mono text-xs text-ink-faint w-9 text-right">{Math.round(trackVolume * 100)}%</span>
                   </div>
-                  <p className="text-xs text-ink-faint">Barème : titre 1 pt · artiste 1 pt · featuring 2 pts · bonus de rapidité.</p>
+                  <p className="text-xs text-ink-faint">Barème : titre 1 pt · artiste 1 pt · featuring 2 pts · bonus de rapidité · combo (3 sons parfaits d&apos;affilée → +2, 5 → +3).</p>
                 </div>
               </details>
 
@@ -1456,6 +1495,10 @@ export default function BlindTest() {
     if (dailyRecord) chips.push({ label: "🏆 Record de la semaine", strong: true });
     if (solo && topPercent !== null) chips.push({ label: isDailyRun ? `Top ${topPercent}% du défi` : `Top ${topPercent}% sur ce thème` });
     if (solo && bestStreak >= 2) chips.push({ label: `Combo max : ${bestStreak}` });
+    if (solo && friendStanding && friendStanding.total > 1) {
+      for (const b of friendStanding.beaten.slice(0, 2)) chips.push({ label: `⚔️ Tu passes ${b.name} (${b.points} pts)`, strong: true });
+      if (friendStanding.rank) chips.push({ label: friendStanding.rank === 1 ? `🥇 1er chez tes potes` : `${friendStanding.rank}e chez tes potes${friendStanding.above ? ` · ${friendStanding.above.name} a ${friendStanding.above.points}` : ""}` });
+    }
     if (beat !== null) chips.push(topScore > beat ? { label: `Tu bats ${deepLink.from} (${beat} pts)`, strong: true } : topScore === beat ? { label: `Égalité avec ${deepLink.from}` } : { label: `${deepLink.from} garde la main (${beat} pts)` });
     const headline = isDailyRun ? `Défi de la semaine · ${themeLabelNow}` : `${modeLabelNow} · ${themeLabelNow}`;
     // La suite : la série (défi joué), le défi de la semaine (pas encore joué), sinon un thème surprise.
@@ -1596,9 +1639,14 @@ export default function BlindTest() {
               </p>
               {mode === "solo" ? (
                 <p className="text-[11px] font-bold shrink-0 inline-flex items-center gap-1.5">
+                  {deepLink.scoreToBeat && deepLink.from && (
+                    <span className="ghost-pill" data-ahead={(soloPlayer?.score ?? 0) > deepLink.scoreToBeat} title={`Score de ${deepLink.from}`}>
+                      <Swords size={11} /> {deepLink.from.split(" ")[0]} {deepLink.scoreToBeat}
+                    </span>
+                  )}
                   <span className="score-num text-base text-ink">{soloPlayer?.score ?? 0}</span>
                   <span className="text-ink-faint">pts</span>
-                  {streak >= 2 && <span className="text-glow inline-flex items-center gap-0.5"><Icon icon="game-icons:flame" width={12} /> {streak}</span>}
+                  {streak >= 2 && <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 ${streak >= 3 ? "bg-[#ffd166] text-[#3a0007] combo-hot" : "text-glow"}`}><Icon icon="game-icons:flame" width={12} /> ×{streak}</span>}
                 </p>
               ) : null}
             </div>
@@ -1647,7 +1695,7 @@ export default function BlindTest() {
           )}
           {streakBurst && (
             <div key={streakBurst} className="solved-pop feed-burst pointer-events-none">
-              <span className="inline-flex items-center gap-1.5 bg-[#ffd166] text-[#3a0007] font-display font-extrabold text-sm rounded-full px-4 py-1.5"><Icon icon="game-icons:flame" width={15} /> Combo x{streakBurst} — +2</span>
+              <span className="inline-flex items-center gap-1.5 bg-[#ffd166] text-[#3a0007] font-display font-extrabold text-sm rounded-full px-4 py-1.5"><Icon icon="game-icons:flame" width={15} /> Combo ×{streakBurst} — +{comboBonus(streakBurst)}</span>
             </div>
           )}
 

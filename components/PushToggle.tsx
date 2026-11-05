@@ -23,9 +23,7 @@ export default function PushToggle() {
                 ? "Bloquées dans les réglages du navigateur — réactive-les là-bas pour ce site."
                 : sup === "unsupported"
                   ? "Ton navigateur ne gère pas les notifications."
-                  : on
-                    ? "On te prévient quand un adversaire est trouvé en matchmaking, même téléphone verrouillé."
-                    : "Sois prévenu quand un adversaire est trouvé en matchmaking, même téléphone verrouillé."}
+                  : "Trois messages, pas plus : le nouveau défi du lundi, ta série qui s'arrête ce soir, un pote qui bat ton score. Et l'adversaire trouvé en matchmaking."}
           </p>
         </div>
         {sup === "ok" && (

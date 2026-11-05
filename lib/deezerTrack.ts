@@ -3,6 +3,7 @@ export type DeezerTrackSummary = {
   title: string;
   preview?: string;
   rank?: number;
+  time_add?: number; // playlists : date d'ajout (epoch s) — sert au thème « Sorti cette semaine »
   artist?: { id?: number; name?: string };
   album?: { cover_medium?: string; cover_big?: string };
 };

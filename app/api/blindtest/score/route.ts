@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { adminClient } from "@/lib/adminAuth";
+import { friendsLeaderboard } from "@/lib/friends";
+import { sendPushToUsers } from "@/lib/push";
 
 const MAX_ROUNDS = 50;
 const MAX_POINTS_PER_ROUND = 8; // titre 1 + artiste 1 + feat 2 + bonus de rapidité, large
@@ -48,6 +50,7 @@ export async function POST(req: NextRequest) {
 
   // Insertion avec la clé service : la policy d'insertion côté client est retirée
   // (migration-securite.sql), un score ne peut donc entrer que par cette route, bornée.
+  const insertedAt = new Date().toISOString();
   const { error } = await adminClient().from("blindtest_scores").insert({
     user_id: user.id,
     theme,
@@ -84,5 +87,44 @@ export async function POST(req: NextRequest) {
     // topPercent reste null — le client se contente d'afficher "score enregistré"
   }
 
-  return NextResponse.json({ saved: true, topPercent });
+  // Chez tes potes — où tu te places parmi tes amis sur ce thème, et qui tu viens de passer.
+  // Avant l'insertion on connaît les meilleurs scores de chacun ; après, celui qu'on vient de
+  // dépasser reçoit une notification « revanche » (une par pote et par thème et par jour,
+  // dédupliquée par le tag côté appareil).
+  let friends: { rank: number | null; total: number; above: { name: string; points: number } | null; beaten: { name: string; points: number }[] } | null = null;
+  try {
+    const db = adminClient();
+    const board = await friendsLeaderboard(db, user.id, { theme });
+    if (board.rows.length > 1) {
+      const me = board.rows.find((r) => r.me);
+      const myPrevBest = me ? Math.max(0, ...(await db.from("blindtest_scores").select("points").eq("user_id", user.id).eq("theme", theme).lt("created_at", insertedAt).limit(200).then((r) => (r.data ?? []).map((x) => x.points)))) : 0;
+      const beaten = board.rows.filter((r) => !r.me && r.best > 0 && r.best < points && r.best >= myPrevBest);
+      friends = {
+        rank: board.myRank,
+        total: board.rows.filter((r) => r.best > 0).length,
+        above: board.above ? { name: board.above.name, points: board.above.best } : null,
+        beaten: beaten.map((b) => ({ name: b.name, points: b.best })),
+      };
+      if (beaten.length) {
+        const { data: meProfile } = await db.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+        const myName = meProfile?.display_name ?? "Un pote";
+        const base = theme.includes(":") ? theme.split(":")[1] : theme;
+        const isDefi = theme.startsWith("defi:");
+        const themeLabel = isDefi ? "le défi de la semaine" : (THEME_OPTIONS.find((t) => t.id === base)?.label.replace(/^Blind Test /i, "") ?? "ce thème");
+        const url = isDefi
+          ? `/jouer?mode=solo&daily=1&autostart=1&from=${encodeURIComponent(myName)}&score=${points}`
+          : `/jouer?mode=solo&theme=${encodeURIComponent(base)}&autostart=1&from=${encodeURIComponent(myName)}&score=${points}`;
+        void sendPushToUsers(beaten.map((b) => b.id), {
+          title: `${myName} vient de te passer`,
+          body: `${points} pts sur ${themeLabel}. Revanche ?`,
+          url,
+          tag: `beat-${theme}-${new Date().toISOString().slice(0, 10)}`,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[blindtest/score] classement amis —", e);
+  }
+
+  return NextResponse.json({ saved: true, topPercent, friends });
 }

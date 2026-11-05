@@ -10,3 +10,11 @@ export function speedBonus(elapsedSeconds: number): number {
   if (elapsedSeconds <= SPEED_OK_SECONDS) return 1;
   return 0;
 }
+
+// Combo (solo) : sons parfaits d'affilée. 3 → +2, 5 → +3, puis +3 tous les deux (7, 9, 11…).
+// Reste sous le plafond anti-triche de la route score (8 pts/manche en moyenne).
+export function comboBonus(streak: number): number {
+  if (streak === 3) return 2;
+  if (streak >= 5 && (streak - 5) % 2 === 0) return 3;
+  return 0;
+}
