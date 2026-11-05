@@ -461,6 +461,7 @@ export default function BlindTest() {
       return;
     }
     setPhase("loading");
+    sfx.newGame();
     sfx.tag();
     // Thème surprise : tiré au sort au lancement, puis affiché comme n'importe quel thème.
     let playTheme = themeId;
@@ -528,6 +529,7 @@ export default function BlindTest() {
     if (!force && (started || revealed)) return;
     stopFade();
     missReactedRef.current = false;
+    sfx.nextRound();
     sfx.click();
     setStarted(true);
     audioUnlockedRef.current = true;

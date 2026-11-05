@@ -154,6 +154,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
   }
 
   function advance(clipId: number) {
+    sfx.nextRound();
     setTimeout(() => {
       const idx = clips!.findIndex((c) => c.id === clipId);
       if (idx >= clips!.length - 1) finish();
@@ -213,6 +214,7 @@ export default function ClipFeed({ tag, count = 10 }: { tag?: string; count?: nu
   }
 
   function begin() {
+    sfx.newGame();
     sfx.click();
     setStarted(true);
     const current = clips?.[0];

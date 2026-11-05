@@ -11,6 +11,9 @@ let gimmickEl: HTMLAudioElement | null = null;
 let lastGimmickAt = 0;
 let lastGimmickId: string | null = null;
 const GIMMICK_COOLDOWN_MS = 12_000;
+let reactRound = 0;
+let reactLastRound = -2;
+let reactCount = 0;
 
 function getCtx(): AudioContext | null {
   if (muted) return null;
@@ -129,9 +132,21 @@ export const sfx = {
   },
   // Réaction de l'artiste lui-même (et de lui seul) : bonne ou mauvaise réponse sur un de
   // ses sons, dans tous les modes. Rien si l'artiste n'a pas d'ad-lib.
+  //
+  // Dose : un ad-lib au plus par manche, jamais sur deux manches de suite, et pas plus de
+  // 4 par partie — passé ça, on ne l'entend plus, on le subit. Une bonne réponse déclenche
+  // 1 fois sur 2 ; un raté, à coup sûr (c'est la vanne qu'on attend).
   artistReact(artistName: string | null | undefined, mood: "hit" | "miss"): number {
-    return sfx.gimmick(mood, 1, { prefer: artistName, strict: true, force: true, volume: 0.85 });
+    if (reactRound === reactLastRound || reactRound === reactLastRound + 1 && reactLastRound >= 0) return 0;
+    if (reactCount >= 4) return 0;
+    if (mood === "hit" && Math.random() < 0.5) return 0;
+    const secs = sfx.gimmick(mood, 1, { prefer: artistName, strict: true, force: true, volume: 0.85 });
+    if (secs > 0) { reactLastRound = reactRound; reactCount++; }
+    return secs;
   },
+  // À appeler au début de chaque manche / de chaque partie pour la dose ci-dessus.
+  nextRound() { reactRound++; },
+  newGame() { reactRound = 0; reactLastRound = -2; reactCount = 0; },
   // Joker utilisé
   joker() {
     tone(300, 0, 0.08, "sine", 0.08);

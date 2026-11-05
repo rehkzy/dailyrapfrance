@@ -276,7 +276,8 @@ function BlindTestRoom({
       // Résultat pour eux : la manche 0 semblait déjà entièrement résolue par les réponses
       // de l'ancienne partie, donc plus aucun champ ni bouton QCM ne s'affichait — juste le
       // décompte qui tournait dans le vide.
-      if (room.current_round === 0) setSolves([]);
+      if (room.current_round === 0) { setSolves([]); sfx.newGame(); }
+      sfx.nextRound();
     } else if (room.status === "finished") {
       sfx.tag();
       setScreen("final");
