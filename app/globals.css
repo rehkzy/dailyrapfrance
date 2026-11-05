@@ -3478,3 +3478,20 @@ body:has([data-admin]) .card { background: #0f0a0b; }
 /* Fantôme du pote à battre, dans le HUD : gris tant qu'il est devant, or dès qu'on le passe */
 .ghost-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; background: rgba(255, 255, 255, 0.08); color: rgba(245, 232, 232, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); max-width: 120px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ghost-pill[data-ahead="true"] { background: rgba(255, 209, 102, 0.18); color: #ffd166; border-color: rgba(255, 209, 102, 0.45); }
+
+/* Spectateur (partie en cours) : une barre en bas, pas de zone de réponse */
+.spectator-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.12); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.spectator-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff3b4e; box-shadow: 0 0 0 4px rgba(240, 0, 28, 0.25); animation: live-pulse 1.4s ease-in-out infinite; flex: 0 0 auto; }
+@keyframes live-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(240, 0, 28, 0.25); } 50% { box-shadow: 0 0 0 7px rgba(240, 0, 28, 0); } }
+
+/* Salon : barre collante du bas (mobile) — code, chat, prêt */
+.lobby-bar {
+  position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 92px); z-index: 35;
+  display: flex; align-items: center; gap: 8px; padding: 8px;
+  border-radius: 20px; background: rgba(15, 8, 9, 0.92); border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+.lobby-bar-code { display: inline-flex; align-items: center; gap: 6px; height: 48px; padding: 0 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); }
+.lobby-bar-btn { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--ink); flex: 0 0 auto; }
+.lobby-bar-status { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; color: var(--ink-3); }
+@media (max-width: 1023px) { body:has(.lobby-bar) { padding-bottom: calc(env(safe-area-inset-bottom) + 170px); } }

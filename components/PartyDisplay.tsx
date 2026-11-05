@@ -137,7 +137,7 @@ export default function PartyDisplay({ code }: { code: string }) {
       .from("room_players")
       .select("*")
       .eq("room_id", room.id)
-      .then(({ data }) => setPlayers((data as PlayerRow[]) ?? []));
+      .then(({ data }) => setPlayers(((data as (PlayerRow & { spectator?: boolean })[]) ?? []).filter((p) => !p.spectator)));
     supabase
       .from("room_round_solves")
       .select("*")
@@ -151,7 +151,7 @@ export default function PartyDisplay({ code }: { code: string }) {
           .from("room_players")
           .select("*")
           .eq("room_id", room.id)
-          .then(({ data }) => setPlayers((data as PlayerRow[]) ?? []));
+          .then(({ data }) => setPlayers(((data as (PlayerRow & { spectator?: boolean })[]) ?? []).filter((p) => !p.spectator)));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_round_solves", filter: `room_id=eq.${room.id}` }, (payload) => {
         setSolves((prev) => [...prev, payload.new as SolveRow]);

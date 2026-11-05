@@ -63,7 +63,7 @@ type RoomRow = {
   custom_title?: string | null;
   format?: MatchFormat | null;
 };
-type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; done_round?: number | null; team?: number | null };
+type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; done_round?: number | null; team?: number | null; spectator?: boolean | null };
 export type MatchFormat = "1v1" | "2v2" | "royale";
 const FORMAT_CAPACITY: Record<MatchFormat, number> = { "1v1": 2, "2v2": 4, royale: 8 };
 const FORMAT_LABEL: Record<MatchFormat, string> = { "1v1": "Duel 1 contre 1", "2v2": "2 contre 2", royale: "Battle royale" };
@@ -124,7 +124,12 @@ function BlindTestRoom({
   }, []);
   const [replaying, setReplaying] = useState(false);
   const [room, setRoom] = useState<RoomRow | null>(null);
-  const [players, setPlayers] = useState<PlayerRow[]>([]);
+  // Toutes les lignes du salon ; `players` = ceux qui jouent, `spectators` = ceux qui
+  // regardent (arrivés en cours de partie). Tout le reste du composant raisonne sur `players`.
+  const [allRows, setPlayers] = useState<PlayerRow[]>([]);
+  const players = useMemo(() => allRows.filter((p) => !p.spectator), [allRows]);
+  const spectators = useMemo(() => allRows.filter((p) => !!p.spectator), [allRows]);
+  const isSpectator = !!allRows.find((p) => p.user_id === user.id)?.spectator;
   // Comptes certifiés parmi les joueurs (badge à côté du pseudo, comme partout ailleurs)
   const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -184,8 +189,8 @@ function BlindTestRoom({
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` }, (payload) => {
         const joined = payload.new as PlayerRow;
-        setPlayers((prev) => [...prev, joined]);
-        if (joined.user_id !== user.id) pushNotice(`${joined.display_name} a rejoint le salon`);
+        setPlayers((prev) => (prev.some((p) => p.user_id === joined.user_id) ? prev.map((p) => (p.user_id === joined.user_id ? joined : p)) : [...prev, joined]));
+        if (joined.user_id !== user.id) pushNotice(joined.spectator ? `${joined.display_name} regarde la partie` : `${joined.display_name} a rejoint le salon`);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "room_players", filter: `room_id=eq.${room.id}` }, () => {
         // On ne fait pas confiance au contenu du payload de suppression (souvent limité à
@@ -588,16 +593,20 @@ function BlindTestRoom({
       setBusy(false);
       return;
     }
-    if (r.status !== "lobby") {
+    const { data: existingPlayers } = await supabase.from("room_players").select("*").eq("room_id", r.id);
+    const already = (existingPlayers ?? []).find((p) => p.user_id === user.id);
+    // Partie déjà lancée : on entre en spectateur (classement en direct, chat, réactions),
+    // et on joue à la partie suivante. Si on y était déjà joueur, on reprend sa place.
+    const spectator = r.status !== "lobby" && !(already && !already.spectator);
+    const { error: upErr } = await supabase.from("room_players").upsert({ room_id: r.id, user_id: user.id, display_name: displayName, spectator });
+    if (upErr && spectator) {
       setError("Cette partie a déjà commencé.");
       setBusy(false);
       return;
     }
-    const { data: existingPlayers } = await supabase.from("room_players").select("*").eq("room_id", r.id);
-    await supabase.from("room_players").upsert({ room_id: r.id, user_id: user.id, display_name: displayName });
     setRoom(r as RoomRow);
-    setPlayers([...(existingPlayers ?? []).filter((p) => p.user_id !== user.id), { room_id: r.id, user_id: user.id, display_name: displayName }]);
-    setScreen("lobby");
+    setPlayers([...(existingPlayers ?? []).filter((p) => p.user_id !== user.id), { room_id: r.id, user_id: user.id, display_name: displayName, spectator }]);
+    setScreen(r.status === "lobby" ? "lobby" : r.status === "finished" ? "final" : "playing");
     setBusy(false);
   }
 
@@ -645,7 +654,7 @@ function BlindTestRoom({
 
   async function startGame() {
     unlockAudio();
-    if (roomRef.current) void supabase.from("room_players").update({ ready: false, done_round: null }).eq("room_id", roomRef.current.id);
+    if (roomRef.current) void supabase.from("room_players").update({ ready: false, done_round: null, spectator: false }).eq("room_id", roomRef.current.id);
     if (!room) return;
     setBusy(true);
     try {
@@ -1093,7 +1102,7 @@ function BlindTestRoom({
             <p className="text-xs text-ink-faint mt-3">{readyCount} / {players.length} prêt{readyCount > 1 ? "s" : ""}</p>
           </div>
 
-          <LobbyChat roomId={room.id} userId={user.id} name={me?.display_name ?? displayName} avatarUrl={avatarUrl} />
+          <div id="lobby-chat"><LobbyChat roomId={room.id} userId={user.id} name={me?.display_name ?? displayName} avatarUrl={avatarUrl} /></div>
 
           {!room.is_public && (
             <button type="button" onClick={toggleReady} aria-pressed={!!me?.ready} className={`w-full h-14 mb-3 ${me?.ready ? "sticker sticker-ghost" : "sticker"}`}>
@@ -1117,6 +1126,28 @@ function BlindTestRoom({
               <BrandLoader size="sm" />
               <p className="text-sm text-ink-faint">{allReady ? "Tout le monde est prêt — l'hôte lance la partie." : "L'hôte lance la partie quand tout le monde est prêt."}</p>
             </div>
+          )}
+        </div>
+
+        {/* Barre d'action collante (mobile) : code, chat, prêt / démarrer — sans scroller */}
+        <div className="lobby-bar lg:hidden">
+          <button type="button" onClick={copyCode} className="lobby-bar-code" aria-label={`Copier le code ${room.code}`}>
+            <span className="room-code !text-base">{room.code}</span>
+            {copied ? <Check size={14} className="text-gold" /> : <Copy size={13} className="text-ink-faint" />}
+          </button>
+          <button type="button" onClick={() => document.getElementById("lobby-chat")?.scrollIntoView({ behavior: "smooth", block: "center" })} className="lobby-bar-btn" aria-label="Chat du salon">
+            <MessageCircle size={18} />
+          </button>
+          {room.is_public ? (
+            <span className="lobby-bar-status"><BrandLoader size="sm" /> Recherche…</span>
+          ) : isHost ? (
+            <button type="button" onClick={startGame} disabled={busy || players.length < 1} className={`sticker h-12 flex-1 text-sm disabled:opacity-50 ${allReady ? "cta-glow" : ""}`}>
+              <Icon icon="game-icons:play-button" width={16} /> {busy ? "…" : `Démarrer ${readyCount}/${players.length}`}
+            </button>
+          ) : (
+            <button type="button" onClick={toggleReady} aria-pressed={!!me?.ready} className={`h-12 flex-1 text-sm ${me?.ready ? "sticker sticker-ghost" : "sticker"}`}>
+              {me?.ready ? <><Check size={16} strokeWidth={3} /> Prêt</> : <><Icon icon="game-icons:thumb-up" width={16} /> Je suis prêt</>}
+            </button>
           )}
         </div>
       </div>
@@ -1156,7 +1187,8 @@ function BlindTestRoom({
     });
     const resultConfig: GameConfig = { ...DEFAULT_CONFIG, mode: "online", theme: room.theme, rounds: room.rounds, answerMode: room.answer_mode === "text" ? "text" : "qcm" };
     const chips: { label: string; strong?: boolean }[] = [];
-    chips.push({ label: `${ranked.findIndex((p) => p.user_id === user.id) + 1}e sur ${ranked.length}`, strong: iWon });
+    if (isSpectator) chips.push({ label: "👀 Tu as regardé — tu joues à la prochaine", strong: true });
+    else chips.push({ label: `${ranked.findIndex((p) => p.user_id === user.id) + 1}e sur ${ranked.length}`, strong: iWon });
     if (ranked[1] && iWon) chips.push({ label: `${myScore - scoreFor(ranked[1].user_id)} pts d'avance sur ${ranked[1].display_name}` });
     if (!iWon && ranked[0]) chips.push({ label: `${scoreFor(ranked[0].user_id) - myScore} pts derrière ${ranked[0].display_name}` });
     const themeLabelFinal = THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme;
@@ -1439,7 +1471,20 @@ function BlindTestRoom({
 
         {/* Bas : réponses — dès le début de la manche, clic ou pas */}
         <div className="feed-bottom">
-          {!revealed && !showIntro && (() => {
+          {isSpectator && !showIntro && (
+            <div className="spectator-bar">
+              <span className="spectator-dot" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">Tu regardes la partie</span>
+                <span className="block text-[11px] text-ink-faint truncate">
+                  {[...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id)).slice(0, 3).map((p) => `${p.display_name} ${scoreFor(p.user_id)}`).join(" · ")}
+                  {spectators.length > 1 ? ` · ${spectators.length} spectateurs` : ""}
+                </span>
+              </span>
+              <span className="text-[11px] font-semibold text-gold shrink-0">Tu joues à la prochaine</span>
+            </div>
+          )}
+          {!isSpectator && !revealed && !showIntro && (() => {
             const rsNow = solves.filter((sv) => sv.round_index === room.current_round);
             const isDone = (p: PlayerRow) => p.done_round === room.current_round || applicable.every((f) => rsNow.some((sv) => sv.field === f && sv.user_id === p.user_id));
             const doneCount = players.filter(isDone).length;
