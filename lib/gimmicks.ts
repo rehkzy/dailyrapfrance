@@ -18,7 +18,24 @@ export const GIMMICKS: Gimmick[] = [
   { id: "kaaris-double-rotor", artist: "Kaaris", label: "K double rotor", seconds: 1.6, moods: ["combo", "hit"] },
   { id: "niska-quel-bail", artist: "Niska", label: "Quel bail ?", seconds: 3.4, moods: ["miss"] },
   { id: "niska-mechant", artist: "Niska", label: "Méchant méchant", seconds: 2.6, moods: ["win", "combo"] },
+  { id: "sch-mathafack", artist: "SCH", label: "Mathafack", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
 ];
+
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/^la[ -]/, "").replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Les gimmicks d'un artiste : nom de l'artiste du morceau (« Kaaris », « SCH feat. … ») ou
+ * id de thème artiste (« artist-kaaris »). Sert à jouer l'ad-lib de l'artiste qu'on vient de
+ * révéler, ou celui du thème en cours, plutôt qu'un autre au hasard.
+ */
+export function gimmicksOf(artistOrTheme: string | null | undefined): Gimmick[] {
+  if (!artistOrTheme) return [];
+  const key = norm(artistOrTheme.replace(/^artist-/, "").split(/ feat\.?| ft\.?|,|&|\//i)[0]);
+  if (!key) return [];
+  return GIMMICKS.filter((g) => norm(g.artist) === key);
+}
 
 export const GIMMICK_PREF_KEY = "drf-gimmicks";
 
@@ -29,8 +46,7 @@ export function setGimmicksEnabled(on: boolean) {
   try { localStorage.setItem(GIMMICK_PREF_KEY, on ? "on" : "off"); } catch {}
 }
 
-/** Gimmick dont l'artiste correspond (pour les vidéos / la révélation d'un son de cet artiste). */
+/** Premier gimmick de cet artiste (vidéos). */
 export function gimmickForArtist(artistName: string): Gimmick | null {
-  const n = artistName.toLowerCase();
-  return GIMMICKS.find((g) => n.includes(g.artist.toLowerCase().replace("la ", ""))) ?? null;
+  return gimmicksOf(artistName)[0] ?? null;
 }

@@ -2,7 +2,7 @@
 // charger/héberger. Le contexte audio est créé au premier appel (après un geste utilisateur,
 // requis par les navigateurs) et réutilisé ensuite.
 
-import { GIMMICKS, gimmicksEnabled, type GimmickMood } from "@/lib/gimmicks";
+import { GIMMICKS, gimmicksEnabled, gimmicksOf, type GimmickMood } from "@/lib/gimmicks";
 
 let ctx: AudioContext | null = null;
 let muted = false;
@@ -99,12 +99,17 @@ export const sfx = {
   // Gimmick de rappeur selon l'humeur du moment. `chance` : probabilité de le jouer (les
   // bonnes réponses sont fréquentes → 35 % ; la fin de partie → 100 %). Renvoie la durée
   // en secondes si quelque chose part (pour baisser la musique pendant ce temps), sinon 0.
-  gimmick(mood: GimmickMood, chance = 1, opts: { force?: boolean; volume?: number } = {}): number {
+  // `prefer` : artiste (ou thème artist-*) dont on veut l'ad-lib en priorité — celui qu'on
+  // vient de révéler, ou celui du thème. Son propre clip passe avant l'humeur.
+  gimmick(mood: GimmickMood, chance = 1, opts: { force?: boolean; volume?: number; prefer?: string | null } = {}): number {
     if (muted || typeof window === "undefined" || !gimmicksEnabled()) return 0;
     const now = Date.now();
     if (!opts.force && now - lastGimmickAt < GIMMICK_COOLDOWN_MS) return 0;
     if (Math.random() > chance) return 0;
-    const pool = GIMMICKS.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
+    const own = gimmicksOf(opts.prefer);
+    const ownMood = own.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
+    const ownAny = own.filter((g) => g.id !== lastGimmickId);
+    const pool = ownMood.length ? ownMood : ownAny.length && mood !== "miss" && mood !== "lose" ? ownAny : GIMMICKS.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
     const pick = pool[Math.floor(Math.random() * pool.length)] ?? GIMMICKS.find((g) => g.moods.includes(mood));
     if (!pick) return 0;
     try {

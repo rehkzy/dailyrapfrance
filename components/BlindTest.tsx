@@ -342,7 +342,9 @@ export default function BlindTest() {
       const fieldsAll: FieldKey[] = fieldsFor(singleArtistRef.current, trackRef.current);
       const allFound = fieldsAll.every((f) => solvedRef.current[f]);
       const nothing = Object.keys(solvedRef.current).length === 0;
-      const secs = allFound ? sfx.gimmick("hit", 0.35) : nothing ? sfx.gimmick("miss", 0.3) : 0;
+      // L'ad-lib de l'artiste révélé s'il en a un (Kaaris sur un son de Kaaris), sinon celui du thème.
+      const prefer = trackRef.current.artistName || singleArtistRef.current;
+      const secs = allFound ? sfx.gimmick("hit", 0.35, { prefer }) : nothing ? sfx.gimmick("miss", 0.3, { prefer }) : 0;
       if (secs > 0 && a && !a.paused) {
         try { a.volume = 0.25; } catch {}
         setTimeout(() => { try { if (a && !fadeIntervalRef.current) a.volume = 1; } catch {} }, secs * 1000 + 150);
@@ -359,7 +361,7 @@ export default function BlindTest() {
         const bonus = comboBonus(next);
         if (perfect && bonus > 0) {
           sfx.bonus();
-          sfx.gimmick("combo", 1, { force: true });
+          sfx.gimmick("combo", 1, { force: true, prefer: singleArtistRef.current });
           awardPoints("solo", bonus);
           haptic([20, 30, 20, 30, 40]);
           setStreakBurst(next);
@@ -789,7 +791,7 @@ export default function BlindTest() {
   function handleBuzz(playerId: string) {
     if (!started || revealed || buzzedBy || locked.has(playerId)) return;
     sfx.buzz();
-    sfx.gimmick("buzz", 0.4);
+    sfx.gimmick("buzz", 0.4, { prefer: singleArtistRef.current });
     setBuzzedBy(playerId);
     if (intervalRef.current) clearInterval(intervalRef.current);
     deadlineRef.current = null;
@@ -867,7 +869,7 @@ export default function BlindTest() {
       const maxPts = roundOutcomes.reduce((m, r) => m + Math.max(r.total, 1), 0) || 1;
       const ratio = (soloPlayer?.score ?? 0) / Math.max(maxPts * 2, 1);
       const mood = ratio >= 0.6 ? "win" : (soloPlayer?.score ?? 0) <= Math.max(1, roundOutcomes.length * 0.2) ? "lose" : null;
-      if (mood) setTimeout(() => sfx.gimmick(mood, 1, { force: true }), 2100);
+      if (mood) setTimeout(() => sfx.gimmick(mood, 1, { force: true, prefer: singleArtistRef.current }), 2100);
     }
     const perfectRun = mode === "solo" && roundOutcomes.length > 0 && roundOutcomes.every((r) => r.found >= r.total);
     bumpGamesPlayed();
