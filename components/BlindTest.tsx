@@ -19,6 +19,7 @@ import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
 import { speedBonus, comboBonus } from "@/lib/scoring";
+import { gimmicksOf } from "@/lib/gimmicks";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
@@ -1355,6 +1356,8 @@ export default function BlindTest() {
                 themeId={themeId}
                 onSelect={(id) => {
                   sfx.click();
+                  // Thème artiste : son ad-lib à la sélection (Kaaris → « 2.7 », SCH → « Mathafack »).
+                  if (id.startsWith("artist-") && gimmicksOf(id).length) sfx.gimmick("hit", 1, { force: true, prefer: id, volume: 0.8 });
                   setThemeId(id);
                   setTimeout(() => setWizardStep(2), 220);
                 }}
