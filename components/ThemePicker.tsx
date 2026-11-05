@@ -273,8 +273,8 @@ export default function ThemePicker({
       )}
 
       {showBackToTop && (
-        <button type="button" onClick={backToTop} aria-label="Remonter" className="fixed bottom-24 right-4 z-20 w-11 h-11 rounded-full bg-white text-black shadow-lg grid place-items-center">
-          <ArrowUp size={18} />
+        <button type="button" onClick={backToTop} aria-label="Remonter" className="back-to-top">
+          <ArrowUp size={16} strokeWidth={2.5} /> Haut
         </button>
       )}
     </div>
