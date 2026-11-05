@@ -19,6 +19,12 @@ blind test. Deux formats :
    « Mets ton score en commentaire ↓ », signature sonore à 0,3 s.
 
 Audio par son : preview Deezer à partir de la seconde 5 (`--offset`), 8 + 3 s, fondus 0,4 s.
+
+Ad-libs (`public/audio/gimmicks/*.mp3`, catalogue `lib/gimmicks.ts` lu par regex) : à la
+révélation, si l'artiste du son a un gimmick (Kaaris, Gazo, Niska, La Rvfleuze…), il est joué
+à +0,2 s avec l'extrait baissé à 25 % pendant sa durée ; sinon un gimmick « hit » au hasard sur
+une seule révélation de la vidéo ; sur l'écran de fin, un gimmick « win » après le tag (+2,6 s,
+l'écran de fin s'allonge pour le laisser finir, ~5 s). `--no-gimmicks` pour désactiver.
 Chaque écran est une page HTML rendue dans Chromium (Playwright) avec la charte du site
 (palette stricte rouge/noir/blanc : fond `#0A0707`, rouge `#F0001C`, glow `#FF3B4E`, rouge
 profond `#8A0010`, blanc/ivoire `#F5E8E8` ; aucun jaune/or ; pochettes floutées et affiches en
@@ -58,7 +64,7 @@ node scripts/tiktok/make.mjs --search "jul" --count 2 --out ./out
 Options : `--tracks N` (1), `--count N` vidéos (3), `--name a,b` (noms de fichiers, un par
 vidéo), `--exclude ids` (IDs Deezer à écarter), `--out dir` (`./out`), `--label "Texte"`, `--offset S` (5), `--guess S` (8),
 `--reveal S` (4 solo / 3 multi), `--intro S` (3), `--end S` (3), `--fps N` (cadence de
-capture du chrono, 12 ; sortie 30 fps), `--no-tag` (sans signature sonore), `--keep-frames`,
+capture du chrono, 12 ; sortie 30 fps), `--no-tag` (sans signature sonore), `--no-gimmicks` (sans ad-libs), `--keep-frames`,
 `--ffmpeg bin`.
 
 Sortie : `out/<nom>.mp4` + dossier `out/<nom>/` avec, par son (`01-artiste-titre/` en multi),

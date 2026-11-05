@@ -164,7 +164,9 @@ function planGimmicks(group, gimmicks) {
     const k = Math.floor(Math.random() * group.length);
     perTrack[k] = pick(gimmicks.filter((g) => g.moods.includes("hit")));
   }
-  return { perTrack, end: pick(gimmicks.filter((g) => g.moods.includes("win"))) };
+  const wins = gimmicks.filter((g) => g.moods.includes("win"));
+  const unused = wins.filter((g) => !perTrack.includes(g));
+  return { perTrack, end: pick(unused.length ? unused : wins) };
 }
 
 // ---------------------------------------------------------------------------
