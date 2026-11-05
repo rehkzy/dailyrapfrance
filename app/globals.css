@@ -2087,7 +2087,8 @@ input[type="range"].brand-slider::-moz-range-track {
   width: 100vw;
   margin-left: calc(50% - 50vw);
 }
-html { overflow-x: clip; }
+html { overflow-x: clip; overscroll-behavior-y: none; }
+body { overscroll-behavior-y: none; }
 .stage::before {
   /* la marque comme projecteur, fixe, qui déborde en haut à droite */
   content: "";
