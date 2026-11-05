@@ -1691,6 +1691,7 @@ function RoomMenu({
   const [gagesEnabled, setGagesEnabled] = useState(party);
   const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
   const [needAnswerMode, setNeedAnswerMode] = useState(false);
+  const [showJoin, setShowJoin] = useState(joinCode.trim().length > 0);
   const answerModeRef = useRef<HTMLDivElement>(null);
 
   function handleCreate() {
@@ -1728,22 +1729,8 @@ function RoomMenu({
           </div>
         ) : (
           <div className="mb-4">
-            <h2 className="font-display text-3xl font-extrabold tracking-tight leading-tight">Créer un salon</h2>
-            <p className="text-sm text-ink-faint mt-1.5 leading-snug">
-              Choisis un thème et les règles — tes potes rejoignent avec un code à 5 lettres.
-            </p>
-          </div>
-        )}
-
-        {onQuickMatch && (
-          <div className="ticket p-4 mb-5">
-            <p className="text-sm font-semibold inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={16} className="text-gold" /> Matchmaking — contre des inconnus</p>
-            <p className="text-xs text-ink-faint mt-0.5 mb-3">{custom ? `Ton blind test « ${custom.title} » ouvert à tous.` : "Thème au hasard, 10 manches."} Dès que les joueurs sont trouvés, ça démarre.</p>
-            <div className="grid grid-cols-3 gap-2">
-              {(["1v1", "2v2", "royale"] as MatchFormat[]).map((f) => (
-                <button key={f} type="button" onClick={() => onQuickMatch(f)} disabled={busy} className="sticker sticker-ghost !h-12 !px-2 text-xs disabled:opacity-50">{FORMAT_LABEL[f]}</button>
-              ))}
-            </div>
+            <p className="stage-kicker mb-2 inline-flex items-center gap-1.5"><Users size={13} /> Entre amis · en ligne</p>
+            <h2 className="stage-title">Règle la partie,<br />puis invite tes potes.</h2>
           </div>
         )}
 
@@ -1918,25 +1905,32 @@ function RoomMenu({
       >
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
         <div className="max-w-lg mx-auto pointer-events-auto ticket p-3 space-y-2.5">
-          <div className="flex gap-2">
-            <input
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="Code à 5 lettres"
-              maxLength={5}
-              autoCapitalize="characters"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              className="answer-input flex-1 !min-h-[48px] text-center font-mono tracking-[0.25em] uppercase"
-            />
-            <button type="button" onClick={onJoin} disabled={busy || joinCode.trim().length < 5} className="sticker sticker-ghost sticker-sm shrink-0 disabled:opacity-40">
-              Rejoindre
-            </button>
-          </div>
           <button type="button" onClick={handleCreate} disabled={busy} className="sticker w-full h-16 text-lg cta-glow disabled:opacity-50">
-            <Icon icon="game-icons:play-button" width={20} /> {party ? "Lancer la soirée" : "Créer une partie privée"}
+            <Icon icon="game-icons:play-button" width={20} /> {party ? "Lancer la soirée" : "Créer le salon · inviter mes potes"}
           </button>
+          {showJoin ? (
+            <div className="flex gap-2">
+              <input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Code à 5 lettres"
+                maxLength={5}
+                autoFocus
+                autoCapitalize="characters"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                className="answer-input flex-1 !min-h-[48px] text-center font-mono tracking-[0.25em] uppercase"
+              />
+              <button type="button" onClick={onJoin} disabled={busy || joinCode.trim().length < 5} className="sticker sticker-ghost sticker-sm shrink-0 disabled:opacity-40">
+                Rejoindre
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowJoin(true)} className="w-full text-center text-xs font-semibold text-ink-muted hover:text-ink min-h-[36px]">
+              Un pote t&apos;a envoyé un code ? Rejoindre son salon
+            </button>
+          )}
         </div>
       </div>
     </div>
