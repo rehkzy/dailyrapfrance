@@ -4,7 +4,7 @@
  * l'humeur du moment, jamais deux fois le même d'affilée, et pas plus d'un toutes les
  * ~12 s pour que ça reste une surprise, pas un bruit de fond. Désactivable (réglages).
  */
-export type GimmickMood = "hit" | "combo" | "miss" | "win" | "lose" | "buzz";
+export type GimmickMood = "hit" | "combo" | "miss" | "win" | "lose" | "buzz" | "intro";
 
 export type Gimmick = { id: string; artist: string; label: string; seconds: number; moods: GimmickMood[] };
 
@@ -19,6 +19,12 @@ export const GIMMICKS: Gimmick[] = [
   { id: "niska-quel-bail", artist: "Niska", label: "Quel bail ?", seconds: 3.4, moods: ["miss"] },
   { id: "niska-mechant", artist: "Niska", label: "Méchant méchant", seconds: 2.6, moods: ["win", "combo"] },
   { id: "sch-mathafack", artist: "SCH", label: "Mathafack", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
+  { id: "ninho-salut", artist: "Ninho", label: "Salut à tous, c'est Ninho", seconds: 5.1, moods: ["intro"] },
+  { id: "ninho-binks", artist: "Ninho", label: "Binks to binks", seconds: 2.5, moods: ["hit", "combo"] },
+  { id: "ninho-ouais-ni", artist: "Ninho", label: "Ouais Ni", seconds: 1.1, moods: ["hit", "buzz"] },
+  { id: "ninho-pas-au-courant", artist: "Ninho", label: "Ils étaient pas au courant…", seconds: 2.1, moods: ["win", "combo"] },
+  { id: "ninho-tiens-retiens", artist: "Ninho", label: "Tiens, retiens", seconds: 2.1, moods: ["miss", "lose"] },
+  { id: "damso-gimmick", artist: "Damso", label: "Damso", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
 ];
 
 function norm(s: string): string {

@@ -1365,7 +1365,8 @@ export default function BlindTest() {
                 onSelect={(id) => {
                   sfx.click();
                   // Thème artiste : son ad-lib à la sélection (Kaaris → « 2.7 », SCH → « Mathafack »).
-                  if (id.startsWith("artist-") && gimmicksOf(id).length) sfx.gimmick("hit", 1, { force: true, prefer: id, volume: 0.8 });
+                  // « Intro » s'il en a une (« Salut à tous, c'est Ninho »), sinon un de ses ad-libs.
+                  if (id.startsWith("artist-") && gimmicksOf(id).length) sfx.gimmick("intro", 1, { force: true, prefer: id, strict: true, volume: 0.8 });
                   setThemeId(id);
                   setTimeout(() => setWizardStep(2), 220);
                 }}

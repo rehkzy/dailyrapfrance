@@ -114,7 +114,8 @@ export const sfx = {
     if (!opts.force && now - lastGimmickAt < GIMMICK_COOLDOWN_MS) return 0;
     if (Math.random() > chance) return 0;
     const ownMood = own.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
-    const ownAny = own.filter((g) => g.id !== lastGimmickId);
+    // Un clip « intro » (le mème « Salut à tous, c'est Ninho ») ne sert qu'à l'intro.
+    const ownAny = own.filter((g) => g.id !== lastGimmickId && (mood === "intro" || !g.moods.includes("intro")));
     const fallback = opts.strict ? [] : GIMMICKS.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
     const pool = ownMood.length ? ownMood : ownAny.length && mood !== "miss" && mood !== "lose" ? ownAny : fallback;
     if (pool.length === 0) return 0;
