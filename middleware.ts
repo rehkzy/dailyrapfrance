@@ -15,9 +15,37 @@ const SCANNER_PATTERN =
 // Rafraîchit la session Supabase à chaque requête. Sans ça, la session expire côté
 // Server Components (qui ne peuvent pas écrire de cookies) et l'utilisateur se retrouve
 // déconnecté au bout d'un moment sans raison apparente.
+// Fichiers « maison » (tag audio, gimmicks) : servis uniquement au site lui-même. Une
+// requête tapée dans la barre d'adresse, un lien direct depuis un autre site, un curl ou
+// un téléchargeur n'envoient pas de Sec-Fetch-Site same-origin ni de Referer du site →
+// 403. Ça n'empêche pas un développeur obstiné (ce que le navigateur joue peut être
+// capturé), mais ça ferme la porte au téléchargement direct et au hotlink.
+const PROTECTED_ASSET = /^\/audio\//;
+const OWN_HOSTS = new Set(["dailyrapfrance.best", "www.dailyrapfrance.best", "localhost:3000"]);
+
+function isOwnPageRequest(request: NextRequest): boolean {
+  const site = request.headers.get("sec-fetch-site");
+  if (site === "same-origin" || site === "same-site") return true;
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      const h = new URL(referer).host;
+      if (OWN_HOSTS.has(h) || h === request.nextUrl.host || h.endsWith(".vercel.app")) return true;
+    } catch {}
+  }
+  return false;
+}
+
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   if (SCANNER_PATTERN.test(request.nextUrl.pathname)) {
     return new NextResponse(null, { status: 404 });
+  }
+  if (PROTECTED_ASSET.test(request.nextUrl.pathname)) {
+    if (!isOwnPageRequest(request)) return new NextResponse(null, { status: 403 });
+    const r = NextResponse.next();
+    r.headers.set("X-Robots-Tag", "noindex, nofollow");
+    r.headers.set("Content-Disposition", "inline");
+    return r;
   }
 
   let response = NextResponse.next({ request });

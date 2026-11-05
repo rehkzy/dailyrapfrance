@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 // Écrans sans valeur pour l'index : API, admin, écran TV d'un salon, pages de compte,
 // et l'ancienne arcade (jeux retirés de la navigation pour l'instant).
-const DISALLOW = ["/api/", "/admin", "/ecran", "/parametres", "/amis", "/auth/", "/jeux", "/jouer?"];
+const DISALLOW = ["/api/", "/admin", "/ecran", "/parametres", "/amis", "/auth/", "/jeux", "/jouer?", "/audio/"];
 
 // Les robots des assistants IA sont explicitement les bienvenus (GEO) : ils lisent le site,
 // llms.txt et les données structurées pour répondre « c'est quoi DailyRapFrance ».
