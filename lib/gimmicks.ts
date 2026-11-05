@@ -25,6 +25,11 @@ export const GIMMICKS: Gimmick[] = [
   { id: "ninho-pas-au-courant", artist: "Ninho", label: "Ils étaient pas au courant…", seconds: 2.1, moods: ["win", "combo"] },
   { id: "ninho-tiens-retiens", artist: "Ninho", label: "Tiens, retiens", seconds: 2.1, moods: ["miss", "lose"] },
   { id: "damso-gimmick", artist: "Damso", label: "Damso", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
+  { id: "koba-meme", artist: "Koba LaD", label: "Le mème", seconds: 11.2, moods: ["intro"] },
+  { id: "koba-qui-voila", artist: "Koba LaD", label: "Qui voilà…", seconds: 4.9, moods: ["win", "hit"] },
+  { id: "koba-bat-les-couilles", artist: "Koba LaD", label: "Je m'en bats les…", seconds: 5.8, moods: ["miss", "lose"] },
+  { id: "zola-trop-relou", artist: "Zola", label: "Trop relou", seconds: 3.5, moods: ["miss", "lose"] },
+  { id: "soolking-franchement", artist: "Soolking", label: "Franchement c'est ça", seconds: 3.4, moods: ["hit", "win", "combo"] },
 ];
 
 function norm(s: string): string {

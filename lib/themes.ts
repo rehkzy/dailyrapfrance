@@ -122,6 +122,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-stormy", label: "Blind Test Stormy", text: "Que des sons de Stormy", Icon: Mic2, category: "Artistes", keywords: "maroc" },
   { id: "artist-balti", label: "Blind Test Balti", text: "Que des sons de Balti", Icon: Mic2, category: "Artistes", keywords: "tunisie" },
   { id: "artist-soolking", label: "Blind Test Soolking", text: "Que des sons de Soolking", Icon: Mic2, category: "Artistes", keywords: "algérie" },
+  { id: "artist-koba-lad", label: "Blind Test Koba LaD", text: "Que des sons de Koba LaD", Icon: Mic2, category: "Artistes", keywords: "91 évry trap" },
+  { id: "artist-zola", label: "Blind Test Zola", text: "Que des sons de Zola", Icon: Mic2, category: "Artistes", keywords: "91 évry" },
   { id: "artist-didine", label: "Blind Test Didine Canon 16", text: "Que des sons de Didine Canon 16", Icon: Mic2, category: "Artistes", keywords: "algérie" },
   { id: "artist-dizzy-dros", label: "Blind Test Dizzy DROS", text: "Que des sons de Dizzy DROS", Icon: Mic2, category: "Artistes", keywords: "maroc" },
 ];
