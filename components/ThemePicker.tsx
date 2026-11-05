@@ -96,16 +96,22 @@ export default function ThemePicker({
   // titre est passé sous la barre collante. Calcul direct à chaque scroll (l'ancien
   // IntersectionObserver ne voyait que les sections qui changeaient d'état, et n'observait
   // rien quand les sections n'étaient pas encore montées).
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const spyPausedUntil = useRef(0); // après un tap sur un onglet, l'onglet choisi reste actif le temps du défilement
+  const lineOffset = () => (stickyRef.current ? stickyRef.current.getBoundingClientRect().bottom + 12 : 190);
   useEffect(() => {
     if (view !== "grid" || filtered) return;
-    const LINE = 190; // hauteur de la barre collante + marge
     let raf = 0;
     const compute = () => {
       raf = 0;
+      if (Date.now() < spyPausedUntil.current) return;
+      // Catégorie active = la dernière dont le titre est passé sous la barre collante
+      // (mesurée en direct : en-tête du site + recherche + onglets).
+      const line = lineOffset();
       let current: string = THEME_CATEGORIES[0];
       for (const cat of ALL_CATEGORIES) {
         const el = sectionRefs.current[cat];
-        if (el && el.getBoundingClientRect().top <= LINE) current = cat;
+        if (el && el.getBoundingClientRect().top <= line) current = cat;
       }
       setActiveCategory((prev) => (prev === current ? prev : current));
     };
@@ -129,7 +135,7 @@ export default function ThemePicker({
     if (view !== "grid" || !pendingScrollRef.current) return;
     const cat = pendingScrollRef.current;
     pendingScrollRef.current = null;
-    const id = setTimeout(() => scrollToEl(sectionRefs.current[cat], -150), 350);
+    const id = setTimeout(() => { spyPausedUntil.current = Date.now() + 1000; scrollToEl(sectionRefs.current[cat], -(lineOffset() - 4)); }, 350);
     return () => clearTimeout(id);
   }, [view]);
 
@@ -155,7 +161,7 @@ export default function ThemePicker({
   return (
     <div className="flex flex-col gap-5">
       {/* Barre collante : recherche + onglets */}
-      <div className="sticky top-0 z-10 -mx-5 px-5 sm:-mx-6 sm:px-6 pt-2 pb-3 bg-[#070404]/92 backdrop-blur-md">
+      <div ref={stickyRef} className="sticky top-0 z-10 -mx-5 px-5 sm:-mx-6 sm:px-6 pt-2 pb-3 bg-[#070404]/92 backdrop-blur-md">
         <div className="relative">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none" />
           <input
@@ -185,7 +191,9 @@ export default function ThemePicker({
                     switchView("grid");
                     setActiveCategory(cat);
                   } else {
-                    scrollToEl(sectionRefs.current[cat], -150);
+                    setActiveCategory(cat);
+                    spyPausedUntil.current = Date.now() + 1000;
+                    scrollToEl(sectionRefs.current[cat], -(lineOffset() - 4));
                   }
                 }}
                 aria-pressed={activeCategory === cat}
