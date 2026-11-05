@@ -7,15 +7,16 @@ blind test. Deux formats :
 1. Devinette (8 s) — extrait Deezer, pochette très floutée, chrono rond rouge qui décompte,
    « Mets ta réponse en commentaire ↓ ».
 2. Révélation (4 s) — pochette nette, artiste + titre (+ feats), l'audio continue.
-3. Fin (3 s) — affiche bichromie rouge/noir « Joue au blind test → dailyrapfrance.best ».
+3. Fin (3 s) — affiche bichromie rouge/noir « Joue au blind test → dailyrapfrance.best »,
+   signature sonore à 0,3 s.
 
 **Multi (`--tracks 5`, ~59 s)**
 1. Intro (3 s) — tuile DR + wordmark, « Blind test rap FR », « 5 sons · 8 secondes chacun »,
-   silence.
+   signature sonore (`public/audio/tag.mp3`) à 0,4 s, l'extrait du son 1 démarre ensuite.
 2. Pour chaque son : devinette 8 s (compteur « Son k/5 » en haut) puis révélation 3 s, le
    son continue ; fondu rapide (0,3 s) entre les sons.
 3. Fin (3 s) — « Ton score ? Joue au vrai blind test → dailyrapfrance.best »,
-   « Mets ton score en commentaire ↓ ».
+   « Mets ton score en commentaire ↓ », signature sonore à 0,3 s.
 
 Audio par son : preview Deezer à partir de la seconde 5 (`--offset`), 8 + 3 s, fondus 0,4 s.
 Chaque écran est une page HTML rendue dans Chromium (Playwright) avec la charte du site
@@ -57,7 +58,8 @@ node scripts/tiktok/make.mjs --search "jul" --count 2 --out ./out
 Options : `--tracks N` (1), `--count N` vidéos (3), `--name a,b` (noms de fichiers, un par
 vidéo), `--exclude ids` (IDs Deezer à écarter), `--out dir` (`./out`), `--label "Texte"`, `--offset S` (5), `--guess S` (8),
 `--reveal S` (4 solo / 3 multi), `--intro S` (3), `--end S` (3), `--fps N` (cadence de
-capture du chrono, 12 ; sortie 30 fps), `--keep-frames`, `--ffmpeg bin`.
+capture du chrono, 12 ; sortie 30 fps), `--no-tag` (sans signature sonore), `--keep-frames`,
+`--ffmpeg bin`.
 
 Sortie : `out/<nom>.mp4` + dossier `out/<nom>/` avec, par son (`01-artiste-titre/` en multi),
 `cover.jpg`, `preview.mp3` et les frames clés `frame-intro.png` (1er son, multi),

@@ -70,6 +70,7 @@ const { values: opt } = parseArgs({
     end: { type: "string", default: "3" },
     fps: { type: "string", default: "12" },
     "keep-frames": { type: "boolean", default: false },
+    "no-tag": { type: "boolean", default: false },
     ffmpeg: { type: "string", default: process.env.FFMPEG || "ffmpeg" },
     help: { type: "boolean", short: "h", default: false },
   },
@@ -99,6 +100,7 @@ Options :
   --end S            durée de l'écran de fin (défaut 3)
   --fps N            cadence de capture du chrono (défaut 12 ; la vidéo sort en 30 fps)
   --keep-frames      conserver toutes les captures intermédiaires
+  --no-tag           ne pas jouer la signature sonore (public/audio/tag.mp3) sur l'intro / la fin
   --ffmpeg <bin>     binaire ffmpeg (défaut : ffmpeg dans le PATH, ou $FFMPEG)`);
   process.exit(opt.help ? 0 : 1);
 }
@@ -118,6 +120,9 @@ const FFMPEG = opt.ffmpeg;
 const XF_SCREEN = 0.35; // fondu devine → révèle
 const XF_TRACK = 0.3; // fondu entre deux sons / intro / fin
 const AUDIO_FADE = 0.4;
+const TAG_FILE = path.join(REPO_ROOT, "public", "audio", "tag.mp3"); // signature sonore (~2 s)
+const TAG_AT_INTRO = 0.4;
+const TAG_AT_END = 0.3;
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -548,7 +553,7 @@ async function renderTrack(browser, html, workDir, { intro = false, end = false 
 // Assemblage ffmpeg — segments [intro?] + (devine+révèle) × N + fin, enchaînés par xfade
 // (vidéo) et acrossfade (audio). Chaque segment a une durée vidéo = durée audio.
 // ---------------------------------------------------------------------------
-async function assemble({ intro, parts, end, output }) {
+async function assemble({ intro, parts, end, output, tag }) {
   const args = ["-y", "-hide_banner", "-loglevel", "error"];
   const filters = [];
   const segs = []; // { v, a, len }
@@ -557,12 +562,19 @@ async function assemble({ intro, parts, end, output }) {
     args.push(...a);
     return inputIdx++;
   };
-  const trackLen = GUESS + REVEAL; // le fondu devine→révèle mord sur la révélation, pas sur le total
+  const trackLen = GUESS + REVEAL;
+  // Piste audio d'un écran fixe : silence, ou signature sonore jouée à `at` secondes.
+  const tagAudio = (file, at, len, lbl) => {
+    if (!file) return `aevalsrc=0:s=44100:c=stereo:d=${f3(len)}[${lbl}]`;
+    const i = addInput("-i", file);
+    const ms = Math.round(at * 1000);
+    return `[${i}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay=${ms}|${ms},apad=whole_dur=${f3(len)},atrim=duration=${f3(len)}[${lbl}]`;
+  }; // le fondu devine→révèle mord sur la révélation, pas sur le total
 
   if (intro) {
     const i = addInput("-loop", "1", "-t", String(INTRO + 1), "-i", intro);
     filters.push(`[${i}:v]fps=30,format=yuv420p,setsar=1,trim=duration=${f3(INTRO)}[vi]`);
-    filters.push(`aevalsrc=0:s=44100:c=stereo:d=${f3(INTRO)}[ai]`);
+    filters.push(tagAudio(tag, TAG_AT_INTRO, INTRO, "ai"));
     segs.push({ v: "[vi]", a: "[ai]", len: INTRO });
   }
 
@@ -583,7 +595,7 @@ async function assemble({ intro, parts, end, output }) {
   {
     const i = addInput("-loop", "1", "-t", String(END + 1), "-i", end);
     filters.push(`[${i}:v]fps=30,format=yuv420p,setsar=1,trim=duration=${f3(END)}[ve]`);
-    filters.push(`aevalsrc=0:s=44100:c=stereo:d=${f3(END)}[ae]`);
+    filters.push(tagAudio(tag, TAG_AT_END, END, "ae"));
     segs.push({ v: "[ve]", a: "[ae]", len: END });
   }
 
@@ -644,6 +656,11 @@ async function main() {
   }
 
   const [logos, fontFaces] = await Promise.all([loadLogos(), loadFonts(cacheDir)]);
+  let tag = null;
+  if (!opt["no-tag"]) {
+    if (await exists(TAG_FILE)) tag = TAG_FILE;
+    else log(`! signature sonore absente (${TAG_FILE}) — vidéos sans tag`);
+  }
   const browser = await chromium.launch();
   const results = [];
   try {
@@ -675,7 +692,7 @@ async function main() {
       }
 
       const output = path.join(OUT, `${base}.mp4`);
-      const dur = await assemble({ intro, parts, end, output });
+      const dur = await assemble({ intro, parts, end, output, tag });
       if (!opt["keep-frames"]) for (const p of parts) await rm(p.framesDir, { recursive: true, force: true });
       log(`  ✓ ${output} (${dur.toFixed(1)} s)`);
       results.push(output);
