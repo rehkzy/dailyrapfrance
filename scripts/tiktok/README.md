@@ -1,17 +1,27 @@
 # Générateur de vidéos TikTok / Reels — « T'as trouvé ? »
 
-Produit des vidéos verticales 1080×1920 (9:16, MP4 H.264 + AAC, ~14 s) à partir d'un thème
-du blind test :
+Produit des vidéos verticales 1080×1920 (9:16, MP4 H.264 + AAC) à partir d'un thème du
+blind test. Deux formats :
 
-1. **Devinette (8 s)** — extrait Deezer, pochette très floutée, chrono rond rouge qui
-   décompte de 8 à 0, sous-titre « Mets ta réponse en commentaire 👇 ».
-2. **Révélation (4 s)** — pochette nette, artiste + titre (+ feats), l'audio continue.
-3. **Fin (3 s)** — affiche en bichromie rouge/noir « Joue au blind test → dailyrapfrance.best ».
+**Solo (`--tracks 1`, défaut, ~14 s)**
+1. Devinette (8 s) — extrait Deezer, pochette très floutée, chrono rond rouge qui décompte,
+   « Mets ta réponse en commentaire 👇 ».
+2. Révélation (4 s) — pochette nette, artiste + titre (+ feats), l'audio continue.
+3. Fin (3 s) — affiche bichromie rouge/noir « Joue au blind test → dailyrapfrance.best ».
 
+**Multi (`--tracks 5`, ~59 s)**
+1. Intro (3 s) — tuile DR + wordmark, « Blind test rap FR », « 5 sons · 8 secondes chacun »,
+   silence.
+2. Pour chaque son : devinette 8 s (compteur « Son k/5 » en haut) puis révélation 3 s, le
+   son continue ; fondu rapide (0,3 s) entre les sons.
+3. Fin (3 s) — « Ton score ? Joue au vrai blind test → dailyrapfrance.best »,
+   « Mets ton score en commentaire 👇 ».
+
+Audio par son : preview Deezer à partir de la seconde 5 (`--offset`), 8 + 3 s, fondus 0,4 s.
 Chaque écran est une page HTML rendue dans Chromium (Playwright) avec la charte du site
 (fond `#0A0707`, rouge `#F0001C`, glow `#FF3B4E`, or `#FFD166`, Bricolage Grotesque + Inter,
-`public/logo.svg` et `public/mark-red.svg`), capturé en PNG/JPEG puis assemblé par ffmpeg.
-Rien d'autre du repo n'est touché ni importé.
+tuile « DR » `public/icon-512.png` et wordmark `public/logo.svg`), capturée puis assemblée
+par ffmpeg (xfade vidéo + acrossfade audio). Rien d'autre du repo n'est touché ni importé.
 
 ## Prérequis
 
@@ -26,43 +36,52 @@ Rien d'autre du repo n'est touché ni importé.
 ## Usage
 
 ```bash
-# 3 vidéos à partir d'un thème du site (ids : artist-ninho, 2010s, 93, 13, hits-2026…)
+# 3 vidéos solo à partir d'un thème du site (ids : pop, 2010s, 13, 93, artist-ninho…)
 node scripts/tiktok/make.mjs --theme artist-ninho --count 3 --out ./out
 
-# IDs Deezer précis (ne passe pas par le site)
+# 1 vidéo de 5 sons, nommée top50.mp4
+node scripts/tiktok/make.mjs --theme pop --tracks 5 --count 1 --label "Top 50" --name top50 --out ./out
+node scripts/tiktok/make.mjs --theme 2010s --tracks 5 --count 1 --label "Années 2010" --name annees-2010
+node scripts/tiktok/make.mjs --theme 13 --tracks 5 --count 1 --label "Spécial Marseille" --name marseille
+
+# IDs Deezer précis (ne passe pas par le site) ; avec --tracks 5 les 5 IDs font une vidéo
 node scripts/tiktok/make.mjs --ids 4333609992,2935905291 --out ./out
 
 # Recherche Deezer, premiers titres avec preview
 node scripts/tiktok/make.mjs --search "jul" --count 2 --out ./out
-
-# Pastille de thème sur la devinette
-node scripts/tiktok/make.mjs --theme 13 --count 3 --label "Spécial Marseille"
 ```
 
-Options : `--count N` (3), `--out dir` (`./out`), `--label "Texte"`, `--offset S` (début
-dans la preview, 5), `--guess S` (8), `--reveal S` (4), `--end S` (3), `--fps N` (cadence
-de capture du chrono, 12 ; la vidéo sort en 30 fps), `--keep-frames`, `--ffmpeg bin`.
+Options : `--tracks N` (1), `--count N` vidéos (3), `--name base` (nom du fichier, une seule
+vidéo), `--out dir` (`./out`), `--label "Texte"`, `--offset S` (5), `--guess S` (8),
+`--reveal S` (4 solo / 3 multi), `--intro S` (3), `--end S` (3), `--fps N` (cadence de
+capture du chrono, 12 ; sortie 30 fps), `--keep-frames`, `--ffmpeg bin`.
 
-Sortie : `out/<artiste>-<titre>.mp4` + dossier `out/<artiste>-<titre>/` avec `cover.jpg`,
-`preview.mp3` et les frames clés `frame-guess.png`, `frame-reveal.png`, `frame-end.png`
-(utiles comme vignette). Compter ~25 s par vidéo.
+Sortie : `out/<nom>.mp4` + dossier `out/<nom>/` avec, par son (`01-artiste-titre/` en multi),
+`cover.jpg`, `preview.mp3` et les frames clés `frame-intro.png` (1er son, multi),
+`frame-guess.png`, `frame-reveal.png`, `frame-end.png` (dernier son). Compter ~25 s par son.
 
 ## Sources de titres
 
 - `--theme` appelle `https://www.dailyrapfrance.best/api/blindtest/pool?theme=<id>&count=<n>`
   (`{tracks:[{id,title,artistName,previewUrl,coverUrl,feats}]}`). La pochette 250 px est
-  remplacée par la 1000 px du CDN Deezer (repli 500/250 si absente).
-- `--ids` / `--search` interrogent directement `api.deezer.com` (`/track/<id>`, `/search`).
-  Si le site refuse (403/429, protection bot), utilise ces deux options : elles n'en dépendent pas.
+  remplacée par la 1000 px du CDN Deezer (repli 500/250 si absente). En multi, on demande
+  un pool plus large et on évite deux fois le même artiste dans une vidéo (avertissement
+  `! doublon d'artiste` si le pool ne le permet pas).
+- Les URLs de preview renvoyées par le site peuvent venir d'un cache périmé (403) : le script
+  redemande alors une URL fraîche à `api.deezer.com/track/<id>`.
+- `--ids` / `--search` interrogent directement `api.deezer.com`. Si le site refuse
+  (403/429, protection bot), utilise ces deux options : elles n'en dépendent pas.
 
 ## Limites connues
 
 - L'extrait vient du champ `preview` Deezer (30 s, souvent le refrain) : `--offset` choisit
   le point de départ, mais on ne contrôle pas quel passage Deezer a retenu.
-- Les URLs de preview sont signées et expirent (~quelques heures) : relancer le script
-  plutôt que réutiliser un vieux `preview.mp3`.
-- La révélation et l'écran de fin sont statiques (fondus uniquement) ; seul le chrono est animé.
+- Les URLs de preview sont signées et expirent : relancer le script plutôt que réutiliser
+  un vieux `preview.mp3`.
+- Durée multi réelle = 3 + 5×11 + 3 − 6×0,3 (fondus) ≈ 59,2 s.
+- Révélation, intro et fin sont statiques (fondus uniquement) ; seul le chrono est animé.
 - Les textes très longs (titre interminable, nombreux feats) peuvent se tasser ; la mise en
   page est pensée pour un nom d'artiste sur 1–2 lignes.
-- Pas de sous-titres/musique « tendance » TikTok : l'audio est l'extrait brut avec fondus.
+- La pochette en bichromie derrière l'intro/la fin peut contenir du texte ; un voile sombre
+  en haut protège la lisibilité du logo, pas toujours parfaitement.
 - Diffusion d'extraits Deezer : vérifier les conditions d'utilisation de l'API avant publication.

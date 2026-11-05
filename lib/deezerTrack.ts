@@ -13,7 +13,9 @@ export type DeezerTrackFull = DeezerTrackSummary & {
 };
 
 export async function deezerFetch<T = { data?: DeezerTrackSummary[] }>(path: string): Promise<T> {
-  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 1800 } });
+  // Les URL de preview Deezer sont signées et expirent ~15 min après la réponse : un cache
+  // plus long sert des extraits morts (« le son ne part pas »). 10 min, pas plus.
+  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 600 } });
   if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
   const json = await res.json();
   if (json?.error) throw new Error(`Deezer ${path} → ${json.error.message}`);

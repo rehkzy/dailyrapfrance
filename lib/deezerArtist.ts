@@ -22,7 +22,10 @@ export type DeezerArtistLite = {
 };
 
 async function deezerFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 86400 } });
+  // Tout ce qui renvoie des previews (top, tracks) expire vite (URL signées ~15 min) ;
+  // le reste (recherche, albums, similaires) peut vivre 24 h.
+  const hasPreviews = /\/(top|tracks)\b/.test(path);
+  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: hasPreviews ? 600 : 86400 } });
   if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
   const json = await res.json();
   if (json?.error) throw new Error(`Deezer ${path} → ${json.error.message}`);

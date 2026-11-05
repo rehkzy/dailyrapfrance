@@ -22,12 +22,20 @@ export default function TrackPreviewList({ tracks }: { tracks: T[] }) {
     return () => { el.pause(); audioRef.current = null; };
   }, []);
 
-  function toggle(t: T) {
+  async function toggle(t: T) {
     const el = audioRef.current;
     if (!el || !t.preview) return;
     if (playing === t.id) { el.pause(); setPlaying(null); return; }
-    el.src = t.preview;
-    el.play().then(() => setPlaying(t.id)).catch(() => setPlaying(null));
+    // La page est mise en cache 24 h mais les URL de preview Deezer expirent en ~15 min :
+    // on redemande une URL fraîche au clic (et on retombe sur celle de la page sinon).
+    setPlaying(t.id);
+    let src = t.preview;
+    try {
+      const r = await fetch(`/api/blindtest/preview?id=${t.id}`, { cache: "no-store" });
+      if (r.ok) src = ((await r.json()) as { previewUrl?: string }).previewUrl || src;
+    } catch {}
+    el.src = src;
+    el.play().catch(() => setPlaying(null));
   }
 
   return (
