@@ -610,6 +610,8 @@ function BlindTestRoom({
     }
     setRoom(r as RoomRow);
     setPlayers([...(existingPlayers ?? []).filter((p) => p.user_id !== user.id), { room_id: r.id, user_id: user.id, display_name: displayName, spectator }]);
+    // Entrer chez un pote = devenir amis (salon privé seulement).
+    if (!r.is_public) void fetch("/api/rooms/befriend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) }).catch(() => {});
     setScreen(r.status === "lobby" ? "lobby" : r.status === "finished" ? "final" : "playing");
     setBusy(false);
   }
@@ -1049,6 +1051,7 @@ function BlindTestRoom({
           </div>
         )}
         <div className="ticket p-6 md:p-8 text-center">
+          {!room.is_public && <p className="stage-kicker mb-3 inline-flex items-center gap-1.5"><Users size={13} /> Salon privé · entre amis</p>}
           <p className="text-sm font-semibold text-ink-muted mb-2">Code du salon — touche pour copier</p>
           <button onClick={copyCode} className="inline-flex items-center gap-3 mb-4 group" aria-label={`Copier le code ${room.code}`}>
             <span className="room-code text-ink">{room.code}</span>
@@ -1090,7 +1093,7 @@ function BlindTestRoom({
             </a>
           )}
 
-          <RoomFriendInvites userId={user.id} roomCode={room.code} />
+          {!room.is_public && <RoomFriendInvites userId={user.id} roomCode={room.code} inRoomIds={players.map((p) => p.user_id)} />}
 
           <div className="ticket p-4 mb-6">
             <p className="text-xs font-semibold text-ink-faint mb-3 flex items-center justify-center gap-1.5">
