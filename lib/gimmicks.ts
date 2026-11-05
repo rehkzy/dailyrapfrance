@@ -30,6 +30,8 @@ export const GIMMICKS: Gimmick[] = [
   { id: "koba-bat-les-couilles", artist: "Koba LaD", label: "Je m'en bats les…", seconds: 5.8, moods: ["miss", "lose"] },
   { id: "zola-trop-relou", artist: "Zola", label: "Trop relou", seconds: 3.5, moods: ["miss", "lose"] },
   { id: "soolking-franchement", artist: "Soolking", label: "Franchement c'est ça", seconds: 3.4, moods: ["hit", "win", "combo"] },
+  { id: "sofiane-ish-ish", artist: "Sofiane", label: "Ish ish", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
+  { id: "heuss-stresse", artist: "Heuss L'enfoiré", label: "Je suis stressé", seconds: 6.3, moods: ["intro", "miss"] },
 ];
 
 function norm(s: string): string {

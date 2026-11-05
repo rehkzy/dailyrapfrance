@@ -97,6 +97,8 @@ export const THEME_ARTISTS: Record<string, string[]> = {
   "artist-soolking": ["soolking"],
   "artist-koba-lad": ["koba lad"],
   "artist-zola": ["zola"],
+  "artist-sofiane": ["sofiane"],
+  "artist-heuss-lenfoire": ["heuss l'enfoiré"],
   "artist-didine": ["didine canon 16"],
   "artist-dizzy-dros": ["dizzy dros"],
   "artist-rvfleuze": ["la rvfleuze"],
