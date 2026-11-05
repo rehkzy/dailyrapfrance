@@ -4,6 +4,7 @@
 
 let ctx: AudioContext | null = null;
 let muted = false;
+let tagEl: HTMLAudioElement | null = null;
 
 function getCtx(): AudioContext | null {
   if (muted) return null;
@@ -77,6 +78,17 @@ export const sfx = {
   // Victoire — petit arpège de fin de partie
   victory() {
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * 0.11, 0.35, "triangle", 0.1));
+  },
+  // Le tag audio DailyRapFrance (2 s, public/audio/tag.mp3) — la signature sonore du jeu :
+  // au lancement d'une partie et sur l'écran de fin. Jamais pendant un extrait.
+  tag(volume = 0.6) {
+    if (muted || typeof window === "undefined") return;
+    try {
+      if (!tagEl) { tagEl = new Audio("/audio/tag.mp3"); tagEl.preload = "auto"; }
+      tagEl.volume = volume;
+      tagEl.currentTime = 0;
+      tagEl.play().catch(() => {});
+    } catch {}
   },
   // Joker utilisé
   joker() {

@@ -278,7 +278,7 @@ function BlindTestRoom({
       // décompte qui tournait dans le vide.
       if (room.current_round === 0) setSolves([]);
     } else if (room.status === "finished") {
-      sfx.victory();
+      sfx.tag();
       setScreen("final");
     } else if (room.status === "lobby") {
       setScreen("lobby");

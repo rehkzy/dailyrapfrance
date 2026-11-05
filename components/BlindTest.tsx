@@ -443,6 +443,7 @@ export default function BlindTest() {
       return;
     }
     setPhase("loading");
+    sfx.tag();
     // Thème surprise : tiré au sort au lancement, puis affiché comme n'importe quel thème.
     let playTheme = themeId;
     if (themeId === "random") {
@@ -843,7 +844,7 @@ export default function BlindTest() {
   const [dailyRecord, setDailyRecord] = useState(false);
   useEffect(() => {
     if (phase !== "final") return;
-    sfx.victory();
+    sfx.tag();
     // Confettis réservés aux vrais moments (partie parfaite ou record de la semaine) — pas à chaque fin.
     const soloPlayer = players[0];
     const perfectRun = mode === "solo" && roundOutcomes.length > 0 && roundOutcomes.every((r) => r.found >= r.total);
