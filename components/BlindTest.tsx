@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { checkGuess } from "@/lib/blindtest-match";
-import { sfx, duckMusic, cancelDuck } from "@/lib/sfx";
+import { sfx, duckMusic, cancelDuck, softRepeat } from "@/lib/sfx";
 import { fieldsFor, fieldPrompt, guessableFeats } from "@/lib/fields";
 import { track as trackEv } from "@/lib/track";
 import { useUser } from "@/lib/useUser";
@@ -274,6 +274,7 @@ export default function BlindTest() {
   useEffect(() => clearTimers, [clearTimers]);
 
   const missReactedRef = useRef(false); // un ad-lib « raté » a déjà joué sur cette manche
+  const softRepeatCancelRef = useRef<(() => void) | null>(null);
   // Réaction de l'artiste + musique baissée en fondu le temps de l'ad-lib (extrait audio ou clip).
   const reactWithDuck = useCallback((artist: string | null | undefined, mood: "hit" | "miss") => {
     if (isSoundbiteTheme(singleArtistRef.current)) return 0; // le clip EST le gimmick
@@ -370,7 +371,7 @@ export default function BlindTest() {
         const bonus = comboBonus(next);
         if (perfect && bonus > 0) {
           sfx.bonus();
-          sfx.gimmick("combo", 1, { force: true, prefer: trackRef.current?.artistName ?? singleArtistRef.current, strict: true });
+          if (!isSoundbiteTheme(singleArtistRef.current)) sfx.gimmick("combo", 1, { force: true, prefer: trackRef.current?.artistName ?? singleArtistRef.current, strict: true });
           awardPoints("solo", bonus);
           haptic([20, 30, 20, 30, 40]);
           setStreakBurst(next);
@@ -537,6 +538,8 @@ export default function BlindTest() {
     cancelDuck();
     missReactedRef.current = false;
     sfx.nextRound();
+    softRepeatCancelRef.current?.();
+    softRepeatCancelRef.current = isSoundbiteTheme(singleArtistRef.current) && !isClip ? softRepeat(audioRef.current) : null;
     sfx.click();
     setStarted(true);
     audioUnlockedRef.current = true;
@@ -805,7 +808,7 @@ export default function BlindTest() {
   function handleBuzz(playerId: string) {
     if (!started || revealed || buzzedBy || locked.has(playerId)) return;
     sfx.buzz();
-    sfx.gimmick("buzz", 0.4, { prefer: singleArtistRef.current, strict: true });
+    if (!isSoundbiteTheme(singleArtistRef.current)) sfx.gimmick("buzz", 0.4, { prefer: singleArtistRef.current, strict: true });
     setBuzzedBy(playerId);
     if (intervalRef.current) clearInterval(intervalRef.current);
     deadlineRef.current = null;
@@ -885,7 +888,7 @@ export default function BlindTest() {
       const maxPts = roundOutcomes.reduce((m, r) => m + Math.max(r.total, 1), 0) || 1;
       const ratio = (soloPlayer?.score ?? 0) / Math.max(maxPts * 2, 1);
       const mood = ratio >= 0.6 ? "win" : (soloPlayer?.score ?? 0) <= Math.max(1, roundOutcomes.length * 0.2) ? "lose" : null;
-      if (mood) setTimeout(() => sfx.gimmick(mood, 1, { force: true, prefer: singleArtistRef.current }), 2100);
+      if (mood && !isSoundbiteTheme(singleArtistRef.current)) setTimeout(() => sfx.gimmick(mood, 1, { force: true, prefer: singleArtistRef.current }), 2100);
     }
     const perfectRun = mode === "solo" && roundOutcomes.length > 0 && roundOutcomes.every((r) => r.found >= r.total);
     bumpGamesPlayed();
@@ -1659,7 +1662,7 @@ export default function BlindTest() {
     <div className="feed" data-lenis-prevent onTouchStart={swipeStart} onTouchEnd={swipeEnd}>
       {/* `loop` : l'extrait Deezer dure 30 s ; avec le joker +15 s (ou 35/45 s de chrono) il
           s'arrêtait net avant la fin de la manche — il reboucle désormais sur lui-même. */}
-      {!isClip && <audio ref={audioRef} preload="auto" loop onError={() => (started ? void recoverAudio(true) : undefined)} />}
+      {!isClip && <audio ref={audioRef} preload="auto" loop={!isSoundbiteTheme(singleArtistRef.current)} onError={() => (started ? void recoverAudio(true) : undefined)} />}
 
       {/* Fond : pochette floutée qui respire (audio) ou clip plein écran (vidéo) */}
       {track.coverUrl && !isClip && <div className="round-bg feed-bg" data-revealed={revealed} data-playing={started && !revealed} style={{ backgroundImage: `url(${track.coverUrl})` }} aria-hidden="true" />}

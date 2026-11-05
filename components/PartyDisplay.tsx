@@ -9,6 +9,7 @@ import Confetti from "@/components/Confetti";
 import { randomGage } from "@/lib/gages";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { sfx } from "@/lib/sfx";
+import { isSoundbiteTheme } from "@/lib/gimmicks";
 import { fieldsFor } from "@/lib/fields";
 
 /*
@@ -82,7 +83,7 @@ export default function PartyDisplay({ code }: { code: string }) {
     prevStatusRef.current = st;
     if (!prev || prev === st) return;
     if (st === "playing" && prev === "lobby") sfx.tag(0.8);
-    if (st === "finished") { sfx.tag(0.8); if (room?.gages_enabled) setTimeout(() => sfx.gimmick("lose", 1, { force: true }), 2300); }
+    if (st === "finished") { sfx.tag(0.8); if (room?.gages_enabled && !isSoundbiteTheme(room.theme)) setTimeout(() => sfx.gimmick("lose", 1, { force: true }), 2300); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status]);
 

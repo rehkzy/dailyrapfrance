@@ -79,6 +79,21 @@ export function cancelDuck(restore = true) {
   duckTarget = null;
 }
 
+// Gimmicks / mèmes en jeu : le clip ne boucle pas en continu — il se rejoue 3 fois au plus,
+// avec 2,5 s de silence entre deux, puis se tait (le chrono continue). À brancher sur
+// onEnded de l'<audio> ; renvoie une fonction pour annuler (changement de manche).
+export function softRepeat(el: HTMLMediaElement | null, maxPlays = 3, gapMs = 2500): () => void {
+  if (!el) return () => {};
+  let plays = 1;
+  let t: ReturnType<typeof setTimeout> | null = null;
+  const onEnded = () => {
+    if (plays >= maxPlays) return;
+    t = setTimeout(() => { plays++; try { el.currentTime = 0; void el.play().catch(() => {}); } catch {} }, gapMs);
+  };
+  el.addEventListener("ended", onEnded);
+  return () => { el.removeEventListener("ended", onEnded); if (t) clearTimeout(t); };
+}
+
 export const sfx = {
   setMuted(v: boolean) {
     muted = v;
