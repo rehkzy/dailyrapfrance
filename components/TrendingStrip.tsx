@@ -28,7 +28,7 @@ export default function TrendingStrip({ title = "Les sons du moment", kind = "ra
             <div className="relative w-[124px] h-[124px] rounded-2xl overflow-hidden bg-white/6">
               {t?.cover && <img src={t.cover} alt="" className="w-full h-full object-cover" loading="lazy" />}
               {t && <span className="absolute left-2 top-2 rounded-full bg-black/60 backdrop-blur text-[10px] font-extrabold text-white px-1.5 py-0.5">#{t.rank}</span>}
-              {t && <PreviewButton id={`s${t.id}`} src={t.preview} size={38} className="absolute right-2 bottom-2" />}
+              {t && <PreviewButton id={`s${t.id}`} src={t.preview} trackId={t.id} size={38} className="absolute right-2 bottom-2" />}
             </div>
             <p className="text-xs font-semibold truncate mt-1.5">{t?.title ?? " "}</p>
             <p className="text-[11px] text-ink-faint truncate">{t?.artist ?? " "}</p>

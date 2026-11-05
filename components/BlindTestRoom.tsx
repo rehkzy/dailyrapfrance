@@ -240,6 +240,20 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.id]);
 
+  // À l'entrée (ou au rechargement de la page) : on recharge toutes les réponses du salon,
+  // sinon les scores repartent de zéro et le « vainqueur » est tiré au hasard des égalités.
+  useEffect(() => {
+    if (!room?.id) return;
+    supabase
+      .from("room_round_solves")
+      .select("*")
+      .eq("room_id", room.id)
+      .then(({ data }) => {
+        if (data) setSolves(data as SolveRow[]);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.id]);
+
   useEffect(() => {
     if (!room?.id || screen !== "lobby") return;
     const poll = setInterval(() => {

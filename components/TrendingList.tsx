@@ -13,7 +13,7 @@ export default function TrendingList({ tracks, numbered = true }: { tracks: Tren
           {numbered && <span className={`w-6 text-center font-display font-extrabold text-sm shrink-0 ${t.rank <= 3 ? "text-gold" : "text-ink-faint"}`}>{t.rank}</span>}
           <span className="relative w-12 h-12 shrink-0">
             {t.cover ? <img src={t.cover} alt="" className="w-12 h-12 rounded-lg object-cover" loading="lazy" /> : <span className="block w-12 h-12 rounded-lg bg-white/6" />}
-            <PreviewButton id={`t${t.id}`} src={t.preview} size={30} className="absolute inset-0 m-auto" />
+            <PreviewButton id={`t${t.id}`} src={t.preview} trackId={t.id} size={30} className="absolute inset-0 m-auto" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold truncate">{t.title}</span>
