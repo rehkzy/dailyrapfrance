@@ -18,3 +18,4 @@ npm-debug.log*
 
 # Prisma
 prisma/*.db
+tsconfig.tsbuildinfo
