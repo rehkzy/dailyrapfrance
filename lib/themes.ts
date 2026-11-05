@@ -13,7 +13,7 @@ export type ThemeOption = {
   keywords?: string;
 };
 
-export const THEME_CATEGORIES = ["Du moment", "Époques", "Styles", "Régions", "Artistes"] as const;
+export const THEME_CATEGORIES = ["Du moment", "Époques", "Styles", "Régions", "Artistes", "Gimmicks"] as const;
 
 // Catalogue unique — utilisé à la fois par le wizard solo/local, le salon en ligne, les pages
 // SEO (/blindtest/[slug]) et le défi de la semaine. Chaque id doit exister dans lib/themeSources.ts
@@ -124,11 +124,53 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-soolking", label: "Blind Test Soolking", text: "Que des sons de Soolking", Icon: Mic2, category: "Artistes", keywords: "algérie" },
   { id: "artist-koba-lad", label: "Blind Test Koba LaD", text: "Que des sons de Koba LaD", Icon: Mic2, category: "Artistes", keywords: "91 évry trap" },
   { id: "artist-zola", label: "Blind Test Zola", text: "Que des sons de Zola", Icon: Mic2, category: "Artistes", keywords: "91 évry" },
+  { id: "artist-leto", label: "Blind Test Leto", text: "Que des sons de Leto", Icon: Mic2, category: "Artistes", keywords: "93 sevran pineapple" },
+  { id: "artist-dinos", label: "Blind Test Dinos", text: "Que des sons de Dinos", Icon: Mic2, category: "Artistes", keywords: "la courneuve" },
+  { id: "artist-rim-k", label: "Blind Test Rim'K", text: "Que des sons de Rim'K", Icon: Mic2, category: "Artistes", keywords: "113 vitry" },
+  { id: "artist-lacrim", label: "Blind Test Lacrim", text: "Que des sons de Lacrim", Icon: Mic2, category: "Artistes", keywords: "marseille" },
+  { id: "artist-guy2bezbar", label: "Blind Test Guy2Bezbar", text: "Que des sons de Guy2Bezbar", Icon: Mic2, category: "Artistes", keywords: "75" },
+  { id: "artist-fave", label: "Blind Test Favé", text: "Que des sons de Favé", Icon: Mic2, category: "Artistes", keywords: "nouvelle gen" },
+  { id: "artist-luther", label: "Blind Test Luther", text: "Que des sons de Luther", Icon: Mic2, category: "Artistes", keywords: "nouvelle gen" },
+  { id: "artist-zed", label: "Blind Test Zed", text: "Que des sons de Zed", Icon: Mic2, category: "Artistes", keywords: "wetin day" },
+  { id: "artist-youssoupha", label: "Blind Test Youssoupha", text: "Que des sons de Youssoupha", Icon: Mic2, category: "Artistes", keywords: "conscient" },
+  { id: "artist-kery-james", label: "Blind Test Kery James", text: "Que des sons de Kery James", Icon: Mic2, category: "Artistes", keywords: "conscient" },
+  { id: "artist-sexion-d-assaut", label: "Blind Test Sexion d'Assaut", text: "Que des sons de Sexion d'Assaut", Icon: Mic2, category: "Artistes", keywords: "gims maître gims" },
+  { id: "artist-lefa", label: "Blind Test Lefa", text: "Que des sons de Lefa", Icon: Mic2, category: "Artistes", keywords: "sexion" },
+  { id: "artist-rohff", label: "Blind Test Rohff", text: "Que des sons de Rohff", Icon: Mic2, category: "Artistes", keywords: "vitry 94" },
+  { id: "artist-sniper", label: "Blind Test Sniper", text: "Que des sons de Sniper", Icon: Mic2, category: "Artistes", keywords: "deuil-la-barre" },
+  { id: "artist-iam", label: "Blind Test IAM", text: "Que des sons de IAM", Icon: Mic2, category: "Artistes", keywords: "marseille akhenaton" },
+  { id: "artist-supreme-ntm", label: "Blind Test Suprême NTM", text: "Que des sons de Suprême NTM", Icon: Mic2, category: "Artistes", keywords: "ntm joeystarr kool shen" },
+  { id: "artist-oxmo-puccino", label: "Blind Test Oxmo Puccino", text: "Que des sons de Oxmo Puccino", Icon: Mic2, category: "Artistes", keywords: "19e" },
+  { id: "artist-disiz", label: "Blind Test Disiz", text: "Que des sons de Disiz", Icon: Mic2, category: "Artistes", keywords: "évry" },
+  { id: "artist-hatik", label: "Blind Test Hatik", text: "Que des sons de Hatik", Icon: Mic2, category: "Artistes", keywords: "chaise pliante" },
+  { id: "artist-bosh", label: "Blind Test Bosh", text: "Que des sons de Bosh", Icon: Mic2, category: "Artistes", keywords: "djomb" },
+  { id: "artist-timal", label: "Blind Test Timal", text: "Que des sons de Timal", Icon: Mic2, category: "Artistes", keywords: "77" },
+  { id: "artist-kalash-criminel", label: "Blind Test Kalash Criminel", text: "Que des sons de Kalash Criminel", Icon: Mic2, category: "Artistes", keywords: "93 sevran" },
+  { id: "artist-gambi", label: "Blind Test Gambi", text: "Que des sons de Gambi", Icon: Mic2, category: "Artistes", keywords: "popopop" },
+  { id: "artist-naza", label: "Blind Test Naza", text: "Que des sons de Naza", Icon: Mic2, category: "Artistes", keywords: "afro" },
+  { id: "artist-dosseh", label: "Blind Test Dosseh", text: "Que des sons de Dosseh", Icon: Mic2, category: "Artistes", keywords: "orléans" },
+  { id: "artist-kekra", label: "Blind Test Kekra", text: "Que des sons de Kekra", Icon: Mic2, category: "Artistes", keywords: "masqué" },
+  { id: "artist-alpha-wann", label: "Blind Test Alpha Wann", text: "Que des sons de Alpha Wann", Icon: Mic2, category: "Artistes", keywords: "1995 boom bap" },
+  { id: "artist-nemir", label: "Blind Test Nemir", text: "Que des sons de Nemir", Icon: Mic2, category: "Artistes", keywords: "perpignan" },
+  { id: "artist-yvnnis", label: "Blind Test Yvnnis", text: "Que des sons de Yvnnis", Icon: Mic2, category: "Artistes", keywords: "nouvelle gen" },
+  { id: "artist-zamdane", label: "Blind Test Zamdane", text: "Que des sons de Zamdane", Icon: Mic2, category: "Artistes", keywords: "marseille maroc" },
+  { id: "artist-sadek", label: "Blind Test Sadek", text: "Que des sons de Sadek", Icon: Mic2, category: "Artistes", keywords: "93" },
+  { id: "artist-keblack", label: "Blind Test KeBlack", text: "Que des sons de KeBlack", Icon: Mic2, category: "Artistes", keywords: "afro" },
+  { id: "artist-franglish", label: "Blind Test Franglish", text: "Que des sons de Franglish", Icon: Mic2, category: "Artistes", keywords: "afro" },
+  { id: "artist-jok-air", label: "Blind Test Jok'Air", text: "Que des sons de Jok'Air", Icon: Mic2, category: "Artistes", keywords: "mz" },
+  { id: "artist-vegedream", label: "Blind Test Vegedream", text: "Que des sons de Vegedream", Icon: Mic2, category: "Artistes", keywords: "ramenez la coupe" },
+  { id: "artist-seth-gueko", label: "Blind Test Seth Gueko", text: "Que des sons de Seth Gueko", Icon: Mic2, category: "Artistes", keywords: "barlou" },
+  { id: "artist-jazzy-bazz", label: "Blind Test Jazzy Bazz", text: "Que des sons de Jazzy Bazz", Icon: Mic2, category: "Artistes", keywords: "l'entourage" },
+  { id: "artist-luv-resval", label: "Blind Test Luv Resval", text: "Que des sons de Luv Resval", Icon: Mic2, category: "Artistes", keywords: "91" },
+  { id: "artist-tayc", label: "Blind Test Tayc", text: "Que des sons de Tayc", Icon: Mic2, category: "Artistes", keywords: "afro r&b" },
   { id: "artist-mmz", label: "Blind Test MMZ", text: "Que des sons de MMZ", Icon: Mic2, category: "Artistes", keywords: "moha jones bulma genesis" },
   { id: "artist-sofiane", label: "Blind Test Sofiane", text: "Que des sons de Sofiane", Icon: Mic2, category: "Artistes", keywords: "fianso 93 blanc-mesnil" },
   { id: "artist-heuss-lenfoire", label: "Blind Test Heuss L'enfoiré", text: "Que des sons de Heuss L'enfoiré", Icon: Mic2, category: "Artistes", keywords: "93 aulnay" },
   { id: "artist-didine", label: "Blind Test Didine Canon 16", text: "Que des sons de Didine Canon 16", Icon: Mic2, category: "Artistes", keywords: "algérie" },
   { id: "artist-dizzy-dros", label: "Blind Test Dizzy DROS", text: "Que des sons de Dizzy DROS", Icon: Mic2, category: "Artistes", keywords: "maroc" },
+  // --- Gimmicks : on entend l'ad-lib, on dit qui c'est. Clips maison (public/audio/gimmicks).
+  { id: "gimmicks", label: "Gimmicks de rappeurs", text: "Un ad-lib, 4 noms : qui dit ça ? Kaaris, Ninho, Niska, SCH, Gazo…", Icon: Mic2, category: "Gimmicks", keywords: "adlib ad-lib gimmick voix" },
+  { id: "memes", label: "Mèmes du rap", text: "Les extraits cultes : « Salut à tous, c'est Ninho »… qui parle ?", Icon: Mic2, category: "Gimmicks", keywords: "meme mème culte" },
 ];
 
 // Mise en avant éditoriale — ces thèmes portent la flamme "tendance" dans les sélecteurs,
@@ -137,7 +179,7 @@ export const FEATURED_THEME_IDS = ["hits-2026", "nouvelle-gen", "artist-rvfleuze
 
 // Thèmes pour lesquels on va chercher une vraie photo d'artiste (pas les thèmes par époque,
 // génériques par nature) — utilisé pour construire l'appel groupé à /api/blindtest/theme-art.
-export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époques" && t.id !== "pop" && t.id !== "viral").map(
+export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époques" && t.id !== "pop" && t.id !== "viral" && t.category !== "Gimmicks").map(
   (t) => t.id
 );
 
@@ -145,7 +187,7 @@ export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époq
 // à partir de la date (pas de hasard, pas d'état serveur à synchroniser) : le même jour donne
 // toujours le même thème pour tous les joueurs, et il change tout seul le lendemain.
 // Les thèmes à pool très restreint (régions à un seul nom) sont exclus du tirage.
-const DAILY_EXCLUDED = new Set(["mix", "78", "31", "lagui-sadek", "sorties"]);
+const DAILY_EXCLUDED = new Set(["mix", "78", "31", "lagui-sadek", "sorties", "gimmicks", "memes"]);
 const DAILY_POOL = THEME_OPTIONS.filter((t) => !DAILY_EXCLUDED.has(t.id));
 
 function weekIndexParis(): number {

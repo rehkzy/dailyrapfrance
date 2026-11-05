@@ -19,7 +19,7 @@ import { useUser } from "@/lib/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { oauthCallbackUrl } from "@/lib/authRedirect";
 import { speedBonus, comboBonus } from "@/lib/scoring";
-import { gimmicksOf } from "@/lib/gimmicks";
+import { gimmicksOf, isSoundbiteTheme } from "@/lib/gimmicks";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
@@ -275,6 +275,7 @@ export default function BlindTest() {
   const missReactedRef = useRef(false); // un ad-lib « raté » a déjà joué sur cette manche
   // Réaction de l'artiste + musique baissée en fondu le temps de l'ad-lib (extrait audio ou clip).
   const reactWithDuck = useCallback((artist: string | null | undefined, mood: "hit" | "miss") => {
+    if (isSoundbiteTheme(singleArtistRef.current)) return 0; // le clip EST le gimmick
     const secs = sfx.artistReact(artist, mood);
     if (secs > 0) duckMusic({ el: audioRef.current, set: (v) => clipRef.current?.setVolume?.(v) }, secs);
     return secs;

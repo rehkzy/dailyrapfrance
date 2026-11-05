@@ -1,4 +1,5 @@
 import { THEME_OPTIONS } from "@/lib/themes";
+import { isSoundbiteTheme } from "@/lib/gimmicks";
 
 export type FieldKey = "title" | "artist" | "feat";
 type TrackLite = { artistName: string; feats: string[] };
@@ -29,6 +30,8 @@ export function isGuestTrack(theme: string | undefined | null, track: TrackLite)
  *    « qui est en feat ? » quand la réponse est l'artiste du thème lui-même)
  */
 export function fieldsFor(theme: string | undefined | null, track: TrackLite): FieldKey[] {
+  // Gimmicks / mèmes : une seule question, qui dit ça ?
+  if (isSoundbiteTheme(theme)) return ["artist"];
   const name = themeArtistName(theme);
   if (!name) return track.feats.length ? ["title", "artist", "feat"] : ["title", "artist"];
   if (isGuestTrack(theme, track)) {
@@ -51,6 +54,7 @@ export function fieldPrompt(field: FieldKey, theme: string | undefined | null, t
   const guest = isGuestTrack(theme, track);
   if (field === "artist" && guest && name) return kind === "qcm" ? `${name} est invité — qui est l'artiste principal ?` : `Artiste principal (${name} est en feat) · 1 pt`;
   if (field === "title") return kind === "qcm" ? "Quel est le titre ?" : "Titre (1 pt)";
+  if (field === "artist" && isSoundbiteTheme(theme)) return kind === "qcm" ? "Qui dit ça ?" : "Qui dit ça ? (1 pt)";
   if (field === "artist") return kind === "qcm" ? "Qui chante ?" : "Artiste (1 pt)";
   return kind === "qcm" ? "Qui est en feat ?" : "Featuring (+2 pts)";
 }

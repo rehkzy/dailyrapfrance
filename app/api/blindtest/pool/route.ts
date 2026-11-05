@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveArtist } from "@/lib/deezerArtist";
 import { deezerFetch, fetchTrackDetail, toGameTrack, isPlayableTrack, type DeezerTrackSummary, type DeezerTrackFull } from "@/lib/deezerTrack";
 import { THEME_PLAYLISTS, THEME_ARTISTS, ALL_DECADE_PLAYLISTS } from "@/lib/themeSources";
+import { isSoundbiteTheme, soundbitesFor } from "@/lib/gimmicks";
 
 // Pool de titres du blind test — 100% en direct depuis l'API Deezer, aucune base de données.
 // Volontairement sans persistance : rien à peupler, rien qui puisse être "pas encore prêt".
@@ -124,6 +125,25 @@ export async function GET(req: NextRequest) {
       const ordered = detailed.filter((t): t is NonNullable<typeof t> => !!t && !!t.preview).map(toGameTrack).filter(isPlayableTrack);
       const shuffle = searchParams.get("order") !== "keep";
       const tracks = (shuffle ? [...ordered].sort(() => Math.random() - 0.5) : ordered).slice(0, count);
+      return NextResponse.json({ tracks });
+    }
+
+    // Gimmicks / mèmes : les clips maison tiennent lieu d'extraits. Même forme qu'un titre
+    // Deezer (le moteur ne voit pas la différence), photo de l'artiste en pochette.
+    if (isSoundbiteTheme(themeId)) {
+      const bites = [...soundbitesFor(themeId)].sort(() => Math.random() - 0.5).slice(0, count);
+      const artists = [...new Set(bites.map((b) => b.artist))];
+      const photos = new Map<string, string | null>();
+      await Promise.all(artists.map(async (a) => photos.set(a, (await resolveArtist(a).catch(() => null))?.picture_medium ?? null)));
+      const tracks = bites.map((b, i) => ({
+        id: `bite-${b.id}`,
+        title: b.label,
+        artistName: b.artist,
+        unplayable: false,
+        previewUrl: `/audio/gimmicks/${b.id}.mp3`,
+        coverUrl: photos.get(b.artist) ?? null,
+        feats: [] as string[],
+      }));
       return NextResponse.json({ tracks });
     }
 

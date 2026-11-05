@@ -6,7 +6,8 @@
  */
 export type GimmickMood = "hit" | "combo" | "miss" | "win" | "lose" | "buzz" | "intro";
 
-export type Gimmick = { id: string; artist: string; label: string; seconds: number; moods: GimmickMood[] };
+/** kind : « gimmick » = ad-lib court (réaction) ; « meme » = extrait culte plus long (intro, mode Mèmes). */
+export type Gimmick = { id: string; artist: string; label: string; seconds: number; moods: GimmickMood[]; kind?: "gimmick" | "meme" };
 
 export const GIMMICKS: Gimmick[] = [
   { id: "gazo-malaganx", artist: "Gazo", label: "Malagangx", seconds: 2.2, moods: ["win", "hit"] },
@@ -19,19 +20,19 @@ export const GIMMICKS: Gimmick[] = [
   { id: "niska-quel-bail", artist: "Niska", label: "Quel bail ?", seconds: 3.4, moods: ["miss"] },
   { id: "niska-mechant", artist: "Niska", label: "Méchant méchant", seconds: 2.6, moods: ["win", "combo"] },
   { id: "sch-mathafack", artist: "SCH", label: "Mathafack", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
-  { id: "ninho-salut", artist: "Ninho", label: "Salut à tous, c'est Ninho", seconds: 5.1, moods: ["intro"] },
+  { id: "ninho-salut", artist: "Ninho", label: "Salut à tous, c'est Ninho", seconds: 5.1, moods: ["intro"] , kind: "meme" },
   { id: "ninho-binks", artist: "Ninho", label: "Binks to binks", seconds: 2.5, moods: ["hit", "combo"] },
   { id: "ninho-ouais-ni", artist: "Ninho", label: "Ouais Ni", seconds: 1.1, moods: ["hit", "buzz"] },
   { id: "ninho-pas-au-courant", artist: "Ninho", label: "Ils étaient pas au courant…", seconds: 2.1, moods: ["win", "combo"] },
   { id: "ninho-tiens-retiens", artist: "Ninho", label: "Tiens, retiens", seconds: 2.1, moods: ["miss", "lose"] },
   { id: "damso-gimmick", artist: "Damso", label: "Damso", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
-  { id: "koba-meme", artist: "Koba LaD", label: "Le mème", seconds: 11.2, moods: ["intro"] },
-  { id: "koba-qui-voila", artist: "Koba LaD", label: "Qui voilà…", seconds: 4.9, moods: ["win", "hit"] },
-  { id: "koba-bat-les-couilles", artist: "Koba LaD", label: "Je m'en bats les…", seconds: 5.8, moods: ["miss", "lose"] },
+  { id: "koba-meme", artist: "Koba LaD", label: "Le mème", seconds: 11.2, moods: ["intro"] , kind: "meme" },
+  { id: "koba-qui-voila", artist: "Koba LaD", label: "Qui voilà…", seconds: 4.9, moods: ["win", "hit"] , kind: "meme" },
+  { id: "koba-bat-les-couilles", artist: "Koba LaD", label: "Je m'en bats les…", seconds: 5.8, moods: ["miss", "lose"] , kind: "meme" },
   { id: "zola-trop-relou", artist: "Zola", label: "Trop relou", seconds: 3.5, moods: ["miss", "lose"] },
   { id: "soolking-franchement", artist: "Soolking", label: "Franchement c'est ça", seconds: 3.4, moods: ["hit", "win", "combo"] },
   { id: "sofiane-ish-ish", artist: "Sofiane", label: "Ish ish", seconds: 1.0, moods: ["hit", "combo", "buzz"] },
-  { id: "heuss-stresse", artist: "Heuss L'enfoiré", label: "Je suis stressé", seconds: 6.3, moods: ["intro", "miss"] },
+  { id: "heuss-stresse", artist: "Heuss L'enfoiré", label: "Je suis stressé", seconds: 6.3, moods: ["intro", "miss"] , kind: "meme" },
 ];
 
 function norm(s: string): string {
@@ -48,6 +49,16 @@ export function gimmicksOf(artistOrTheme: string | null | undefined): Gimmick[] 
   const key = norm(artistOrTheme.replace(/^artist-/, "").split(/ feat\.?| ft\.?|,|&|\//i)[0]);
   if (!key) return [];
   return GIMMICKS.filter((g) => norm(g.artist) === key);
+}
+
+export const SOUNDBITE_THEMES = ["gimmicks", "memes"] as const;
+export function isSoundbiteTheme(theme: string | null | undefined): boolean {
+  if (!theme) return false;
+  const base = theme.includes(":") ? theme.split(":")[1] : theme;
+  return (SOUNDBITE_THEMES as readonly string[]).includes(base);
+}
+export function soundbitesFor(theme: string): Gimmick[] {
+  return GIMMICKS.filter((g) => (theme === "memes" ? g.kind === "meme" : g.kind !== "meme"));
 }
 
 export const GIMMICK_PREF_KEY = "drf-gimmicks";
