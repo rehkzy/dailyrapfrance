@@ -598,9 +598,13 @@ function BlindTestRoom({
     // Partie déjà lancée : on entre en spectateur (classement en direct, chat, réactions),
     // et on joue à la partie suivante. Si on y était déjà joueur, on reprend sa place.
     const spectator = r.status !== "lobby" && !(already && !already.spectator);
-    const { error: upErr } = await supabase.from("room_players").upsert({ room_id: r.id, user_id: user.id, display_name: displayName, spectator });
-    if (upErr && spectator) {
-      setError("Cette partie a déjà commencé.");
+    // La colonne `spectator` n'est envoyée que pour un spectateur : si la migration n'est
+    // pas passée, les entrées normales (lobby) continuent de marcher.
+    const { error: upErr } = await supabase
+      .from("room_players")
+      .upsert(spectator ? { room_id: r.id, user_id: user.id, display_name: displayName, spectator: true } : { room_id: r.id, user_id: user.id, display_name: displayName });
+    if (upErr) {
+      setError(spectator ? "Cette partie a déjà commencé." : "Impossible d'entrer dans le salon — réessaie.");
       setBusy(false);
       return;
     }
@@ -609,24 +613,6 @@ function BlindTestRoom({
     setScreen(r.status === "lobby" ? "lobby" : r.status === "finished" ? "final" : "playing");
     setBusy(false);
   }
-
-  // L'adresse de la page suit le salon courant : un lien copié depuis la barre d'adresse
-  // (ou partagé par Safari) pointe sur le bon code, pas sur celui d'un salon précédent
-  // resté dans l'URL. Sans salon, on retire le paramètre.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const u = new URL(window.location.href);
-    const current = u.searchParams.get("room");
-    if (room?.code) {
-      if (current === room.code) return;
-      u.searchParams.set("mode", "online");
-      u.searchParams.set("room", room.code);
-    } else {
-      if (!current) return;
-      u.searchParams.delete("room");
-    }
-    window.history.replaceState(window.history.state, "", u.toString());
-  }, [room?.code]);
 
   const autoJoinedRef = useRef(false);
   useEffect(() => {
@@ -672,7 +658,11 @@ function BlindTestRoom({
 
   async function startGame() {
     unlockAudio();
-    if (roomRef.current) void supabase.from("room_players").update({ ready: false, done_round: null, spectator: false }).eq("room_id", roomRef.current.id);
+    if (roomRef.current) {
+      void supabase.from("room_players").update({ ready: false, done_round: null }).eq("room_id", roomRef.current.id);
+      // Les spectateurs jouent la partie suivante (colonne optionnelle tant que la migration n'est pas passée).
+      void supabase.from("room_players").update({ spectator: false }).eq("room_id", roomRef.current.id).eq("spectator", true).then(() => {});
+    }
     if (!room) return;
     setBusy(true);
     try {
