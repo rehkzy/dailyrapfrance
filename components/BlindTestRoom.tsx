@@ -19,6 +19,9 @@ import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
 import { LobbyChat, LiveChat } from "@/components/RoomChat";
+import ResultTicket from "@/components/ResultTicket";
+import { DEFAULT_CONFIG, type GameConfig } from "@/lib/presets";
+import type { RoundOutcome } from "@/lib/share";
 import { DRMark3D } from "@/components/BlindTestLogo";
 import type { User } from "@supabase/supabase-js";
 
@@ -1139,12 +1142,31 @@ function BlindTestRoom({
     const teamA = players.filter((p) => p.team !== 2).reduce((s, p) => s + scoreFor(p.user_id), 0);
     const teamB = players.filter((p) => p.team === 2).reduce((s, p) => s + scoreFor(p.user_id), 0);
     const myTeam = me?.team === 2 ? 2 : 1;
+    const myScore = scoreFor(user.id);
+    const iWon = ranked[0]?.user_id === user.id;
+    const won2v2 = room.format === "2v2" && teamA !== teamB && (teamA > teamB ? 1 : 2) === myTeam;
+    const headlineTitle =
+      room.format === "1v1" && ranked[0] ? (iWon ? "Tu as gagné le duel." : `${ranked[0].display_name} remporte le duel.`)
+      : room.format === "2v2" ? (teamA === teamB ? "Égalité." : won2v2 ? "Ton équipe a gagné." : "L'autre équipe l'emporte.")
+      : iWon ? "Tu gagnes." : `${ranked[0]?.display_name ?? "Quelqu'un"} gagne.`;
+    const outcomes: RoundOutcome[] = room.tracks.map((t, i) => {
+      const fields = applicableFieldsFor(room.theme, t);
+      const mine = solves.filter((sv) => sv.round_index === i && sv.user_id === user.id);
+      return { found: new Set(mine.map((sv) => sv.field)).size, total: fields.length, fast: mine.some((sv) => (sv.bonus ?? 0) > 0) };
+    });
+    const resultConfig: GameConfig = { ...DEFAULT_CONFIG, mode: "online", theme: room.theme, rounds: room.rounds, answerMode: room.answer_mode === "text" ? "text" : "qcm" };
+    const chips: { label: string; strong?: boolean }[] = [];
+    chips.push({ label: `${ranked.findIndex((p) => p.user_id === user.id) + 1}e sur ${ranked.length}`, strong: iWon });
+    if (ranked[1] && iWon) chips.push({ label: `${myScore - scoreFor(ranked[1].user_id)} pts d'avance sur ${ranked[1].display_name}` });
+    if (!iWon && ranked[0]) chips.push({ label: `${scoreFor(ranked[0].user_id) - myScore} pts derrière ${ranked[0].display_name}` });
+    const themeLabelFinal = THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme;
     return (
-      <div className="max-w-lg mx-auto text-center">
-        <p className="stage-kicker mb-4">Terminé{room.format ? ` · ${FORMAT_LABEL[room.format]}` : ""}</p>
-        <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">{room.format === "1v1" && ranked[0] ? (ranked[0].user_id === user.id ? "Tu as gagné le duel !" : `${ranked[0].display_name} remporte le duel`) : room.format === "2v2" ? (teamA === teamB ? "Égalité !" : (teamA > teamB ? 1 : 2) === myTeam ? "Ton équipe a gagné !" : "L'autre équipe l'emporte") : "Résultats"}</h2>
+      <div className="max-w-lg mx-auto">
+        <p className="stage-kicker mb-2">Terminé{room.format ? ` · ${FORMAT_LABEL[room.format]}` : ""}</p>
+        <h2 className="stage-title mb-5">{headlineTitle}</h2>
+
         {room.format === "2v2" && (
-          <div className="grid grid-cols-2 gap-3 mb-8">
+          <div className="grid grid-cols-2 gap-3 mb-5">
             {[{ n: "Équipe A", v: teamA, t: 1 }, { n: "Équipe B", v: teamB, t: 2 }].map((tm) => (
               <div key={tm.n} className={`ticket p-4 ${tm.v >= Math.max(teamA, teamB) ? "!border-gold" : ""}`}>
                 <p className="text-xs font-semibold text-ink-faint">{tm.n}{tm.t === myTeam ? " · toi" : ""}</p>
@@ -1156,75 +1178,45 @@ function BlindTestRoom({
         )}
 
         {room.gages_enabled && lastPlace && (
-          <div className="rounded-2xl p-5 mb-8 border border-gold/40 bg-gold/10 text-left">
-            <p className="stage-kicker mb-2">
-              🎉 Gage pour {lastPlace.display_name}
-            </p>
+          <div className="rounded-2xl p-5 mb-5 border border-gold/40 bg-gold/10">
+            <p className="stage-kicker mb-2">🎉 Gage pour {lastPlace.display_name}</p>
             <p className="text-sm font-medium">{gageText}</p>
           </div>
         )}
 
-        {/* Podium — avant, la fin de salon en ligne n'avait qu'une liste plate, contrairement
-            au mode local qui a déjà ce traitement. Même vocabulaire visuel (médaille +
-            colonnes de hauteurs différentes) pour les 3 premiers ; le reste du classement
-            garde la liste compacte en dessous. */}
-        <div className="flex items-end justify-center gap-3 mb-10">
-          {[ranked[1], ranked[0], ranked[2]].map((p, i) =>
-            p ? (
-              <div key={p.user_id} className={`flex flex-col items-center ${i === 1 ? "order-2" : i === 0 ? "order-1" : "order-3"}`}>
-                <Icon
-                  icon={i === 1 ? "game-icons:trophy" : "game-icons:podium-winner"}
-                  width={i === 1 ? 28 : 20}
-                  className={i === 1 ? "text-gold" : "text-ink-faint"}
-                />
-                <div
-                  className={`rounded-t-xl w-20 sm:w-24 flex flex-col items-center justify-end pb-3 mt-2 border border-white/10 ${
-                    i === 1 ? "h-28 bg-gold/20 border-gold/50" : i === 0 ? "h-20 bg-white/8" : "h-14 bg-white/5"
-                  }`}
-                >
-                  <p className="text-xs font-medium truncate px-1 max-w-full">{p.display_name}</p>
-                  <p className="stage-kicker">{scoreFor(p.user_id)}</p>
-                </div>
-              </div>
-            ) : null
-          )}
-        </div>
+        <ResultTicket
+          points={myScore}
+          rounds={outcomes}
+          themeLabel={themeLabelFinal}
+          config={resultConfig}
+          daily={null}
+          playerName={me?.display_name ?? displayName}
+          chips={chips}
+          headline={`Salon en ligne · ${themeLabelFinal}`}
+          subline={`${ranked.length} joueurs · ${room.tracks.length} extraits`}
+          onReplay={() => (isHost ? setReplaying(true) : window.location.assign("/jouer?mode=online"))}
+          onReplaySame={isHost ? () => setReplaying(true) : undefined}
+          podium={ranked.map((p) => ({ name: p.display_name, score: scoreFor(p.user_id) }))}
+          nextUp={{ href: "/jouer?mode=online&match=1v1", title: "Un duel contre un inconnu ?", sub: "Matchmaking : ça démarre dès qu'un adversaire est trouvé.", icon: "arrow" }}
+        />
 
-        {ranked.length > 3 && (
-          <div className="ticket divide-y divide-white/8 overflow-hidden mb-8 text-left">
-            {ranked.slice(3).map((p, i) => (
-              <div key={p.user_id} className="flex items-center gap-4 py-3 px-5">
-                <span className="font-mono text-sm text-ink-faint w-6">{i + 4}</span>
-                <span className="flex-1 text-sm font-medium">{p.display_name}</span>
-                <span className="font-mono text-sm text-gold">{scoreFor(p.user_id)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <p className="stage-kicker mb-3 text-left">Récap de la partie</p>
-        <div data-lenis-prevent className="ticket divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-8 text-left max-h-96">
+        <p className="stage-kicker mt-8 mb-3">Récap de la partie</p>
+        <div data-lenis-prevent className="ticket divide-y divide-white/8 overflow-x-hidden overflow-y-auto overscroll-contain mb-6 max-h-96">
           {room.tracks.map((t, i) => {
-            const rSolves = solves.filter((s) => s.round_index === i);
+            const rSolves = solves.filter((sv) => sv.round_index === i);
             return (
               <div key={t.id} className="flex items-center gap-3 py-3 px-4">
-                {t.coverUrl ? (
-                  <img src={t.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
-                ) : (
-                  <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />
-                )}
+                {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" /> : <div className="w-11 h-11 rounded-lg bg-white/5 shrink-0" />}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{t.title}</p>
+                  <p className="text-sm font-semibold truncate">{t.title}</p>
                   <p className="text-xs text-ink-faint truncate">{t.artistName}</p>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
                   {rSolves.length === 0 ? (
-                    <span className="text-[11px] font-mono text-ink-faint">personne</span>
+                    <span className="text-[11px] text-ink-faint">personne</span>
                   ) : (
-                    [...new Set(rSolves.map((s) => s.user_id))].map((uid) => (
-                      <span key={uid} className="text-[11px] font-mono text-gold">
-                        {players.find((p) => p.user_id === uid)?.display_name}
-                      </span>
+                    [...new Set(rSolves.map((sv) => sv.user_id))].map((uid) => (
+                      <span key={uid} className={`text-[11px] font-semibold ${uid === user.id ? "text-gold" : "text-ink-muted"}`}>{players.find((p) => p.user_id === uid)?.display_name}</span>
                     ))
                   )}
                 </div>
@@ -1235,11 +1227,6 @@ function BlindTestRoom({
 
         {closedMessage && <p className="text-sm text-riseNeg mb-4">{closedMessage}</p>}
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          {isHost && (
-            <button type="button" onClick={() => setReplaying(true)} className="sticker h-14 px-7">
-              <RotateCcw size={16} /> Rejouer — même salon
-            </button>
-          )}
           {confirmingQuit ? (
             <span className="inline-flex items-center gap-2 text-sm">
               <span className="text-ink-muted">{players.length > 1 ? "Quitter ? Les autres continuent." : "Quitter le salon ?"}</span>
@@ -1247,20 +1234,10 @@ function BlindTestRoom({
               <button onClick={() => setConfirmingQuit(false)} className="sticker sticker-ghost sticker-sm">Annuler</button>
             </span>
           ) : (
-            <button
-              onClick={() => setConfirmingQuit(true)}
-              className="sticker sticker-ghost h-14 px-7"
-            >
-              <LogOut size={16} />
-              Quitter le salon
-            </button>
+            <button onClick={() => setConfirmingQuit(true)} className="sticker sticker-ghost h-12 px-6"><LogOut size={16} /> Quitter le salon</button>
           )}
         </div>
-        {!isHost && (
-          <p className="text-xs text-ink-faint mt-4">
-            Seul l'hôte peut relancer une partie dans ce salon.
-          </p>
-        )}
+        {!isHost && <p className="text-xs text-ink-faint mt-4 text-center">Seul l&apos;hôte peut relancer une partie dans ce salon.</p>}
       </div>
     );
   }
@@ -1437,7 +1414,7 @@ function BlindTestRoom({
         </div>
 
         {/* Chat façon TikTok Live : fil discret + feuille de saisie */}
-        {!showIntro && <LiveChat roomId={room.id} userId={user.id} name={me?.display_name ?? displayName} avatarUrl={avatarUrl} open={chatOpen} onOpenChange={setChatOpen} />}
+        {!showIntro && <LiveChat roomId={room.id} userId={user.id} name={me?.display_name ?? displayName} avatarUrl={avatarUrl} open={chatOpen && !revealed} onOpenChange={setChatOpen} hidden={revealed} />}
 
         {/* Rail : chat + réactions + passer (hôte) */}
         {!revealed && !showIntro && (

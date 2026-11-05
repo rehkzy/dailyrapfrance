@@ -131,10 +131,17 @@ export function LobbyChat({ roomId, userId, name, avatarUrl }: { roomId: string;
 }
 
 /* ── Partie : superposition TikTok Live + feuille de saisie ───────────────── */
-export function LiveChat({ roomId, userId, name, avatarUrl, open, onOpenChange }: { roomId: string; userId: string; name: string; avatarUrl: string | null; open: boolean; onOpenChange: (o: boolean) => void }) {
+export function LiveChat({ roomId, userId, name, avatarUrl, open, onOpenChange, hidden = false }: { roomId: string; userId: string; name: string; avatarUrl: string | null; open: boolean; onOpenChange: (o: boolean) => void; hidden?: boolean }) {
   const { messages, clearUnread } = useRoomChat(roomId);
   const listRef = useRef<HTMLDivElement>(null);
-  const recent = messages.slice(-5);
+  // Fil discret : seulement les 3 derniers messages, et chacun ne reste que 6 s à l'écran
+  // (comme un toast). Entre deux messages, rien ne traîne sur le jeu.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const recent = messages.slice(-3).filter((m) => now - new Date(m.created_at).getTime() < 6000);
   useEffect(() => {
     if (open) clearUnread();
     const el = listRef.current;
@@ -143,8 +150,8 @@ export function LiveChat({ roomId, userId, name, avatarUrl, open, onOpenChange }
 
   return (
     <>
-      {/* Fil discret, bas gauche — tap pour ouvrir */}
-      {!open && recent.length > 0 && (
+      {/* Fil discret, bas gauche — tap pour ouvrir. Jamais pendant la révélation. */}
+      {!open && !hidden && recent.length > 0 && (
         <button type="button" onClick={() => onOpenChange(true)} className="chat-live" aria-label="Ouvrir le chat">
           {recent.map((m, i) => (
             <span key={m.id} className="chat-live-row" style={{ opacity: 0.45 + (i / Math.max(recent.length - 1, 1)) * 0.55 }}>
