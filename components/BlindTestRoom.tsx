@@ -20,7 +20,7 @@ import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
 import { LobbyChat, LiveChat } from "@/components/RoomChat";
 import ResultTicket from "@/components/ResultTicket";
-import { DEFAULT_CONFIG, type GameConfig } from "@/lib/presets";
+import { DEFAULT_CONFIG, ROUND_OPTIONS, SECONDS_OPTIONS, type GameConfig } from "@/lib/presets";
 import type { RoundOutcome } from "@/lib/share";
 import { DRMark3D } from "@/components/BlindTestLogo";
 import type { User } from "@supabase/supabase-js";
@@ -56,6 +56,7 @@ type RoomRow = {
   answer_mode: "text" | "qcm";
   gages_enabled: boolean;
   gages_intensity: "soft" | "hard";
+  round_seconds?: number | null;
   is_public?: boolean;
   starts_at?: string | null;
   created_at?: string;
@@ -143,6 +144,7 @@ function BlindTestRoom({
   const [solves, setSolves] = useState<SolveRow[]>([]);
 
   const [started, setStarted] = useState(false);
+  const roundSecs = room?.round_seconds && room.round_seconds >= 10 ? room.round_seconds : ROUND_SECONDS;
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   const [revealed, setRevealed] = useState(false);
   const revealedRef = useRef(false);
@@ -319,10 +321,10 @@ function BlindTestRoom({
       // Sas "Prépare-toi" — purement visuel, le vrai chrono (ci-dessous) tourne déjà
       // pareil pour tout le monde en arrière-plan, donc le bonus de rapidité reste juste.
       setShowIntro(elapsed < PRE_ROUND_GRACE_SECONDS);
-      if (elapsed < ROUND_SECONDS) {
-        setTimeLeft(Math.max(0, Math.round(ROUND_SECONDS - elapsed)));
-        if (ROUND_SECONDS - elapsed <= 6) sfx.tick();
-      } else if (elapsed < ROUND_SECONDS + REVEAL_SECONDS) {
+      if (elapsed < roundSecs) {
+        setTimeLeft(Math.max(0, Math.round(roundSecs - elapsed)));
+        if (roundSecs - elapsed <= 6) sfx.tick();
+      } else if (elapsed < roundSecs + REVEAL_SECONDS) {
         setTimeLeft(0);
         if (!revealedRef.current) {
           revealedRef.current = true;
@@ -422,7 +424,7 @@ function BlindTestRoom({
   const endRoundEarly = useCallback(async () => {
     const r = roomRef.current;
     if (!r) return;
-    const past = new Date(Date.now() - ROUND_SECONDS * 1000).toISOString();
+    const past = new Date(Date.now() - roundSecs * 1000).toISOString();
     await supabase.from("rooms").update({ round_started_at: past }).eq("id", r.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -473,7 +475,8 @@ function BlindTestRoom({
     gagesEnabled: boolean,
     gagesIntensity: "soft" | "hard",
     isPublic = false,
-    format: MatchFormat | null = null
+    format: MatchFormat | null = null,
+    roundSeconds = ROUND_SECONDS
   ) {
     unlockAudio();
     setBusy(true);
@@ -527,6 +530,7 @@ function BlindTestRoom({
         answer_mode: answerMode,
         gages_enabled: gagesEnabled,
         gages_intensity: gagesIntensity,
+        ...(roundSeconds !== ROUND_SECONDS ? { round_seconds: roundSeconds } : {}),
         is_public: isPublic,
         format,
         ...(custom ? { custom_ids: custom.ids, custom_title: custom.title } : {}),
@@ -1463,7 +1467,7 @@ function BlindTestRoom({
               <div className="feed-disc" aria-hidden="true">
                 <div className="feed-disc-inner vinyl-spin"><DRMark3D size="46%" /></div>
               </div>
-              <div className="big-timer feed-timer" data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / ROUND_SECONDS) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
+              <div className="big-timer feed-timer" data-urgent={timeLeft <= 5} style={{ "--pct": Math.max(0, Math.min(100, (timeLeft / roundSecs) * 100)) } as CSSProperties} role="timer" aria-label={`${timeLeft} secondes restantes`}>
                 <span className={`score-num text-5xl ${timeLeft <= 5 ? "text-[#ffd166] urgent-pulse" : "text-ink"}`}>{timeLeft}</span>
               </div>
             </>
@@ -1651,42 +1655,29 @@ function RoomMenu({
   onJoin,
   onExit,
   party = false,
-  onQuickMatch,
   custom = null,
 }: {
   busy: boolean;
   error: string | null;
   joinCode: string;
   setJoinCode: (v: string) => void;
-  onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm", gagesEnabled: boolean, gagesIntensity: "soft" | "hard") => void;
+  onCreate: (theme: string, rounds: number, answerMode: "text" | "qcm", gagesEnabled: boolean, gagesIntensity: "soft" | "hard", isPublic?: boolean, format?: MatchFormat | null, roundSeconds?: number) => void;
   onJoin: () => void;
   onQuickMatch?: (format: MatchFormat) => void;
   onExit?: () => void;
   party?: boolean;
   custom?: RoomCustom | null;
 }) {
+  /*
+   * Deux écrans, comme en solo : 1) le thème (ou l'artiste), 2) les réglages — manches,
+   * durée des extraits, mode de réponse, gages — puis « Créer le salon ». Un blind test
+   * perso saute l'écran du thème. Le code d'un pote se rejoint depuis l'écran 1.
+   */
+  const [step, setStep] = useState<"theme" | "settings">(custom ? "settings" : "theme");
   const [rounds, setRounds] = useState(custom ? custom.ids.length : 10);
+  const [seconds, setSeconds] = useState(custom?.secs ?? ROUND_SECONDS);
   const [theme, setTheme] = useState(custom ? "custom" : "mix");
   const [surprise, setSurprise] = useState<string | null>(null);
-  // 🎲 Un thème au hasard parmi les 80 (jamais « mix ») ; « tout au hasard » tire aussi les règles.
-  function randomTheme() {
-    const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "custom" && t.id !== theme);
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
-  function pickRandomTheme() {
-    sfx.click();
-    const t = randomTheme();
-    setTheme(t.id);
-    setSurprise(`🎲 ${t.label.replace(/^Blind Test /i, "")}`);
-  }
-  function pickRandomAll() {
-    sfx.click();
-    const t = randomTheme();
-    const r = [10, 15, 20][Math.floor(Math.random() * 3)];
-    const a = Math.random() < 0.6 ? "qcm" : "text";
-    setTheme(t.id); setRounds(r); setAnswerMode(a); setNeedAnswerMode(false);
-    setSurprise(`🎲 ${t.label.replace(/^Blind Test /i, "")} · ${r} manches · ${a === "qcm" ? "Facile" : "Difficile"}`);
-  }
   const [answerMode, setAnswerMode] = useState<"text" | "qcm" | null>(custom?.answer ?? null);
   const [gagesEnabled, setGagesEnabled] = useState(party);
   const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
@@ -1694,88 +1685,107 @@ function RoomMenu({
   const [showJoin, setShowJoin] = useState(joinCode.trim().length > 0);
   const answerModeRef = useRef<HTMLDivElement>(null);
 
+  function randomTheme() {
+    const pool = THEME_OPTIONS.filter((t) => t.id !== "mix" && t.id !== "custom" && t.id !== theme);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  function chooseTheme(id: string, label?: string) {
+    sfx.click();
+    setTheme(id);
+    setSurprise(label ?? null);
+    setStep("settings");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function pickRandomTheme() {
+    const t = randomTheme();
+    chooseTheme(t.id, `🎲 ${t.label.replace(/^Blind Test /i, "")}`);
+  }
+  function pickRandomAll() {
+    const t = randomTheme();
+    const r = [10, 15, 20][Math.floor(Math.random() * 3)];
+    const a = Math.random() < 0.6 ? "qcm" : "text";
+    setRounds(r); setAnswerMode(a); setNeedAnswerMode(false);
+    chooseTheme(t.id, `🎲 ${t.label.replace(/^Blind Test /i, "")} · ${r} manches · ${a === "qcm" ? "Facile" : "Difficile"}`);
+  }
   function handleCreate() {
     if (!answerMode) {
       setNeedAnswerMode(true);
       answerModeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    onCreate(theme, rounds, answerMode, gagesEnabled, gagesIntensity);
+    onCreate(theme, rounds, answerMode, gagesEnabled, gagesIntensity, false, null, seconds);
+  }
+  const themeLabel = custom ? custom.title : THEME_OPTIONS.find((t) => t.id === theme)?.label.replace(/^Blind Test /i, "") ?? theme;
+
+  // ── Écran 1 : le thème ────────────────────────────────────────────────────
+  if (step === "theme") {
+    return (
+      <div className="max-w-lg mx-auto pb-24">
+        {onExit && <button onClick={onExit} className="back-link mt-3"><ArrowLeft size={16} /> Retour</button>}
+        <p className="stage-kicker mt-4 mb-2 inline-flex items-center gap-1.5">{party ? <><Tv size={13} /> Soirée TV</> : <><Users size={13} /> Entre amis · en ligne</>}</p>
+        <h2 className="stage-title mb-4">Choisis<br />ton thème.</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <button type="button" onClick={pickRandomTheme} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:perspective-dice-six-faces-random" width={16} /> Thème au hasard</button>
+          <button type="button" onClick={pickRandomAll} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:rolling-dices" width={16} /> Tout au hasard</button>
+        </div>
+        <div className="-mx-1 px-1">
+          <ThemePicker themeId={theme} onSelect={(id) => chooseTheme(id)} />
+        </div>
+        <div className="mt-8 ticket p-4">
+          {showJoin ? (
+            <div className="flex gap-2">
+              <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="Code à 5 lettres" maxLength={5} autoFocus autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false} className="answer-input flex-1 !min-h-[48px] text-center font-mono tracking-[0.25em] uppercase" />
+              <button type="button" onClick={onJoin} disabled={busy || joinCode.trim().length < 5} className="sticker sticker-ghost sticker-sm shrink-0 disabled:opacity-40">Rejoindre</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowJoin(true)} className="w-full text-center text-sm font-semibold text-ink-muted hover:text-ink min-h-[40px]">Un pote t&apos;a envoyé un code ? Rejoindre son salon</button>
+          )}
+          {error && <p className="text-sm text-riseNeg text-center mt-2">{error}</p>}
+        </div>
+      </div>
+    );
   }
 
+  // ── Écran 2 : les réglages ────────────────────────────────────────────────
   return (
     <div className="max-w-lg mx-auto space-y-4 pb-40">
-      {onExit && (
-        <button
-          onClick={onExit}
-          className="back-link mt-3"
-        >
-          <ArrowLeft size={16} /> Retour
-        </button>
-      )}
+      <button type="button" onClick={() => (custom && onExit ? onExit() : setStep("theme"))} className="back-link mt-3"><ArrowLeft size={16} /> {custom ? "Retour" : "Thèmes"}</button>
       <div className="px-0.5">
-        {party ? (
-          <div className="mb-4">
-            <h2 className="font-display text-3xl font-extrabold tracking-tight leading-tight flex items-center gap-2.5">
-              🎉 Mode Soirée
-              <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
-                Nouveau
-              </span>
-            </h2>
-            <p className="text-xs text-ink-faint mt-1.5 leading-relaxed">
-              Le blind test version fête : un écran partagé sur la TV avec QR code et classement en
-              direct, chacun joue sur son téléphone, et un gage attend le dernier du classement.
-            </p>
-          </div>
-        ) : (
-          <div className="mb-4">
-            <p className="stage-kicker mb-2 inline-flex items-center gap-1.5"><Users size={13} /> Entre amis · en ligne</p>
-            <h2 className="stage-title">Règle la partie,<br />puis invite tes potes.</h2>
-          </div>
-        )}
+        <p className="stage-kicker mb-2 inline-flex items-center gap-1.5">{party ? <><Tv size={13} /> Soirée TV</> : <><Users size={13} /> Entre amis · en ligne</>}</p>
+        <h2 className="stage-title mb-5">Dernier<br />réglage.</h2>
 
-        {custom ? (
-          <div className="ticket p-4 mb-6 flex items-center gap-3">
-            <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon="game-icons:music-spell" width={22} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold truncate">{custom.title}</span>
-              <span className="block text-xs text-ink-faint">Blind test perso · {custom.ids.length} titres — les mêmes morceaux pour tout le salon, dans le même ordre.</span>
-            </span>
-          </div>
-        ) : (
+        <div className="ticket mb-5 p-4 flex items-center gap-3">
+          <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Icon icon={custom ? "game-icons:music-spell" : "game-icons:vinyl-record"} width={22} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold text-ink-faint">{custom ? `Blind test perso · ${custom.ids.length} titres` : "Thème"}</span>
+            <span className="block font-display text-lg font-extrabold leading-tight truncate">{themeLabel}</span>
+            {surprise && <span className="block text-[11px] font-semibold text-gold mt-0.5">{surprise}</span>}
+          </span>
+          {!custom && <button type="button" onClick={() => setStep("theme")} className="text-xs font-semibold text-glow shrink-0">Changer</button>}
+        </div>
+
+        {!custom && (
           <>
-            <div className="flex items-center gap-2 mb-3">
-              <button type="button" onClick={pickRandomTheme} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:perspective-dice-six-faces-random" width={16} /> Thème au hasard</button>
-              <button type="button" onClick={pickRandomAll} className="sticker sticker-ghost sticker-sm"><Icon icon="game-icons:rolling-dices" width={16} /> Tout au hasard</button>
-            </div>
-            {surprise && <p className="text-xs font-semibold text-gold mb-3 solved-pop">{surprise}</p>}
-
-            <div className="mb-6 -mx-1 px-1">
-              <ThemePicker themeId={theme} onSelect={(id) => { sfx.click(); setTheme(id); setSurprise(null); }} />
-            </div>
-
             <p className="text-xs font-semibold text-ink-faint mb-2">Nombre de manches</p>
             <div className="segmented mb-4">
-              {[10, 15, 20].map((n) => (
+              {ROUND_OPTIONS.map((n) => (
                 <button key={n} type="button" aria-pressed={rounds === n} onClick={() => { sfx.click(); setRounds(n); }}>{n}</button>
               ))}
             </div>
           </>
         )}
 
-        <div
-          ref={answerModeRef}
-          className={`rounded-2xl p-3 -mx-3 transition-shadow ${
-            needAnswerMode && !answerMode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""
-          }`}
-        >
-          <p className="text-xs text-ink-faint mb-2.5 flex items-center gap-2">
+        <p className="text-xs font-semibold text-ink-faint mb-2">Durée de chaque extrait</p>
+        <div className="segmented mb-4">
+          {SECONDS_OPTIONS.map((n) => (
+            <button key={n} type="button" aria-pressed={seconds === n} onClick={() => { sfx.click(); setSeconds(n); }}>{n} s</button>
+          ))}
+        </div>
+
+        <div ref={answerModeRef} className={`rounded-2xl p-3 -mx-3 transition-shadow ${needAnswerMode && !answerMode ? "ring-2 ring-riseNeg/60 shake-wrong" : ""}`}>
+          <p className="text-xs font-semibold text-ink-faint mb-2.5 flex items-center gap-2">
             Mode de réponse
-            {!answerMode && (
-              <span className="inline-flex items-center rounded-full bg-gold/15 text-gold px-2.5 py-0.5 text-[10px] font-bold">
-                À choisir
-              </span>
-            )}
+            {!answerMode && <span className="inline-flex items-center rounded-full bg-gold/15 text-gold px-2.5 py-0.5 text-[10px] font-bold">À choisir</span>}
           </p>
           <div className="grid grid-cols-2 gap-2.5">
             {([
@@ -1784,26 +1794,10 @@ function RoomMenu({
             ]).map((o) => {
               const active = answerMode === o.id;
               return (
-                <button
-                  key={o.id}
-                  onClick={() => {
-                    sfx.click();
-                    setAnswerMode(o.id);
-                    setNeedAnswerMode(false);
-                  }}
-                  className={`tap-press ticket !rounded-2xl px-3 py-3.5 text-left transition-[border-color,box-shadow,background-color] ${
-                    active ? "!border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.35)]" : "hover:!border-white/25"
-                  }`}
-                >
+                <button key={o.id} onClick={() => { sfx.click(); setAnswerMode(o.id); setNeedAnswerMode(false); }} className={`tap-press ticket !rounded-2xl px-3 py-3.5 text-left transition-[border-color,box-shadow,background-color] ${active ? "!border-gold shadow-[0_0_0_1px_rgba(240,0,28,0.35)]" : "hover:!border-white/25"}`}>
                   <span className="flex items-center justify-between">
                     <span className="text-lg leading-none">{o.emoji}</span>
-                    <span
-                      className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                        active ? "bg-gold text-white" : "bg-white/5 text-transparent"
-                      }`}
-                    >
-                      <Check size={11} strokeWidth={3} />
-                    </span>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${active ? "bg-gold text-white" : "bg-white/5 text-transparent"}`}><Check size={11} strokeWidth={3} /></span>
                   </span>
                   <span className="block text-sm font-semibold mt-2">{o.label}</span>
                   <span className="block text-[11px] text-ink-faint mt-0.5">{o.sub}</span>
@@ -1811,78 +1805,27 @@ function RoomMenu({
               );
             })}
           </div>
-          {needAnswerMode && !answerMode && (
-            <p className="text-xs text-riseNeg mt-2.5">Choisis Facile ou Difficile pour créer la partie.</p>
-          )}
+          {needAnswerMode && !answerMode && <p className="text-xs text-riseNeg mt-2.5">Choisis Facile ou Difficile pour créer la partie.</p>}
         </div>
 
-        <div
-          className={`mt-5 rounded-2xl border p-4 transition-[border-color,background-color] ${
-            gagesEnabled ? "border-gold/40 bg-gold/[0.06]" : "border-white/10 glass"
-          }`}
-        >
-          <button
-            type="button"
-            role="switch"
-            aria-checked={gagesEnabled}
-            onClick={() => {
-              sfx.click();
-              setGagesEnabled((v) => !v);
-            }}
-            className="w-full flex items-center gap-3.5 text-left"
-          >
-            <span
-              className={`icon-tile w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-xl transition-colors ${
-                gagesEnabled ? "bg-gradient-to-br from-[#8a1216] to-[#FF3B4E] text-white" : "bg-white/5"
-              }`}
-            >
-              🎉
-            </span>
+        <div className={`mt-5 rounded-2xl border p-4 transition-[border-color,background-color] ${gagesEnabled ? "border-gold/40 bg-gold/[0.06]" : "border-white/10 glass"}`}>
+          <button type="button" role="switch" aria-checked={gagesEnabled} onClick={() => { sfx.click(); setGagesEnabled((v) => !v); }} className="w-full flex items-center gap-3.5 text-left">
+            <span className={`icon-tile w-11 h-11 shrink-0 flex items-center justify-center rounded-xl text-xl transition-colors ${gagesEnabled ? "bg-gradient-to-br from-[#8a1216] to-[#FF3B4E] text-white" : "bg-white/5"}`}>🎉</span>
             <span className="min-w-0 flex-1">
-              <span className="text-sm font-semibold flex items-center gap-2">
-                Mode gages
-                {gagesEnabled && (
-                  <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold">
-                    Activé
-                  </span>
-                )}
-              </span>
-              <span className="block text-xs text-ink-faint mt-0.5 leading-snug">
-                Un gage pour le dernier du classement, révélé en fin de partie.
-              </span>
+              <span className="text-sm font-semibold flex items-center gap-2">Mode gages{gagesEnabled && <span className="inline-flex items-center rounded-full bg-gold text-white px-2 py-0.5 text-[10px] font-bold">Activé</span>}</span>
+              <span className="block text-xs text-ink-faint mt-0.5 leading-snug">Un gage pour le dernier du classement, révélé en fin de partie.</span>
             </span>
-            <span
-              className={`shrink-0 w-12 h-7 rounded-full transition-colors relative ${
-                gagesEnabled ? "bg-gold" : "bg-white/10"
-              }`}
-            >
-              <span
-                className="absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
-                style={{ transform: gagesEnabled ? "translateX(20px)" : "translateX(0px)" }}
-              />
+            <span className={`shrink-0 w-12 h-7 rounded-full transition-colors relative ${gagesEnabled ? "bg-gold" : "bg-white/10"}`}>
+              <span className="absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200" style={{ transform: gagesEnabled ? "translateX(20px)" : "translateX(0px)" }} />
             </span>
           </button>
-
           {gagesEnabled && (
             <div className="mt-3.5 pt-3.5 border-t border-white/8 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
-              <p className="text-[11px] text-ink-faint mb-2">Intensité des gages</p>
               <div className="grid grid-cols-2 gap-2">
-                {([
-                  { id: "soft" as const, label: "Soft", sub: "Défis rap tout public" },
-                  { id: "hard" as const, label: "Corsé", sub: "Plus embarrassant" },
-                ]).map((o) => {
+                {([{ id: "soft" as const, label: "Soft", sub: "Défis rap tout public" }, { id: "hard" as const, label: "Corsé", sub: "Plus embarrassant" }]).map((o) => {
                   const active = gagesIntensity === o.id;
                   return (
-                    <button
-                      key={o.id}
-                      onClick={() => {
-                        sfx.click();
-                        setGagesIntensity(o.id);
-                      }}
-                      className={`tap-press rounded-xl border px-3 py-2.5 text-left transition-[border-color,background-color] ${
-                        active ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/25"
-                      }`}
-                    >
+                    <button key={o.id} onClick={() => { sfx.click(); setGagesIntensity(o.id); }} className={`tap-press rounded-xl border px-3 py-2.5 text-left transition-[border-color,background-color] ${active ? "border-gold bg-gold/10" : "border-white/10 hover:border-white/25"}`}>
                       <span className={`block text-xs font-semibold ${active ? "text-gold" : ""}`}>{o.label}</span>
                       <span className="block text-[10px] text-ink-faint mt-0.5">{o.sub}</span>
                     </button>
@@ -1891,46 +1834,17 @@ function RoomMenu({
               </div>
             </div>
           )}
-          <p className="text-[10px] text-ink-faint mt-3">
-            Jamais d&apos;alcool suggéré par le jeu — les gages restent au choix du groupe.
-          </p>
         </div>
       </div>
 
       {error && <p className="text-sm text-riseNeg text-center">{error}</p>}
 
-      <div
-        className="stage-fixed bottom-0 inset-x-0 px-4 pt-4 pointer-events-none"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}
-      >
+      <div className="stage-fixed bottom-0 inset-x-0 px-4 pt-4 pointer-events-none" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 14px)" }}>
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/90 to-transparent -z-10" aria-hidden="true" />
-        <div className="max-w-lg mx-auto pointer-events-auto ticket p-3 space-y-2.5">
+        <div className="max-w-lg mx-auto pointer-events-auto">
           <button type="button" onClick={handleCreate} disabled={busy} className="sticker w-full h-16 text-lg cta-glow disabled:opacity-50">
             <Icon icon="game-icons:play-button" width={20} /> {party ? "Lancer la soirée" : "Créer le salon · inviter mes potes"}
           </button>
-          {showJoin ? (
-            <div className="flex gap-2">
-              <input
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="Code à 5 lettres"
-                maxLength={5}
-                autoFocus
-                autoCapitalize="characters"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-                className="answer-input flex-1 !min-h-[48px] text-center font-mono tracking-[0.25em] uppercase"
-              />
-              <button type="button" onClick={onJoin} disabled={busy || joinCode.trim().length < 5} className="sticker sticker-ghost sticker-sm shrink-0 disabled:opacity-40">
-                Rejoindre
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setShowJoin(true)} className="w-full text-center text-xs font-semibold text-ink-muted hover:text-ink min-h-[36px]">
-              Un pote t&apos;a envoyé un code ? Rejoindre son salon
-            </button>
-          )}
         </div>
       </div>
     </div>
