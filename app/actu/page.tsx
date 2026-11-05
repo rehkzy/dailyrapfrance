@@ -74,7 +74,6 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
 
       {tab === "sorties" && (
         <>
-          <p className="text-[11px] text-ink-faint mb-3">Les derniers ajouts rap FR — du plus récent au plus ancien.</p>
           <TrendingList tracks={releases} numbered={false} />
         </>
       )}
@@ -101,7 +100,6 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
       {tab === "actu" && (
         <>
           <NewsList items={news} />
-          <p className="text-[11px] text-ink-faint mt-4">Articles issus des médias rap français, crédités et ouverts chez eux. DailyRapFrance sélectionne, ne réécrit pas.</p>
         </>
       )}
     </section>

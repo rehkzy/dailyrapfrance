@@ -314,7 +314,12 @@ export default function BlindTestBuilder() {
 
         <p className="stage-kicker mt-4 mb-2 inline-flex items-center gap-1.5"><Sparkles size={13} /> Nouveau · Tes morceaux, tes règles</p>
         <h1 className="stage-title mb-2">Crée ton<br />blind test.</h1>
-        <p className="text-sm text-ink-muted mb-6 max-w-xl">Anniversaire, soirée, mariage, cours, team building : choisis {CUSTOM_MIN} à {CUSTOM_MAX} morceaux, donne un nom, et envoie le lien. Ça se joue sans compte, sur n&apos;importe quel téléphone, avec les extraits officiels de 30 secondes.</p>
+        <div className="flex items-center gap-2 mb-6 text-sm font-semibold text-ink-muted">
+          Tes morceaux, ton nom, un lien à envoyer.
+          <HelpTip title="Comment ça marche ?">
+            <p className="text-sm">Choisis {CUSTOM_MIN} à {CUSTOM_MAX} morceaux (ou colle une playlist), donne un nom, envoie le lien. Ça se joue sans compte, sur n&apos;importe quel téléphone, avec les extraits officiels de 30 secondes. Anniversaire, soirée, mariage, cours, team building…</p>
+          </HelpTip>
+        </div>
 
         {/* Tes blind tests d'abord — comme les brouillons d'une app : on retrouve ce qu'on a fait avant de créer */}
         {(mine.length > 0 || saved.length > 0) && (

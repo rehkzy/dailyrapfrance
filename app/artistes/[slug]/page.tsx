@@ -1,3 +1,4 @@
+import HelpTip from "@/components/HelpTip";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Play, ArrowRight, Disc3, Users, Music2 } from "lucide-react";
@@ -145,13 +146,12 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
 
         {/* Top 10 */}
         <section aria-labelledby="top-title" className="mb-12">
-          <h2 id="top-title" className="font-display text-2xl font-bold mb-4">Top 10 des sons de {a.name}</h2>
+          <h2 id="top-title" className="font-display text-2xl font-bold mb-4 inline-flex items-center gap-2">Top 10 des sons de {a.name} <HelpTip title="D'où vient ce classement ?" label="D'où vient ce classement ?"><p className="text-sm">Classement par popularité Deezer, actualisé chaque jour. Les extraits de 30 secondes sont fournis par Deezer.</p></HelpTip></h2>
           {tracks.length === 0 ? (
             <p className="text-sm text-ink-faint">Le classement n'est pas disponible pour le moment.</p>
           ) : (
             <TrackPreviewList tracks={tracks.map((t) => ({ id: t.id, title: t.title, album: t.album, cover: t.cover, preview: t.preview, duration: formatDuration(t.duration), explicit: t.explicit, link: t.link }))} />
           )}
-          <p className="text-xs text-ink-faint mt-3">Classement par popularité Deezer, actualisé quotidiennement. Extraits de 30 secondes fournis par Deezer.</p>
         </section>
 
         {/* Discographie */}

@@ -58,12 +58,12 @@ export default function DailyCard({ variant = "hero" }: { variant?: "hero" | "co
           {done ? <Check size={20} strokeWidth={3} /> : <Flame size={20} />}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Défi de la semaine — {theme.label}</span>
-          <span className={`block text-xs ${done ? "text-ink-faint" : "text-white/80"}`}>
-            {done ? "Déjà joué cette semaine — rejoue pour battre ton score" : theme.text}
-          </span>
+          <span className={`block text-[11px] font-bold uppercase tracking-wider ${done ? "text-gold" : "text-white/80"}`}>Défi de la semaine</span>
+          <span className="block font-display text-base font-extrabold leading-tight truncate">{theme.label.replace(/^Blind Test /i, "")}</span>
         </span>
-        <span className="font-mono text-[11px] shrink-0 opacity-80">{left !== null ? formatCountdownLong(left) : ""}</span>
+        <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${done ? "bg-gold/15 text-gold" : "bg-white/15 text-white"}`}>
+          {done ? <><Check size={11} strokeWidth={3} /> Joué</> : "Jusqu'à dim."}
+        </span>
       </a>
     );
   }

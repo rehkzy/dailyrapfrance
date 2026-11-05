@@ -25,6 +25,7 @@ import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@
 import EmailAuthForm from "@/components/EmailAuthForm";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
+import HelpTip from "@/components/HelpTip";
 import HubLinks from "@/components/HubLinks";
 import { EXPLORE_LINKS } from "@/lib/sitemapNav";
 import { DRMark3D } from "@/components/BlindTestLogo";
@@ -1194,7 +1195,6 @@ export default function BlindTest() {
                     <>
                       <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
                       <h2 className="stage-title mb-2">Tu joues<br />comment ?</h2>
-                      <p className="text-sm text-ink-muted mb-5">Deux portes. Le reste se règle en un écran.</p>
                     </>
                   )}
                   {deepLink.from && (
@@ -1327,7 +1327,6 @@ export default function BlindTest() {
                     <p className="font-display text-xl font-bold">Qui joue ?</p>
                     <span className="text-xs text-ink-faint">{playerNames.filter((n) => n.trim()).length} / 8</span>
                   </div>
-                  <p className="text-xs text-ink-faint mb-3">Les pseudos s&apos;affichent sur les buzzers. Au moins deux joueurs.</p>
                   <div className="space-y-2">
                     {playerNames.map((name, i) => (
                       <div key={i} className="flex gap-2 items-center">
@@ -1494,7 +1493,16 @@ export default function BlindTest() {
                     <input type="range" min={0} max={100} value={trackVolume * 100} onChange={(e) => setTrackVolume(Number(e.target.value) / 100)} className="brand-slider flex-1" style={{ "--fill": `${trackVolume * 100}%` } as CSSProperties} aria-label="Volume des extraits" />
                     <span className="font-mono text-xs text-ink-faint w-9 text-right">{Math.round(trackVolume * 100)}%</span>
                   </div>
-                  <p className="text-xs text-ink-faint">Barème : titre 1 pt · artiste 1 pt · featuring 2 pts · bonus de rapidité · combo (3 sons parfaits d&apos;affilée → +2, 5 → +3).</p>
+                  <div className="flex items-center gap-2 text-xs font-semibold text-ink-muted">
+                    Barème
+                    <HelpTip title="Comment on marque des points ?" label="Le barème">
+                      <ul className="space-y-1 text-sm">
+                        <li>Titre trouvé : <b>1 pt</b> · Artiste : <b>1 pt</b> · Featuring : <b>2 pts</b></li>
+                        <li>Réponse en moins de 5 s : <b>+2</b> · en moins de 10 s : <b>+1</b> (par champ)</li>
+                        <li>Combo : 3 sons parfaits d&apos;affilée <b>+2</b>, 5 <b>+3</b>, puis +3 tous les deux</li>
+                      </ul>
+                    </HelpTip>
+                  </div>
                 </div>
               </details>
 

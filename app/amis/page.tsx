@@ -131,7 +131,6 @@ export default function AmisPage() {
             Il te faut un compte pour ajouter des amis et comparer vos scores.
           </p>
           <SignInCta />
-          <p className="text-[11px] text-ink-faint mt-3">Gratuit, en 10 secondes — tes scores sont sauvegardés.</p>
         </div>
       </section>
       <GameTabBar />

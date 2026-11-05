@@ -191,7 +191,6 @@ export default async function Home() {
             <h2 id="modes-title" className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
               Six façons de jouer
             </h2>
-            <p className="text-sm text-ink-muted mt-1">Seul dans le métro ou à huit sur un canapé — même jeu, mêmes 80 thèmes.</p>
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -221,7 +220,6 @@ export default async function Home() {
           </summary>
           <div className="home-fold-body">
         <h2 id="defis-title" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Envie d&apos;autre chose ?</h2>
-        <p className="text-sm text-ink-muted mb-4">Mêmes extraits, règles différentes. Chaque variante a son propre classement.</p>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
             { href: "/creer", Icon: Sparkles, t: "Créer mon blind test", s: "Mes morceaux, mon nom, mon lien. Nouveau." },
