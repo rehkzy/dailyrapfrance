@@ -336,6 +336,18 @@ export default function BlindTest() {
     if (trackRef.current) {
       setRoundHistory((prev) => [...prev, { track: trackRef.current!, solved: solvedRef.current, fast: fastRef.current }]);
     }
+    // Gimmick de rappeur sur la révélation : tout trouvé → ad-lib de victoire (parfois),
+    // rien trouvé → ad-lib de vanne (parfois). La musique baisse le temps du gimmick.
+    if (variantRef.current !== "sprint" && trackRef.current) {
+      const fieldsAll: FieldKey[] = fieldsFor(singleArtistRef.current, trackRef.current);
+      const allFound = fieldsAll.every((f) => solvedRef.current[f]);
+      const nothing = Object.keys(solvedRef.current).length === 0;
+      const secs = allFound ? sfx.gimmick("hit", 0.35) : nothing ? sfx.gimmick("miss", 0.3) : 0;
+      if (secs > 0 && a && !a.paused) {
+        try { a.volume = 0.25; } catch {}
+        setTimeout(() => { try { if (a && !fadeIntervalRef.current) a.volume = 1; } catch {} }, secs * 1000 + 150);
+      }
+    }
     if (modeRef.current === "solo" && trackRef.current) {
       const fields: FieldKey[] = fieldsFor(singleArtistRef.current, trackRef.current);
       const perfect = fields.every((f) => solvedRef.current[f]);
@@ -347,6 +359,7 @@ export default function BlindTest() {
         const bonus = comboBonus(next);
         if (perfect && bonus > 0) {
           sfx.bonus();
+          sfx.gimmick("combo", 1, { force: true });
           awardPoints("solo", bonus);
           haptic([20, 30, 20, 30, 40]);
           setStreakBurst(next);
@@ -776,6 +789,7 @@ export default function BlindTest() {
   function handleBuzz(playerId: string) {
     if (!started || revealed || buzzedBy || locked.has(playerId)) return;
     sfx.buzz();
+    sfx.gimmick("buzz", 0.4);
     setBuzzedBy(playerId);
     if (intervalRef.current) clearInterval(intervalRef.current);
     deadlineRef.current = null;
@@ -847,6 +861,14 @@ export default function BlindTest() {
     sfx.tag();
     // Confettis réservés aux vrais moments (partie parfaite ou record de la semaine) — pas à chaque fin.
     const soloPlayer = players[0];
+    {
+      // Après le tag (2 s) : l'ad-lib qui va avec le score — gros score → « Malagangx »,
+      // score nul → la vanne. Entre les deux, rien.
+      const maxPts = roundOutcomes.reduce((m, r) => m + Math.max(r.total, 1), 0) || 1;
+      const ratio = (soloPlayer?.score ?? 0) / Math.max(maxPts * 2, 1);
+      const mood = ratio >= 0.6 ? "win" : (soloPlayer?.score ?? 0) <= Math.max(1, roundOutcomes.length * 0.2) ? "lose" : null;
+      if (mood) setTimeout(() => sfx.gimmick(mood, 1, { force: true }), 2100);
+    }
     const perfectRun = mode === "solo" && roundOutcomes.length > 0 && roundOutcomes.every((r) => r.found >= r.total);
     bumpGamesPlayed();
     trackEv("game_end", { mode, theme: isCustom ? "custom" : themeId, variant, media, points: soloPlayer?.score ?? 0, rounds: roundOutcomes.length, daily: isDailyRun });

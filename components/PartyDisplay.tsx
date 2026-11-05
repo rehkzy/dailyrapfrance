@@ -82,7 +82,7 @@ export default function PartyDisplay({ code }: { code: string }) {
     prevStatusRef.current = st;
     if (!prev || prev === st) return;
     if (st === "playing" && prev === "lobby") sfx.tag(0.8);
-    if (st === "finished") sfx.tag(0.8);
+    if (st === "finished") { sfx.tag(0.8); if (room?.gages_enabled) setTimeout(() => sfx.gimmick("lose", 1, { force: true }), 2300); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status]);
 

@@ -7,6 +7,7 @@ import PushToggle from "@/components/PushToggle";
 import DeleteAccount from "@/components/DeleteAccount";
 import AccountSecurity from "@/components/AccountSecurity";
 import HelpLinks from "@/components/HelpLinks";
+import SoundSettings from "@/components/SoundSettings";
 import SignInCta from "@/components/SignInCta";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { loadProfileBundle } from "@/lib/profileData";
@@ -78,8 +79,9 @@ export default async function ParametresPage() {
       <h2 className="stage-kicker mt-10 mb-2.5">Compte et connexion</h2>
       <AccountSecurity email={user.email ?? null} providers={(user.app_metadata?.providers as string[] | undefined) ?? [user.app_metadata?.provider ?? "email"]} />
 
-      <h2 className="stage-kicker mt-10 mb-2.5">Notifications</h2>
-      <PushToggle />
+      <h2 className="stage-kicker mt-10 mb-2.5">Son et notifications</h2>
+      <SoundSettings />
+      <div className="mt-4"><PushToggle /></div>
 
       <h2 className="stage-kicker mt-10 mb-2.5">Aide et contact</h2>
       <HelpLinks username={profile?.username ?? null} />

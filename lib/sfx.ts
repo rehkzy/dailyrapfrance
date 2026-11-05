@@ -2,9 +2,15 @@
 // charger/héberger. Le contexte audio est créé au premier appel (après un geste utilisateur,
 // requis par les navigateurs) et réutilisé ensuite.
 
+import { GIMMICKS, gimmicksEnabled, type GimmickMood } from "@/lib/gimmicks";
+
 let ctx: AudioContext | null = null;
 let muted = false;
 let tagEl: HTMLAudioElement | null = null;
+let gimmickEl: HTMLAudioElement | null = null;
+let lastGimmickAt = 0;
+let lastGimmickId: string | null = null;
+const GIMMICK_COOLDOWN_MS = 12_000;
 
 function getCtx(): AudioContext | null {
   if (muted) return null;
@@ -89,6 +95,27 @@ export const sfx = {
       tagEl.currentTime = 0;
       tagEl.play().catch(() => {});
     } catch {}
+  },
+  // Gimmick de rappeur selon l'humeur du moment. `chance` : probabilité de le jouer (les
+  // bonnes réponses sont fréquentes → 35 % ; la fin de partie → 100 %). Renvoie la durée
+  // en secondes si quelque chose part (pour baisser la musique pendant ce temps), sinon 0.
+  gimmick(mood: GimmickMood, chance = 1, opts: { force?: boolean; volume?: number } = {}): number {
+    if (muted || typeof window === "undefined" || !gimmicksEnabled()) return 0;
+    const now = Date.now();
+    if (!opts.force && now - lastGimmickAt < GIMMICK_COOLDOWN_MS) return 0;
+    if (Math.random() > chance) return 0;
+    const pool = GIMMICKS.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
+    const pick = pool[Math.floor(Math.random() * pool.length)] ?? GIMMICKS.find((g) => g.moods.includes(mood));
+    if (!pick) return 0;
+    try {
+      if (!gimmickEl) { gimmickEl = new Audio(); gimmickEl.preload = "auto"; }
+      gimmickEl.src = `/audio/gimmicks/${pick.id}.mp3`;
+      gimmickEl.volume = opts.volume ?? 0.9;
+      gimmickEl.play().catch(() => {});
+      lastGimmickAt = now;
+      lastGimmickId = pick.id;
+      return pick.seconds;
+    } catch { return 0; }
   },
   // Joker utilisé
   joker() {
