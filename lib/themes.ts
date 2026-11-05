@@ -124,6 +124,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-soolking", label: "Blind Test Soolking", text: "Que des sons de Soolking", Icon: Mic2, category: "Artistes", keywords: "algérie" },
   { id: "artist-koba-lad", label: "Blind Test Koba LaD", text: "Que des sons de Koba LaD", Icon: Mic2, category: "Artistes", keywords: "91 évry trap" },
   { id: "artist-zola", label: "Blind Test Zola", text: "Que des sons de Zola", Icon: Mic2, category: "Artistes", keywords: "91 évry" },
+  { id: "artist-mmz", label: "Blind Test MMZ", text: "Que des sons de MMZ", Icon: Mic2, category: "Artistes", keywords: "moha jones bulma genesis" },
   { id: "artist-sofiane", label: "Blind Test Sofiane", text: "Que des sons de Sofiane", Icon: Mic2, category: "Artistes", keywords: "fianso 93 blanc-mesnil" },
   { id: "artist-heuss-lenfoire", label: "Blind Test Heuss L'enfoiré", text: "Que des sons de Heuss L'enfoiré", Icon: Mic2, category: "Artistes", keywords: "93 aulnay" },
   { id: "artist-didine", label: "Blind Test Didine Canon 16", text: "Que des sons de Didine Canon 16", Icon: Mic2, category: "Artistes", keywords: "algérie" },

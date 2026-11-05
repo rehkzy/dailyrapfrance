@@ -31,6 +31,17 @@ const FIXED_TRACK_THEMES: Record<string, { trackIds: number[]; forcedArtistName?
       708702202, 3450361821, 453609962, 2977780751, 453609952,
     ],
   },
+  // MMZ : la page Deezer du groupe (id 1002485) est contaminée par les titres de MGMT
+  // (« Kids », « Little Dark Age »…) dans son top. Liste figée depuis leurs vrais albums
+  // (Tout pour le gang, N'DA, Trop N'DA, Sayonara1), triée par popularité, le 05/11/2026.
+  "artist-mmz": {
+    trackIds: [
+      133517142, 133517134, 133517146, 426217282, 654209982, 133517124, 426217372, 654209852, 133517122, 426217322,
+      654209882, 133517126, 654209862, 654209872, 654209972, 654210012, 426217302, 426217352, 654209912, 133517138,
+      654209892, 654210002, 133517120, 514874182, 654209942, 133517128, 426217432, 133517148, 514874172, 654209952,
+      426217292, 514874162, 133517130, 654209902, 654209962, 426217312, 133517132, 654209922, 133517136,
+    ],
+  },
   "artist-benef": {
     trackIds: [
       2935905291, // LOCA

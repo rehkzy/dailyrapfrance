@@ -97,6 +97,7 @@ export const THEME_ARTISTS: Record<string, string[]> = {
   "artist-soolking": ["soolking"],
   "artist-koba-lad": ["koba lad"],
   "artist-zola": ["zola"],
+  "artist-mmz": ["mmz"],
   "artist-sofiane": ["sofiane"],
   "artist-heuss-lenfoire": ["heuss l'enfoiré"],
   "artist-didine": ["didine canon 16"],
@@ -133,7 +134,7 @@ export const THEME_ARTISTS: Record<string, string[]> = {
 };
 
 // Thèmes dont les titres sont figés (IDs vérifiés) — voir pool/route.ts.
-export const FIXED_TRACK_THEME_IDS = ["imene-elle-give", "artist-benef"];
+export const FIXED_TRACK_THEME_IDS = ["imene-elle-give", "artist-benef", "artist-mmz"];
 
 // Visage(s) de couverture — le ou les deux premiers noms de la liste, sauf exceptions.
 export const THEME_LEAD_OVERRIDES: Record<string, string[]> = {
