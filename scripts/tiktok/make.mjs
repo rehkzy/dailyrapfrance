@@ -71,6 +71,7 @@ const { values: opt } = parseArgs({
     fps: { type: "string", default: "12" },
     "keep-frames": { type: "boolean", default: false },
     "no-tag": { type: "boolean", default: false },
+    "no-gimmicks": { type: "boolean", default: false },
     ffmpeg: { type: "string", default: process.env.FFMPEG || "ffmpeg" },
     help: { type: "boolean", short: "h", default: false },
   },
@@ -101,6 +102,7 @@ Options :
   --fps N            cadence de capture du chrono (défaut 12 ; la vidéo sort en 30 fps)
   --keep-frames      conserver toutes les captures intermédiaires
   --no-tag           ne pas jouer la signature sonore (public/audio/tag.mp3) sur l'intro / la fin
+  --no-gimmicks      pas d'ad-libs de rappeurs (public/audio/gimmicks, catalogue lib/gimmicks.ts)
   --ffmpeg <bin>     binaire ffmpeg (défaut : ffmpeg dans le PATH, ou $FFMPEG)`);
   process.exit(opt.help ? 0 : 1);
 }
@@ -123,6 +125,47 @@ const AUDIO_FADE = 0.4;
 const TAG_FILE = path.join(REPO_ROOT, "public", "audio", "tag.mp3"); // signature sonore (~2 s)
 const TAG_AT_INTRO = 0.4;
 const TAG_AT_END = 0.3;
+const GIMMICK_DIR = path.join(REPO_ROOT, "public", "audio", "gimmicks");
+const GIMMICK_CATALOG = path.join(REPO_ROOT, "lib", "gimmicks.ts");
+const GIMMICK_AT_REVEAL = 0.2; // après le début de la révélation
+const GIMMICK_AT_END = 2.6; // après le tag
+const DUCK = 0.25; // niveau de l'extrait musical pendant un gimmick
+
+// Catalogue lu par regex (pas d'import TypeScript) ; on ne garde que les clips présents.
+async function loadGimmicks() {
+  let src;
+  try {
+    src = await readFile(GIMMICK_CATALOG, "utf8");
+  } catch {
+    return [];
+  }
+  const out = [];
+  const re = /\{\s*id:\s*"([^"]+)",\s*artist:\s*"([^"]+)",\s*label:\s*"[^"]*",\s*seconds:\s*([\d.]+),\s*moods:\s*\[([^\]]*)\]/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const file = path.join(GIMMICK_DIR, `${m[1]}.mp3`);
+    if (!(await exists(file))) continue;
+    out.push({ id: m[1], artist: m[2], seconds: parseFloat(m[3]), moods: [...m[4].matchAll(/"([^"]+)"/g)].map((x) => x[1]), file });
+  }
+  return out;
+}
+
+const pick = (arr) => (arr.length ? arr[Math.floor(Math.random() * arr.length)] : null);
+
+// Plan sonore d'une vidéo : gimmick de l'artiste à sa révélation ; sinon, au plus un gimmick
+// « hit » sur une révélation au hasard ; un « win » sur l'écran de fin.
+function planGimmicks(group, gimmicks) {
+  const perTrack = group.map((t) => {
+    const n = t.artistName.toLowerCase();
+    const own = gimmicks.filter((g) => n === g.artist.toLowerCase() || n.includes(g.artist.toLowerCase().replace(/^la /, "")));
+    return pick(own.filter((g) => g.moods.includes("hit") || g.moods.includes("win"))) || pick(own);
+  });
+  if (!perTrack.some(Boolean)) {
+    const k = Math.floor(Math.random() * group.length);
+    perTrack[k] = pick(gimmicks.filter((g) => g.moods.includes("hit")));
+  }
+  return { perTrack, end: pick(gimmicks.filter((g) => g.moods.includes("win"))) };
+}
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -553,7 +596,7 @@ async function renderTrack(browser, html, workDir, { intro = false, end = false 
 // Assemblage ffmpeg — segments [intro?] + (devine+révèle) × N + fin, enchaînés par xfade
 // (vidéo) et acrossfade (audio). Chaque segment a une durée vidéo = durée audio.
 // ---------------------------------------------------------------------------
-async function assemble({ intro, parts, end, output, tag }) {
+async function assemble({ intro, parts, end, output, tag, plan }) {
   const args = ["-y", "-hide_banner", "-loglevel", "error"];
   const filters = [];
   const segs = []; // { v, a, len }
@@ -563,18 +606,28 @@ async function assemble({ intro, parts, end, output, tag }) {
     return inputIdx++;
   };
   const trackLen = GUESS + REVEAL;
-  // Piste audio d'un écran fixe : silence, ou signature sonore jouée à `at` secondes.
-  const tagAudio = (file, at, len, lbl) => {
-    if (!file) return `aevalsrc=0:s=44100:c=stereo:d=${f3(len)}[${lbl}]`;
+  // Un clip (tag, gimmick) calé à `at` secondes dans un segment de `len` secondes.
+  const clipAt = (file, at, len, lbl) => {
     const i = addInput("-i", file);
     const ms = Math.round(at * 1000);
-    return `[${i}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay=${ms}|${ms},apad=whole_dur=${f3(len)},atrim=duration=${f3(len)}[${lbl}]`;
-  }; // le fondu devine→révèle mord sur la révélation, pas sur le total
+    filters.push(`[${i}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay=${ms}|${ms},apad=whole_dur=${f3(len)},atrim=duration=${f3(len)}[${lbl}]`);
+    return `[${lbl}]`;
+  };
+  // Piste audio d'un écran fixe : silence, ou clips mixés.
+  const fixedAudio = (clips, len, lbl) => {
+    const labels = clips.filter((c) => c.file).map((c, j) => clipAt(c.file, c.at, len, `${lbl}c${j}`));
+    if (!labels.length) filters.push(`aevalsrc=0:s=44100:c=stereo:d=${f3(len)}[${lbl}]`);
+    else if (labels.length === 1) filters.push(`${labels[0]}acopy[${lbl}]`);
+    else filters.push(`${labels.join("")}amix=inputs=${labels.length}:duration=first:normalize=0[${lbl}]`);
+  };
+  // Baisse l'extrait à DUCK entre s et e (rampes de 0,1 s).
+  const duck = (s, e) => `volume='1-${1 - DUCK}*max(0,min(1,(t-${f3(s)})/0.1))*max(0,min(1,(${f3(e)}-t)/0.1))':eval=frame`;
+  const endLen = plan?.end ? Math.max(END, GIMMICK_AT_END + plan.end.seconds + 0.4) : END;
 
   if (intro) {
     const i = addInput("-loop", "1", "-t", String(INTRO + 1), "-i", intro);
     filters.push(`[${i}:v]fps=30,format=yuv420p,setsar=1,trim=duration=${f3(INTRO)}[vi]`);
-    filters.push(tagAudio(tag, TAG_AT_INTRO, INTRO, "ai"));
+    fixedAudio([{ file: tag, at: TAG_AT_INTRO }], INTRO, "ai");
     segs.push({ v: "[vi]", a: "[ai]", len: INTRO });
   }
 
@@ -585,18 +638,26 @@ async function assemble({ intro, parts, end, output, tag }) {
     filters.push(`[${g}:v]fps=30,format=yuv420p,setsar=1[g${k}]`);
     filters.push(`[${r}:v]fps=30,format=yuv420p,setsar=1[r${k}]`);
     filters.push(`[g${k}][r${k}]xfade=transition=fade:duration=${XF_SCREEN}:offset=${f3(GUESS - XF_SCREEN)},trim=duration=${f3(trackLen)}[vt${k}]`);
+    const gm = plan?.perTrack[k];
+    const gs = GUESS + GIMMICK_AT_REVEAL;
     filters.push(
       `[${a}:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur=${f3(trackLen)},atrim=duration=${f3(trackLen)},` +
-        `afade=t=in:st=0:d=${AUDIO_FADE},afade=t=out:st=${f3(trackLen - AUDIO_FADE)}:d=${AUDIO_FADE}[at${k}]`
+        `afade=t=in:st=0:d=${AUDIO_FADE},afade=t=out:st=${f3(trackLen - AUDIO_FADE)}:d=${AUDIO_FADE}` +
+        (gm ? `,${duck(gs, Math.min(trackLen, gs + gm.seconds))}` : "") +
+        `[am${k}]`
     );
+    if (gm) {
+      const gl = clipAt(gm.file, gs, trackLen, `ag${k}`);
+      filters.push(`[am${k}]${gl}amix=inputs=2:duration=first:normalize=0[at${k}]`);
+    } else filters.push(`[am${k}]acopy[at${k}]`);
     segs.push({ v: `[vt${k}]`, a: `[at${k}]`, len: trackLen });
   });
 
   {
-    const i = addInput("-loop", "1", "-t", String(END + 1), "-i", end);
-    filters.push(`[${i}:v]fps=30,format=yuv420p,setsar=1,trim=duration=${f3(END)}[ve]`);
-    filters.push(tagAudio(tag, TAG_AT_END, END, "ae"));
-    segs.push({ v: "[ve]", a: "[ae]", len: END });
+    const i = addInput("-loop", "1", "-t", String(endLen + 1), "-i", end);
+    filters.push(`[${i}:v]fps=30,format=yuv420p,setsar=1,trim=duration=${f3(endLen)}[ve]`);
+    fixedAudio([{ file: tag, at: TAG_AT_END }, { file: plan?.end?.file, at: GIMMICK_AT_END }], endLen, "ae");
+    segs.push({ v: "[ve]", a: "[ae]", len: endLen });
   }
 
   // Enchaînement
@@ -656,6 +717,8 @@ async function main() {
   }
 
   const [logos, fontFaces] = await Promise.all([loadLogos(), loadFonts(cacheDir)]);
+  const gimmicks = opt["no-gimmicks"] ? [] : await loadGimmicks();
+  if (!opt["no-gimmicks"] && !gimmicks.length) log("! aucun gimmick trouvé (lib/gimmicks.ts + public/audio/gimmicks) — vidéos sans ad-libs");
   let tag = null;
   if (!opt["no-tag"]) {
     if (await exists(TAG_FILE)) tag = TAG_FILE;
@@ -692,7 +755,12 @@ async function main() {
       }
 
       const output = path.join(OUT, `${base}.mp4`);
-      const dur = await assemble({ intro, parts, end, output, tag });
+      const plan = gimmicks.length ? planGimmicks(group, gimmicks) : null;
+      if (plan) {
+        const used = plan.perTrack.map((g, k) => (g ? `son ${k + 1}: ${g.id}` : null)).filter(Boolean);
+        log(`  gimmicks : ${[...used, plan.end ? `fin: ${plan.end.id}` : null].filter(Boolean).join(", ") || "aucun"}`);
+      }
+      const dur = await assemble({ intro, parts, end, output, tag, plan });
       if (!opt["keep-frames"]) for (const p of parts) await rm(p.framesDir, { recursive: true, force: true });
       log(`  ✓ ${output} (${dur.toFixed(1)} s)`);
       results.push(output);
