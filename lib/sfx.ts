@@ -101,16 +101,21 @@ export const sfx = {
   // en secondes si quelque chose part (pour baisser la musique pendant ce temps), sinon 0.
   // `prefer` : artiste (ou thème artist-*) dont on veut l'ad-lib en priorité — celui qu'on
   // vient de révéler, ou celui du thème. Son propre clip passe avant l'humeur.
-  gimmick(mood: GimmickMood, chance = 1, opts: { force?: boolean; volume?: number; prefer?: string | null } = {}): number {
+  // `strict` : uniquement l'ad-lib de cet artiste — rien si l'artiste n'en a pas (en partie,
+  // un « Kaaris » sur un son de Jul n'a aucun sens).
+  gimmick(mood: GimmickMood, chance = 1, opts: { force?: boolean; volume?: number; prefer?: string | null; strict?: boolean } = {}): number {
     if (muted || typeof window === "undefined" || !gimmicksEnabled()) return 0;
+    const own = gimmicksOf(opts.prefer);
+    if (opts.strict && own.length === 0) return 0;
     const now = Date.now();
     if (!opts.force && now - lastGimmickAt < GIMMICK_COOLDOWN_MS) return 0;
     if (Math.random() > chance) return 0;
-    const own = gimmicksOf(opts.prefer);
     const ownMood = own.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
     const ownAny = own.filter((g) => g.id !== lastGimmickId);
-    const pool = ownMood.length ? ownMood : ownAny.length && mood !== "miss" && mood !== "lose" ? ownAny : GIMMICKS.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
-    const pick = pool[Math.floor(Math.random() * pool.length)] ?? GIMMICKS.find((g) => g.moods.includes(mood));
+    const fallback = opts.strict ? [] : GIMMICKS.filter((g) => g.moods.includes(mood) && g.id !== lastGimmickId);
+    const pool = ownMood.length ? ownMood : ownAny.length && mood !== "miss" && mood !== "lose" ? ownAny : fallback;
+    if (pool.length === 0) return 0;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
     if (!pick) return 0;
     try {
       if (!gimmickEl) { gimmickEl = new Audio(); gimmickEl.preload = "auto"; }

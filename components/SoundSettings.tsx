@@ -16,7 +16,7 @@ export default function SoundSettings() {
         <span className="w-11 h-11 rounded-xl bg-gold/15 text-gold grid place-items-center shrink-0"><Mic2 size={20} /></span>
         <div className="min-w-0 flex-1">
           <p className="font-display text-lg font-bold leading-tight">Gimmicks de rappeurs</p>
-          <p className="text-sm text-ink-muted mt-1">{artists} réagissent à tes réponses : bonne réponse, combo, raté, fin de partie. Jamais pendant l&apos;extrait.</p>
+          <p className="text-sm text-ink-muted mt-1">{artists} réagissent quand tu tombes sur un de leurs sons : trouvé, raté, combo. Et sur le thème de l&apos;artiste. Jamais pendant l&apos;extrait.</p>
           {on && <button type="button" onClick={() => sfx.gimmick("hit", 1, { force: true })} className="text-xs font-semibold text-glow mt-2">Écouter un exemple</button>}
         </div>
         <button type="button" role="switch" aria-checked={on} onClick={() => { const v = !on; setOn(v); setGimmicksEnabled(v); if (v) sfx.gimmick("combo", 1, { force: true }); }} className={`shrink-0 w-12 h-7 rounded-full relative transition-colors ${on ? "bg-gold" : "bg-white/10"}`}>

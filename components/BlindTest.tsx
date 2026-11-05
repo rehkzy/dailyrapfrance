@@ -343,9 +343,10 @@ export default function BlindTest() {
       const fieldsAll: FieldKey[] = fieldsFor(singleArtistRef.current, trackRef.current);
       const allFound = fieldsAll.every((f) => solvedRef.current[f]);
       const nothing = Object.keys(solvedRef.current).length === 0;
-      // L'ad-lib de l'artiste révélé s'il en a un (Kaaris sur un son de Kaaris), sinon celui du thème.
-      const prefer = trackRef.current.artistName || singleArtistRef.current;
-      const secs = allFound ? sfx.gimmick("hit", 0.35, { prefer }) : nothing ? sfx.gimmick("miss", 0.3, { prefer }) : 0;
+      // Uniquement l'ad-lib de l'artiste révélé (Kaaris sur un son de Kaaris) — jamais celui
+      // d'un autre : trouvé → sa réaction, à chaque fois ; raté → sa vanne, s'il en a une.
+      const prefer = trackRef.current.artistName;
+      const secs = allFound ? sfx.gimmick("hit", 1, { prefer, strict: true, force: true }) : nothing ? sfx.gimmick("miss", 0.6, { prefer, strict: true }) : 0;
       if (secs > 0 && a && !a.paused) {
         try { a.volume = 0.25; } catch {}
         setTimeout(() => { try { if (a && !fadeIntervalRef.current) a.volume = 1; } catch {} }, secs * 1000 + 150);
@@ -362,7 +363,7 @@ export default function BlindTest() {
         const bonus = comboBonus(next);
         if (perfect && bonus > 0) {
           sfx.bonus();
-          sfx.gimmick("combo", 1, { force: true, prefer: singleArtistRef.current });
+          sfx.gimmick("combo", 1, { force: true, prefer: trackRef.current?.artistName ?? singleArtistRef.current, strict: true });
           awardPoints("solo", bonus);
           haptic([20, 30, 20, 30, 40]);
           setStreakBurst(next);
@@ -792,7 +793,7 @@ export default function BlindTest() {
   function handleBuzz(playerId: string) {
     if (!started || revealed || buzzedBy || locked.has(playerId)) return;
     sfx.buzz();
-    sfx.gimmick("buzz", 0.4, { prefer: singleArtistRef.current });
+    sfx.gimmick("buzz", 0.4, { prefer: singleArtistRef.current, strict: true });
     setBuzzedBy(playerId);
     if (intervalRef.current) clearInterval(intervalRef.current);
     deadlineRef.current = null;
