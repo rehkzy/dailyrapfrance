@@ -5,7 +5,7 @@ blind test. Deux formats :
 
 **Solo (`--tracks 1`, défaut, ~14 s)**
 1. Devinette (8 s) — extrait Deezer, pochette très floutée, chrono rond rouge qui décompte,
-   « Mets ta réponse en commentaire 👇 ».
+   « Mets ta réponse en commentaire ↓ ».
 2. Révélation (4 s) — pochette nette, artiste + titre (+ feats), l'audio continue.
 3. Fin (3 s) — affiche bichromie rouge/noir « Joue au blind test → dailyrapfrance.best ».
 
@@ -15,11 +15,13 @@ blind test. Deux formats :
 2. Pour chaque son : devinette 8 s (compteur « Son k/5 » en haut) puis révélation 3 s, le
    son continue ; fondu rapide (0,3 s) entre les sons.
 3. Fin (3 s) — « Ton score ? Joue au vrai blind test → dailyrapfrance.best »,
-   « Mets ton score en commentaire 👇 ».
+   « Mets ton score en commentaire ↓ ».
 
 Audio par son : preview Deezer à partir de la seconde 5 (`--offset`), 8 + 3 s, fondus 0,4 s.
 Chaque écran est une page HTML rendue dans Chromium (Playwright) avec la charte du site
-(fond `#0A0707`, rouge `#F0001C`, glow `#FF3B4E`, or `#FFD166`, Bricolage Grotesque + Inter,
+(palette stricte rouge/noir/blanc : fond `#0A0707`, rouge `#F0001C`, glow `#FF3B4E`, rouge
+profond `#8A0010`, blanc/ivoire `#F5E8E8` ; aucun jaune/or ; pochettes floutées et affiches en
+bichromie rouge/noir, seule la pochette révélée est en couleur ; Bricolage Grotesque + Inter,
 tuile « DR » `public/icon-512.png` et wordmark `public/logo.svg`), capturée puis assemblée
 par ffmpeg (xfade vidéo + acrossfade audio). Rien d'autre du repo n'est touché ni importé.
 
@@ -39,10 +41,11 @@ par ffmpeg (xfade vidéo + acrossfade audio). Rien d'autre du repo n'est touché
 # 3 vidéos solo à partir d'un thème du site (ids : pop, 2010s, 13, 93, artist-ninho…)
 node scripts/tiktok/make.mjs --theme artist-ninho --count 3 --out ./out
 
-# 1 vidéo de 5 sons, nommée top50.mp4
-node scripts/tiktok/make.mjs --theme pop --tracks 5 --count 1 --label "Top 50" --name top50 --out ./out
-node scripts/tiktok/make.mjs --theme 2010s --tracks 5 --count 1 --label "Années 2010" --name annees-2010
-node scripts/tiktok/make.mjs --theme 13 --tracks 5 --count 1 --label "Spécial Marseille" --name marseille
+# 2 vidéos de 5 sons sur le thème viral (sans morceau commun), nommées viral-1.mp4 et viral-2.mp4
+node scripts/tiktok/make.mjs --theme viral --tracks 5 --count 2 --label "Viral TikTok" --name viral-1,viral-2 --out ./out
+node scripts/tiktok/make.mjs --theme hits-2026 --tracks 5 --count 1 --label "Les stars de 2026" --name stars-2026
+# Exclure des IDs déjà utilisés dans une vidéo précédente
+node scripts/tiktok/make.mjs --theme viral --tracks 5 --count 1 --exclude 3569313901,1400988252
 
 # IDs Deezer précis (ne passe pas par le site) ; avec --tracks 5 les 5 IDs font une vidéo
 node scripts/tiktok/make.mjs --ids 4333609992,2935905291 --out ./out
@@ -51,8 +54,8 @@ node scripts/tiktok/make.mjs --ids 4333609992,2935905291 --out ./out
 node scripts/tiktok/make.mjs --search "jul" --count 2 --out ./out
 ```
 
-Options : `--tracks N` (1), `--count N` vidéos (3), `--name base` (nom du fichier, une seule
-vidéo), `--out dir` (`./out`), `--label "Texte"`, `--offset S` (5), `--guess S` (8),
+Options : `--tracks N` (1), `--count N` vidéos (3), `--name a,b` (noms de fichiers, un par
+vidéo), `--exclude ids` (IDs Deezer à écarter), `--out dir` (`./out`), `--label "Texte"`, `--offset S` (5), `--guess S` (8),
 `--reveal S` (4 solo / 3 multi), `--intro S` (3), `--end S` (3), `--fps N` (cadence de
 capture du chrono, 12 ; sortie 30 fps), `--keep-frames`, `--ffmpeg bin`.
 

@@ -60,6 +60,7 @@ const { values: opt } = parseArgs({
     count: { type: "string", default: "3" },
     tracks: { type: "string", default: "1" },
     name: { type: "string" },
+    exclude: { type: "string" },
     out: { type: "string", default: "./out" },
     label: { type: "string" },
     offset: { type: "string", default: "5" },
@@ -87,7 +88,8 @@ Options :
   --search "texte"   recherche Deezer, prend les premiers titres avec preview
   --tracks N         sons par vidéo (défaut 1 ; >1 ajoute une intro et un compteur « Son k/N »)
   --count N          nombre de vidéos (défaut 3)
-  --name <base>      nom de fichier de sortie sans extension (une seule vidéo)
+  --name a,b         noms de fichiers de sortie sans extension (un par vidéo, dans l'ordre)
+  --exclude 1,2      IDs Deezer à exclure (ex. ceux d'une vidéo précédente)
   --out <dir>        dossier de sortie (défaut ./out)
   --label "Texte"    pastille de thème (ex. "Spécial Marseille")
   --offset S         seconde de départ dans la preview Deezer (défaut 5)
@@ -352,20 +354,21 @@ function buildHtml({ track, coverUri, logos, fontFaces, label, index, total }) {
   const feats = track.feats?.length ? `feat. ${track.feats.join(", ")}` : "";
   const multi = total > 1;
   const chips = multi
-    ? `<span class="chip">Son ${index + 1}/${total}</span>${label ? `<span class="chip gold">${esc(label)}</span>` : ""}`
-    : `<span class="chip">Blind test</span>${label ? `<span class="chip gold">${esc(label)}</span>` : ""}`;
+    ? `<span class="chip">Son ${index + 1}/${total}</span>${label ? `<span class="chip alt">${esc(label)}</span>` : ""}`
+    : `<span class="chip">Blind test</span>${label ? `<span class="chip alt">${esc(label)}</span>` : ""}`;
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <style>
 ${fontFaces}
-:root{--bg:#0A0707;--red:#F0001C;--glow:#FF3B4E;--gold:#FFD166;--display:"Bricolage Grotesque",system-ui,"Segoe UI",Arial,sans-serif;--body:"Inter",system-ui,"Segoe UI",Arial,sans-serif;}
+:root{--bg:#0A0707;--red:#F0001C;--glow:#FF3B4E;--deep:#8A0010;--ivory:#F5E8E8;--display:"Bricolage Grotesque",system-ui,"Segoe UI",Arial,sans-serif;--body:"Inter",system-ui,"Segoe UI",Arial,sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:${W}px;height:${H}px;overflow:hidden;background:var(--bg);color:#fff;font-family:var(--body);-webkit-font-smoothing:antialiased}
 .screen{position:absolute;inset:0;display:none}
 body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-screen="reveal"] .reveal,body[data-screen="end"] .end{display:block}
 
 /* fond : pochette très floutée, assombrie vers le noir de marque */
-.bg{position:absolute;inset:-120px;background:url("${coverUri}") center/cover no-repeat;filter:blur(70px) saturate(1.3) brightness(.55);transform:scale(1.15)}
+.bg{position:absolute;inset:0;background:linear-gradient(160deg,#2a0608 0%,var(--deep) 60%,#c20016 130%)}
+.bg::before{content:"";position:absolute;inset:-120px;background:url("${coverUri}") center/cover no-repeat;filter:blur(70px) grayscale(1) contrast(1.1) brightness(.7);mix-blend-mode:luminosity;transform:scale(1.15)}
 .bg-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,7,.55) 0%,rgba(10,7,7,.25) 35%,rgba(10,7,7,.3) 60%,rgba(10,7,7,.97) 100%)}
 .grain{position:absolute;inset:0;opacity:.07;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>")}
 
@@ -373,9 +376,9 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
 .brand img.tile{height:150px;border-radius:34px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
 .brand img.word{height:46px}
 .chip{display:inline-block;font:700 28px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;background:var(--red);color:#fff;padding:16px 26px;border-radius:999px;box-shadow:0 0 40px rgba(255,59,78,.55)}
-.chip.gold{background:var(--gold);color:#1a0b0b;box-shadow:none}
+.chip.alt{background:var(--ivory);color:#0A0707;box-shadow:none}
 .site{position:absolute;bottom:90px;left:0;right:0;text-align:center;font:700 32px var(--body);letter-spacing:.06em;color:rgba(255,255,255,.75)}
-.site b{color:var(--gold)}
+.site b{color:#fff}
 
 /* --- affiche bichromie rouge/noir (intro + fin) --- */
 .poster{background:linear-gradient(160deg,#3a0a0f 0%,#8a0010 60%,#f0001c 130%)}
@@ -384,7 +387,7 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
 .poster .brand{top:140px}
 .poster .brand img.word{height:56px}
 .poster .big{position:absolute;left:70px;right:70px;text-align:center;font:800 150px/.9 var(--display);letter-spacing:-.05em;text-shadow:0 10px 50px rgba(0,0,0,.7)}
-.poster .big span{color:var(--gold)}
+.poster .big span{color:var(--red);text-shadow:0 0 40px var(--glow)}
 .poster .arrow{position:absolute;left:0;right:0;text-align:center;font:800 70px var(--display);color:#fff}
 .poster .pill{position:absolute;left:50%;transform:translateX(-50%);font:800 56px var(--display);letter-spacing:-.02em;background:#fff;color:#0A0707;padding:28px 60px;border-radius:999px;box-shadow:0 0 60px rgba(255,59,78,.7),0 20px 60px rgba(0,0,0,.6);white-space:nowrap}
 .poster .sub{position:absolute;left:60px;right:60px;text-align:center;font:500 38px/1.3 var(--body);color:rgba(255,255,255,.8)}
@@ -404,7 +407,8 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
 .guess .chips{position:absolute;top:560px;left:0;right:0;display:flex;justify-content:center;gap:16px}
 .cover-box{position:absolute;left:150px;top:660px;width:780px;height:780px;border-radius:44px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.7),0 0 0 3px rgba(255,255,255,.08)}
 .cover-box img{position:absolute;inset:-60px;width:calc(100% + 120px);height:calc(100% + 120px);object-fit:cover}
-.guess .cover-box img{filter:blur(46px) saturate(1.25) contrast(1.1)}
+.guess .cover-box{background:linear-gradient(160deg,#3a0a0f 0%,var(--deep) 60%,#c20016 130%)}
+.guess .cover-box img{filter:blur(46px) grayscale(1) contrast(1.15);mix-blend-mode:luminosity}
 .guess .cover-box::after{content:"";position:absolute;inset:0;background:rgba(10,7,7,.35)}
 .timer{position:absolute;left:50%;top:840px;width:420px;height:420px;margin-left:-210px}
 .timer svg{position:absolute;inset:0;overflow:visible;transform:rotate(-90deg)}
@@ -418,10 +422,10 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
 
 /* --- RÉVÉLATION --- */
 .reveal .cover-box{top:430px;box-shadow:0 0 0 4px rgba(255,255,255,.1),0 40px 140px rgba(240,0,28,.45),0 60px 160px rgba(0,0,0,.8)}
-.reveal .kicker{position:absolute;top:300px;left:0;right:0;text-align:center;font:800 44px var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.reveal .kicker{position:absolute;top:300px;left:0;right:0;text-align:center;font:800 44px var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--glow)}
 .reveal .info{position:absolute;top:1290px;left:70px;right:70px;text-align:center;display:flex;flex-direction:column;gap:28px;align-items:center}
 .reveal .artist{font:800 118px/.95 var(--display);letter-spacing:-.045em;text-shadow:0 10px 50px rgba(0,0,0,.7);overflow-wrap:anywhere}
-.reveal .title{font:700 62px/1.15 var(--body);color:var(--gold);letter-spacing:-.02em}
+.reveal .title{font:700 62px/1.15 var(--body);color:var(--ivory);letter-spacing:-.02em}
 .reveal .feats{font:500 36px var(--body);color:rgba(255,255,255,.7)}
 
 /* --- FIN --- */
@@ -437,7 +441,7 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
   <div class="photo"></div><div class="shade"></div><div class="grain"></div>
   <div class="brand"><img class="tile" src="${logos.tile}"><img class="word" src="${logos.wordmark}"></div>
   <h1 class="big">BLIND<br>TEST<br><span>RAP FR</span></h1>
-  <div class="chips">${label ? `<span class="chip gold">${esc(label)}</span>` : `<span class="chip">Daily Rap</span>`}</div>
+  <div class="chips">${label ? `<span class="chip alt">${esc(label)}</span>` : `<span class="chip">Daily Rap</span>`}</div>
   <p class="sub">${total} sons · ${GUESS} secondes chacun</p>
   <p class="sub sub2">Trouve l'artiste + le titre</p>
   <p class="site"><b>dailyrapfrance</b>.best</p>
@@ -455,7 +459,7 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
     <svg class="glow" viewBox="0 0 420 420"><circle class="arc" id="arc" cx="210" cy="210" r="188"/></svg>
     <div class="num" id="num">${GUESS}</div>
   </div>
-  <p class="cta">Mets ta réponse en commentaire 👇<small>Artiste + titre</small></p>
+  <p class="cta">Mets ta réponse en commentaire ↓<small>Artiste + titre</small></p>
   <p class="site"><b>dailyrapfrance</b>.best</p>
 </section>
 
@@ -477,7 +481,7 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
   <p class="arrow">↓</p>
   <p class="pill">dailyrapfrance.best</p>
   <p class="sub">Joue au vrai blind test</p>
-  <p class="sub sub2">Mets ton score en commentaire 👇</p>`
+  <p class="sub sub2">Mets ton score en commentaire ↓</p>`
       : `<h2 class="big">JOUE AU<br>BLIND<br>TEST<span>.</span></h2>
   <p class="arrow">↓</p>
   <p class="pill">dailyrapfrance.best</p>
@@ -624,10 +628,15 @@ async function main() {
   if (opt.ids) tracks = await tracksFromIds(opt.ids.split(",").map((s) => s.trim()).filter(Boolean));
   else if (opt.theme) tracks = await tracksFromTheme(opt.theme, MULTI ? Math.min(100, need * 6) : need);
   else tracks = await tracksFromSearch(opt.search, MULTI ? need * 2 : need);
+  if (opt.exclude) {
+    const ex = new Set(opt.exclude.split(",").map((x) => x.trim()));
+    tracks = tracks.filter((t) => !ex.has(t.id));
+  }
   if (!tracks.length) throw new Error("Aucun titre à traiter.");
 
+  const names = opt.name ? opt.name.split(",").map((n) => n.trim()).filter(Boolean) : [];
   const groups = MULTI ? groupTracks(tracks, COUNT, TRACKS) : tracks.slice(0, COUNT).map((t) => [t]);
-  if (opt.name && groups.length > 1) throw new Error("--name ne s'utilise qu'avec une seule vidéo (--count 1).");
+  if (names.length && names.length < groups.length) throw new Error(`--name : ${names.length} nom(s) pour ${groups.length} vidéos.`);
   for (const g of groups) {
     if (MULTI && g.length < TRACKS) log(`! seulement ${g.length}/${TRACKS} sons disponibles pour une vidéo`);
     const artists = g.map((t) => t.artistName.toLowerCase());
@@ -638,15 +647,15 @@ async function main() {
   const browser = await chromium.launch();
   const results = [];
   try {
-    for (const group of groups) {
-      const base = opt.name
-        ? slug(opt.name)
+    for (const [gi, group] of groups.entries()) {
+      const base = names[gi]
+        ? slug(names[gi])
         : MULTI
           ? `${slug(opt.label || opt.theme || opt.search || "blindtest")}-${group.length}-sons-${group[0].id}`
           : `${slug(group[0].artistName)}-${slug(group[0].title)}`;
       const workDir = path.join(OUT, base);
       await mkdir(workDir, { recursive: true });
-      log(`→ ${base} : ${group.map((t) => `${t.artistName} – ${t.title}`).join(" | ")}`);
+      log(`→ ${base} : ${group.map((t) => `${t.artistName} – ${t.title} (${t.id})`).join(" | ")}`);
 
       const parts = [];
       let intro = null;
