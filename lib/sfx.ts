@@ -43,6 +43,42 @@ function tone(freq: number, start: number, duration: number, type: OscillatorTyp
   osc.stop(c.currentTime + start + duration + 0.05);
 }
 
+// Baisse en fondu (150 ms) une source musicale pendant `seconds`, puis remonte en fondu
+// (350 ms). Cible : un <audio> (volume 0..1) ou un lecteur avec setVolume(0..1). Une
+// nouvelle baisse annule la précédente ; `cancelDuck()` remet tout à 1 (changement de manche).
+type DuckTarget = { el?: HTMLMediaElement | null; set?: (v: number) => void };
+let duckTimer: ReturnType<typeof setInterval> | null = null;
+let duckHold: ReturnType<typeof setTimeout> | null = null;
+let duckTarget: DuckTarget | null = null;
+function applyVol(t: DuckTarget, v: number) {
+  try { if (t.el) t.el.volume = v; } catch {}
+  try { t.set?.(v); } catch {}
+}
+function ramp(t: DuckTarget, from: number, to: number, ms: number, done?: () => void) {
+  if (duckTimer) clearInterval(duckTimer);
+  const steps = Math.max(3, Math.round(ms / 30));
+  let i = 0;
+  duckTimer = setInterval(() => {
+    i++;
+    applyVol(t, from + (to - from) * (i / steps));
+    if (i >= steps) { if (duckTimer) clearInterval(duckTimer); duckTimer = null; done?.(); }
+  }, 30);
+}
+export function duckMusic(target: DuckTarget, seconds: number, floor = 0.2) {
+  if (seconds <= 0) return;
+  cancelDuck(false);
+  duckTarget = target;
+  ramp(target, 1, floor, 150);
+  duckHold = setTimeout(() => { ramp(target, floor, 1, 350); duckHold = null; }, seconds * 1000 + 100);
+}
+export function cancelDuck(restore = true) {
+  if (duckTimer) clearInterval(duckTimer);
+  if (duckHold) clearTimeout(duckHold);
+  duckTimer = null; duckHold = null;
+  if (restore && duckTarget) applyVol(duckTarget, 1);
+  duckTarget = null;
+}
+
 export const sfx = {
   setMuted(v: boolean) {
     muted = v;

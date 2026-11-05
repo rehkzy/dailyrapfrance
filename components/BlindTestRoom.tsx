@@ -10,7 +10,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { createClient } from "@/lib/supabase/client";
 import { generateRoomCode } from "@/lib/roomCode";
 import { checkGuess } from "@/lib/blindtest-match";
-import { sfx } from "@/lib/sfx";
+import { sfx, duckMusic } from "@/lib/sfx";
 import { randomGage } from "@/lib/gages";
 import { speedBonus } from "@/lib/scoring";
 import { trackEvent } from "@/lib/track";
@@ -829,7 +829,7 @@ function BlindTestRoom({
     if (!room || !track || revealed || qcmChoiceLocked || !currentQcmField) return;
     if (!qcmIsCorrect(currentQcmField, { ...track, feats: guessableFeats(room.theme, track) }, chosenLabel)) {
       sfx.wrong();
-      sfx.artistReact(track.artistName, "miss");
+      duckMusic({ el: audioRef.current }, sfx.artistReact(track.artistName, "miss"));
       setQcmWrongId(chosenLabel);
       setTimeout(() => setQcmWrongId(null), 450);
       setQcmChoiceLocked(true);
@@ -839,7 +839,7 @@ function BlindTestRoom({
     // déjà été réclamé par quelqu'un d'autre entre-temps (l'insert échoue alors seul —
     // contrainte d'unicité — mais ce joueur a bien répondu juste, il doit continuer).
     sfx.correct();
-    sfx.artistReact(track.artistName, "hit");
+    duckMusic({ el: audioRef.current }, sfx.artistReact(track.artistName, "hit"));
     setFlash("ok");
     setTimeout(() => setFlash(null), 700);
     setMyCorrectFields((prev) => new Set(prev).add(currentQcmField));
@@ -878,12 +878,12 @@ function BlindTestRoom({
 
     if (anyOk) {
       setFlash("ok");
-      sfx.artistReact(track?.artistName, "hit");
+      duckMusic({ el: audioRef.current }, sfx.artistReact(track?.artistName, "hit"));
       setGuess({ title: "", artist: "", feat: "" });
     } else {
       setFlash("taken");
       sfx.wrong();
-      sfx.artistReact(track?.artistName, "miss");
+      duckMusic({ el: audioRef.current }, sfx.artistReact(track?.artistName, "miss"));
     }
     setTimeout(() => setFlash(null), 700);
   }
