@@ -13,7 +13,7 @@ export type ThemeOption = {
   keywords?: string;
 };
 
-export const THEME_CATEGORIES = ["Du moment", "Époques", "Styles", "Régions", "Artistes", "Gimmicks"] as const;
+export const THEME_CATEGORIES = ["Du moment", "Époques", "Styles", "Régions", "Artistes", "Classiques", "Gimmicks"] as const;
 
 // Catalogue unique — utilisé à la fois par le wizard solo/local, le salon en ligne, les pages
 // SEO (/blindtest/[slug]) et le défi de la semaine. Chaque id doit exister dans lib/themeSources.ts
@@ -168,6 +168,37 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "artist-heuss-lenfoire", label: "Blind Test Heuss L'enfoiré", text: "Que des sons de Heuss L'enfoiré", Icon: Mic2, category: "Artistes", keywords: "93 aulnay" },
   { id: "artist-didine", label: "Blind Test Didine Canon 16", text: "Que des sons de Didine Canon 16", Icon: Mic2, category: "Artistes", keywords: "algérie" },
   { id: "artist-dizzy-dros", label: "Blind Test Dizzy DROS", text: "Que des sons de Dizzy DROS", Icon: Mic2, category: "Artistes", keywords: "maroc" },
+  // --- Classiques : les morceaux qui ont fait l'artiste, sans les nouveautés (≥ 5 ans).
+  { id: "classics-booba", label: "Classiques de Booba", text: "Les titres qui ont fait Booba — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son booba" },
+  { id: "classics-rohff", label: "Classiques de Rohff", text: "Les titres qui ont fait Rohff — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son rohff" },
+  { id: "classics-sexion-d-assaut", label: "Classiques de Sexion d'Assaut", text: "Les titres qui ont fait Sexion d'Assaut — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son sexion d'assaut" },
+  { id: "classics-nekfeu", label: "Classiques de Nekfeu", text: "Les titres qui ont fait Nekfeu — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son nekfeu" },
+  { id: "classics-pnl", label: "Classiques de PNL", text: "Les titres qui ont fait PNL — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son pnl" },
+  { id: "classics-jul", label: "Classiques de Jul", text: "Les titres qui ont fait Jul — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son jul" },
+  { id: "classics-ninho", label: "Classiques de Ninho", text: "Les titres qui ont fait Ninho — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son ninho" },
+  { id: "classics-sch", label: "Classiques de SCH", text: "Les titres qui ont fait SCH — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son sch" },
+  { id: "classics-damso", label: "Classiques de Damso", text: "Les titres qui ont fait Damso — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son damso" },
+  { id: "classics-orelsan", label: "Classiques de Orelsan", text: "Les titres qui ont fait Orelsan — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son orelsan" },
+  { id: "classics-iam", label: "Classiques de IAM", text: "Les titres qui ont fait IAM — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son iam" },
+  { id: "classics-supreme-ntm", label: "Classiques de Suprême NTM", text: "Les titres qui ont fait Suprême NTM — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son suprême ntm" },
+  { id: "classics-kaaris", label: "Classiques de Kaaris", text: "Les titres qui ont fait Kaaris — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son kaaris" },
+  { id: "classics-niska", label: "Classiques de Niska", text: "Les titres qui ont fait Niska — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son niska" },
+  { id: "classics-la-fouine", label: "Classiques de La Fouine", text: "Les titres qui ont fait La Fouine — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son la fouine" },
+  { id: "classics-soprano", label: "Classiques de Soprano", text: "Les titres qui ont fait Soprano — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son soprano" },
+  { id: "classics-gims", label: "Classiques de Gims", text: "Les titres qui ont fait Gims — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son gims" },
+  { id: "classics-lacrim", label: "Classiques de Lacrim", text: "Les titres qui ont fait Lacrim — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son lacrim" },
+  { id: "classics-vald", label: "Classiques de Vald", text: "Les titres qui ont fait Vald — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son vald" },
+  { id: "classics-youssoupha", label: "Classiques de Youssoupha", text: "Les titres qui ont fait Youssoupha — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son youssoupha" },
+  { id: "classics-kery-james", label: "Classiques de Kery James", text: "Les titres qui ont fait Kery James — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son kery james" },
+  { id: "classics-oxmo-puccino", label: "Classiques de Oxmo Puccino", text: "Les titres qui ont fait Oxmo Puccino — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son oxmo puccino" },
+  { id: "classics-sniper", label: "Classiques de Sniper", text: "Les titres qui ont fait Sniper — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son sniper" },
+  { id: "classics-113", label: "Classiques de 113", text: "Les titres qui ont fait 113 — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son 113" },
+  { id: "classics-sefyu", label: "Classiques de Sefyu", text: "Les titres qui ont fait Sefyu — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son sefyu" },
+  { id: "classics-gradur", label: "Classiques de Gradur", text: "Les titres qui ont fait Gradur — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son gradur" },
+  { id: "classics-alonzo", label: "Classiques de Alonzo", text: "Les titres qui ont fait Alonzo — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son alonzo" },
+  { id: "classics-lomepal", label: "Classiques de Lomepal", text: "Les titres qui ont fait Lomepal — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son lomepal" },
+  { id: "classics-bigflo-oli", label: "Classiques de Bigflo & Oli", text: "Les titres qui ont fait Bigflo & Oli — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son bigflo & oli" },
+  { id: "classics-hamza", label: "Classiques de Hamza", text: "Les titres qui ont fait Hamza — que des sons d'il y a 5 ans ou plus", Icon: Mic2, category: "Classiques", keywords: "classique ancien vieux son hamza" },
   // --- Gimmicks : on entend l'ad-lib, on dit qui c'est. Clips maison (public/audio/gimmicks).
   { id: "gimmicks", label: "Gimmicks de rappeurs", text: "Un ad-lib, 4 noms : qui dit ça ? Kaaris, Ninho, Niska, SCH, Gazo…", Icon: Mic2, category: "Gimmicks", keywords: "adlib ad-lib gimmick voix" },
   { id: "memes", label: "Mèmes du rap", text: "Les extraits cultes : « Salut à tous, c'est Ninho »… qui parle ?", Icon: Mic2, category: "Gimmicks", keywords: "meme mème culte" },

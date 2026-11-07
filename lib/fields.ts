@@ -10,9 +10,9 @@ const norm = (s: string) => s.trim().toLowerCase();
 export function themeArtistName(theme: string | undefined | null): string | null {
   if (!theme) return null;
   const base = theme.includes(":") ? theme.split(":")[1] : theme;
-  if (!base.startsWith("artist-")) return null;
+  if (!base.startsWith("artist-") && !base.startsWith("classics-")) return null;
   const t = THEME_OPTIONS.find((x) => x.id === base);
-  return t ? t.label.replace(/^Blind Test /i, "") : null;
+  return t ? t.label.replace(/^Blind Test /i, "").replace(/^Classiques de /i, "") : null;
 }
 
 /** Le thème est un artiste ET ce morceau n'est pas le sien : il y est invité. */

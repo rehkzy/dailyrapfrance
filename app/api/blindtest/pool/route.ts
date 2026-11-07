@@ -167,10 +167,42 @@ export async function GET(req: NextRequest) {
     if (THEME_PLAYLISTS[themeId] && themeId !== "90s" && themeId !== "2000s" && themeId !== "2010s" && themeId !== "recent") {
       const lists = await Promise.all(THEME_PLAYLISTS[themeId].map(fetchPlaylistTracks));
       raw = lists.flat();
+    } else if (themeId.startsWith("classics-") && artistListsById[themeId]) {
+      // Classiques : les titres d'albums sortis il y a 5 ans ou plus, les plus écoutés
+      // d'abord. Pas de nouveautés, pas de single de la semaine — ce qui a fait l'artiste.
+      const artist = await resolveArtist(artistListsById[themeId][0]);
+      if (artist) {
+        const cutoff = new Date(Date.now() - 5 * 365 * 86_400_000).toISOString().slice(0, 10);
+        const albums = await deezerFetch<{ data?: { id: number; release_date?: string; record_type?: string }[] }>(`/artist/${artist.id}/albums?limit=60`);
+        const old = (albums.data ?? [])
+          .filter((a) => (a.release_date ?? "9999") <= cutoff && (a.record_type === "album" || a.record_type === "ep" || a.record_type === "single"))
+          .slice(0, 14);
+        const lists = await Promise.all(old.map((a) => deezerFetch(`/album/${a.id}/tracks?limit=25`).then((r) => r.data ?? []).catch(() => [])));
+        const seenTitle = new Set<string>();
+        const all = lists.flat().filter((t) => t.preview && (!t.artist?.name || t.artist.name.toLowerCase() === artist.name.toLowerCase()));
+        const dedup = all.filter((t) => { const k = t.title.toLowerCase().replace(/\s*\(.*?\)\s*/g, "").trim(); if (seenTitle.has(k)) return false; seenTitle.add(k); return true; });
+        raw = dedup.sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0)).slice(0, 40);
+      }
     } else if (artistListsById[themeId]) {
+      // Thèmes à liste d'artistes (départements, régions, styles) : chaque artiste pèse
+      // pareil. On tire en tourniquet, artiste par artiste, au lieu de piocher au hasard
+      // dans la pile — sinon ceux qui ont le plus de titres (ou dont l'appel a réussi)
+      // trustent la partie (« que Maes et Diddi Trix dans le 93 »). Un appel raté est retenté.
       const names = artistListsById[themeId];
-      const lists = await Promise.all(names.map(fetchArtistTopTracks));
-      raw = lists.flat();
+      const lists = await Promise.all(names.map(async (n) => {
+        const first = await fetchArtistTopTracks(n);
+        return first.length ? first : fetchArtistTopTracks(n);
+      }));
+      const perArtist = lists.map((l) => [...l.filter((t) => t.preview)].sort(() => Math.random() - 0.5)).filter((l) => l.length);
+      const picked: DeezerTrackSummary[] = [];
+      const seen = new Set<number>();
+      for (let round = 0; picked.length < count * 2 && perArtist.some((l) => l.length > round); round++) {
+        for (const l of perArtist.sort(() => Math.random() - 0.5)) {
+          const t = l[round];
+          if (t && !seen.has(t.id)) { seen.add(t.id); picked.push(t); }
+        }
+      }
+      raw = picked;
     } else if (themeId === "sorties") {
       // Sorti cette semaine : la playlist éditoriale « nouveautés rap FR », triée par date
       // d'ajout, fenêtre de 15 jours (élargie si trop maigre). Le thème se renouvelle seul.
