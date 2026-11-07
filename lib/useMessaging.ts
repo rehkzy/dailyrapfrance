@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { deviceIdentity, sharedKey, encryptFor, decryptWith, e2eSupported, type DeviceIdentity } from "@/lib/e2e";
+import { sharedKey, decryptWith, e2eSupported, type DeviceIdentity } from "@/lib/e2e";
+import { ensureDeviceKey, sendEncrypted, queueOutgoing, nudgeRecipient, flushOutbox } from "@/lib/dmTransport";
 
 /*
  * Messagerie chiffrée : tout se passe ici côté appareil.
@@ -38,11 +39,7 @@ export function useMessaging(userId: string | null) {
     if (!e2eSupported()) { setReady(true); return; }
     setReady(false);
     let alive = true;
-    (async () => {
-      const id = await deviceIdentity();
-      await supabase.from("user_keys").upsert({ user_id: userId, device_id: id.deviceId, public_jwk: id.publicJwk, last_seen: new Date().toISOString() }, { onConflict: "user_id,device_id" });
-      if (alive) { setMe(id); setReady(true); }
-    })().catch(() => setReady(true));
+    ensureDeviceKey(supabase, userId).then((id) => { if (alive) { setMe(id); setReady(true); if (id) void flushOutbox(supabase, id, userId); } });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
@@ -67,28 +64,20 @@ export function useMessaging(userId: string | null) {
     return { ...base, text: await decryptWith(key, r.ciphertext, r.iv) };
   }, [me, userId, keysOf]);
 
-  /** Envoie `text` à `toUserId` : chiffré pour chacun de ses appareils et chacun des miens. */
-  const send = useCallback(async (toUserId: string, text: string): Promise<string | null> => {
-    if (!me || !userId) return null;
+  /**
+   * Envoie `text` à `toUserId`. Renvoie { msgId } si parti, { pending } si l'ami n'a pas encore
+   * de clé : le message attend sur cet appareil et partira tout seul ; on le prévient entre-temps.
+   */
+  const send = useCallback(async (toUserId: string, text: string): Promise<{ msgId: string | null; pending: boolean }> => {
+    if (!me || !userId) return { msgId: null, pending: false };
     const clean = text.trim().slice(0, 4000);
-    if (!clean) return null;
-    const [theirs, mine] = await Promise.all([keysOf(toUserId, true), keysOf(userId, true)]);
-    if (theirs.length === 0) return null; // il n'a encore jamais ouvert la messagerie
-    const msgId = crypto.randomUUID();
-    const rows: Omit<Row, "id" | "created_at" | "read_at">[] = [];
-    for (const d of theirs) {
-      const key = await sharedKey(me, d.device_id, d.public_jwk);
-      const { ciphertext, iv } = await encryptFor(key, clean);
-      rows.push({ msg_id: msgId, sender_id: userId, recipient_id: toUserId, peer_id: userId, device_id: d.device_id, sender_device: me.deviceId, ciphertext, iv });
-    }
-    for (const d of mine) {
-      const key = await sharedKey(me, d.device_id, d.public_jwk);
-      const { ciphertext, iv } = await encryptFor(key, clean);
-      rows.push({ msg_id: msgId, sender_id: userId, recipient_id: userId, peer_id: toUserId, device_id: d.device_id, sender_device: me.deviceId, ciphertext, iv });
-    }
-    const { error } = await supabase.from("direct_messages").insert(rows);
-    return error ? null : msgId;
-  }, [me, userId, keysOf]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!clean) return { msgId: null, pending: false };
+    const msgId = await sendEncrypted(supabase, me, userId, toUserId, clean);
+    if (msgId) return { msgId, pending: false };
+    queueOutgoing(toUserId, clean);
+    void nudgeRecipient(toUserId);
+    return { msgId: null, pending: true };
+  }, [me, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Fil avec `peerId`, déchiffré, du plus ancien au plus récent. */
   const loadThread = useCallback(async (peerId: string, limit = 200): Promise<DM[]> => {

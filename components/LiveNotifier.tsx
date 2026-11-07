@@ -9,6 +9,7 @@ import { enablePush, pushEnabled, pushSupport } from "@/lib/pushClient";
 import { pushSnoozed, snoozePush, requestPushNudge } from "@/lib/pushNudge";
 import { sfx } from "@/lib/sfx";
 import BrandMark from "@/components/BrandMark";
+import { ensureDeviceKey, flushOutbox, readOutbox } from "@/lib/dmTransport";
 
 /*
  * Ce qui marche SANS autorisation, tant que le site est ouvert (même en arrière-plan) :
@@ -25,6 +26,20 @@ export default function LiveNotifier() {
   const [nudge, setNudge] = useState<null | "ask" | "ios">(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const baseTitle = useRef<string>("");
+
+  // Clé de messagerie publiée dès qu'on est connecté, sur n'importe quelle page ; et les messages
+  // en attente partent dès que la clé de l'ami apparaît (ou au chargement).
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    let me: Awaited<ReturnType<typeof ensureDeviceKey>> = null;
+    ensureDeviceKey(supabase, user.id).then((id) => { me = id; if (id && readOutbox().length) void flushOutbox(supabase, id, user.id); });
+    const ch = supabase.channel(`keys-watch:${user.id}:${Math.random().toString(36).slice(2)}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "user_keys" }, (p) => {
+      const uid = (p.new as { user_id?: string }).user_id;
+      if (me && uid && readOutbox().some((o) => o.to === uid)) void flushOutbox(supabase, me, user.id, uid);
+    }).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
 
   // Toast temps réel
   useEffect(() => {

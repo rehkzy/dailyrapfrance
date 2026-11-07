@@ -132,7 +132,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           )}
           {!isMe && (
             <div className="mt-4 grid grid-cols-2 gap-2.5">
-              <AddFriendButton targetId={profile.id} />
+              <AddFriendButton targetId={profile.id} messageHref={`/messages/${profile.username ?? profile.id}`} />
               <FriendPlayButtons friendName={name} />
             </div>
           )}

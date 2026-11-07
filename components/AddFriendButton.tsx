@@ -3,7 +3,7 @@
 import { requestPushNudge } from "@/lib/pushNudge";
 
 import { useEffect, useState } from "react";
-import { UserPlus, Check, X, Clock } from "lucide-react";
+import { UserPlus, Check, X, Clock, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/useUser";
 
@@ -13,9 +13,12 @@ export default function AddFriendButton({
   targetId,
   onChange,
   size = "md",
+  messageHref,
 }: {
   targetId: string;
   onChange?: () => void;
+  /** Si fourni, un bouton « Écrire » apparaît à côté de « Amis ». */
+  messageHref?: string;
   size?: "sm" | "md";
 }) {
   const { user } = useUser();
@@ -163,6 +166,8 @@ export default function AddFriendButton({
     );
   }
   return (
+    <span className="inline-flex items-center gap-1.5">
+    {messageHref && <a href={messageHref} className={`tap-press inline-flex items-center gap-1.5 ${h} rounded-full bg-gold text-white font-semibold`}><MessageCircle size={14} /> Écrire</a>}
     <button
       onClick={() => setConfirmRemove(true)}
       disabled={busy}
@@ -171,5 +176,6 @@ export default function AddFriendButton({
       <Check size={14} />
       Amis
     </button>
+    </span>
   );
 }

@@ -10,6 +10,7 @@ import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
 import NotifBell from "@/components/NotifBell";
+import MsgIcon from "@/components/MsgIcon";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 /*
@@ -204,6 +205,7 @@ export default function Header() {
               Jouer
             </a>
           )}
+          <MsgIcon />
           <NotifBell />
           <div className="hidden lg:block">
             <AuthButton />

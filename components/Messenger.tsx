@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Lock, Send, ChevronLeft, MessageCircle, Swords, Plus, Image as ImageIcon, Music2, Search, X, Check, CheckCheck, ShieldCheck, Zap, Smartphone, ChevronDown, Camera, Mic, BarChart3, Play, Pause, Trash2 } from "lucide-react";
+import { Lock, Send, ChevronLeft, MessageCircle, Swords, Plus, Image as ImageIcon, Music2, Search, X, Check, CheckCheck, ShieldCheck, Zap, Smartphone, ChevronDown, Camera, Mic, BarChart3, Play, Pause, Trash2, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/useUser";
 import { useMessaging, type DM } from "@/lib/useMessaging";
 import { encryptBlob, decryptBlob } from "@/lib/e2e";
 import { parsePayload, previewOf, musicLinkIn, REACTIONS, type DMPayload } from "@/lib/dm";
+import { readOutbox, type Outgoing } from "@/lib/dmTransport";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { GIMMICKS, type Gimmick } from "@/lib/gimmicks";
 import { sfx } from "@/lib/sfx";
@@ -314,7 +315,16 @@ export function Thread({ peer }: { peer: Lite }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, m.ready, m.deviceId, peer.id]);
 
-  useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs?.length, typing]);
+  // Messages en attente (l'ami n'a pas encore de clé) : gardés sur cet appareil, affichés comme envoyés avec une horloge.
+  const [outbox, setOutbox] = useState<Outgoing[]>([]);
+  useEffect(() => {
+    const read = () => setOutbox(readOutbox().filter((o) => o.to === peer.id));
+    read();
+    window.addEventListener("drf:outbox", read);
+    return () => window.removeEventListener("drf:outbox", read);
+  }, [peer.id]);
+
+  useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs?.length, typing, outbox.length]);
   useEffect(() => { document.body.classList.add("dm-open"); return () => document.body.classList.remove("dm-open"); }, []);
 
   // iPhone : le clavier ne réduit pas la fenêtre, il la recouvre (et Safari fait défiler la page
@@ -348,10 +358,11 @@ export function Thread({ peer }: { peer: Lite }) {
   }, [user, peer.id]);
 
   const deliver = useCallback(async (body: string): Promise<boolean> => {
-    const msgId = await m.send(peer.id, body);
-    if (!msgId) { setErr(`${peer.display_name ?? "Ton ami"} n'a pas encore ouvert la messagerie. Dès qu'il le fait, ça passe.`); return false; }
-    pushLocal(msgId, body);
-    return true;
+    const r = await m.send(peer.id, body);
+    if (r.msgId) { pushLocal(r.msgId, body); return true; }
+    if (r.pending) { setErr(null); return true; }
+    setErr("Envoi impossible pour le moment. Réessaie.");
+    return false;
   }, [m, peer, pushLocal]);
 
   async function submit() {
@@ -555,6 +566,18 @@ export function Thread({ peer }: { peer: Lite }) {
             );
           })
         )}
+        {outbox.map((o) => {
+          const p = parsePayload(o.body);
+          return (
+            <div key={o.id} className="px-3">
+              <div className="dm-line mine"><div className="relative max-w-[82%]"><div className="dm-bubble mine" style={{ opacity: 0.75 }}>
+                <span className="whitespace-pre-wrap break-words">{p ? previewOf(o.body) : o.body}</span>
+                <span className="dm-meta">{fmtTime(o.at)} <Clock size={12} /></span>
+              </div></div></div>
+            </div>
+          );
+        })}
+        {outbox.length > 0 && <p className="px-5 text-[11px] text-ink-faint text-right -mt-1">En attente : {peer.display_name ?? "ton pote"} le recevra dès qu&apos;il ouvre DailyRap. Il est prévenu.</p>}
         {typing && <div className="px-3"><div className="dm-line"><div className="dm-bubble dm-typing"><span /><span /><span /></div></div></div>}
         <div className="h-3" />
       </div>
