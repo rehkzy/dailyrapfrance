@@ -327,6 +327,44 @@ export function Thread({ peer }: { peer: Lite }) {
   useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs?.length, typing, outbox.length]);
   useEffect(() => { document.body.classList.add("dm-open"); return () => document.body.classList.remove("dm-open"); }, []);
 
+  // iPhone : le clavier recouvre le bas de la fenêtre et Safari fait défiler la page dessous.
+  // On cale le fil exactement sur la zone visible (visualViewport : hauteur + décalage), et un
+  // fond opaque séparé couvre toute la fenêtre pour que rien du site n'apparaisse derrière.
+  const threadRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let raf = 0;
+    const fit = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = threadRef.current;
+        if (!el || window.innerWidth >= 1024) return;
+        const full = Math.round(vv.height) >= Math.round(document.documentElement.clientHeight) - 2 && vv.offsetTop < 2;
+        if (full) { el.style.top = ""; el.style.height = ""; el.dataset.kb = "0"; return; }
+        el.style.top = `${Math.round(vv.offsetTop)}px`;
+        el.style.height = `${Math.round(vv.height)}px`;
+        el.dataset.kb = "1";
+        const l = listRef.current; if (l) l.scrollTop = l.scrollHeight;
+      });
+    };
+    fit();
+    vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit);
+    return () => { cancelAnimationFrame(raf); vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); };
+  }, []);
+
+  // Messages en attente (l'ami n'a pas encore de clé) : gardés sur cet appareil, affichés comme envoyés avec une horloge.
+  const [outbox, setOutbox] = useState<Outgoing[]>([]);
+  useEffect(() => {
+    const read = () => setOutbox(readOutbox().filter((o) => o.to === peer.id));
+    read();
+    window.addEventListener("drf:outbox", read);
+    return () => window.removeEventListener("drf:outbox", read);
+  }, [peer.id]);
+
+  useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs?.length, typing, outbox.length]);
+  useEffect(() => { document.body.classList.add("dm-open"); return () => document.body.classList.remove("dm-open"); }, []);
+
   // iPhone : le clavier ne réduit pas la fenêtre, il la recouvre (et Safari fait défiler la page
   // dessous). On garde le fil plein écran et on remonte la zone de saisie de la hauteur du clavier,
   // mesurée via visualViewport ; la page est maintenue en haut pour que rien ne glisse derrière.
@@ -491,6 +529,8 @@ export function Thread({ peer }: { peer: Lite }) {
   const lastMineIdx = (() => { for (let i = visible.length - 1; i >= 0; i--) if (visible[i].mine) return i; return -1; })();
 
   return (
+    <>
+    <div className="dm-thread-bg" aria-hidden="true" />
     <div className="dm-thread" ref={threadRef}>
       <header className="dm-top">
         <a href="/messages" className="dm-icon-btn" aria-label="Retour"><ChevronLeft size={22} /></a>
@@ -647,6 +687,7 @@ export function Thread({ peer }: { peer: Lite }) {
       {attach === "poll" && <PollComposer onSend={sendPoll} onClose={() => setAttach(null)} />}
       {viewer && <div className="dm-viewer" onClick={() => setViewer(null)}><img src={viewer} alt="" /><button type="button" className="dm-icon-btn absolute top-4 right-4" aria-label="Fermer"><X size={22} /></button></div>}
     </div>
+    </>
   );
 }
 
