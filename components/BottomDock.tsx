@@ -5,6 +5,7 @@ import { Home, Newspaper, Sparkles, User } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import { useUser } from "@/lib/useUser";
 import { useUnreadMessages } from "@/lib/useUnreadMessages";
+import { useUnreadNotifications } from "@/lib/useNotifications";
 
 /*
  * LE menu du site sur téléphone — le même partout, toujours au même endroit : une barre
@@ -26,7 +27,7 @@ const RIGHT = [
 export default function BottomDock() {
   const pathname = usePathname() ?? "/";
   const { user } = useUser();
-  const unread = useUnreadMessages(user?.id);
+  const unread = useUnreadMessages(user?.id) + useUnreadNotifications(user?.id);
   if (pathname.startsWith("/admin")) return null;
   const onPlay = pathname.startsWith("/jouer") || pathname === "/blindtest" || pathname.startsWith("/b/");
   const Item = ({ href, label, Icon, match }: (typeof LEFT)[number]) => {

@@ -9,6 +9,7 @@ import { InstagramIcon, TikTokIcon, XIcon } from "./SocialIcons";
 import AuthButton from "./AuthButton";
 import DailyCard from "@/components/DailyCard";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
+import NotifBell from "@/components/NotifBell";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 
 /*
@@ -203,6 +204,7 @@ export default function Header() {
               Jouer
             </a>
           )}
+          <NotifBell />
           <div className="hidden lg:block">
             <AuthButton />
           </div>

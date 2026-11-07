@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/adminAuth";
 import { sendPushToUsers } from "@/lib/push";
+import { notify } from "@/lib/notify";
 import { friendIds } from "@/lib/friends";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
   if (!room) return NextResponse.json({ error: "no_room" }, { status: 404 });
 
   const name = me?.display_name ?? "Un pote";
+  void notify([friendId], { kind: "room_invite", actorId: user.id, title: `${name} t'invite dans son salon`, body: "Blind test en ligne entre amis.", url: `/jouer?mode=online&room=${room.code}`, dedupe: `invite:${room.code}:${friendId}` });
   const sent = await sendPushToUsers([friendId], {
     title: `${name} t'invite dans son salon`,
     body: room.status === "lobby" ? "Blind test en ligne — ça démarre dès que vous êtes prêts." : "La partie a commencé, tu peux regarder et jouer la suivante.",

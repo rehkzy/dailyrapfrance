@@ -1,4 +1,5 @@
 import "server-only";
+import { notify } from "@/lib/notify";
 import { adminClient } from "@/lib/adminAuth";
 
 /*
@@ -56,5 +57,7 @@ export async function claimReferral(
     { requester_id: referrer.id, addressee_id: userId, status: "accepted" },
     { onConflict: "requester_id,addressee_id", ignoreDuplicates: true }
   );
+  const { data: filleul } = await db.from("profiles").select("display_name, username").eq("id", userId).maybeSingle();
+  await notify([referrer.id], { kind: "referral", actorId: userId, title: `${filleul?.display_name ?? filleul?.username ?? "Un pote"} a rejoint grâce à toi`, body: "Vous êtes amis d'office. Un défi pour l'accueillir ?", url: "/parrainage", dedupe: `referral:${userId}` });
   return { ok: true, reason: "ok" };
 }

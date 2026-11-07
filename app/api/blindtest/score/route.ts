@@ -4,6 +4,7 @@ import { THEME_OPTIONS } from "@/lib/themes";
 import { adminClient } from "@/lib/adminAuth";
 import { friendsLeaderboard } from "@/lib/friends";
 import { sendPushToUsers } from "@/lib/push";
+import { notify } from "@/lib/notify";
 
 const MAX_ROUNDS = 50;
 const MAX_POINTS_PER_ROUND = 8; // titre 1 + artiste 1 + feat 2 + bonus de rapidité, large
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
         const url = isDefi
           ? `/jouer?mode=solo&daily=1&autostart=1&from=${encodeURIComponent(myName)}&score=${points}`
           : `/jouer?mode=solo&theme=${encodeURIComponent(base)}&autostart=1&from=${encodeURIComponent(myName)}&score=${points}`;
+        void notify(beaten.map((b) => b.id), { kind: "beaten", actorId: user.id, title: `${myName} vient de te passer`, body: `${points} pts sur ${themeLabel}. Revanche ?`, url, dedupe: `beat:${theme}:${user.id}:${new Date().toISOString().slice(0, 10)}` });
         void sendPushToUsers(beaten.map((b) => b.id), {
           title: `${myName} vient de te passer`,
           body: `${points} pts sur ${themeLabel}. Revanche ?`,
