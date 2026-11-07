@@ -23,6 +23,7 @@ import { gimmicksOf, isSoundbiteTheme } from "@/lib/gimmicks";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
+import PlayGate from "@/components/PlayGate";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
 import HelpTip from "@/components/HelpTip";
@@ -1676,6 +1677,14 @@ export default function BlindTest() {
   const soloPlayer = players[0];
   const showAnswers = started && !revealed;
   const qcmKeys = ["A", "B", "C", "D"];
+
+  // Il faut un compte pour jouer : sans session, la porte d'entrée remplace tout le jeu.
+  if (!userLoading && !user) {
+    return <PlayGate />;
+  }
+  if (userLoading && !user) {
+    return <div className="min-h-[60vh] grid place-items-center"><BrandLoader size="lg" /></div>;
+  }
 
   return (
     <div className="feed" data-lenis-prevent onTouchStart={swipeStart} onTouchEnd={swipeEnd}>
