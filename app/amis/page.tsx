@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Search, Users, Inbox, Send, LogIn, Gift, ChevronRight, Swords } from "lucide-react";
+import { Search, Users, Inbox, Send, LogIn, Gift, ChevronRight, Swords, Sparkles, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/useUser";
 import AddFriendButton from "@/components/AddFriendButton";
@@ -62,6 +62,11 @@ export default function AmisPage() {
   const [rows, setRows] = useState<FriendshipRow[]>([]);
   const [loadingRows, setLoadingRows] = useState(true);
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<(ProfileLite & { reason: string })[]>([]);
+  useEffect(() => {
+    if (!user) return;
+    fetch("/api/friends/suggestions", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { suggestions: [] })).then((d) => setSuggestions(d.suggestions ?? [])).catch(() => {});
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [results, setResults] = useState<ProfileLite[]>([]);
   const [searching, setSearching] = useState(false);
 
@@ -199,6 +204,22 @@ export default function AmisPage() {
         </div>
       ) : (
         <div className="space-y-8">
+          {suggestions.length > 0 && (
+            <section>
+              <p className="flex items-center gap-2 stage-kicker mb-3"><Sparkles size={13} /> Suggestions</p>
+              <div className="ticket divide-y divide-white/6 overflow-hidden">
+                {suggestions.slice(0, 6).map((p) => (
+                  <div key={p.id} className="flex items-center">
+                    <div className="min-w-0 flex-1">
+                      <ProfileRow profile={p} />
+                      <p className="px-4 -mt-2 pb-2 text-[11px] text-gold font-semibold">{p.reason}</p>
+                    </div>
+                    <div className="pr-4"><AddFriendButton targetId={p.id} size="sm" onChange={() => { fetchFriendships(); setSuggestions((l) => l.filter((x) => x.id !== p.id)); }} /></div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           {incoming.length > 0 && (
             <div>
               <p className="flex items-center gap-2 stage-kicker mb-3">
@@ -251,7 +272,7 @@ export default function AmisPage() {
                     <ProfileRow
                       key={r.id}
                       profile={p}
-                      right={<FriendPlayButtons friendName={p.display_name ?? p.username ?? "Toi"} />}
+                      right={<span className="flex items-center gap-1.5"><a href={`/messages/${p.username ?? p.id}`} className="w-9 h-9 rounded-full bg-white/6 grid place-items-center text-ink-muted hover:text-ink" aria-label="Écrire"><MessageCircle size={16} /></a><FriendPlayButtons friendName={p.display_name ?? p.username ?? "Toi"} /></span>}
                     />
                   );
                 })}

@@ -1,4 +1,4 @@
-import { Trophy, Users, Gift, Calendar, Mic2, Sparkles, LayoutGrid, Settings, Newspaper, Info, Tv, Play, Clapperboard, Smartphone, Globe, type LucideIcon } from "lucide-react";
+import { Trophy, Users, Gift, Calendar, Mic2, Sparkles, LayoutGrid, Settings, Newspaper, Info, Tv, Play, Clapperboard, Smartphone, Globe, type LucideIcon, MessageCircle } from "lucide-react";
 
 /*
  * Plan du site en trois pôles — la seule source pour le menu desktop, le tiroir mobile,
@@ -28,6 +28,7 @@ export const EXPLORE_LINKS: NavLink[] = [
 
 export const SPACE_LINKS: NavLink[] = [
   { href: "/amis", label: "Amis", sub: "Ajouter, suivre, défier", Icon: Users },
+  { href: "/messages", label: "Messages", sub: "Entre amis, chiffrés de bout en bout", Icon: MessageCircle },
   { href: "/parrainage", label: "Parrainage", sub: "2 places pour Kaaris", Icon: Gift },
   { href: "/creer#mine-title", label: "Mes blind tests", sub: "Rejouer, renvoyer le lien", Icon: Sparkles },
   { href: "/parametres", label: "Réglages", sub: "Pseudo, avatar, compte", Icon: Settings },

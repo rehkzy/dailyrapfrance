@@ -21,6 +21,7 @@ import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
 import { LobbyChat, LiveChat } from "@/components/RoomChat";
 import ResultTicket from "@/components/ResultTicket";
+import AfterGameFriends from "@/components/AfterGameFriends";
 import { DEFAULT_CONFIG, ROUND_OPTIONS, SECONDS_OPTIONS, type GameConfig } from "@/lib/presets";
 import type { RoundOutcome } from "@/lib/share";
 import { DRMark3D } from "@/components/BlindTestLogo";
@@ -1277,6 +1278,8 @@ function BlindTestRoom({
             <p className="text-sm font-medium">{gageText}</p>
           </div>
         )}
+
+        {!isSpectator && <AfterGameFriends userId={user.id} players={players.map((p) => ({ user_id: p.user_id, display_name: p.display_name }))} />}
 
         <ResultTicket
           points={myScore}

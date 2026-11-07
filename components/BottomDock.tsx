@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { Home, Newspaper, Sparkles, User } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
+import { useUser } from "@/lib/useUser";
+import { useUnreadMessages } from "@/lib/useUnreadMessages";
 
 /*
  * LE menu du site sur téléphone — le même partout, toujours au même endroit : une barre
@@ -23,13 +25,16 @@ const RIGHT = [
 
 export default function BottomDock() {
   const pathname = usePathname() ?? "/";
+  const { user } = useUser();
+  const unread = useUnreadMessages(user?.id);
   if (pathname.startsWith("/admin")) return null;
   const onPlay = pathname.startsWith("/jouer") || pathname === "/blindtest" || pathname.startsWith("/b/");
   const Item = ({ href, label, Icon, match }: (typeof LEFT)[number]) => {
     const active = match(pathname);
+    const dot = href === "/profil" && unread > 0;
     return (
       <a href={href} aria-current={active ? "page" : undefined} className="brand-dock-item" data-active={active}>
-        <Icon size={20} strokeWidth={active ? 2.6 : 2} />
+        <span className="relative inline-flex"><Icon size={20} strokeWidth={active ? 2.6 : 2} />{dot && <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-gold text-white text-[9px] font-bold grid place-items-center ring-2 ring-[#0A0707]">{unread > 9 ? "9+" : unread}</span>}</span>
         <span>{label}</span>
       </a>
     );
