@@ -353,43 +353,6 @@ export function Thread({ peer }: { peer: Lite }) {
     return () => { cancelAnimationFrame(raf); vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); };
   }, []);
 
-  // Messages en attente (l'ami n'a pas encore de clé) : gardés sur cet appareil, affichés comme envoyés avec une horloge.
-  const [outbox, setOutbox] = useState<Outgoing[]>([]);
-  useEffect(() => {
-    const read = () => setOutbox(readOutbox().filter((o) => o.to === peer.id));
-    read();
-    window.addEventListener("drf:outbox", read);
-    return () => window.removeEventListener("drf:outbox", read);
-  }, [peer.id]);
-
-  useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs?.length, typing, outbox.length]);
-  useEffect(() => { document.body.classList.add("dm-open"); return () => document.body.classList.remove("dm-open"); }, []);
-
-  // iPhone : le clavier ne réduit pas la fenêtre, il la recouvre (et Safari fait défiler la page
-  // dessous). On garde le fil plein écran et on remonte la zone de saisie de la hauteur du clavier,
-  // mesurée via visualViewport ; la page est maintenue en haut pour que rien ne glisse derrière.
-  const threadRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    let raf = 0;
-    const fit = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const el = threadRef.current;
-        if (!el) return;
-        const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-        el.style.setProperty("--kb", `${kb}px`);
-        el.dataset.kb = kb > 40 ? "1" : "0";
-        if (window.scrollY !== 0) window.scrollTo(0, 0);
-        const l = listRef.current; if (l && kb > 40) l.scrollTop = l.scrollHeight;
-      });
-    };
-    fit();
-    vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit); window.addEventListener("scroll", fit);
-    return () => { cancelAnimationFrame(raf); vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); window.removeEventListener("scroll", fit); };
-  }, []);
-
   const pushLocal = useCallback((msgId: string, body: string) => {
     if (!user) return;
     setMsgs((prev) => [...(prev ?? []), { id: -Date.now(), msgId, from: user.id, peer: peer.id, text: body, at: new Date().toISOString(), mine: true, read: false }]);
