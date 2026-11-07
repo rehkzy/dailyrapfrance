@@ -53,12 +53,12 @@ export function useMessaging(userId: string | null) {
   }, [me, userId, keysOf]);
 
   /** Envoie `text` à `toUserId` : chiffré pour chacun de ses appareils et chacun des miens. */
-  const send = useCallback(async (toUserId: string, text: string): Promise<boolean> => {
-    if (!me || !userId) return false;
-    const clean = text.trim().slice(0, 2000);
-    if (!clean) return false;
+  const send = useCallback(async (toUserId: string, text: string): Promise<string | null> => {
+    if (!me || !userId) return null;
+    const clean = text.trim().slice(0, 4000);
+    if (!clean) return null;
     const [theirs, mine] = await Promise.all([keysOf(toUserId, true), keysOf(userId, true)]);
-    if (theirs.length === 0) return false; // il n'a encore jamais ouvert la messagerie
+    if (theirs.length === 0) return null; // il n'a encore jamais ouvert la messagerie
     const msgId = crypto.randomUUID();
     const rows: Omit<Row, "id" | "created_at" | "read_at">[] = [];
     for (const d of theirs) {
@@ -72,7 +72,7 @@ export function useMessaging(userId: string | null) {
       rows.push({ msg_id: msgId, sender_id: userId, recipient_id: userId, peer_id: toUserId, device_id: d.device_id, sender_device: me.deviceId, ciphertext, iv });
     }
     const { error } = await supabase.from("direct_messages").insert(rows);
-    return !error;
+    return error ? null : msgId;
   }, [me, userId, keysOf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Fil avec `peerId`, déchiffré, du plus ancien au plus récent. */
@@ -111,13 +111,32 @@ export function useMessaging(userId: string | null) {
     return out.sort((a, b) => (a.last.at < b.last.at ? 1 : -1));
   }, [me, userId, decryptRow]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Mes messages à `peerId` que l'autre a lus (msg_id). */
+  const loadReads = useCallback(async (peerId: string): Promise<Set<string>> => {
+    if (!userId) return new Set();
+    const { data } = await supabase.from("direct_messages").select("msg_id").eq("sender_id", userId).eq("recipient_id", peerId).not("read_at", "is", null).limit(400);
+    return new Set((data ?? []).map((r) => r.msg_id as string));
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Indicateur « écrit… » : canal de diffusion éphémère, rien n'est stocké. */
+  const typingChannel = useCallback((peerId: string, onTyping: () => void) => {
+    if (!userId) return { ping: () => {}, off: () => {} };
+    const name = `dm-typing:${[userId, peerId].sort().join("|")}`;
+    const ch = supabase.channel(name).on("broadcast", { event: "typing" }, (p) => { if ((p.payload as { from?: string })?.from !== userId) onTyping(); }).subscribe();
+    let last = 0;
+    return {
+      ping: () => { const now = Date.now(); if (now - last > 2500) { last = now; void ch.send({ type: "broadcast", event: "typing", payload: { from: userId } }); } },
+      off: () => { supabase.removeChannel(ch); },
+    };
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const markRead = useCallback(async (peerId: string) => {
     if (!me || !userId) return;
     await supabase.from("direct_messages").update({ read_at: new Date().toISOString() }).eq("recipient_id", userId).eq("device_id", me.deviceId).eq("peer_id", peerId).is("read_at", null).neq("sender_id", userId);
   }, [me, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Abonnement temps réel aux nouveaux messages pour cet appareil. */
-  const subscribe = useCallback((onRow: (m: DM) => void) => {
+  const subscribe = useCallback((onRow: (m: DM) => void, onRead?: (msgId: string, peerId: string) => void) => {
     if (!me || !userId) return () => {};
     const ch = supabase
       .channel(`dm:${userId}:${me.deviceId}`)
@@ -126,9 +145,13 @@ export function useMessaging(userId: string | null) {
         if (r.device_id !== me.deviceId) return;
         onRow(await decryptRow(r));
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "direct_messages", filter: `sender_id=eq.${userId}` }, (payload) => {
+        const r = payload.new as Row;
+        if (r.read_at && r.recipient_id !== userId) onRead?.(r.msg_id, r.recipient_id);
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [me, userId, decryptRow]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ready, supported: e2eSupported(), deviceId: me?.deviceId ?? null, send, loadThread, loadInbox, markRead, subscribe };
+  return { ready, supported: e2eSupported(), deviceId: me?.deviceId ?? null, send, loadThread, loadInbox, loadReads, typingChannel, markRead, subscribe };
 }

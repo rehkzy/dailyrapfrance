@@ -87,3 +87,22 @@ export async function decryptWith(key: CryptoKey, ciphertext: string, iv: string
     return null; // clé d'un autre appareil, ou message altéré
   }
 }
+
+/* ── Fichiers (photos) : chiffrés une fois avec une clé jetable, la clé voyage dans le message ── */
+export async function encryptBlob(data: ArrayBuffer): Promise<{ blob: Blob; key: string; iv: string }> {
+  const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
+  const raw = await crypto.subtle.exportKey("raw", key);
+  return { blob: new Blob([ct], { type: "application/octet-stream" }), key: b64(raw), iv: b64(iv) };
+}
+
+export async function decryptBlob(ct: ArrayBuffer, keyB64: string, ivB64: string, type = "image/jpeg"): Promise<Blob | null> {
+  try {
+    const key = await crypto.subtle.importKey("raw", unb64(keyB64), { name: "AES-GCM" }, false, ["decrypt"]);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(ivB64) }, key, ct);
+    return new Blob([pt], { type });
+  } catch {
+    return null;
+  }
+}
