@@ -121,7 +121,8 @@ export function useMessaging(userId: string | null) {
   /** Indicateur « écrit… » : canal de diffusion éphémère, rien n'est stocké. */
   const typingChannel = useCallback((peerId: string, onTyping: () => void) => {
     if (!userId) return { ping: () => {}, off: () => {} };
-    const name = `dm-typing:${[userId, peerId].sort().join("|")}`;
+    const name = `dm-typing:${[userId, peerId].sort().join("|")}`; // même nom des deux côtés : c'est le sujet de diffusion
+    for (const old of supabase.getChannels()) if (old.topic === `realtime:${name}`) supabase.removeChannel(old);
     const ch = supabase.channel(name).on("broadcast", { event: "typing" }, (p) => { if ((p.payload as { from?: string })?.from !== userId) onTyping(); }).subscribe();
     let last = 0;
     return {
@@ -139,7 +140,7 @@ export function useMessaging(userId: string | null) {
   const subscribe = useCallback((onRow: (m: DM) => void, onRead?: (msgId: string, peerId: string) => void) => {
     if (!me || !userId) return () => {};
     const ch = supabase
-      .channel(`dm:${userId}:${me.deviceId}`)
+      .channel(`dm:${userId}:${me.deviceId}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${userId}` }, async (payload) => {
         const r = payload.new as Row;
         if (r.device_id !== me.deviceId) return;

@@ -21,7 +21,7 @@ export function useUnreadMessages(userId: string | null | undefined): number {
       deviceId = (await deviceIdentity()).deviceId;
       await count();
     })().catch(() => {});
-    const ch = supabase.channel(`dm-unread:${userId}`).on("postgres_changes", { event: "*", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${userId}` }, () => void count()).subscribe();
+    const ch = supabase.channel(`dm-unread:${userId}:${Math.random().toString(36).slice(2)}`).on("postgres_changes", { event: "*", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${userId}` }, () => void count()).subscribe();
     return () => { alive = false; supabase.removeChannel(ch); };
   }, [userId]);
   return n;

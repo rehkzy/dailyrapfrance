@@ -30,7 +30,7 @@ export default function LiveNotifier() {
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
-    const ch = supabase.channel(`notif-live:${user.id}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (p) => {
+    const ch = supabase.channel(`notif-live:${user.id}:${Math.random().toString(36).slice(2)}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (p) => {
       const n = p.new as Notif;
       // Dans un fil de messagerie, on ne double pas le message par un toast.
       if (n.kind === "message" && location.pathname.startsWith("/messages/")) return;

@@ -17,7 +17,7 @@ export function useUnreadNotifications(userId: string | null | undefined): numbe
       if (alive) setN(c ?? 0);
     };
     void count();
-    const ch = supabase.channel(`notif-count:${userId}`).on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => void count()).subscribe();
+    const ch = supabase.channel(`notif-count:${userId}:${Math.random().toString(36).slice(2)}`).on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => void count()).subscribe();
     const onVis = () => { if (document.visibilityState === "visible") void count(); };
     document.addEventListener("visibilitychange", onVis);
     return () => { alive = false; supabase.removeChannel(ch); document.removeEventListener("visibilitychange", onVis); };
@@ -37,7 +37,7 @@ export function useNotifications(userId: string | null | undefined) {
     if (!userId) return;
     void load();
     const supabase = createClient();
-    const ch = supabase.channel(`notif-list:${userId}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => void load()).subscribe();
+    const ch = supabase.channel(`notif-list:${userId}:${Math.random().toString(36).slice(2)}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => void load()).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [userId, load]);
   const markAllRead = useCallback(async () => {
