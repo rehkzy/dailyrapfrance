@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Lock, Send, ChevronLeft, MessageCircle, Swords, Plus, Image as ImageIcon, Music2, Search, X, Check, CheckCheck, ShieldCheck, Zap, Smartphone, ChevronDown } from "lucide-react";
+import { Lock, Send, ChevronLeft, MessageCircle, Swords, Plus, Image as ImageIcon, Music2, Search, X, Check, CheckCheck, ShieldCheck, Zap, Smartphone, ChevronDown, Camera, Mic, BarChart3, Play, Pause, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/useUser";
 import { useMessaging, type DM } from "@/lib/useMessaging";
 import { encryptBlob, decryptBlob } from "@/lib/e2e";
 import { parsePayload, previewOf, musicLinkIn, REACTIONS, type DMPayload } from "@/lib/dm";
 import { THEME_OPTIONS } from "@/lib/themes";
+import { GIMMICKS, type Gimmick } from "@/lib/gimmicks";
 import { sfx } from "@/lib/sfx";
 import BrandLoader from "@/components/BrandLoader";
 import SignInCta from "@/components/SignInCta";
@@ -258,7 +259,7 @@ function ChallengeBubble({ p, from, mine }: { p: Extract<DMPayload, { k: "challe
 }
 
 /* ── Fil de conversation (plein écran) ──────────────────────────────────── */
-type Attach = null | "menu" | "track" | "challenge";
+type Attach = null | "menu" | "track" | "challenge" | "gimmick" | "poll";
 
 export function Thread({ peer }: { peer: Lite }) {
   const { user, loading } = useUser();
@@ -276,6 +277,9 @@ export function Thread({ peer }: { peer: Lite }) {
   const [myName, setMyName] = useState("Un pote");
   const listRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
+  const [rec, setRec] = useState<{ secs: number } | null>(null);
+  const recRef = useRef<{ mr: MediaRecorder; chunks: Blob[]; start: number; timer: ReturnType<typeof setInterval>; stream: MediaStream } | null>(null);
   const typingRef = useRef<{ ping: () => void; off: () => void } | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -374,11 +378,9 @@ export function Thread({ peer }: { peer: Lite }) {
     setBusy(true); setErr(null); setAttach(null);
     try {
       const { blob: jpeg, w, h } = await shrink(file);
-      const { blob, key, iv } = await encryptBlob(await jpeg.arrayBuffer());
-      const path = `${user.id}/${crypto.randomUUID()}.bin`;
-      const { error } = await supabase.storage.from("dm").upload(path, blob, { contentType: "application/octet-stream", cacheControl: "31536000" });
-      if (error) { setErr("Photo impossible à envoyer : le stockage « dm » n'est pas encore créé côté Supabase."); return; }
-      await deliver(JSON.stringify({ k: "img", path, key, iv, w, h, mime: "image/jpeg" } satisfies DMPayload));
+      const up = await uploadEncrypted(await jpeg.arrayBuffer());
+      if (!up) return;
+      await deliver(JSON.stringify({ k: "img", ...up, w, h, mime: "image/jpeg" } satisfies DMPayload));
       sfx.click();
     } catch { setErr("Photo impossible à lire."); } finally { setBusy(false); }
   }
@@ -395,6 +397,68 @@ export function Thread({ peer }: { peer: Lite }) {
     setBusy(false); sfx.correct();
   }
 
+  async function uploadEncrypted(data: ArrayBuffer): Promise<{ path: string; key: string; iv: string } | null> {
+    if (!user) return null;
+    const { blob, key, iv } = await encryptBlob(data);
+    const path = `${user.id}/${crypto.randomUUID()}.bin`;
+    const { error } = await supabase.storage.from("dm").upload(path, blob, { contentType: "application/octet-stream", cacheControl: "31536000" });
+    if (error) { setErr("Envoi impossible : le stockage « dm » n'est pas encore créé côté Supabase."); return null; }
+    return { path, key, iv };
+  }
+
+  async function startVoice() {
+    setAttach(null); setErr(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"].find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
+      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      const chunks: Blob[] = [];
+      mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      mr.start(250);
+      const start = Date.now();
+      const timer = setInterval(() => setRec({ secs: Math.floor((Date.now() - start) / 1000) }), 250);
+      recRef.current = { mr, chunks, start, timer, stream };
+      setRec({ secs: 0 });
+      sfx.click();
+    } catch { setErr("Micro refusé ou indisponible."); }
+  }
+
+  async function stopVoice(send: boolean) {
+    const r = recRef.current; recRef.current = null;
+    setRec(null);
+    if (!r) return;
+    clearInterval(r.timer);
+    const done = new Promise<void>((res) => { r.mr.onstop = () => res(); });
+    r.mr.stop(); r.stream.getTracks().forEach((t) => t.stop());
+    await done;
+    const secs = Math.max(1, Math.round((Date.now() - r.start) / 1000));
+    if (!send || secs < 1 || r.chunks.length === 0) return;
+    setBusy(true);
+    try {
+      const mime = r.mr.mimeType || "audio/mp4";
+      const blob = new Blob(r.chunks, { type: mime });
+      const up = await uploadEncrypted(await blob.arrayBuffer());
+      if (up) { await deliver(JSON.stringify({ k: "voice", ...up, secs, mime } satisfies DMPayload)); sfx.click(); }
+    } finally { setBusy(false); }
+  }
+
+  async function sendGimmick(id: string) {
+    setAttach(null); setBusy(true); setErr(null);
+    await deliver(JSON.stringify({ k: "gimmick", id } satisfies DMPayload));
+    setBusy(false); sfx.click();
+  }
+
+  async function sendPoll(q: string, options: string[]) {
+    setAttach(null); setBusy(true); setErr(null);
+    await deliver(JSON.stringify({ k: "poll", q, options } satisfies DMPayload));
+    setBusy(false); sfx.click();
+  }
+
+  async function vote(to: string, i: number) {
+    await deliver(JSON.stringify({ k: "vote", to, i } satisfies DMPayload));
+    sfx.click();
+  }
+
   async function react(to: string, e: string) {
     setReactFor(null);
     await deliver(JSON.stringify({ k: "react", to, e } satisfies DMPayload));
@@ -405,10 +469,13 @@ export function Thread({ peer }: { peer: Lite }) {
 
   // Réactions regroupées par message ; les messages « react » ne s'affichent pas en bulle.
   const reactions = new Map<string, { e: string; mine: boolean }[]>();
+  const votes = new Map<string, Map<string, number>>(); // msgId → (voter → option)
   const visible: DM[] = [];
   for (const dm of msgs ?? []) {
     const p = parsePayload(dm.text);
-    if (p?.k === "react") { const arr = reactions.get(p.to) ?? []; arr.push({ e: p.e, mine: dm.mine }); reactions.set(p.to, arr); } else visible.push(dm);
+    if (p?.k === "react") { const arr = reactions.get(p.to) ?? []; arr.push({ e: p.e, mine: dm.mine }); reactions.set(p.to, arr); }
+    else if (p?.k === "vote") { const m = votes.get(p.to) ?? new Map<string, number>(); m.set(dm.from, p.i); votes.set(p.to, m); }
+    else visible.push(dm);
   }
   const lastMineIdx = (() => { for (let i = visible.length - 1; i >= 0; i--) if (visible[i].mine) return i; return -1; })();
 
@@ -461,6 +528,12 @@ export function Thread({ peer }: { peer: Lite }) {
                         <TrackBubble p={p} />
                       ) : p.k === "challenge" ? (
                         <ChallengeBubble p={p} from={dm.mine ? myName : (peer.display_name ?? "Un pote")} mine={dm.mine} />
+                      ) : p.k === "voice" ? (
+                        <VoiceBubble p={p} mine={dm.mine} />
+                      ) : p.k === "gimmick" ? (
+                        <GimmickBubble p={p} />
+                      ) : p.k === "poll" ? (
+                        <PollBubble p={p} votes={votes.get(dm.msgId)} me={user.id} peerName={peer.display_name ?? "Ton pote"} onVote={(i) => void vote(dm.msgId, i)} />
                       ) : null}
                       <span className="dm-meta">
                         {fmtTime(dm.at)}
@@ -488,33 +561,67 @@ export function Thread({ peer }: { peer: Lite }) {
 
       <footer className="dm-composer">
         {err && <p className="text-xs text-riseNeg px-1 pb-1.5">{err}</p>}
-        <div className="flex items-end gap-2">
-          <button type="button" onClick={() => { (document.activeElement as HTMLElement | null)?.blur?.(); setAttach(attach ? null : "menu"); }} className={`dm-plus ${attach ? "open" : ""}`} aria-label="Joindre"><Plus size={22} /></button>
-          <textarea
-            value={text}
-            onChange={(e) => { setText(e.target.value.slice(0, 4000)); typingRef.current?.ping(); }}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !/Mobi|Android/i.test(navigator.userAgent)) { e.preventDefault(); void submit(); } }}
-            placeholder="Message"
-            rows={1}
-            enterKeyHint="send"
-            aria-label="Message"
-            className="dm-input"
-            style={{ height: Math.min(120, 22 * Math.max(1, (text.match(/\n/g)?.length ?? 0) + 1) + 22) }}
-          />
-          <button type="button" onClick={() => void submit()} disabled={!text.trim() || busy} className="dm-send" aria-label="Envoyer">{busy ? <BrandLoader size="sm" /> : <Send size={18} />}</button>
-        </div>
-        {attach === "menu" && (
-          <div className="dm-attach">
-            <button type="button" onClick={() => fileRef.current?.click()}><span className="dm-attach-ic" style={{ background: "rgba(240,0,28,.18)", color: "#ff5a6a" }}><ImageIcon size={20} /></span>Photo<small>chiffrée</small></button>
-            <button type="button" onClick={() => setAttach("track")}><span className="dm-attach-ic" style={{ background: "rgba(255,255,255,.08)" }}><Music2 size={20} /></span>Son<small>Deezer · Spotify</small></button>
-            <button type="button" onClick={() => setAttach("challenge")}><span className="dm-attach-ic" style={{ background: "rgba(240,0,28,.32)", color: "#fff" }}><Swords size={20} /></span>Défi<small>score à battre</small></button>
+        {rec ? (
+          <div className="dm-rec">
+            <button type="button" onClick={() => void stopVoice(false)} className="dm-icon-btn" aria-label="Annuler"><Trash2 size={18} /></button>
+            <span className="dm-rec-dot" />
+            <span className="dm-rec-wave" aria-hidden="true">{Array.from({ length: 18 }).map((_, i) => <i key={i} style={{ animationDelay: `${(i % 6) * 0.09}s` }} />)}</span>
+            <span className="text-sm font-bold tabular-nums">{Math.floor(rec.secs / 60)}:{String(rec.secs % 60).padStart(2, "0")}</span>
+            <button type="button" onClick={() => void stopVoice(true)} className="dm-send" aria-label="Envoyer le vocal"><Send size={18} /></button>
+          </div>
+        ) : (
+          <div className="flex items-end gap-2">
+            <button type="button" onClick={() => { (document.activeElement as HTMLElement | null)?.blur?.(); setAttach(attach ? null : "menu"); }} className={`dm-plus ${attach ? "open" : ""}`} aria-label="Plus"><Plus size={22} /></button>
+            <div className="dm-field">
+              <textarea
+                value={text}
+                onChange={(e) => { setText(e.target.value.slice(0, 4000)); typingRef.current?.ping(); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !/Mobi|Android/i.test(navigator.userAgent)) { e.preventDefault(); void submit(); } }}
+                onFocus={() => setAttach(null)}
+                placeholder="Message"
+                rows={1}
+                enterKeyHint="send"
+                aria-label="Message"
+                className="dm-input"
+                style={{ height: Math.min(120, 22 * Math.max(1, (text.match(/\n/g)?.length ?? 0) + 1) + 20) }}
+              />
+              {!text.trim() && (
+                <span className="dm-field-tools">
+                  <button type="button" onClick={() => camRef.current?.click()} aria-label="Appareil photo"><Camera size={19} /></button>
+                  <button type="button" onClick={() => fileRef.current?.click()} aria-label="Photos"><ImageIcon size={19} /></button>
+                  <button type="button" onClick={() => setAttach(attach === "gimmick" ? null : "gimmick")} aria-label="Gimmick"><Music2 size={19} /></button>
+                </span>
+              )}
+            </div>
+            {text.trim() ? (
+              <button type="button" onClick={() => void submit()} disabled={busy} className="dm-send" aria-label="Envoyer">{busy ? <BrandLoader size="sm" /> : <Send size={18} />}</button>
+            ) : (
+              <button type="button" onClick={() => void startVoice()} disabled={busy} className="dm-send" aria-label="Message vocal">{busy ? <BrandLoader size="sm" /> : <Mic size={19} />}</button>
+            )}
           </div>
         )}
+        {attach === "menu" && (
+          <>
+            <div className="dm-menu-backdrop" onClick={() => setAttach(null)} />
+            <div className="dm-menu" role="menu">
+              <button type="button" onClick={() => { setAttach(null); camRef.current?.click(); }}><span className="dm-menu-ic" style={{ background: "#2b2b30" }}><Camera size={20} /></span>Appareil photo</button>
+              <button type="button" onClick={() => { setAttach(null); fileRef.current?.click(); }}><span className="dm-menu-ic" style={{ background: "#f5e8e8", color: "#0a0707" }}><ImageIcon size={20} /></span>Photos</button>
+              <button type="button" onClick={() => setAttach("track")}><span className="dm-menu-ic" style={{ background: "linear-gradient(135deg,#f0001c,#8a0010)" }}><Music2 size={20} /></span>Son<small>Deezer · Spotify</small></button>
+              <button type="button" onClick={() => setAttach("gimmick")}><span className="dm-menu-ic" style={{ background: "linear-gradient(135deg,#ff3b4e,#f0001c)" }}><Mic size={20} /></span>Gimmick<small>un ad-lib de rappeur</small></button>
+              <button type="button" onClick={() => setAttach("challenge")}><span className="dm-menu-ic" style={{ background: "#f0001c", boxShadow: "0 0 16px rgba(240,0,28,.6)" }}><Swords size={20} /></span>Défi<small>score à battre</small></button>
+              <button type="button" onClick={() => setAttach("poll")}><span className="dm-menu-ic" style={{ background: "linear-gradient(135deg,#8a0010,#3a0006)" }}><BarChart3 size={20} /></span>Sondage</button>
+              <button type="button" onClick={() => void startVoice()}><span className="dm-menu-ic" style={{ background: "#2b2b30" }}><Mic size={20} /></span>Message vocal</button>
+            </div>
+          </>
+        )}
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void sendPhoto(f); }} />
+        <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void sendPhoto(f); }} />
       </footer>
 
       {attach === "track" && <TrackPicker onPick={sendTrack} onClose={() => setAttach(null)} />}
       {attach === "challenge" && <ChallengePicker userId={user.id} onPick={sendChallenge} onClose={() => setAttach(null)} />}
+      {attach === "gimmick" && <GimmickPicker onPick={sendGimmick} onClose={() => setAttach(null)} />}
+      {attach === "poll" && <PollComposer onSend={sendPoll} onClose={() => setAttach(null)} />}
       {viewer && <div className="dm-viewer" onClick={() => setViewer(null)}><img src={viewer} alt="" /><button type="button" className="dm-icon-btn absolute top-4 right-4" aria-label="Fermer"><X size={22} /></button></div>}
     </div>
   );
@@ -586,6 +693,148 @@ function ChallengePicker({ userId, onPick, onClose }: { userId: string; onPick: 
       <label className="dm-search mb-3"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Un artiste, une époque, une région…" aria-label="Chercher un thème" enterKeyHint="search" /></label>
       {played.length > 0 && <><p className="stage-kicker mb-1">Tes records</p><div className="divide-y divide-white/6 mb-4">{played.slice(0, 12).map((t) => <Row key={t.id} t={t} />)}</div></>}
       <div className="divide-y divide-white/6">{rest.slice(0, 40).map((t) => <Row key={t.id} t={t} />)}</div>
+    </Sheet>
+  );
+}
+
+/* ── Vocal chiffré ──────────────────────────────────────────────────────── */
+const blobCache = new Map<string, Promise<string | null>>();
+function useDecryptedUrl(path: string, key: string, iv: string, mime: string) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    let pr = blobCache.get(path);
+    if (!pr) {
+      pr = (async () => {
+        const url = createClient().storage.from("dm").getPublicUrl(path).data.publicUrl;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const blob = await decryptBlob(await res.arrayBuffer(), key, iv, mime);
+        return blob ? URL.createObjectURL(blob) : null;
+      })();
+      blobCache.set(path, pr);
+    }
+    pr.then((u) => { if (alive) setSrc(u); });
+    return () => { alive = false; };
+  }, [path, key, iv, mime]);
+  return src;
+}
+
+const BARS = [4, 9, 14, 7, 18, 11, 6, 16, 9, 13, 5, 17, 10, 7, 15, 8, 12, 6, 14, 9, 5, 11, 16, 7];
+function VoiceBubble({ p, mine }: { p: Extract<DMPayload, { k: "voice" }>; mine: boolean }) {
+  const src = useDecryptedUrl(p.path, p.key, p.iv, p.mime);
+  const ref = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [prog, setProg] = useState(0);
+  function toggle() {
+    const a = ref.current; if (!a) return;
+    if (playing) { a.pause(); } else { void a.play(); }
+  }
+  return (
+    <div className={`dm-voice ${mine ? "mine" : ""}`}>
+      <button type="button" onClick={toggle} disabled={!src} className="dm-voice-btn" aria-label={playing ? "Pause" : "Écouter"}>{src ? (playing ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />) : <Lock size={13} />}</button>
+      <span className="dm-voice-wave" aria-hidden="true">{BARS.map((h, i) => <i key={i} style={{ height: h, opacity: prog > i / BARS.length ? 1 : 0.4 }} />)}</span>
+      <span className="text-[11px] font-bold tabular-nums">{Math.floor(p.secs / 60)}:{String(p.secs % 60).padStart(2, "0")}</span>
+      {src && <audio ref={ref} src={src} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => { setPlaying(false); }} onEnded={() => { setPlaying(false); setProg(0); }} onTimeUpdate={(e) => { const a = e.currentTarget; if (a.duration) setProg(a.currentTime / a.duration); }} />}
+    </div>
+  );
+}
+
+/* ── Gimmick (ad-lib de rappeur) ────────────────────────────────────────── */
+function GimmickBubble({ p }: { p: Extract<DMPayload, { k: "gimmick" }> }) {
+  const g = GIMMICKS.find((x) => x.id === p.id);
+  const [playing, setPlaying] = useState(false);
+  const ref = useRef<HTMLAudioElement>(null);
+  if (!g) return <span className="px-2 py-1 text-sm">🎤 Gimmick</span>;
+  return (
+    <button type="button" onClick={() => { const a = ref.current; if (!a) return; if (playing) a.pause(); else { a.currentTime = 0; void a.play(); } }} className="dm-gimmick">
+      <span className="dm-gimmick-ic">{playing ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}</span>
+      <span className="min-w-0 text-left"><span className="block text-[14px] font-extrabold truncate">« {g.label} »</span><span className="block text-[11px] text-ink-muted">{g.artist} · {g.seconds.toFixed(0)} s</span></span>
+      <audio ref={ref} src={`/audio/gimmicks/${g.id}.mp3`} preload="none" onPlay={() => setPlaying(true)} onPause={() => { setPlaying(false); }} onEnded={() => { setPlaying(false); }} />
+    </button>
+  );
+}
+
+function GimmickPicker({ onPick, onClose }: { onPick: (id: string) => void; onClose: () => void }) {
+  const [playing, setPlaying] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const [q, setQ] = useState("");
+  function preview(g: Gimmick) {
+    if (playing === g.id) { audio.current?.pause(); setPlaying(null); return; }
+    audio.current?.pause();
+    const a = new Audio(`/audio/gimmicks/${g.id}.mp3`); audio.current = a;
+    a.onended = () => setPlaying(null);
+    setPlaying(g.id); void a.play();
+  }
+  useEffect(() => () => audio.current?.pause(), []);
+  const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const list = GIMMICKS.filter((g) => !q || norm(`${g.artist} ${g.label}`).includes(norm(q)));
+  const byArtist = new Map<string, Gimmick[]>();
+  for (const g of list) byArtist.set(g.artist, [...(byArtist.get(g.artist) ?? []), g]);
+  return (
+    <Sheet title="Envoyer un gimmick" onClose={onClose}>
+      <label className="dm-search mb-3"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Kaaris, Ninho, Koba…" aria-label="Chercher" enterKeyHint="search" /></label>
+      {[...byArtist.entries()].map(([artist, gs]) => (
+        <section key={artist} className="mb-3">
+          <p className="stage-kicker mb-1">{artist}</p>
+          <div className="divide-y divide-white/6">
+            {gs.map((g) => (
+              <div key={g.id} className="flex items-center gap-3 py-2">
+                <button type="button" onClick={() => preview(g)} className="dm-gimmick-ic" aria-label="Écouter">{playing === g.id ? <Pause size={15} /> : <Play size={15} className="ml-0.5" />}</button>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-bold truncate">« {g.label} »</span><span className="block text-[11px] text-ink-faint">{g.seconds.toFixed(0)} s{g.kind === "meme" ? " · mème" : ""}</span></span>
+                <button type="button" onClick={() => onPick(g.id)} className="dm-send" aria-label="Envoyer"><Send size={15} /></button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </Sheet>
+  );
+}
+
+/* ── Sondage ────────────────────────────────────────────────────────────── */
+function PollBubble({ p, votes, me, peerName, onVote }: { p: Extract<DMPayload, { k: "poll" }>; votes: Map<string, number> | undefined; me: string; peerName: string; onVote: (i: number) => void }) {
+  const counts = p.options.map((_, i) => [...(votes?.values() ?? [])].filter((v) => v === i).length);
+  const total = counts.reduce((a, b) => a + b, 0);
+  const mine = votes?.get(me);
+  return (
+    <div className="dm-poll">
+      <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-bold text-gold mb-1"><BarChart3 size={12} /> Sondage</span>
+      <p className="text-[15px] font-extrabold leading-tight mb-2">{p.q}</p>
+      <div className="space-y-1.5">
+        {p.options.map((o, i) => {
+          const pct = total ? Math.round((counts[i] / total) * 100) : 0;
+          return (
+            <button key={i} type="button" onClick={() => onVote(i)} className="dm-poll-opt" data-mine={mine === i}>
+              <span className="dm-poll-fill" style={{ width: `${pct}%` }} />
+              <span className="relative flex items-center justify-between gap-2"><span className="truncate">{mine === i ? "✓ " : ""}{o}</span><span className="text-[11px] font-bold shrink-0">{total ? `${pct}%` : ""}</span></span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-ink-faint mt-2">{total === 0 ? "Personne n'a encore voté" : total === 1 ? (mine != null ? "Toi seul as voté" : `${peerName} a voté`) : "Vous avez voté tous les deux"}</p>
+    </div>
+  );
+}
+
+function PollComposer({ onSend, onClose }: { onSend: (q: string, options: string[]) => void; onClose: () => void }) {
+  const [q, setQ] = useState("");
+  const [opts, setOpts] = useState(["", ""]);
+  const clean = opts.map((o) => o.trim()).filter(Boolean);
+  const ok = q.trim().length > 1 && clean.length >= 2;
+  return (
+    <Sheet title="Sondage" onClose={onClose}>
+      <input value={q} onChange={(e) => setQ(e.target.value.slice(0, 120))} placeholder="Ta question (ex : meilleur album de Ninho ?)" className="dm-text mb-3" aria-label="Question" />
+      <div className="space-y-2 mb-3">
+        {opts.map((o, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input value={o} onChange={(e) => setOpts(opts.map((x, j) => (j === i ? e.target.value.slice(0, 60) : x)))} placeholder={`Option ${i + 1}`} className="dm-text flex-1" aria-label={`Option ${i + 1}`} />
+            {opts.length > 2 && <button type="button" onClick={() => setOpts(opts.filter((_, j) => j !== i))} className="dm-icon-btn" aria-label="Retirer"><X size={16} /></button>}
+          </div>
+        ))}
+        {opts.length < 5 && <button type="button" onClick={() => setOpts([...opts, ""])} className="text-sm text-gold font-bold px-1">+ Ajouter une option</button>}
+      </div>
+      <button type="button" disabled={!ok} onClick={() => onSend(q.trim(), clean)} className="sticker w-full justify-center disabled:opacity-40">Envoyer le sondage</button>
     </Sheet>
   );
 }

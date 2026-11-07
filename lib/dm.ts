@@ -10,7 +10,11 @@ export type DMPayload =
   | { k: "img"; path: string; key: string; iv: string; w: number; h: number; mime?: string }
   | { k: "track"; id: number | null; title: string; artist: string; cover: string | null; preview: string | null; url?: string | null }
   | { k: "challenge"; theme: string; label: string; score: number | null }
-  | { k: "react"; to: string; e: string };
+  | { k: "react"; to: string; e: string }
+  | { k: "voice"; path: string; key: string; iv: string; secs: number; mime: string }
+  | { k: "gimmick"; id: string }
+  | { k: "poll"; q: string; options: string[] }
+  | { k: "vote"; to: string; i: number };
 
 export function parsePayload(text: string | null): DMPayload | null {
   if (!text || text[0] !== "{") return null;
@@ -30,6 +34,10 @@ export function previewOf(text: string | null): string {
     case "track": return `🎵 ${p.title}${p.artist ? ` · ${p.artist}` : ""}`;
     case "challenge": return `⚔️ Défi : ${p.label}`;
     case "react": return `${p.e} Réaction`;
+    case "voice": return `🎙️ Vocal · ${p.secs}s`;
+    case "gimmick": return "🎤 Gimmick";
+    case "poll": return `📊 ${p.q}`;
+    case "vote": return "📊 A voté";
   }
 }
 
