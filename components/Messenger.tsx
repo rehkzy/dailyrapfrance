@@ -313,6 +313,26 @@ export function Thread({ peer }: { peer: Lite }) {
   useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs?.length, typing]);
   useEffect(() => { document.body.classList.add("dm-open"); return () => document.body.classList.remove("dm-open"); }, []);
 
+  // iPhone : le clavier ne réduit pas la fenêtre, il recouvre le bas. On cale le fil sur la
+  // zone réellement visible (visualViewport) pour que la zone de saisie reste au-dessus du clavier.
+  const threadRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const fit = () => {
+      const el = threadRef.current;
+      if (!el || window.innerWidth >= 1024) return;
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.height = `${vv.height}px`;
+      el.style.bottom = "auto";
+      window.scrollTo(0, 0);
+      const l = listRef.current; if (l) l.scrollTop = l.scrollHeight;
+    };
+    fit();
+    vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit);
+    return () => { vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); };
+  }, []);
+
   const pushLocal = useCallback((msgId: string, body: string) => {
     if (!user) return;
     setMsgs((prev) => [...(prev ?? []), { id: -Date.now(), msgId, from: user.id, peer: peer.id, text: body, at: new Date().toISOString(), mine: true, read: false }]);
@@ -388,7 +408,7 @@ export function Thread({ peer }: { peer: Lite }) {
   const lastMineIdx = (() => { for (let i = visible.length - 1; i >= 0; i--) if (visible[i].mine) return i; return -1; })();
 
   return (
-    <div className="dm-thread">
+    <div className="dm-thread" ref={threadRef}>
       <header className="dm-top">
         <a href="/messages" className="dm-icon-btn" aria-label="Retour"><ChevronLeft size={22} /></a>
         <a href={peer.username ? `/profil/${peer.username}` : "#"} className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -398,7 +418,7 @@ export function Thread({ peer }: { peer: Lite }) {
             <span className="block text-[11px] leading-tight">{typing ? <span className="text-gold font-semibold">écrit…</span> : <span className="text-ink-faint inline-flex items-center gap-1"><Lock size={10} /> chiffré de bout en bout</span>}</span>
           </span>
         </a>
-        <button type="button" onClick={() => setAttach("challenge")} className="dm-icon-btn text-gold" aria-label="Défier"><Swords size={20} /></button>
+        <button type="button" onClick={() => { (document.activeElement as HTMLElement | null)?.blur?.(); setAttach("challenge"); }} className="dm-icon-btn text-gold" aria-label="Défier"><Swords size={20} /></button>
       </header>
 
       <div ref={listRef} className="dm-scroll" data-lenis-prevent onClick={() => setReactFor(null)}>
@@ -464,7 +484,7 @@ export function Thread({ peer }: { peer: Lite }) {
       <footer className="dm-composer">
         {err && <p className="text-xs text-riseNeg px-1 pb-1.5">{err}</p>}
         <div className="flex items-end gap-2">
-          <button type="button" onClick={() => setAttach(attach ? null : "menu")} className={`dm-plus ${attach ? "open" : ""}`} aria-label="Joindre"><Plus size={22} /></button>
+          <button type="button" onClick={() => { (document.activeElement as HTMLElement | null)?.blur?.(); setAttach(attach ? null : "menu"); }} className={`dm-plus ${attach ? "open" : ""}`} aria-label="Joindre"><Plus size={22} /></button>
           <textarea
             value={text}
             onChange={(e) => { setText(e.target.value.slice(0, 4000)); typingRef.current?.ping(); }}
@@ -513,7 +533,8 @@ function TrackPicker({ onPick, onClose }: { onPick: (t: { id: number | null; tit
   }, [q]);
   return (
     <Sheet title="Envoyer un son" onClose={onClose}>
-      <label className="dm-search mb-3"><Search size={16} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Titre ou artiste… ou colle un lien Spotify / Deezer dans le message" aria-label="Chercher un son" /></label>
+      <label className="dm-search mb-3"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Titre ou artiste" aria-label="Chercher un son" enterKeyHint="search" /></label>
+      {q.trim().length < 2 && <p className="text-xs text-ink-faint px-1 mb-2">Astuce : tu peux aussi coller un lien Spotify ou Deezer directement dans le message.</p>}
       {loading && <div className="py-6 grid place-items-center"><BrandLoader size="sm" /></div>}
       <div className="divide-y divide-white/6">
         {res.map((t) => (
@@ -557,7 +578,7 @@ function ChallengePicker({ userId, onPick, onClose }: { userId: string; onPick: 
   return (
     <Sheet title="Lancer un défi" onClose={onClose}>
       <p className="text-xs text-ink-muted mb-3">Il joue le même thème, on compare. Si tu as déjà un record dessus, c&apos;est lui à battre.</p>
-      <label className="dm-search mb-3"><Search size={16} /><input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Un artiste, une époque, une région…" aria-label="Chercher un thème" /></label>
+      <label className="dm-search mb-3"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Un artiste, une époque, une région…" aria-label="Chercher un thème" enterKeyHint="search" /></label>
       {played.length > 0 && <><p className="stage-kicker mb-1">Tes records</p><div className="divide-y divide-white/6 mb-4">{played.slice(0, 12).map((t) => <Row key={t.id} t={t} />)}</div></>}
       <div className="divide-y divide-white/6">{rest.slice(0, 40).map((t) => <Row key={t.id} t={t} />)}</div>
     </Sheet>

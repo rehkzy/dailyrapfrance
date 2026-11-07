@@ -29,6 +29,7 @@ export default function AccountSecurity({ email, providers }: { email: string | 
     setPw(""); setPw2(""); setOpen(false);
   }
 
+  const [confirmOut, setConfirmOut] = useState(false);
   async function signOut() {
     await supabase.auth.signOut();
     window.location.href = "/";
@@ -73,7 +74,11 @@ export default function AccountSecurity({ email, providers }: { email: string | 
           <span className="block text-sm font-semibold">Se déconnecter</span>
           <span className="block text-xs text-ink-faint">Sur cet appareil seulement.</span>
         </span>
-        <button type="button" onClick={signOut} className="sticker sticker-ghost sticker-sm">Déconnexion</button>
+        {confirmOut ? (
+          <span className="inline-flex items-center gap-1.5"><button type="button" onClick={() => setConfirmOut(false)} className="sticker sticker-ghost sticker-sm">Rester</button><button type="button" onClick={() => void signOut()} className="sticker sticker-sm">Oui, me déconnecter</button></span>
+        ) : (
+          <button type="button" onClick={() => setConfirmOut(true)} className="sticker sticker-ghost sticker-sm">Déconnexion</button>
+        )}
       </div>
     </div>
   );

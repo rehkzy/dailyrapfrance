@@ -99,6 +99,7 @@ export default function AddFriendButton({
     }
   }
 
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const h = size === "sm" ? "h-8 text-xs px-3" : "h-9 text-sm px-4";
 
   if (!user || status === "self" || status === "loading") return null;
@@ -152,10 +153,18 @@ export default function AddFriendButton({
     );
   }
 
-  // status === "friends"
+  // status === "friends" — retirer demande une confirmation (un tap de travers ne doit pas casser une amitié)
+  if (confirmRemove) {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <button type="button" onClick={() => setConfirmRemove(false)} className={`tap-press inline-flex items-center ${h} rounded-full glass text-ink-muted font-medium`}>Garder</button>
+        <button type="button" onClick={() => { setConfirmRemove(false); void removeRelation(); }} disabled={busy} className={`tap-press inline-flex items-center gap-1 ${h} rounded-full bg-riseNeg/15 border border-riseNeg/40 text-riseNeg disabled:opacity-50 font-semibold`}><X size={13} /> Retirer</button>
+      </span>
+    );
+  }
   return (
     <button
-      onClick={removeRelation}
+      onClick={() => setConfirmRemove(true)}
       disabled={busy}
       className={`tap-press inline-flex items-center gap-1.5 ${h} rounded-full bg-gold/10 border border-gold/30 text-gold hover:bg-riseNeg/10 hover:border-riseNeg/30 hover:text-riseNeg disabled:opacity-50 font-medium transition-colors`}
     >
