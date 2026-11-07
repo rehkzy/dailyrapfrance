@@ -514,6 +514,7 @@ export default function BlindTest() {
         fetch("/api/blindtest/custom/play", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: customSlug }) }).catch(() => {});
       }
       setTracks(pool);
+      poolFetchedAtRef.current = Date.now();
       setPreviewOverride({});
       autoRecoveredRef.current.clear();
       setRoundHistory([]);
@@ -586,6 +587,24 @@ export default function BlindTest() {
     if (a.src !== previewUrlNow) { a.src = previewUrlNow; a.load(); }
   }, [previewUrlNow]);
   const autoRecoveredRef = useRef<Set<string>>(new Set());
+
+  const poolFetchedAtRef = useRef(0);
+  const refreshingRef = useRef<Set<string>>(new Set());
+  // URL d'extrait re-signée avant expiration (~15 min) : titre courant + suivant, dès que
+  // le pool a plus de 6 min. Évite l'erreur de chargement et le « appuie pour lancer ».
+  useEffect(() => {
+    if (phase !== "playing" || !poolFetchedAtRef.current || Date.now() - poolFetchedAtRef.current < 6 * 60_000) return;
+    for (const t of [tracks[roundIndex], tracks[roundIndex + 1]]) {
+      const id = t?.id != null ? String(t.id) : "";
+      if (!/^\d+$/.test(id) || refreshingRef.current.has(id)) continue;
+      refreshingRef.current.add(id);
+      fetch(`/api/blindtest/preview?id=${id}`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { previewUrl?: string } | null) => { if (d?.previewUrl) setPreviewOverride((prev) => ({ ...prev, [id]: d.previewUrl! })); })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundIndex, phase]);
 
   const recoverAudio = useCallback(async (auto: boolean) => {
     const t = trackRef.current;

@@ -778,6 +778,26 @@ function BlindTestRoom({
       });
   }
   const [previewOverride, setPreviewOverride] = useState<Record<string, string>>({});
+  // Les URL d'extrait Deezer expirent ~15 min après leur obtention et les titres du salon
+  // sont figés à sa création : au-delà de 6 min, on re-signe l'URL du titre courant et du
+  // suivant avant qu'on en ait besoin — c'était le « parfois il faut cliquer ».
+  const refreshingRef = useRef<Set<string>>(new Set());
+  const refreshPreview = useCallback(async (id: string | undefined) => {
+    if (!id || !/^\d+$/.test(id) || refreshingRef.current.has(id)) return;
+    refreshingRef.current.add(id);
+    try {
+      const r = await fetch(`/api/blindtest/preview?id=${id}`, { cache: "no-store" });
+      if (r.ok) { const d = (await r.json()) as { previewUrl?: string }; if (d.previewUrl) setPreviewOverride((prev) => ({ ...prev, [id]: d.previewUrl! })); }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (!room || screen !== "playing") return;
+    const ageMs = room.created_at ? Date.now() - new Date(room.created_at).getTime() : Infinity;
+    if (ageMs < 6 * 60_000) return;
+    void refreshPreview(room.tracks?.[room.current_round]?.id);
+    void refreshPreview(room.tracks?.[room.current_round + 1]?.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.current_round, screen]);
   // La source de l'extrait suit la manche (même élément, nouvelle URL)
   const previewUrlNow = track ? (previewOverride[track.id] ?? track.previewUrl) : null;
   useEffect(() => {
