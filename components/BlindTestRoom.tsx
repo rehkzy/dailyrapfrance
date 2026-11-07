@@ -307,6 +307,8 @@ function BlindTestRoom({
       sfx.nextRound();
     } else if (room.status === "finished") {
       sfx.tag();
+      // Mémoire de la partie (rivaux, duos) : le serveur recalcule depuis la base.
+      void fetch("/api/rooms/result", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roomId: room.id }) }).catch(() => {});
       setScreen("final");
     } else if (room.status === "lobby") {
       setScreen("lobby");

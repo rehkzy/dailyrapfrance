@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import GameTabBar from "@/components/GameTabBar";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { weeklyNumberFor } from "@/lib/dailyStreak";
+import { adminClient } from "@/lib/adminAuth";
+import { rivalsOf, duosOf, topDuos } from "@/lib/rankings";
+import { RivalsBlock, DuosBlock } from "@/components/RivalsAndDuos";
 
 // "survival:93" → "Survie · Rappeurs du 93" ; "93" → "Rappeurs du 93"
 function themeLabel(raw: string) {
@@ -32,6 +35,13 @@ export const revalidate = 60;
  */
 export default async function ClassementPage() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const db = adminClient();
+  const [rivals, myDuos, bestDuos] = await Promise.all([
+    user ? rivalsOf(db, user.id).catch(() => []) : Promise.resolve([]),
+    user ? duosOf(db, user.id).catch(() => []) : Promise.resolve([]),
+    topDuos(db).catch(() => []),
+  ]);
   const { data: scores } = await supabase
     .from("blindtest_scores")
     .select("id, points, rounds, theme, created_at, profiles(username, display_name, avatar_url, verified)")
@@ -57,6 +67,11 @@ export default async function ClassementPage() {
         <ChevronRight size={16} className="text-ink-faint shrink-0" />
       </a>
 
+      {user && <RivalsBlock rivals={rivals} />}
+      {user && myDuos.length > 0 && <DuosBlock duos={myDuos} title="Tes duos" me={user.id} />}
+      <DuosBlock duos={bestDuos} me={user?.id ?? null} />
+
+      <p className="stage-kicker mb-3">Scores solo</p>
       {!scores || scores.length === 0 ? (
         <div className="card p-10 text-center text-ink-muted text-sm">
           Personne n&apos;a encore de score enregistré — sois le premier.
