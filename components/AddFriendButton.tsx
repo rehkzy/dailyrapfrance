@@ -1,5 +1,7 @@
 "use client";
 
+import { requestPushNudge } from "@/lib/pushNudge";
+
 import { useEffect, useState } from "react";
 import { UserPlus, Check, X, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -68,6 +70,7 @@ export default function AddFriendButton({
     if (!error && data) {
       setRowId(data.id);
       setStatus("outgoing");
+      requestPushNudge("friend");
       onChange?.();
     }
   }
@@ -79,6 +82,7 @@ export default function AddFriendButton({
     setBusy(false);
     if (!error) {
       setStatus("friends");
+      requestPushNudge("friend");
       onChange?.();
     }
   }

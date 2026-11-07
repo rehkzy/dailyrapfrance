@@ -13,6 +13,7 @@ import {
 import { Icon } from "@iconify/react";
 import { checkGuess } from "@/lib/blindtest-match";
 import { sfx, duckMusic, cancelDuck, softRepeat } from "@/lib/sfx";
+import { requestPushNudge } from "@/lib/pushNudge";
 import { fieldsFor, fieldPrompt, guessableFeats } from "@/lib/fields";
 import { track as trackEv } from "@/lib/track";
 import { useUser } from "@/lib/useUser";
@@ -275,6 +276,7 @@ export default function BlindTest() {
   useEffect(() => clearTimers, [clearTimers]);
 
   const missReactedRef = useRef(false); // un ad-lib « raté » a déjà joué sur cette manche
+  const finalNudgedRef = useRef(false); // proposer les notifs une fois, en fin de partie
   const softRepeatCancelRef = useRef<(() => void) | null>(null);
   // Réaction de l'artiste + musique baissée en fondu le temps de l'ad-lib (extrait audio ou clip).
   const reactWithDuck = useCallback((artist: string | null | undefined, mood: "hit" | "miss") => {
@@ -1558,6 +1560,7 @@ export default function BlindTest() {
   }
 
   if (phase === "final") {
+    if (user && !finalNudgedRef.current) { finalNudgedRef.current = true; setTimeout(() => requestPushNudge("game"), 2500); }
     const ranked = [...players].sort((a, b) => b.score - a.score);
     const solo = mode === "solo";
     const topScore = ranked[0]?.score ?? 0;

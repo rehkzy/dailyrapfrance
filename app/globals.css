@@ -3621,3 +3621,15 @@ body.dm-open .brand-dock-wrap { display: none !important; }
   .dm-thread { left: calc(50% - 360px); width: 720px; top: 76px; bottom: 16px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.08); }
   .dm-sheet { left: calc(50% - 280px); right: auto; width: 560px; border-radius: 22px; bottom: 24px; }
 }
+
+/* ═══ Notifications en direct ═══ */
+.live-toast {
+  position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: 10px; z-index: 320;
+  display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 18px;
+  background: rgba(20, 10, 11, 0.94); border: 1px solid rgba(240, 0, 28, 0.35); box-shadow: 0 16px 40px -12px rgba(240, 0, 28, 0.5), 0 10px 30px -10px #000;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); animation: live-in 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes live-in { from { transform: translateY(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.live-toast-ic { width: 36px; height: 36px; border-radius: 12px; background: var(--red); display: grid; place-items: center; flex: 0 0 auto; }
+@media (min-width: 640px) { .live-toast { left: auto; right: 16px; width: 360px; } }
+.push-nudge { padding: 22px 20px calc(env(safe-area-inset-bottom) + 16px); }
