@@ -13,8 +13,8 @@ export function useUnreadMessages(userId: string | null | undefined): number {
     let deviceId: string | null = null;
     const count = async () => {
       if (!deviceId) return;
-      const { count: c } = await supabase.from("direct_messages").select("id", { count: "exact", head: true }).eq("recipient_id", userId).eq("device_id", deviceId).is("read_at", null).neq("sender_id", userId);
-      if (alive) setN(c ?? 0);
+      const { data } = await supabase.from("direct_messages").select("msg_id").eq("recipient_id", userId).is("read_at", null).neq("sender_id", userId).limit(500);
+      if (alive) setN(new Set((data ?? []).map((r) => r.msg_id as string)).size);
     };
     (async () => {
       const { deviceIdentity } = await import("@/lib/e2e");

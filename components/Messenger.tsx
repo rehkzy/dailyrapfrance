@@ -111,7 +111,7 @@ export function Inbox() {
     const off = m.subscribe(() => void refresh(), () => void refresh());
     return () => { alive = false; off(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, m.ready, friends?.length]);
+  }, [user?.id, m.ready, m.deviceId, friends?.length]);
 
   if (loading) return <div className="py-20 grid place-items-center"><BrandLoader size="md" /></div>;
   if (!user) return <div className="max-w-sm mx-auto ticket p-8 text-center"><p className="font-display text-xl font-bold mb-2">Connecte-toi</p><p className="text-sm text-ink-muted mb-5">La messagerie est réservée aux amis.</p><SignInCta /></div>;
@@ -308,29 +308,34 @@ export function Thread({ peer }: { peer: Lite }) {
     });
     return () => { alive = false; off(); typingRef.current?.off(); typingRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, m.ready, peer.id]);
+  }, [user?.id, m.ready, m.deviceId, peer.id]);
 
   useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs?.length, typing]);
   useEffect(() => { document.body.classList.add("dm-open"); return () => document.body.classList.remove("dm-open"); }, []);
 
-  // iPhone : le clavier ne réduit pas la fenêtre, il recouvre le bas. On cale le fil sur la
-  // zone réellement visible (visualViewport) pour que la zone de saisie reste au-dessus du clavier.
+  // iPhone : le clavier ne réduit pas la fenêtre, il la recouvre (et Safari fait défiler la page
+  // dessous). On garde le fil plein écran et on remonte la zone de saisie de la hauteur du clavier,
+  // mesurée via visualViewport ; la page est maintenue en haut pour que rien ne glisse derrière.
   const threadRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+    let raf = 0;
     const fit = () => {
-      const el = threadRef.current;
-      if (!el || window.innerWidth >= 1024) return;
-      el.style.top = `${vv.offsetTop}px`;
-      el.style.height = `${vv.height}px`;
-      el.style.bottom = "auto";
-      window.scrollTo(0, 0);
-      const l = listRef.current; if (l) l.scrollTop = l.scrollHeight;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = threadRef.current;
+        if (!el) return;
+        const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+        el.style.setProperty("--kb", `${kb}px`);
+        el.dataset.kb = kb > 40 ? "1" : "0";
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+        const l = listRef.current; if (l && kb > 40) l.scrollTop = l.scrollHeight;
+      });
     };
     fit();
-    vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit);
-    return () => { vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); };
+    vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit); window.addEventListener("scroll", fit);
+    return () => { cancelAnimationFrame(raf); vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); window.removeEventListener("scroll", fit); };
   }, []);
 
   const pushLocal = useCallback((msgId: string, body: string) => {

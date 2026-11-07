@@ -14,6 +14,16 @@ export type DM = { id: number; msgId: string; from: string; peer: string; text: 
 type Row = { id: number; msg_id: string; sender_id: string; recipient_id: string; peer_id: string; device_id: string; sender_device: string; ciphertext: string; iv: string; created_at: string; read_at: string | null };
 type KeyRow = { user_id: string; device_id: string; public_jwk: JsonWebKey };
 
+/** Un message = une ligne par appareil ; on garde celle de CET appareil, sinon n'importe laquelle (illisible ici, mais le message existe). */
+function collapse(rows: Row[], deviceId: string): Row[] {
+  const by = new Map<string, Row>();
+  for (const r of rows) {
+    const cur = by.get(r.msg_id);
+    if (!cur || (r.device_id === deviceId && cur.device_id !== deviceId)) by.set(r.msg_id, r);
+  }
+  return [...by.values()].sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
+}
+
 export function useMessaging(userId: string | null) {
   const supabase = createClient();
   const [me, setMe] = useState<DeviceIdentity | null>(null);
@@ -21,7 +31,12 @@ export function useMessaging(userId: string | null) {
   const keyCache = useRef(new Map<string, KeyRow[]>()); // user_id → appareils
 
   useEffect(() => {
-    if (!userId || !e2eSupported()) { setReady(true); return; }
+    // « prêt » = identité d'appareil chargée pour CET utilisateur (ou chiffrement impossible).
+    // Tant que l'utilisateur n'est pas connu, on n'est pas prêt : sinon les écrans chargent
+    // à vide avant que la clé existe, et ne rechargent jamais.
+    if (!userId) { setReady(false); setMe(null); return; }
+    if (!e2eSupported()) { setReady(true); return; }
+    setReady(false);
     let alive = true;
     (async () => {
       const id = await deviceIdentity();
@@ -82,11 +97,10 @@ export function useMessaging(userId: string | null) {
       .from("direct_messages")
       .select("*")
       .eq("recipient_id", userId)
-      .eq("device_id", me.deviceId)
       .eq("peer_id", peerId)
       .order("created_at", { ascending: false })
-      .limit(limit);
-    const rows = ((data ?? []) as Row[]).reverse();
+      .limit(limit * 3);
+    const rows = collapse((data ?? []) as Row[], me.deviceId).reverse().slice(-limit);
     return Promise.all(rows.map(decryptRow));
   }, [me, userId, decryptRow]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -97,11 +111,10 @@ export function useMessaging(userId: string | null) {
       .from("direct_messages")
       .select("*")
       .eq("recipient_id", userId)
-      .eq("device_id", me.deviceId)
       .order("created_at", { ascending: false })
-      .limit(400);
+      .limit(800);
     const byPeer = new Map<string, { rows: Row[]; unread: number }>();
-    for (const r of (data ?? []) as Row[]) {
+    for (const r of collapse((data ?? []) as Row[], me.deviceId)) {
       const cur = byPeer.get(r.peer_id) ?? { rows: [], unread: 0 };
       cur.rows.push(r);
       if (!r.read_at && r.sender_id !== userId) cur.unread++;
@@ -133,17 +146,21 @@ export function useMessaging(userId: string | null) {
 
   const markRead = useCallback(async (peerId: string) => {
     if (!me || !userId) return;
-    await supabase.from("direct_messages").update({ read_at: new Date().toISOString() }).eq("recipient_id", userId).eq("device_id", me.deviceId).eq("peer_id", peerId).is("read_at", null).neq("sender_id", userId);
+    await supabase.from("direct_messages").update({ read_at: new Date().toISOString() }).eq("recipient_id", userId).eq("peer_id", peerId).is("read_at", null).neq("sender_id", userId);
   }, [me, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Abonnement temps réel aux nouveaux messages pour cet appareil. */
   const subscribe = useCallback((onRow: (m: DM) => void, onRead?: (msgId: string, peerId: string) => void) => {
     if (!me || !userId) return () => {};
+    const seen = new Set<string>(), gotMine = new Set<string>();
     const ch = supabase
       .channel(`dm:${userId}:${me.deviceId}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${userId}` }, async (payload) => {
         const r = payload.new as Row;
-        if (r.device_id !== me.deviceId) return;
+        // Plusieurs lignes par message (une par appareil) : on ne remonte que celle de cet appareil,
+        // ou la première vue si aucune ne lui est destinée (identité changée).
+        if (r.device_id !== me.deviceId) { if (seen.has(r.msg_id)) return; seen.add(r.msg_id); setTimeout(async () => { if (!gotMine.has(r.msg_id)) onRow(await decryptRow(r)); }, 1500); return; }
+        gotMine.add(r.msg_id); seen.add(r.msg_id);
         onRow(await decryptRow(r));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "direct_messages", filter: `sender_id=eq.${userId}` }, (payload) => {
