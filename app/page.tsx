@@ -4,6 +4,8 @@ import SavedPresets from "@/components/SavedPresets";
 import LiveCounters from "@/components/LiveCounters";
 import HomeFaq from "@/components/HomeFaq";
 import PlayerReviews from "@/components/PlayerReviews";
+import SeasonBanner from "@/components/SeasonBanner";
+import { GUIDE_LANDINGS } from "@/lib/seo";
 import AdSlot from "@/components/AdSlot";
 import SocialLinks from "@/components/SocialLinks";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
@@ -148,6 +150,7 @@ export default async function Home() {
 
       {/* Connecté : le fil des potes, et les soirées enregistrées */}
       <ActivityFeed />
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-2"><SeasonBanner /></section>
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-2">
         <a href="/son-du-jour" className="sdj-home">
           <span className="sdj-home-ic"><CalendarDays size={20} /></span>
@@ -406,6 +409,15 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-8" aria-labelledby="guides-title">
+        <p className="stage-kicker mb-1">Pour tes soirées</p>
+        <h2 id="guides-title" className="font-display text-2xl sm:text-3xl font-bold tracking-tight mb-4">Le blind test selon l&apos;occasion</h2>
+        <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {GUIDE_LANDINGS.map((g) => (
+            <li key={g.slug}><a href={`/blindtest/${g.slug}`} className="hub-link"><span className="min-w-0"><span className="block text-sm font-bold truncate">{g.title}</span><span className="block text-xs text-ink-muted line-clamp-2">{g.description}</span></span></a></li>
+          ))}
+        </ul>
+      </section>
       <PlayerReviews />
       <section className="max-w-5xl mx-auto px-5 sm:px-6"><AdSlot slot="home" /></section>
       <HomeFaq />

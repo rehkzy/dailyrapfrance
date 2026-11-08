@@ -212,6 +212,62 @@ export const GUIDE_LANDINGS: Landing[] = [
       { h2: "Honnêteté", p: HONNETE },
     ],
     [{ q: "DailyRapFrance a-t-il un mode TV ?", a: "Oui, le mode soirée : code et QR code sur la TV, réponses sur les téléphones, classement en direct, gage pour le dernier." }]),
+
+  /* ── Fêtes de fin d'année (indexées tôt pour être en place en décembre) ── */
+  guide("nouvel-an", "Blind test rap pour le Nouvel An : le jeu de ton réveillon", "Blind Test Nouvel An 2027 — Le Jeu de Soirée Rap pour ton Réveillon | DailyRapFrance",
+    "Le blind test rap français pour le réveillon du Nouvel An : la TV diffuse, les téléphones répondent, gages pour le dernier, rétro des sons de 2026. Gratuit, sans application.",
+    "Entre le repas et minuit, il y a toujours un creux. Branche un écran, lance un blind test rap, et les téléphones de tout le monde deviennent des buzzers. Dix manches, un gage pour le dernier, et on recommence jusqu'au décompte.",
+    [
+      { h2: "Pourquoi ça marche un soir de réveillon", p: "Pas d'application à installer, pas de compte pour les invités : un QR code sur la TV, chacun scanne et choisit un pseudo. Les manches durent trente secondes, donc les retardataires rentrent dans la partie suivante, et ceux qui préfèrent discuter ne bloquent personne. Le classement en direct sur l'écran crée les vannes, les gages font le reste." },
+      { h2: "Le programme idéal pour la soirée", p: "Partie 1, pour chauffer : la Rétro 2026, les sons qui ont tourné toute l'année, tout le monde en a entendu au moins la moitié. Partie 2, pour départager : les 2000s et les 2010s, les trentenaires se réveillent. Partie 3, après minuit : le Mix toutes époques en 20 manches avec gages corsés. Entre deux, un blind test perso construit avec les morceaux de la bande, ça prend cinq minutes à préparer la veille." },
+      { h2: "Les réglages qu'on te conseille", p: "QCM pour que tout le monde participe, y compris ceux qui connaissent le refrain sans le titre. Extraits de 25 secondes. Gages soft avant minuit, corsés après. Et le mode équipes 2v2 si vous êtes nombreux : les duos se forment tout seuls autour de la table." },
+    ],
+    [{ q: "Combien de personnes peuvent jouer au réveillon ?", a: "Des dizaines : chaque téléphone est une manette, la TV fait l'affichage commun. Au-delà de 8, le mode soirée est plus confortable que le salon privé." }, { q: "Il faut une bonne connexion ?", a: "Une 4G ou un wifi correct suffit : les extraits font trente secondes. Si le wifi de la maison est faible, le partage de connexion d'un téléphone fait l'affaire pour la TV." }, { q: "Peut-on préparer la soirée à l'avance ?", a: "Oui : crée ton blind test perso avec le constructeur (titres Deezer, ordre, durée), il t'attend dans Mon espace. Le jour J, tu le lances en mode soirée en un tap." }],
+    "/jouer?mode=party", "Préparer mon réveillon"),
+
+  guide("noel", "Blind test rap de Noël : le jeu pour la soirée en famille", "Blind Test de Noël — Rap FR pour Toutes les Générations, sur la TV | DailyRapFrance",
+    "Un blind test rap français pour les fêtes de Noël en famille : des thèmes par génération (90s, 2000s, 2010s, aujourd'hui), la TV diffuse, les téléphones répondent, sans application.",
+    "Noël en famille, c'est trois générations autour de la même table et trois façons d'écouter du rap. Le blind test par époques règle le problème : les parents brillent sur les 90s et les 2000s, les ados sur les sons de 2026, et personne ne s'ennuie.",
+    [
+      { h2: "Le format qui met tout le monde d'accord", p: "Chaque partie prend un thème d'époque : les 90s avec IAM, NTM, Oxmo ; les 2000s avec Booba, Diam's, Sniper ; les 2010s avec PNL, Nekfeu, Damso ; puis les stars de 2026. On tourne, et le classement cumulé désigne le champion de la famille. Le QCM permet à ceux qui connaissent la voix sans le titre de marquer quand même." },
+      { h2: "Sur la TV du salon", p: "Le mode soirée affiche le code et un QR code en grand. Les téléphones répondent, l'écran montre l'extrait, le classement et le résultat. Aucune application à installer, pas de compte pour les invités, et le téléphone de la grand-mère fonctionne aussi bien que les autres." },
+      { h2: "Le petit plus pour les cadeaux", p: "Un blind test perso avec les sons qui racontent l'année de la famille (le mariage, les vacances, la chanson du petit dernier) : le constructeur te laisse chercher les titres sur Deezer et les ordonner en quelques minutes. Ça fait un cadeau qui ne coûte rien et dont on reparle." },
+    ],
+    [{ q: "Les extraits sont-ils adaptés à un public familial ?", a: "Les extraits de trente secondes viennent de Deezer et le rap reste du rap : pour une table très mélangée, privilégie les thèmes 90s, 2000s et mélodique, ou construis ton propre blind test avec des titres que tu as choisis." }, { q: "Peut-on jouer sans TV ?", a: "Oui : sur un seul téléphone qui passe de main en main (mode local, buzzer), ou en salon privé si chacun est sur son téléphone, même dans la même pièce." }],
+    "/jouer?mode=party", "Lancer le blind test de Noël"),
+
+  guide("retro-2026", "Rétro 2026 : le blind test des sons rap de l'année", "Blind Test Rétro 2026 — Les Sons Rap FR qui ont Marqué l'Année | DailyRapFrance",
+    "Le blind test des morceaux rap français qui ont fait 2026 : les hits, les sorties marquantes, les sons viraux. À jouer seul, entre potes ou en soirée pour clore l'année.",
+    "Avant de passer à 2027, un dernier tour de piste. Ce blind test rassemble ce qui a vraiment tourné cette année : les gros streams, les sorties qui ont fait parler, les sons qui ont tenu TikTok pendant des semaines. Si tu as écouté du rap FR en 2026, tu en reconnaîtras une bonne partie. Si tu reconnais tout, on veut ton score.",
+    [
+      { h2: "Ce qu'il y a dedans", p: "La sélection s'appuie sur les écoutes de l'année : les têtes d'affiche (Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola…), la nouvelle génération qui a explosé, et les sons viraux qu'on a tous entendus sans forcément connaître le titre. Elle est rafraîchie jusqu'au 31 décembre." },
+      { h2: "Comment en faire un moment", p: "Entre potes, c'est le thème parfait pour un salon privé le soir du 31 : tout le monde a des références. En soirée sur la TV, lance-le en première partie pour chauffer la salle. En solo, ton score entre dans le classement du thème : le top de la rétro reste affiché jusqu'au Nouvel An." },
+      { h2: "Et si tu veux la tienne", p: "Ta rétro à toi, celle de tes vraies écoutes de l'année : le constructeur te laisse chercher les titres sur Deezer, les ordonner, puis partager le lien. Tes potes la jouent, vous comparez." },
+    ],
+    [{ q: "La sélection change-t-elle ?", a: "Oui, elle suit les écoutes jusqu'à la fin de l'année. Deux parties d'affilée ne tombent jamais sur les mêmes sons." }],
+    "/jouer?mode=solo&theme=hits-2026&autostart=1", "Jouer la Rétro 2026"),
+
+  guide("fin-d-annee-entreprise", "Blind test rap pour un pot de fin d'année ou un team building", "Blind Test Fin d'Année Entreprise — Team Building Rap, sur Grand Écran | DailyRapFrance",
+    "Anime un pot de fin d'année, un afterwork ou un team building avec un blind test rap français : grand écran, téléphones des collègues, équipes, classement. Gratuit, sans installation.",
+    "Un pot de fin d'année, c'est souvent un buffet et des conversations par service. Un blind test sur le grand écran casse les groupes en dix minutes : les équipes se font entre collègues qui ne se parlent jamais, et le stagiaire qui connaît tout le rap de 2026 devient la star de la soirée.",
+    [
+      { h2: "Mise en place en cinq minutes", p: "Un ordinateur branché sur l'écran de la salle de réunion ou le vidéoprojecteur, un navigateur, et c'est tout. Le QR code s'affiche, les collègues scannent, choisissent un pseudo, et répondent depuis leur téléphone. Pas d'application, pas de compte, pas de validation par le service informatique." },
+      { h2: "Les formats qui marchent au bureau", p: "Le 2v2 ou les équipes par service pour l'esprit d'équipe. Des thèmes larges pour que les non-initiés participent : les 2000s, le Top 50, le Mix. Dix manches par partie, c'est le bon rythme entre deux verres. Et un blind test perso avec les morceaux de la playlist de l'open space, si vous en avez une." },
+      { h2: "Pour les grandes équipes", p: "Le mode soirée n'a pas de limite de téléphones : cinquante collègues peuvent répondre en même temps. Le classement en direct sur l'écran suffit à faire monter la température, les gages sont désactivables pour rester dans un cadre pro." },
+    ],
+    [{ q: "Peut-on l'utiliser dans un cadre professionnel ?", a: "Oui, pour un événement interne. Les gages se désactivent, et le constructeur permet de choisir exactement les titres si tu veux maîtriser le contenu." }, { q: "Combien de participants ?", a: "Autant que de téléphones dans la salle : le mode soirée a été pensé pour les grands groupes." }],
+    "/jouer?mode=party", "Préparer le pot de fin d'année"),
+
+  guide("jeux-de-soiree-entre-potes", "Jeux de soirée entre potes : le blind test rap qui remplace tout", "Jeu de Soirée Entre Potes — Blind Test Rap sur Téléphones, Gratuit | DailyRapFrance",
+    "Tu cherches un jeu de soirée pour ce week-end ? Un blind test rap français sur les téléphones de tout le monde : gratuit, sans installation, avec gages, équipes et classement en direct.",
+    "Tu as déjà fait le tour des jeux à boire, des cartes et des applis à 3 euros. Un blind test rap, c'est le jeu de soirée qui ne demande rien : pas de matériel, pas de règles à expliquer, et tout le monde a un avis sur le rap. Le plus dur, c'est de s'arrêter.",
+    [
+      { h2: "Trois façons d'y jouer ce soir", p: "Sur un seul téléphone qui tourne, buzzer à l'écran, pour une soirée à quatre. En salon privé, chacun son téléphone, pour une bande de six à huit. Sur la TV avec les téléphones en manettes, pour une soirée pleine. Les trois sont gratuits, sans application." },
+      { h2: "Les gages", p: "Deux niveaux : soft (chanter le refrain suivant, imiter le rappeur, une anecdote) et corsé, pour les soirées qui s'assument. Ils sont tirés automatiquement pour le dernier de la partie, et désactivables." },
+      { h2: "Pour que ça dure toute la soirée", p: "Alternez les thèmes : un artiste que tout le monde connaît, une époque, une région pour les fiertés locales, les Gimmicks et les Mèmes pour rire. Et terminez par le blind test perso construit dans la journée avec les sons de la bande, c'est toujours celui dont on reparle." },
+    ],
+    [{ q: "Combien de joueurs minimum ?", a: "Deux. Et pour le mode sur un seul téléphone, trois ou quatre c'est le mieux." }, { q: "Ça marche sur iPhone et Android ?", a: "Oui, dans le navigateur, sans rien installer. Pour recevoir les invitations et les revanches, ajoute le site à l'écran d'accueil." }],
+    "/jouer", "Lancer une partie"),
 ];
 
 export const ALL_LANDINGS: Landing[] = [...MODE_LANDINGS, ...THEME_LANDINGS, ...GUIDE_LANDINGS];

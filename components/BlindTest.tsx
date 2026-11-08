@@ -26,6 +26,7 @@ import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@
 import EmailAuthForm from "@/components/EmailAuthForm";
 import AdSlot from "@/components/AdSlot";
 import ReviewPrompt from "@/components/ReviewPrompt";
+import SeasonBanner from "@/components/SeasonBanner";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
 import HelpTip from "@/components/HelpTip";
@@ -1262,6 +1263,7 @@ export default function BlindTest() {
                   </a>}
                   {!customSet && <DailyCard variant="compact" />}
                   {!customSet && <div className="mt-6"><SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} /></div>}
+                  {!customSet && <div className="mt-6"><SeasonBanner compact /></div>}
                   {!customSet && <div className="mt-7"><HubLinks title="Autour du jeu" links={EXPLORE_LINKS.filter((l) => l.href !== "/blindtest/defi")} /></div>}
                 </>
               ) : branch === "solo" ? (
