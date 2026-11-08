@@ -7,7 +7,7 @@ import {
   Check, LogIn, ChevronLeft, ChevronRight, SkipForward,
   X, VolumeX, Volume2, Lightbulb, Sliders,
   SpellCheck, PartyPopper, Swords, Clapperboard, Sparkles,
-  ArrowRight, Smartphone, Tv, Headphones, Globe, Wifi, KeyRound,
+  ArrowRight, KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -27,6 +27,7 @@ import EmailAuthForm from "@/components/EmailAuthForm";
 import AdSlot from "@/components/AdSlot";
 import ReviewPrompt from "@/components/ReviewPrompt";
 import SeasonBanner from "@/components/SeasonBanner";
+import { SoloIcon, SamePhoneIcon, SwordsIcon, FriendsIcon, PartyIcon } from "@/components/ModeIcons";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
 import HelpTip from "@/components/HelpTip";
@@ -1227,8 +1228,8 @@ export default function BlindTest() {
                   ) : (
                     <>
                       <p className="stage-kicker mt-4 mb-2">Blind test rap français</p>
-                      <h2 className="stage-title mb-1">Tu joues<br />avec qui ?</h2>
-                      <p className="text-sm text-ink-muted mb-5">Choisis selon où vous êtes. Tout est gratuit, sans application.</p>
+                      <h2 className="stage-title mb-1">Tu joues<br />comment ?</h2>
+                      <p className="text-sm text-ink-muted mb-5">Gratuit, sans application.</p>
                     </>
                   )}
                   {deepLink.from && (
@@ -1243,40 +1244,37 @@ export default function BlindTest() {
                   {/* UN seul écran, rangé par « où êtes-vous ? » : c'est la question que les gens se
                       posent vraiment. Chaque carte = un picto-scène, un titre en langage courant,
                       le nombre de joueurs, le matériel. */}
+                  {/* UN seul écran, dans l'ordre naturel : seul → même téléphone → contre des inconnus →
+                      entre amis → soirée. Pictos maison, sous-titre qui dit où l'on est. */}
                   <div className="ways">
-                    <p className="ways-group">Juste moi</p>
                     <button type="button" onClick={() => { sfx.click(); if (customSet) { setBranch("solo"); return; } setMode("solo"); setSetupError(null); setWizardStep(1); }} className="way" data-tone="solo">
-                      <span className="way-scene"><Headphones size={26} /></span>
+                      <span className="way-scene"><SoloIcon /></span>
                       <span className="way-body"><span className="way-title">Seul</span><span className="way-sub">{customSet ? "Extraits audio ou clips" : "Un thème, 30 s par extrait, score sauvegardé"}</span></span>
-                      <span className="way-meta">1 joueur</span>
+                      <span className="way-meta">1</span>
                       <ChevronRight size={18} className="way-go" />
                     </button>
-
-                    <p className="ways-group">Dans la même pièce</p>
                     <button type="button" onClick={() => { sfx.click(); if (guest) { setShowAuth(true); return; } setMode("local"); setSetupError(null); setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); }} className="way" data-tone="local" aria-pressed={mode === "local"}>
-                      <span className="way-scene"><Smartphone size={26} /><span className="way-dots"><i /><i /><i /></span></span>
-                      <span className="way-body"><span className="way-title">Un seul téléphone</span><span className="way-sub">On se le passe, buzzer à l&apos;écran</span></span>
+                      <span className="way-scene"><SamePhoneIcon /></span>
+                      <span className="way-body"><span className="way-title">Même téléphone</span><span className="way-sub">Dans la même pièce, on se le passe, buzzer à l&apos;écran</span></span>
                       <span className="way-meta">2 à 8</span>
                       {mode === "local" ? <Check size={18} strokeWidth={3} className="way-go text-gold" /> : <ChevronRight size={18} className="way-go" />}
                     </button>
-                    <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="way" data-tone="tv">
-                      <span className="way-scene"><Tv size={26} /><span className="way-phones"><i /><i /><i /></span></span>
-                      <span className="way-body"><span className="way-title">Sur la TV</span><span className="way-sub">La télé affiche, chacun répond sur son téléphone</span></span>
-                      <span className="way-meta">6 et +</span>
-                      <ChevronRight size={18} className="way-go" />
-                    </button>
-
-                    <p className="ways-group">À distance</p>
-                    <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="way" data-tone="online">
-                      <span className="way-scene"><Smartphone size={22} /><Wifi size={14} className="way-link" /><Smartphone size={22} /></span>
-                      <span className="way-body"><span className="way-title">Mes potes, chacun chez soi</span><span className="way-sub">{customSet ? "Un salon privé avec tes morceaux, un lien à envoyer" : "Un salon privé, un lien à envoyer, chat et réactions"}</span></span>
-                      <span className="way-meta">2 à 8</span>
-                      <ChevronRight size={18} className="way-go" />
-                    </button>
                     <button type="button" onClick={() => { sfx.click(); setBranch("match"); }} className="way" data-tone="match">
-                      <span className="way-scene"><Globe size={26} /><Swords size={14} className="way-link" /></span>
-                      <span className="way-body"><span className="way-title">Contre des inconnus</span><span className="way-sub">1 contre 1, 2 contre 2 ou tous contre tous, ça démarre tout seul</span></span>
+                      <span className="way-scene"><SwordsIcon /></span>
+                      <span className="way-body"><span className="way-title">Matchmaking</span><span className="way-sub">Contre des inconnus : 1 contre 1, 2 contre 2 ou tous contre tous</span></span>
                       <span className="way-meta">2 à 8</span>
+                      <ChevronRight size={18} className="way-go" />
+                    </button>
+                    <button type="button" onClick={() => { sfx.click(); setMode("online"); }} className="way" data-tone="online">
+                      <span className="way-scene"><FriendsIcon /></span>
+                      <span className="way-body"><span className="way-title">Avec mes amis</span><span className="way-sub">{customSet ? "Chacun chez soi, un salon privé avec tes morceaux" : "Chacun chez soi, un salon privé, un lien à envoyer"}</span></span>
+                      <span className="way-meta">2 à 8</span>
+                      <ChevronRight size={18} className="way-go" />
+                    </button>
+                    <button type="button" onClick={() => { sfx.click(); setMode("party"); }} className="way" data-tone="tv">
+                      <span className="way-scene"><PartyIcon /></span>
+                      <span className="way-body"><span className="way-title">Soirée</span><span className="way-sub">La TV affiche, chacun répond sur son téléphone, gage pour le dernier</span></span>
+                      <span className="way-meta">6 et +</span>
                       <ChevronRight size={18} className="way-go" />
                     </button>
                   </div>
@@ -1343,7 +1341,7 @@ export default function BlindTest() {
               ) : branch === "match" ? (
                 <>
                   <button type="button" onClick={() => { setBranch(null); }} className="back-link mt-3"><ChevronLeft size={16} /> Retour</button>
-                  <p className="stage-kicker mt-2 mb-2 inline-flex items-center gap-1.5"><Icon icon="game-icons:crossed-swords" width={13} /> Contre des inconnus</p>
+                  <p className="stage-kicker mt-2 mb-2 inline-flex items-center gap-1.5"><SwordsIcon size={14} /> Matchmaking</p>
                   <h2 className="stage-title mb-2">Quel format ?</h2>
                   <p className="text-sm text-ink-muted mb-5">{customSet ? `Avec les morceaux de « ${customSet.t} ».` : "Thème au hasard, 10 manches, réponses à choix."} Dès que les joueurs sont trouvés, la partie démarre toute seule.</p>
                   <div className="space-y-2.5">
