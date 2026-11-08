@@ -1259,6 +1259,41 @@ export default function BlindTest() {
                       <span className="way-meta">2 à 8</span>
                       {mode === "local" ? <Check size={18} strokeWidth={3} className="way-go text-gold" /> : <ChevronRight size={18} className="way-go" />}
                     </button>
+              {mode === "local" && (
+                <div id="players-panel" className="ticket p-5 mt-1 mb-2 animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <p className="font-display text-xl font-bold">Qui joue ?</p>
+                    <span className="text-xs text-ink-faint">{playerNames.filter((n) => n.trim()).length} / 8</span>
+                  </div>
+                  <div className="space-y-2">
+                    {playerNames.map((name, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <span className="avatar w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold text-white shrink-0" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>
+                          {(name.trim() || `J${i + 1}`).slice(0, 2).toUpperCase()}
+                        </span>
+                        <input
+                          value={name}
+                          onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
+                          placeholder={`Joueur ${i + 1}`}
+                          maxLength={24}
+                          aria-label={`Pseudo du joueur ${i + 1}`}
+                          className="answer-input !min-h-[48px] !text-[15px]"
+                        />
+                        {playerNames.length > 2 && (
+                          <button type="button" onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))} className="w-10 h-10 shrink-0 grid place-items-center rounded-full text-ink-faint hover:text-riseNeg hover:bg-white/5" aria-label="Retirer ce joueur">
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {playerNames.length < 8 && (
+                    <button type="button" onClick={() => setPlayerNames((prev) => [...prev, ""])} className="mt-3 text-sm font-semibold text-glow min-h-[44px]">
+                      + Ajouter un joueur
+                    </button>
+                  )}
+                </div>
+              )}
                     <button type="button" onClick={() => { sfx.click(); setBranch("match"); }} className="way" data-tone="match">
                       <span className="way-scene"><SwordsIcon /></span>
                       <span className="way-body"><span className="way-title">Matchmaking</span><span className="way-sub">Contre des inconnus : 1 contre 1, 2 contre 2 ou tous contre tous</span></span>
@@ -1279,7 +1314,7 @@ export default function BlindTest() {
                     </button>
                   </div>
 
-                  {!customSet && (
+                  {!customSet && mode !== "local" && (
                     <form className="way-code" onSubmit={(e) => { e.preventDefault(); const v = (new FormData(e.currentTarget).get("code") as string ?? "").trim().toUpperCase(); if (v) window.location.href = `/jouer?mode=online&room=${encodeURIComponent(v)}`; }}>
                       <KeyRound size={18} className="text-gold shrink-0" />
                       <input name="code" placeholder="Un pote t'a donné un code ? Tape-le ici" aria-label="Code du salon" autoCapitalize="characters" autoComplete="off" maxLength={8} />
@@ -1287,7 +1322,7 @@ export default function BlindTest() {
                     </form>
                   )}
 
-                  {!customSet && <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3">
+                  {!customSet && mode !== "local" && <a href="/jouer?mode=solo&theme=pop&autostart=1" className="action-row mb-3">
                     <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0 bg-white/10 text-white"><Icon icon="game-icons:play-button" width={22} /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold">Partie rapide</span>
@@ -1295,10 +1330,10 @@ export default function BlindTest() {
                     </span>
                     <ChevronRight size={18} className="shrink-0 text-ink-faint" />
                   </a>}
-                  {!customSet && <DailyCard variant="compact" />}
-                  {!customSet && <div className="mt-6"><SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} /></div>}
-                  {!customSet && <div className="mt-6"><SeasonBanner compact /></div>}
-                  {!customSet && <div className="mt-7"><HubLinks title="Autour du jeu" links={EXPLORE_LINKS.filter((l) => l.href !== "/blindtest/defi")} /></div>}
+                  {!customSet && mode !== "local" && <DailyCard variant="compact" />}
+                  {!customSet && mode !== "local" && <div className="mt-6"><SavedPresets title="Tes soirées enregistrées" onPlay={applyPreset} /></div>}
+                  {!customSet && mode !== "local" && <div className="mt-6"><SeasonBanner compact /></div>}
+                  {!customSet && mode !== "local" && <div className="mt-7"><HubLinks title="Autour du jeu" links={EXPLORE_LINKS.filter((l) => l.href !== "/blindtest/defi")} /></div>}
                 </>
               ) : branch === "solo" ? (
                 <>
@@ -1389,41 +1424,6 @@ export default function BlindTest() {
                 </>
               )}
 
-              {mode === "local" && (
-                <div id="players-panel" className="ticket p-5 mt-2 mb-6 lg:max-w-xl animate-[solved-pop_0.35s_cubic-bezier(0.34,1.56,0.64,1)]">
-                  <div className="flex items-baseline justify-between mb-1">
-                    <p className="font-display text-xl font-bold">Qui joue ?</p>
-                    <span className="text-xs text-ink-faint">{playerNames.filter((n) => n.trim()).length} / 8</span>
-                  </div>
-                  <div className="space-y-2">
-                    {playerNames.map((name, i) => (
-                      <div key={i} className="flex gap-2 items-center">
-                        <span className="avatar w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold text-white shrink-0" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>
-                          {(name.trim() || `J${i + 1}`).slice(0, 2).toUpperCase()}
-                        </span>
-                        <input
-                          value={name}
-                          onChange={(e) => setPlayerNames((prev) => prev.map((n, idx) => (idx === i ? e.target.value : n)))}
-                          placeholder={`Joueur ${i + 1}`}
-                          maxLength={24}
-                          aria-label={`Pseudo du joueur ${i + 1}`}
-                          className="answer-input !min-h-[48px] !text-[15px]"
-                        />
-                        {playerNames.length > 2 && (
-                          <button type="button" onClick={() => setPlayerNames((prev) => prev.filter((_, idx) => idx !== i))} className="w-10 h-10 shrink-0 grid place-items-center rounded-full text-ink-faint hover:text-riseNeg hover:bg-white/5" aria-label="Retirer ce joueur">
-                            <X size={16} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {playerNames.length < 8 && (
-                    <button type="button" onClick={() => setPlayerNames((prev) => [...prev, ""])} className="mt-3 text-sm font-semibold text-glow min-h-[44px]">
-                      + Ajouter un joueur
-                    </button>
-                  )}
-                </div>
-              )}
 
 
             </>

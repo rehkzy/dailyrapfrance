@@ -1807,7 +1807,6 @@ function RoomMenu({
   const [gagesEnabled, setGagesEnabled] = useState(party);
   const [gagesIntensity, setGagesIntensity] = useState<"soft" | "hard">("soft");
   const [needAnswerMode, setNeedAnswerMode] = useState(false);
-  const [showJoin, setShowJoin] = useState(joinCode.trim().length > 0);
   const answerModeRef = useRef<HTMLDivElement>(null);
 
   function randomTheme() {
@@ -1845,7 +1844,7 @@ function RoomMenu({
   // ── Écran 1 : le thème ────────────────────────────────────────────────────
   if (step === "theme") {
     return (
-      <div className="max-w-lg mx-auto pb-24">
+      <div className="pb-24">
         {onExit && <button onClick={onExit} className="back-link mt-3"><ArrowLeft size={16} /> Retour</button>}
         <p className="stage-kicker mt-4 mb-2 inline-flex items-center gap-1.5">{party ? <><Tv size={13} /> Soirée TV</> : <><Users size={13} /> Entre amis · en ligne</>}</p>
         <h2 className="stage-title mb-4">Choisis<br />ton thème.</h2>
@@ -1855,17 +1854,6 @@ function RoomMenu({
         </div>
         <div className="-mx-1 px-1">
           <ThemePicker themeId={theme} onSelect={(id) => chooseTheme(id)} />
-        </div>
-        <div className="mt-8 ticket p-4">
-          {showJoin ? (
-            <div className="flex gap-2">
-              <input value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} placeholder="Code à 5 lettres" maxLength={5} autoFocus autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false} className="answer-input flex-1 !min-h-[48px] text-center font-mono tracking-[0.25em] uppercase" />
-              <button type="button" onClick={onJoin} disabled={busy || joinCode.trim().length < 5} className="sticker sticker-ghost sticker-sm shrink-0 disabled:opacity-40">Rejoindre</button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setShowJoin(true)} className="w-full text-center text-sm font-semibold text-ink-muted hover:text-ink min-h-[40px]">Un pote t&apos;a envoyé un code ? Rejoindre son salon</button>
-          )}
-          {error && <p className="text-sm text-riseNeg text-center mt-2">{error}</p>}
         </div>
       </div>
     );
