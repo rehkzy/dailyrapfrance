@@ -37,16 +37,6 @@ function isOwnPageRequest(request: NextRequest): boolean {
 }
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
-  // Un seul domaine canonique : www.dailyrapfrance.best → dailyrapfrance.best (308).
-  // Sinon Google voit deux sites identiques et partage le référencement entre les deux.
-  const host = request.headers.get("host") ?? "";
-  if (host.startsWith("www.")) {
-    const url = request.nextUrl.clone();
-    url.host = host.slice(4);
-    url.protocol = "https:";
-    url.port = "";
-    return NextResponse.redirect(url, 308);
-  }
   if (SCANNER_PATTERN.test(request.nextUrl.pathname)) {
     return new NextResponse(null, { status: 404 });
   }
