@@ -140,6 +140,16 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
           )}
         </div>
 
+        {l.verdict && <p className="landing-verdict"><strong>En bref :</strong> {l.verdict}</p>}
+        {l.table && (
+          <div className="landing-table-wrap mt-8">
+            <table className="landing-table">
+              <thead><tr>{l.table.head.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
+              <tbody>{l.table.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} data-us={j === 1 && l.table!.head[1] === "DailyRapFrance"}>{c}</td>)}</tr>)}</tbody>
+            </table>
+            {l.table.note && <p className="text-[11px] text-ink-faint mt-2">{l.table.note}</p>}
+          </div>
+        )}
         {landingBody(l).length > 0 && (
           <section className="mt-10 grid md:grid-cols-3 gap-6" aria-label="À propos de ce thème">
             {landingBody(l).map((b) => (

@@ -15,6 +15,10 @@ export type Landing = {
   kind: "mode" | "theme" | "guide";
   /** Guides et comparatifs : sections rédigées à la main. */
   sections?: { h2: string; p: string }[];
+  /** Réponse en une phrase, affichée en tête (ce que les moteurs de réponse reprennent). */
+  verdict?: string;
+  /** Tableau comparatif : critères en lignes, options en colonnes. */
+  table?: { head: string[]; rows: string[][]; note?: string };
   title: string; // H1
   metaTitle: string;
   description: string;
@@ -141,8 +145,8 @@ export function themeLanding(t: ThemeOption): Landing {
 export const THEME_LANDINGS: Landing[] = THEME_OPTIONS.filter((t) => t.id !== "mix").map(themeLanding);
 
 /* ── Guides d'usage et comparatifs (longue traîne) ───────────────────────────────────────── */
-function guide(slug: string, title: string, metaTitle: string, description: string, intro: string, sections: { h2: string; p: string }[], faq: { q: string; a: string }[], playHref = "/jouer?mode=solo", playLabel = "Jouer maintenant"): Landing {
-  return { slug, kind: "guide", title, metaTitle, description, intro, sections, faq: [...faq, ...COMMON_FAQ], playHref, playLabel };
+function guide(slug: string, title: string, metaTitle: string, description: string, intro: string, sections: { h2: string; p: string }[], faq: { q: string; a: string }[], playHref = "/jouer?mode=solo", playLabel = "Jouer maintenant", extra: Partial<Pick<Landing, "verdict" | "table">> = {}): Landing {
+  return { slug, kind: "guide", title, metaTitle, description, intro, sections, faq: [...faq, ...COMMON_FAQ], playHref, playLabel, ...extra };
 }
 
 const HONNETE = "Comparatif rédigé par DailyRapFrance à partir des sites publics des deux services (novembre 2026). Les fonctionnalités évoluent : si quelque chose a changé, écris-nous.";
@@ -189,7 +193,8 @@ export const GUIDE_LANDINGS: Landing[] = [
       { h2: "Pour qui", p: "Tu joues surtout seul et tu aimes grinder une progression : Raplay. Tu joues avec tes potes, en soirée ou à distance, et tu veux un jeu qui vit avec l'actu rap : DailyRapFrance. Rien n'empêche de faire les deux." },
       { h2: "Honnêteté", p: HONNETE },
     ],
-    [{ q: "Les deux sont-ils gratuits ?", a: "Oui. DailyRapFrance propose une partie découverte sans compte, avec pub, et zéro pub avec un compte gratuit." }]),
+    [{ q: "Les deux sont-ils gratuits ?", a: "Oui. DailyRapFrance propose une partie découverte sans compte, avec pub, et zéro pub avec un compte gratuit." }],
+    "/jouer?mode=solo", "Jouer maintenant", { verdict: "Raplay est le meilleur choix pour jouer seul et grinder une progression ; DailyRapFrance pour jouer avec ses potes, en soirée ou à distance, avec l'actu rap intégrée." }),
 
   guide("vs-blindtest-gg", "DailyRapFrance ou Blindtest.gg : lequel pour un blind test rap ?", "DailyRap vs Blindtest.gg — Comparatif Blind Test en Ligne (2026)",
     "Blindtest.gg est généraliste et multijoueur, DailyRapFrance est 100 % rap français. Ce que chacun propose, et lequel choisir selon ta soirée.",
@@ -200,7 +205,8 @@ export const GUIDE_LANDINGS: Landing[] = [
       { h2: "Pour qui", p: "Une soirée aux goûts mélangés, ou un blind test films : Blindtest.gg. Une soirée rap, un défi entre potes qui écoutent du rap FR, ou l'envie de suivre l'actu en jouant : DailyRapFrance." },
       { h2: "Honnêteté", p: HONNETE },
     ],
-    [{ q: "Peut-on jouer sans compte sur DailyRapFrance ?", a: "Oui, en mode découverte : cinq manches en QCM, avec pub. Le compte gratuit enlève la pub et ouvre le multijoueur." }]),
+    [{ q: "Peut-on jouer sans compte sur DailyRapFrance ?", a: "Oui, en mode découverte : cinq manches en QCM, avec pub. Le compte gratuit enlève la pub et ouvre le multijoueur." }],
+    "/jouer?mode=solo", "Jouer maintenant", { verdict: "Blindtest.gg est le meilleur choix pour une soirée tous styles ou un blind test films ; DailyRapFrance pour une soirée rap français ou des potes qui écoutent du rap FR." }),
 
   guide("vs-zik", "DailyRapFrance ou ZIK : quel blind test pour ta soirée ?", "DailyRap vs ZIK — Comparatif Blind Test TV et En Ligne (2026)",
     "ZIK et DailyRapFrance proposent tous deux le mode TV + téléphones et le jeu en ligne. Thèmes, classement, quotidien, communauté : le comparatif.",
@@ -211,7 +217,62 @@ export const GUIDE_LANDINGS: Landing[] = [
       { h2: "Pour qui", p: "Une soirée tous styles avec des invités qui ne veulent rien installer : ZIK est excellent. Une soirée ou une bande de potes rap FR, avec l'envie de se défier dans la durée : DailyRapFrance." },
       { h2: "Honnêteté", p: HONNETE },
     ],
-    [{ q: "DailyRapFrance a-t-il un mode TV ?", a: "Oui, le mode soirée : code et QR code sur la TV, réponses sur les téléphones, classement en direct, gage pour le dernier." }]),
+    [{ q: "DailyRapFrance a-t-il un mode TV ?", a: "Oui, le mode soirée : code et QR code sur la TV, réponses sur les téléphones, classement en direct, gage pour le dernier." }],
+    "/jouer?mode=party", "Lancer une soirée", { verdict: "ZIK est le meilleur choix pour une soirée tous styles sans compte ; DailyRapFrance pour une soirée ou une bande de potes rap FR qui veulent se défier dans la durée." }),
+
+  /* ── Pages « meilleur » : réponse en une phrase, critères, tableau (format repris par les moteurs de réponse) ── */
+  guide("meilleur-blind-test-rap", "Quel est le meilleur blind test rap français en 2026 ?", "Meilleur Blind Test Rap Français 2026 — Comparatif Honnête de 6 Sites | DailyRapFrance",
+    "Comparatif des blind tests rap français en 2026 : DailyRapFrance, Raplay, Blindtest.gg, ZIK, SongTrivia, MeloClash. Critères, tableau, verdict par usage. Mis à jour novembre 2026.",
+    "Il existe deux blind tests entièrement dédiés au rap français et quatre généralistes qui ont un thème rap. Aucun n'est le meilleur pour tout le monde : ça dépend de si tu joues seul, avec tes potes, en soirée, ou si tu veux tes propres playlists. Voici le comparatif, critère par critère, avec ce que chacun fait mieux que les autres.",
+    [
+      { h2: "Comment on a comparé", p: "Sept critères, vérifiés sur les sites publics en novembre 2026 : rap français uniquement ou généraliste ; jouable sans compte ; multijoueur en ligne entre amis ; mode soirée sur TV avec téléphones ; import de ses propres morceaux ; jeu quotidien ; profondeur de la progression. DailyRapFrance est l'éditeur de cette page : on a mis les forces des autres sans les minimiser, et nos limites aussi." },
+      { h2: "Le verdict par usage", p: "Jouer seul et progresser longtemps : Raplay, pour ses modes originaux (Inversé, Superposé, Évolutif) et ses Labels. Une soirée aux goûts mélangés : ZIK ou Blindtest.gg. Un blind test films et séries : Blindtest.gg. Une app Android : MeloClash. Plusieurs langues : SongTrivia. Jouer entre potes rap FR, à distance ou en soirée, avec le chat, les défis, la messagerie et l'actu : DailyRapFrance." },
+      { h2: "Ce qui nous manque encore", p: "Pas de mode Inversé ni Superposé, pas d'application dans les stores, et une communauté plus jeune que celle de Raplay. On préfère le dire : c'est aussi ce qui rend le reste du tableau crédible." },
+    ],
+    [{ q: "Lequel est gratuit ?", a: "Les six proposent un accès gratuit. DailyRapFrance : partie découverte sans compte avec pub, zéro pub avec un compte gratuit." }, { q: "Lequel marche sur la TV ?", a: "ZIK et DailyRapFrance ont un vrai mode TV + téléphones. Les autres se jouent sur chaque téléphone ou sur un ordinateur partagé." }],
+    "/jouer", "Essayer DailyRapFrance", {
+      verdict: "Le meilleur blind test rap français dépend de l'usage : Raplay pour jouer seul et progresser, DailyRapFrance pour jouer entre potes, en soirée ou à distance ; ZIK et Blindtest.gg si la soirée mélange les styles.",
+      table: {
+        head: ["Critère", "DailyRapFrance", "Raplay", "Blindtest.gg", "ZIK", "SongTrivia", "MeloClash"],
+        rows: [
+          ["100 % rap français", "Oui", "Oui", "Thème", "Thème", "Thème", "Thème"],
+          ["Sans compte", "Découverte (5 manches)", "Oui", "Oui", "Invités TV", "Oui", "Oui"],
+          ["En ligne entre amis", "Salons privés, chat, 2v2, spectateurs", "Salons", "Salons", "Rooms", "Salons", "Salons"],
+          ["Soirée TV + téléphones", "Oui", "Non", "Non", "Oui", "Non", "Non"],
+          ["Ses propres morceaux", "Constructeur Deezer", "Non", "Lien Spotify/Deezer", "Playlists Deezer", "Playlists", "Playlists"],
+          ["Jeu quotidien", "Le son du jour", "Quotidien", "Blind test du jour", "Zikle", "Non", "Non"],
+          ["Progression / social", "Rivaux, duos, revanches, messagerie", "Disques, XP, Labels", "Niveaux, trophées", "ELO, succès", "Classements", "Classements"],
+          ["Média / actu intégrée", "Oui", "Non", "Blog", "Non", "Non", "Non"],
+        ],
+        note: "Relevé sur les sites publics, novembre 2026. Si une ligne est fausse ou dépassée, écris-nous, on corrige.",
+      },
+    }),
+
+  guide("meilleurs-sons-rap-2026", "Les meilleurs sons rap français de 2026 à reconnaître", "Meilleurs Sons Rap Français 2026 — La Liste à Reconnaître en Blind Test | DailyRapFrance",
+    "Les morceaux rap FR qui ont marqué 2026 : têtes d'affiche, nouvelle génération, sons viraux. Une liste vivante, et un blind test pour vérifier que tu les reconnais en trois secondes.",
+    "Une bonne année de rap français se mesure à ça : combien de sons tu reconnais en trois secondes un an plus tard. Voici ce qui a compté en 2026, et le blind test qui va avec.",
+    [
+      { h2: "Les têtes d'affiche", p: "Jul, Gims, Ninho, Werenoi, PLK, SDM, Tiakola : les plus streamés de l'année, ceux dont les sons ont tourné partout, des soirées aux playlists de salle de sport. Si tu n'en reconnais pas la moitié en blind test, tu n'as pas écouté de rap FR en 2026." },
+      { h2: "La nouvelle génération", p: "Les artistes qui ont explosé cette année et qui seront têtes d'affiche en 2027 : c'est le thème « Nouvelle gen » du jeu, le plus dur pour les plus de 25 ans et le plus facile pour les lycéens." },
+      { h2: "Les sons viraux", p: "Ceux qu'on a entendus cent fois sur TikTok sans jamais connaître le titre : le thème « Viral » est fait pour ça, et c'est celui qui fait le plus rire en soirée." },
+      { h2: "Comment la liste se met à jour", p: "Les sélections suivent les écoutes et les sorties jusqu'au 31 décembre : le blind test « Les stars de 2026 » change à chaque partie, et la Rétro 2026 fera le bilan complet fin décembre." },
+    ],
+    [{ q: "Puis-je faire ma propre liste 2026 ?", a: "Oui : le constructeur te laisse chercher les titres sur Deezer, les ordonner, et partager ton blind test à tes potes." }],
+    "/jouer?mode=solo&theme=hits-2026&autostart=1", "Jouer les sons de 2026", { verdict: "Les sons rap FR les plus marquants de 2026 sont ceux de Jul, Gims, Ninho, Werenoi, PLK, SDM et Tiakola côté têtes d'affiche, plus la nouvelle génération et les titres viraux de TikTok ; le blind test « Les stars de 2026 » les rassemble." }),
+
+  guide("meilleur-blind-test-soiree", "Le meilleur blind test pour une soirée : TV, téléphone ou en ligne ?", "Meilleur Blind Test de Soirée 2026 — TV + Téléphones, Local ou En Ligne | DailyRapFrance",
+    "Quel format de blind test choisir pour une soirée ? TV + téléphones pour les grands groupes, un seul téléphone pour une table, salon en ligne pour les potes à distance. Comparatif et réglages.",
+    "Le meilleur blind test de soirée n'est pas un site, c'est un format : le bon dépend du nombre de personnes et de l'endroit. Voici les trois, ce qu'ils demandent, et quand les choisir.",
+    [
+      { h2: "TV + téléphones : à partir de 6 personnes", p: "La TV affiche le QR code, l'extrait, le classement. Chaque invité répond depuis son téléphone, sans application ni compte. C'est le format des soirées, des anniversaires, des pots d'entreprise : personne n'attend son tour, et le dernier tire un gage." },
+      { h2: "Un seul téléphone : 3 à 5 personnes", p: "Le téléphone au milieu de la table, un buzzer à l'écran, le premier qui appuie répond. Zéro mise en place, parfait en terrasse, en voiture ou au restaurant. Les équipes se forment toutes seules." },
+      { h2: "Salon en ligne : les potes à distance", p: "Un code, chacun chez soi sur son téléphone, la même partie en même temps, avec chat et réactions. C'est le format du dimanche soir et des bandes éparpillées." },
+    ],
+    [{ q: "Faut-il une appli ?", a: "Non, pour les trois formats. Un navigateur suffit, sur iPhone comme sur Android." }],
+    "/jouer", "Choisir mon format", {
+      verdict: "Pour une soirée de 6 personnes ou plus, le meilleur format est la TV avec les téléphones en manettes ; pour 3 à 5, un seul téléphone qui tourne ; pour des potes à distance, un salon en ligne. DailyRapFrance propose les trois, gratuitement, sans application.",
+      table: { head: ["", "TV + téléphones", "Un seul téléphone", "Salon en ligne"], rows: [["Nombre de joueurs", "6 à 50", "2 à 5", "2 à 8"], ["Matériel", "Un écran + les téléphones", "Un téléphone", "Un téléphone chacun"], ["Compte nécessaire", "Hôte seulement", "Non", "Oui (gratuit)"], ["Gages", "Oui", "Oui", "Oui"], ["Idéal pour", "Soirée, anniversaire, entreprise", "Terrasse, restaurant, voiture", "Dimanche soir à distance"]] },
+    }),
 
   /* ── Fêtes de fin d'année (indexées tôt pour être en place en décembre) ── */
   guide("nouvel-an", "Blind test rap pour le Nouvel An : le jeu de ton réveillon", "Blind Test Nouvel An 2027 — Le Jeu de Soirée Rap pour ton Réveillon | DailyRapFrance",
