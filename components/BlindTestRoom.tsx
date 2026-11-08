@@ -159,7 +159,23 @@ function BlindTestRoom({
   const [qcmWrongId, setQcmWrongId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState(false);
 
-  const audioRef = useRef<HTMLAudioElement>(null);
+  // UN SEUL élément audio, créé hors de l'arbre React et attaché au <body> : il survit aux
+  // changements d'écran (menu → lobby → partie → final → rejouer). Rendu dans le JSX, il
+  // était remonté à chaque écran et perdait le « droit de lecture » gagné au premier tap —
+  // c'était le « parfois ça se lance, parfois il faut cliquer » en salon.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  if (typeof window !== "undefined" && !audioRef.current) {
+    const a = document.createElement("audio");
+    a.preload = "auto";
+    a.setAttribute("playsinline", "");
+    audioRef.current = a;
+  }
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    document.body.appendChild(a);
+    return () => { try { a.pause(); a.remove(); } catch {} };
+  }, []);
   const repeatCountRef = useRef(0);
   const roomRef = useRef<RoomRow | null>(null);
   roomRef.current = room;
@@ -351,6 +367,7 @@ function BlindTestRoom({
   // « Je suis prêt » (lobby) et « J'ai fini / Passer » (manche) — chacun sur sa ligne room_players.
   const me = players.find((p) => p.user_id === user.id);
   async function toggleReady() {
+    unlockAudio();
     const r = roomRef.current;
     if (!r) return;
     const next = !me?.ready;
@@ -731,26 +748,35 @@ function BlindTestRoom({
   // — et iOS refuse parfois la lecture automatique sur un élément jamais touché : c'était
   // le « parfois ça se lance, parfois il faut cliquer ».
   const unlockRef = audioRef;
-  const sharedAudio = (
-    <audio
-      ref={audioRef}
-      preload="auto"
-      loop={!isSoundbiteTheme(room?.theme)}
-      onEnded={() => {
-        // Gimmicks / mèmes : rejoué 3 fois au plus avec du silence entre deux, pas en boucle.
-        const el = audioRef.current;
-        if (!el || !isSoundbiteTheme(room?.theme) || revealed) return;
-        repeatCountRef.current += 1;
-        if (repeatCountRef.current >= 3) return;
-        setTimeout(() => { if (!revealedRef.current) { try { el.currentTime = 0; void el.play().catch(() => {}); } catch {} } }, 2500);
-      }}
-      onError={() => {
-        if (screen !== "playing") return;
-        if (started && !revealed) void recoverAudio(true);
-        else setAudioError(true);
-      }}
-    />
-  );
+  const sharedAudio = null;
+  // Comportement de l'élément suivant l'état courant (boucle, fin, erreur), sans le remonter.
+  const screenRef = useRef(screen); screenRef.current = screen;
+  const startedRef = useRef(started); startedRef.current = started;
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.loop = !isSoundbiteTheme(room?.theme);
+  }, [room?.theme]);
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onEnded = () => {
+      // Gimmicks / mèmes : rejoué 3 fois au plus avec du silence entre deux, pas en boucle.
+      if (!isSoundbiteTheme(roomRef.current?.theme) || revealedRef.current) return;
+      repeatCountRef.current += 1;
+      if (repeatCountRef.current >= 3) return;
+      setTimeout(() => { if (!revealedRef.current) { try { a.currentTime = 0; void a.play().catch(() => {}); } catch {} } }, 2500);
+    };
+    const onError = () => {
+      if (screenRef.current !== "playing") return;
+      if (startedRef.current && !revealedRef.current) void recoverAudioRef.current?.(true);
+      else setAudioError(true);
+    };
+    a.addEventListener("ended", onEnded);
+    a.addEventListener("error", onError);
+    return () => { a.removeEventListener("ended", onEnded); a.removeEventListener("error", onError); };
+  }, []);
+  const recoverAudioRef = useRef<((auto: boolean) => Promise<void>) | null>(null);
 
   function launchExtract(auto = false, attempt = 0) {
     if (revealedRef.current) return;
@@ -854,6 +880,8 @@ function BlindTestRoom({
         .catch(() => setAudioError(true));
     }, 60);
   }, []);
+
+  recoverAudioRef.current = recoverAudio;
 
   function retryAudio() {
     setAudioError(false);
