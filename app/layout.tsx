@@ -14,6 +14,7 @@ import ReferralCapture from "@/components/ReferralCapture";
 import OnboardingWelcome from "@/components/OnboardingWelcome";
 import LiveNotifier from "@/components/LiveNotifier";
 import NoPinchZoom from "@/components/NoPinchZoom";
+import AdsLoader from "@/components/AdsLoader";
 import BottomDock from "@/components/BottomDock";
 import { AppComingSoonModal } from "@/components/AppComingSoon";
 import { jsonLd as toJsonLd } from "@/lib/jsonld";
@@ -223,6 +224,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <OnboardingWelcome />
         <LiveNotifier />
         <NoPinchZoom />
+        <AdsLoader />
         <BottomDock />
         <AppComingSoonModal />
       </body>

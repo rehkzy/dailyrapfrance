@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { MODE_LANDINGS, THEME_LANDINGS, SITE } from "@/lib/seo";
+import { MODE_LANDINGS, THEME_LANDINGS, GUIDE_LANDINGS, SITE } from "@/lib/seo";
 import { ARTISTS } from "@/lib/artists";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/blindtest`, lastModified: now, changeFrequency: "daily", priority: 1 },
     ...MODE_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.9 })),
     ...THEME_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8 })),
+    ...GUIDE_LANDINGS.map((l) => ({ url: `${SITE}/blindtest/${l.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.7 })),
     { url: `${SITE}/artistes`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     ...ARTISTS.map((a) => ({ url: `${SITE}/artistes/${a.slug}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.8 })),
     { url: `${SITE}/blindtest/creer`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
@@ -28,6 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/blindtests`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
     { url: `${SITE}/blindtest/classement`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
     { url: `${SITE}/blindtest/defi`, lastModified: now, changeFrequency: "daily", priority: 0.7 },
+    { url: `${SITE}/son-du-jour`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: `${SITE}/parrainage`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE}/a-propos`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE}/confidentialite`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },

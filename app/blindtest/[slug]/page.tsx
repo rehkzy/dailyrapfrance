@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { landingBody } from "@/lib/seoText";
+import AdSlot from "@/components/AdSlot";
 import { ArrowRight, Play, Users, Globe, Tv, Check } from "lucide-react";
 import { ALL_LANDINGS, MODE_LANDINGS, THEME_LANDINGS, findLanding, SITE } from "@/lib/seo";
 import { THEME_CATEGORIES } from "@/lib/themes";
@@ -137,6 +139,15 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
             </a>
           )}
         </div>
+
+        {landingBody(l).length > 0 && (
+          <section className="mt-10 grid md:grid-cols-3 gap-6" aria-label="À propos de ce thème">
+            {landingBody(l).map((b) => (
+              <div key={b.h2}><h2 className="font-display text-base font-bold tracking-tight mb-1.5">{b.h2}</h2><p className="text-sm text-ink-muted leading-relaxed">{b.p}</p></div>
+            ))}
+          </section>
+        )}
+        <AdSlot slot="landing" className="mt-8" />
 
         <ul className="mt-8 grid sm:grid-cols-3 gap-2.5 text-sm">
           {[

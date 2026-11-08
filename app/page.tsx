@@ -1,6 +1,9 @@
-import { ArrowRight, User, Users, Globe, Swords, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy, Clapperboard, Sparkles, Play } from "lucide-react";
+import { ArrowRight, User, Users, Globe, Swords, Tv, QrCode, Smartphone, Flame, Timer, Skull, Shuffle, Trophy, Clapperboard, Sparkles, Play, CalendarDays } from "lucide-react";
 import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
+import LiveCounters from "@/components/LiveCounters";
+import HomeFaq from "@/components/HomeFaq";
+import AdSlot from "@/components/AdSlot";
 import SocialLinks from "@/components/SocialLinks";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
 import ReferralCard from "@/components/ReferralCard";
@@ -144,6 +147,14 @@ export default async function Home() {
 
       {/* Connecté : le fil des potes, et les soirées enregistrées */}
       <ActivityFeed />
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-2">
+        <a href="/son-du-jour" className="sdj-home">
+          <span className="sdj-home-ic"><CalendarDays size={20} /></span>
+          <span className="min-w-0 flex-1"><span className="block font-display text-base sm:text-lg font-bold leading-tight">Le son du jour</span><span className="block text-xs text-ink-muted">Un morceau, six essais, le même pour tout le monde. Sans compte.</span></span>
+          <span className="sticker sticker-sm shrink-0">Jouer</span>
+        </a>
+      </section>
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-2"><LiveCounters /></section>
       <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-2 pb-2"><SavedPresets /></section>
 
       {/* Le média : les sons du moment */}
@@ -393,6 +404,9 @@ export default async function Home() {
         </details>
         </div>
       </section>
+
+      <section className="max-w-5xl mx-auto px-5 sm:px-6"><AdSlot slot="home" /></section>
+      <HomeFaq />
 
       {/* Communauté */}
       <section className="relative overflow-hidden border-t border-white/8">

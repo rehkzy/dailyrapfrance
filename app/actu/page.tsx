@@ -1,3 +1,4 @@
+import AdSlot from "@/components/AdSlot";
 import { Flame, Newspaper, Disc3, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { BrandTile } from "@/components/BrandMark";
@@ -53,6 +54,7 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
       <p className="stage-kicker mb-2">Le média</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Actu &amp; tendances</h1>
       <p className="text-ink-muted mb-5">Ce qui tourne en ce moment, les sorties, l&apos;actu — et un blind test dessus en un tap.</p>
+      <AdSlot slot="actu" className="mb-5" />
 
       <nav className="segmented mb-5" aria-label="Rubriques">
         {TABS.map((t) => (

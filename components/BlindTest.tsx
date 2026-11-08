@@ -24,7 +24,7 @@ import { gimmicksOf, isSoundbiteTheme } from "@/lib/gimmicks";
 import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
-import PlayGate from "@/components/PlayGate";
+import AdSlot from "@/components/AdSlot";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
 import HelpTip from "@/components/HelpTip";
@@ -181,7 +181,11 @@ export default function BlindTest() {
   // Réglages effectifs : le Sprint impose ses règles (8 s, 20 extraits, sans joker), la
   // Survie tire un pool large et s'arrête au premier raté.
   const effectiveSeconds = variant === "sprint" ? SPRINT_SECONDS : roundSeconds;
-  const effectiveRounds = customSet ? customSet.i.length : variant === "sprint" ? SPRINT_ROUNDS : variant === "survival" ? SURVIVAL_POOL : roundCount;
+  // Mode découverte (sans compte) : solo, QCM, 5 manches, avec pub. Un compte enlève la pub et
+  // ouvre tout le reste (score, classement, potes, salons). Les robots de Google voient le jeu.
+  const guest = !userLoading && !user;
+  const GUEST_ROUNDS = 5;
+  const effectiveRounds = customSet ? customSet.i.length : variant === "sprint" ? SPRINT_ROUNDS : variant === "survival" ? SURVIVAL_POOL : guest ? Math.min(GUEST_ROUNDS, roundCount) : roundCount;
   const effectiveJokers = variant === "sprint" ? 0 : jokerCount;
   const jokersEnabled = jokersEnabledBase && effectiveJokers > 0;
   const currentConfig: GameConfig = {
@@ -462,7 +466,9 @@ export default function BlindTest() {
       setWizardStep(0);
       return;
     }
-    if (!answerMode) {
+    if (guest && mode === "local") { setShowAuth(true); return; }
+    if (guest && answerMode !== "qcm") setAnswerMode("qcm");
+    if (!answerMode && !guest) {
       setSetupError("Choisis un mode de réponse — Facile (QCM) ou Difficile (écrire) — pour lancer la partie.");
       return;
     }
@@ -1321,7 +1327,7 @@ export default function BlindTest() {
                   <button type="button" onClick={() => { setBranch(null); setMode(null); }} className="back-link mt-3"><ChevronLeft size={16} /> Retour</button>
                   <h2 className="stage-title mb-5">À plusieurs.<br />Avec qui ?</h2>
                   <div className="space-y-2.5">
-                    <button type="button" onClick={() => { sfx.click(); setMode("local"); setSetupError(null); setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); }} className="choice" data-primary={mode === "local"} aria-pressed={mode === "local"}>
+                    <button type="button" onClick={() => { sfx.click(); if (guest) { setShowAuth(true); return; } setMode("local"); setSetupError(null); setTimeout(() => document.getElementById("players-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80); }} className="choice" data-primary={mode === "local"} aria-pressed={mode === "local"}>
                       <span className="choice-icon"><Icon icon="game-icons:smartphone" width={24} /></span>
                       <span className="min-w-0 flex-1"><span className="choice-title">Avec mes potes, sur ce téléphone</span><span className="choice-sub">On se passe le téléphone : 2 à 8 joueurs, un buzzer, le pseudo de chacun.</span></span>
                       {mode === "local" ? <Check size={18} strokeWidth={3} className="shrink-0" /> : <ChevronRight size={18} className="shrink-0 text-ink-faint" />}
@@ -1451,10 +1457,16 @@ export default function BlindTest() {
                     <p className="text-xs font-semibold text-ink-faint mb-2">Réponse</p>
                     <div className="segmented">
                       <button type="button" aria-pressed={answerMode === "qcm"} onClick={() => { sfx.click(); setAnswerMode("qcm"); }}>Facile · 3 choix</button>
-                      <button type="button" aria-pressed={answerMode === "text"} onClick={() => { sfx.click(); setAnswerMode("text"); }}>Difficile · j&apos;écris</button>
+                      <button type="button" aria-pressed={answerMode === "text"} onClick={() => { sfx.click(); if (guest) { setShowAuth(true); return; } setAnswerMode("text"); }}>Difficile · j&apos;écris{guest ? " 🔒" : ""}</button>
                     </div>
                   </div>
                 </div>
+                {guest && (
+                  <div className="guest-note">
+                    <span className="min-w-0 flex-1"><b>Mode découverte</b> : {GUEST_ROUNDS} manches en QCM, avec un peu de pub. <button type="button" onClick={() => setShowAuth(true)} className="underline font-semibold">Un compte gratuit</button> enlève la pub et ouvre tout : score, classement, potes, salons.</span>
+                  </div>
+                )}
+                {guest && <AdSlot slot="setup" className="mt-4" />}
               </div>
 
               <details className="group adv-card ticket mb-6 lg:mb-0" open={wide || undefined}>
@@ -1600,6 +1612,7 @@ export default function BlindTest() {
           <div className="lg:grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10 lg:items-start">
           <div>
           <h2 className="stage-title mt-4 mb-5">{solo ? (perfect === roundOutcomes.length && perfect > 0 ? "Sans faute." : topScore >= roundOutcomes.length * 2 ? "Solide." : "Fini.") : `${ranked[0]?.name} gagne.`}</h2>
+          {guest && <AdSlot slot="final" className="mb-5" />}
 
           <ResultTicket
             points={topScore}
@@ -1681,10 +1694,6 @@ export default function BlindTest() {
   const showAnswers = started && !revealed;
   const qcmKeys = ["A", "B", "C", "D"];
 
-  // Il faut un compte pour jouer : sans session, la porte d'entrée remplace tout le jeu.
-  if (!userLoading && !user) {
-    return <PlayGate />;
-  }
   if (userLoading && !user) {
     return <div className="min-h-[60vh] grid place-items-center"><BrandLoader size="lg" /></div>;
   }

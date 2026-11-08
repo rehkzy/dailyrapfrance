@@ -17,6 +17,7 @@ const columns = [
   {
     title: "Communauté",
     links: [
+      { href: "/son-du-jour", label: "Le son du jour" },
       { href: "/blindtest/defi", label: "Défi de la semaine" },
       { href: "/blindtest/classement", label: "Classement" },
       { href: "/amis", label: "Amis" },

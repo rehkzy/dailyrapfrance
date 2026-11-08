@@ -1,4 +1,4 @@
-import { Trophy, Users, Gift, Calendar, Mic2, Sparkles, LayoutGrid, Settings, Newspaper, Info, Tv, Play, Clapperboard, Smartphone, Globe, type LucideIcon, MessageCircle, Bell } from "lucide-react";
+import { Trophy, Users, Gift, Calendar, Mic2, Sparkles, LayoutGrid, Settings, Newspaper, Info, Tv, Play, Clapperboard, Smartphone, Globe, type LucideIcon, MessageCircle, Bell, CalendarDays } from "lucide-react";
 
 /*
  * Plan du site en trois pôles — la seule source pour le menu desktop, le tiroir mobile,
@@ -10,6 +10,7 @@ import { Trophy, Users, Gift, Calendar, Mic2, Sparkles, LayoutGrid, Settings, Ne
 export type NavLink = { href: string; label: string; sub?: string; Icon: LucideIcon; tag?: string };
 
 export const PLAY_LINKS: NavLink[] = [
+  { href: "/son-du-jour", label: "Le son du jour", sub: "Un morceau, six essais, le même pour tous", Icon: CalendarDays, tag: "Chaque jour" },
   { href: "/jouer?mode=solo", label: "Solo", sub: "Score sauvegardé, 80 thèmes", Icon: Play },
   { href: "/jouer?mode=local", label: "Entre potes", sub: "Un téléphone, un buzzer", Icon: Smartphone },
   { href: "/jouer?mode=online", label: "En ligne", sub: "Un code, chacun chez soi", Icon: Globe },
