@@ -11,7 +11,7 @@ import { oauthCallbackUrl } from "@/lib/authRedirect";
  *    par emplacement dans NEXT_PUBLIC_ADSENSE_SLOT_<SLOT> (sinon bloc auto « responsive »).
  *  · Sans configuration : une « pub maison » qui vend le compte (pas de trou dans la page).
  */
-const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+const CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "ca-pub-9972214408882751";
 const SLOTS: Record<string, string | undefined> = {
   setup: process.env.NEXT_PUBLIC_ADSENSE_SLOT_SETUP,
   final: process.env.NEXT_PUBLIC_ADSENSE_SLOT_FINAL,

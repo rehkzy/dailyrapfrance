@@ -7,7 +7,7 @@ import { useUser } from "@/lib/useUser";
 export default function AdsLoader() {
   const { user, loading } = useUser();
   useEffect(() => {
-    const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+    const client = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "ca-pub-9972214408882751";
     if (!client || loading || user) return;
     if (document.querySelector('script[data-drf-ads]')) return;
     const s = document.createElement("script");

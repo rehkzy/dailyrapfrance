@@ -28,6 +28,7 @@ const APPLE_ICON_DATA_URI = (() => {
 })();
 
 export const metadata: Metadata = {
+  other: { "google-adsense-account": "ca-pub-9972214408882751" },
   metadataBase: new URL("https://dailyrapfrance.best"),
   title: {
     default: "DailyRapFrance — Blind Test Rap Français Gratuit, en Ligne, Compte en 10 Secondes",
@@ -191,6 +192,7 @@ const JSONLD_SITE = {
     },
   ],
 };
+
 
 export const viewport: Viewport = {
   width: "device-width",
