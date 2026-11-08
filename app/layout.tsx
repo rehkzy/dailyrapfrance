@@ -13,6 +13,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import ReferralCapture from "@/components/ReferralCapture";
 import OnboardingWelcome from "@/components/OnboardingWelcome";
 import LiveNotifier from "@/components/LiveNotifier";
+import NoPinchZoom from "@/components/NoPinchZoom";
 import BottomDock from "@/components/BottomDock";
 import { AppComingSoonModal } from "@/components/AppComingSoon";
 import { jsonLd as toJsonLd } from "@/lib/jsonld";
@@ -193,8 +194,8 @@ const JSONLD_SITE = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: "#0A0707",
   viewportFit: "cover",
 };
@@ -221,6 +222,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ReferralCapture />
         <OnboardingWelcome />
         <LiveNotifier />
+        <NoPinchZoom />
         <BottomDock />
         <AppComingSoonModal />
       </body>
