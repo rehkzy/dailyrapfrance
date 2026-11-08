@@ -7,6 +7,11 @@ import { ARTISTS, findArtist, findArtistByName, formatDuration, formatFans } fro
 import { resolveArtist, artistTopTracksFull, artistAlbums, artistRelated } from "@/lib/deezerArtist";
 import { jsonLd as toJsonLd } from "@/lib/jsonld";
 import TrackPreviewList from "@/components/TrackPreviewList";
+import ArtistTop from "@/components/ArtistTop";
+import GimmickChips from "@/components/GimmickChips";
+import BrandMark from "@/components/BrandMark";
+import { artworkAt } from "@/lib/artworkSize";
+import { gimmicksOf } from "@/lib/gimmicks";
 
 /*
  * /artistes/[slug] — « Top sons de <artiste> » : le classement des titres les plus écoutés
@@ -53,6 +58,8 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
   const firstYear = albums.length ? albums[albums.length - 1].releaseDate.slice(0, 4) : null;
   const latest = albums[0];
   const relatedLinked = related.map((r) => ({ ...r, entry: findArtistByName(r.name) }));
+  const heroImg = artist?.picture_xl ?? (artist?.picture_medium ? artworkAt(artist.picture_medium, 1000) : artist?.picture_big ?? null);
+  const gimmicks = gimmicksOf(a.theme.id);
   const others = ARTISTS.filter((x) => x.slug !== a.slug);
   const fallbackRelated = others.sort(() => 0.5 - Math.random()).slice(0, 8);
 
@@ -113,40 +120,60 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: toJsonLd(jsonLd) }} />
-      <article className="max-w-3xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-20">
-        <nav aria-label="Fil d'Ariane" className="text-xs text-ink-faint mb-5 flex items-center gap-1.5 flex-wrap">
-          <a href="/" className="hover:text-ink">DailyRapFrance</a><span aria-hidden="true">›</span>
-          <a href="/artistes" className="hover:text-ink">Artistes</a><span aria-hidden="true">›</span>
-          <span className="text-ink-muted">{a.name}</span>
-        </nav>
+      {/* Affiche plein écran : le portrait, le nom par-dessus, les chiffres, et le bouton Jouer. */}
+      <header className="artist-hero">
+        {heroImg && <img src={heroImg} alt="" className="artist-hero-img" fetchPriority="high" />}
+        <div className="artist-hero-fade" aria-hidden="true" />
+        <div className="artist-hero-body">
+          <nav aria-label="Fil d'Ariane" className="text-xs text-ink-faint mb-3 flex items-center gap-1.5 flex-wrap">
+            <a href="/" className="hover:text-ink">DailyRapFrance</a><span aria-hidden="true">›</span>
+            <a href="/artistes" className="hover:text-ink">Artistes</a><span aria-hidden="true">›</span>
+            <span className="text-ink-muted">{a.name}</span>
+          </nav>
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gold mb-2"><BrandMark size={11} /> Blind test · {YEAR}</p>
+          <h1 className="artist-hero-name">{a.name}</h1>
+          <p className="text-sm text-ink-muted mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {artist?.nb_fan ? <span className="inline-flex items-center gap-1.5"><Users size={13} /> {formatFans(artist.nb_fan)} fans</span> : null}
+            {fullAlbums.length ? <span className="inline-flex items-center gap-1.5"><Disc3 size={13} /> {fullAlbums.length} album{fullAlbums.length > 1 ? "s" : ""}{firstYear ? ` depuis ${firstYear}` : ""}</span> : null}
+            {tracks[0] ? <span className="inline-flex items-center gap-1.5"><Music2 size={13} /> N°1 : {tracks[0].title}</span> : null}
+          </p>
+        </div>
+      </header>
 
-        {/* En-tête artiste */}
-        <header className="flex items-center gap-5 mb-8">
-          {artist?.picture_big && <img src={artist.picture_big} alt={a.name} width={112} height={112} className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]" />}
-          <div className="min-w-0">
-            <p className="stage-kicker mb-1">Top sons · {YEAR}</p>
-            <h1 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.02]">Les meilleurs sons de {a.name}</h1>
-            <p className="text-sm text-ink-faint mt-2 flex flex-wrap gap-x-4 gap-y-1">
-              {artist?.nb_fan ? <span className="inline-flex items-center gap-1.5"><Users size={13} /> {formatFans(artist.nb_fan)} fans Deezer</span> : null}
-              {fullAlbums.length ? <span className="inline-flex items-center gap-1.5"><Disc3 size={13} /> {fullAlbums.length} album{fullAlbums.length > 1 ? "s" : ""}{firstYear ? ` depuis ${firstYear}` : ""}</span> : null}
-            </p>
+      <article className="max-w-3xl mx-auto px-5 sm:px-6 pb-20">
+        {/* Actions : jouer, et comment */}
+        <div className="artist-actions">
+          <a href={`/jouer?mode=solo&theme=${a.theme.id}&autostart=1`} className="artist-play" aria-label={`Jouer au blind test ${a.name}`}><Play size={26} fill="currentColor" className="ml-1" /></a>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-lg font-extrabold leading-tight">Jouer au blind test {a.name}</p>
+            <p className="text-xs text-ink-muted">Toute la discographie, 30 s par extrait, gratuit.</p>
           </div>
-        </header>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
+          <a href={`/jouer?mode=solo&theme=${a.theme.id}`} className="artist-mode">Seul</a>
+          <a href={`/jouer?mode=local&theme=${a.theme.id}`} className="artist-mode">Même téléphone</a>
+          <a href={`/jouer?mode=online&theme=${a.theme.id}`} className="artist-mode">Avec mes amis</a>
+          <a href={`/jouer?mode=party&theme=${a.theme.id}`} className="artist-mode">Soirée</a>
+          <a href={`/jouer?mode=solo&theme=classics-${a.slug}`} className="artist-mode">Classiques</a>
+        </div>
 
-        <p className="text-lg text-ink-muted leading-relaxed mb-8">
-          {tracks[0]
-            ? <>Le son le plus écouté de {a.name} aujourd'hui est <strong className="text-ink font-medium">« {tracks[0].title} »</strong>{tracks[0].album && tracks[0].album.toLowerCase() !== tracks[0].title.toLowerCase() ? ` (album ${tracks[0].album})` : ""}. Voici le classement des 10 titres les plus populaires, d'après les écoutes Deezer, mis à jour chaque jour{latest ? ` — dernier projet : ${latest.title}${latest.releaseDate ? ` (${latest.releaseDate.slice(0, 4)})` : ""}` : ""}.</>
-            : <>Le classement des titres les plus écoutés de {a.name}, mis à jour chaque jour d'après les écoutes Deezer.</>}
-        </p>
+        <div className="mt-5"><ArtistTop themeId={a.theme.id} artistName={a.name} /></div>
 
-        {/* CTA principal */}
-        <a href={`/jouer?mode=solo&theme=${a.theme.id}`} className="sticker w-full h-16 text-lg mb-10">
-          <Play size={18} fill="currentColor" /> Jouer au blind test {a.name}
-        </a>
+        {gimmicks.length > 0 && (
+          <section className="mt-6" aria-labelledby="gim-title">
+            <h2 id="gim-title" className="font-display text-lg font-bold mb-1">Ses gimmicks réagissent pendant la partie</h2>
+            <p className="text-xs text-ink-muted mb-3">Bonne réponse, raté, combo : {a.name} commente lui-même. Écoute.</p>
+            <GimmickChips items={gimmicks} />
+          </section>
+        )}
 
         {/* Top 10 */}
-        <section aria-labelledby="top-title" className="mb-12">
-          <h2 id="top-title" className="font-display text-2xl font-bold mb-4 inline-flex items-center gap-2">Top 10 des sons de {a.name} <HelpTip title="D'où vient ce classement ?" label="D'où vient ce classement ?"><p className="text-sm">Classement par popularité Deezer, actualisé chaque jour. Les extraits de 30 secondes sont fournis par Deezer.</p></HelpTip></h2>
+        <section aria-labelledby="top-title" className="mt-10 mb-12">
+          <div className="flex items-end justify-between gap-3 mb-1">
+            <h2 id="top-title" className="font-display text-2xl font-bold">Titres les plus écoutés</h2>
+            <HelpTip title="D'où vient ce classement ?" label="D'où vient ce classement ?"><p className="text-sm">Classement par popularité Deezer, actualisé chaque jour. Les extraits de 30 secondes sont fournis par Deezer.</p></HelpTip>
+          </div>
+          <p className="text-xs text-ink-muted mb-4">Appuie sur une pochette pour écouter. Ces sons peuvent tomber dans le blind test, mais pas seulement eux.</p>
           {tracks.length === 0 ? (
             <p className="text-sm text-ink-faint">Le classement n'est pas disponible pour le moment.</p>
           ) : (
@@ -157,11 +184,11 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
         {/* Discographie */}
         {fullAlbums.length > 0 && (
           <section aria-labelledby="disco-title" className="mb-12">
-            <h2 id="disco-title" className="font-display text-2xl font-bold mb-4">Discographie de {a.name}</h2>
-            <ul className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {fullAlbums.slice(0, 12).map((al) => (
-                <li key={al.id} className="min-w-0">
-                  {al.cover && <img src={al.cover} alt={`${al.title} — ${a.name}`} width={250} height={250} loading="lazy" className="w-full aspect-square rounded-xl object-cover border border-white/10" />}
+            <h2 id="disco-title" className="font-display text-2xl font-bold mb-4">Albums</h2>
+            <ul className="artist-albums">
+              {fullAlbums.slice(0, 14).map((al) => (
+                <li key={al.id}>
+                  {al.cover && <img src={al.cover} alt={`${al.title} — ${a.name}`} width={250} height={250} loading="lazy" />}
                   <p className="text-xs font-semibold mt-2 truncate">{al.title}</p>
                   {al.releaseDate && <p className="text-[11px] text-ink-faint">{al.releaseDate.slice(0, 4)}</p>}
                 </li>
@@ -171,35 +198,31 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
           </section>
         )}
 
-        {/* Le jeu */}
-        <section className="card p-6 mb-12">
-          <p className="stage-kicker mb-2">Le blind test {a.name}</p>
-          <h2 className="font-display text-xl font-bold mb-2">Tu connais vraiment {a.name} ?</h2>
-          <p className="text-sm text-ink-muted mb-4">{a.theme.text}. Un extrait démarre, tu retrouves le titre — et le featuring s'il y en a un — le plus vite possible. Gratuit, en solo pour le classement, entre potes sur un téléphone, ou en ligne.</p>
-          <div className="flex flex-wrap gap-2">
-            <a href={`/jouer?mode=solo&theme=${a.theme.id}`} className="sticker sticker-sm"><Play size={14} fill="currentColor" /> Solo</a>
-            <a href={`/jouer?mode=local&theme=${a.theme.id}`} className="sticker sticker-ghost sticker-sm">Entre potes</a>
-            <a href={`/jouer?mode=online&theme=${a.theme.id}`} className="sticker sticker-ghost sticker-sm">En ligne</a>
-            <a href={`/blindtest/${a.slug}`} className="sticker sticker-ghost sticker-sm">Tout savoir <ArrowRight size={13} /></a>
-          </div>
+        {/* À propos (texte utile aux moteurs, discret pour les joueurs) */}
+        <section className="mb-12">
+          <h2 className="font-display text-lg font-bold mb-2">Le blind test {a.name}</h2>
+          <p className="text-sm text-ink-muted leading-relaxed">
+            {tracks[0] ? <>Le son le plus écouté de {a.name} aujourd&apos;hui est « {tracks[0].title} »{tracks[0].album && tracks[0].album.toLowerCase() !== tracks[0].title.toLowerCase() ? ` (album ${tracks[0].album})` : ""}{latest ? `, dernier projet : ${latest.title}${latest.releaseDate ? ` (${latest.releaseDate.slice(0, 4)})` : ""}` : ""}. </> : null}
+            {a.theme.text}. Un extrait démarre, tu retrouves le titre, et le featuring s&apos;il y en a un, le plus vite possible. Le classement de ce thème est séparé : ton meilleur score se compare à ceux des autres fans. <a href={`/blindtest/${a.slug}`} className="text-gold font-semibold">Tout savoir sur ce blind test <ArrowRight size={12} className="inline" /></a>
+          </p>
         </section>
 
         {/* Artistes proches */}
         <section aria-labelledby="rel-title">
-          <h2 id="rel-title" className="font-display text-2xl font-bold mb-4">Artistes proches de {a.name}</h2>
-          <ul className="flex flex-wrap gap-2">
+          <h2 id="rel-title" className="font-display text-2xl font-bold mb-4">Les fans aiment aussi</h2>
+          <ul className="artist-related">
             {(relatedLinked.some((r) => r.entry) ? relatedLinked : fallbackRelated.map((e) => ({ id: 0, name: e.name, picture: "", entry: e }))).map((r) =>
               r.entry ? (
                 <li key={r.entry.slug}>
-                  <a href={`/artistes/${r.entry.slug}`} className="inline-flex items-center gap-2 rounded-full pl-1 pr-3.5 py-1 bg-white/5 border border-white/10 hover:border-gold/50 text-sm font-medium transition-colors">
-                    {r.picture ? <img src={r.picture} alt="" width={28} height={28} className="w-7 h-7 rounded-full object-cover" /> : <span className="w-7 h-7 rounded-full bg-gold/20 text-gold grid place-items-center"><Music2 size={13} /></span>}
-                    {r.name}
+                  <a href={`/artistes/${r.entry.slug}`} className="artist-related-item">
+                    {r.picture ? <img src={r.picture} alt="" width={72} height={72} /> : <span className="ph"><Music2 size={18} /></span>}
+                    <span>{r.name}</span>
                   </a>
                 </li>
               ) : (
-                <li key={r.id} className="inline-flex items-center gap-2 rounded-full pl-1 pr-3.5 py-1 bg-white/[0.03] border border-white/6 text-sm text-ink-faint">
-                  {r.picture ? <img src={r.picture} alt="" width={28} height={28} className="w-7 h-7 rounded-full object-cover opacity-70" /> : null}
-                  {r.name}
+                <li key={r.id} className="artist-related-item" data-dim="true">
+                  {r.picture ? <img src={r.picture} alt="" width={72} height={72} /> : <span className="ph"><Music2 size={18} /></span>}
+                  <span>{r.name}</span>
                 </li>
               )
             )}

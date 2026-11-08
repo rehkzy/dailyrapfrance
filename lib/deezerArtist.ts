@@ -19,6 +19,7 @@ export type DeezerArtistLite = {
   picture?: string;
   picture_medium?: string;
   picture_big?: string;
+  picture_xl?: string;
 };
 
 async function deezerFetch<T>(path: string): Promise<T> {
