@@ -14,6 +14,7 @@ export type DMPayload =
   | { k: "voice"; path: string; key: string; iv: string; secs: number; mime: string }
   | { k: "gimmick"; id: string }
   | { k: "poll"; q: string; options: string[] }
+  | { k: "invite"; code: string; label: string; rounds?: number | null }
   | { k: "vote"; to: string; i: number };
 
 export function parsePayload(text: string | null): DMPayload | null {
@@ -38,6 +39,7 @@ export function previewOf(text: string | null): string {
     case "gimmick": return "🎤 Gimmick";
     case "poll": return `📊 ${p.q}`;
     case "vote": return "📊 A voté";
+    case "invite": return `🎮 Invitation : salon ${p.label}`;
   }
 }
 

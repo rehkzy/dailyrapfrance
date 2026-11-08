@@ -1145,7 +1145,7 @@ function BlindTestRoom({
             </a>
           )}
 
-          {!room.is_public && <RoomFriendInvites userId={user.id} roomCode={room.code} inRoomIds={players.map((p) => p.user_id)} />}
+          {!room.is_public && <RoomFriendInvites userId={user.id} roomCode={room.code} roomLabel={room.custom_title ?? THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme} rounds={room.rounds} inRoomIds={players.map((p) => p.user_id)} />}
 
           <div className="ticket p-4 mb-6">
             <p className="text-xs font-semibold text-ink-faint mb-3 flex items-center justify-center gap-1.5">

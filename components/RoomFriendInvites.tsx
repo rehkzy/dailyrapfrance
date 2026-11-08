@@ -1,21 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Send, Check, Users, Link2 } from "lucide-react";
+import { Send, Check, Users, Link2, MessageCircle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useMessaging } from "@/lib/useMessaging";
+import type { DMPayload } from "@/lib/dm";
 
 type FriendLite = { id: string; name: string; avatar: string | null };
 
 /*
  * Lobby d'un salon privé : tes amis, et un bouton pour inviter chacun.
- *  · « Inviter » envoie une notification push avec le lien direct (s'il a activé les
- *    notifications), et garde toujours le partage natif en secours (WhatsApp, iMessage…).
+ *  · « Inviter » ouvre le choix : « Dans le jeu » (carte d'invitation dans la messagerie
+ *    chiffrée + notification/push) ou « Lien » (partage natif : WhatsApp, iMessage…).
  *  · Les amis déjà dans le salon sont cochés.
  */
-export default function RoomFriendInvites({ userId, roomCode, inRoomIds = [] }: { userId: string; roomCode: string; inRoomIds?: string[] }) {
+export default function RoomFriendInvites({ userId, roomCode, roomLabel, rounds, inRoomIds = [] }: { userId: string; roomCode: string; roomLabel?: string; rounds?: number | null; inRoomIds?: string[] }) {
   const [friends, setFriends] = useState<FriendLite[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [state, setState] = useState<Record<string, "sent" | "copied" | "busy">>({});
+  const [state, setState] = useState<Record<string, "sent" | "copied" | "busy" | "pending">>({});
+  const [choice, setChoice] = useState<string | null>(null); // ami pour lequel on affiche « Dans le jeu / Lien »
+  const dm = useMessaging(userId);
 
   useEffect(() => {
     const supabase = createClient();
@@ -38,16 +42,14 @@ export default function RoomFriendInvites({ userId, roomCode, inRoomIds = [] }: 
 
   const url = typeof window !== "undefined" ? `${window.location.origin}/jouer?mode=online&room=${roomCode}` : `/jouer?mode=online&room=${roomCode}`;
 
-  async function invite(friend: FriendLite) {
+  /** Invitation dans le jeu : carte dans la messagerie (chiffrée) + notification/push. */
+  async function inviteInGame(friend: FriendLite) {
+    setChoice(null);
     setState((s) => ({ ...s, [friend.id]: "busy" }));
-    let pushed = false;
-    try {
-      const r = await fetch("/api/rooms/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: friend.id, code: roomCode }) });
-      pushed = r.ok && !!((await r.json()) as { pushed?: boolean }).pushed;
-    } catch {}
-    if (pushed) { setState((s) => ({ ...s, [friend.id]: "sent" })); return; }
-    // Pas de notification chez lui : on envoie le lien par le partage natif, sinon copie.
-    await shareLink(friend);
+    const payload: DMPayload = { k: "invite", code: roomCode, label: roomLabel ?? "Blind test", rounds: rounds ?? null };
+    const r = await dm.send(friend.id, JSON.stringify(payload));
+    void fetch("/api/rooms/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ friendId: friend.id, code: roomCode }) }).catch(() => {});
+    setState((s) => ({ ...s, [friend.id]: r.msgId ? "sent" : r.pending ? "pending" : "sent" }));
   }
 
   async function shareLink(friend: FriendLite) {
@@ -85,12 +87,17 @@ export default function RoomFriendInvites({ userId, roomCode, inRoomIds = [] }: 
               {here ? (
                 <span className="text-xs font-semibold text-gold inline-flex items-center gap-1"><Check size={13} strokeWidth={3} /> Dans le salon</span>
               ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <button type="button" onClick={() => invite(f)} disabled={st === "busy"} className="sticker sticker-sm !min-h-[36px] !px-3 !text-xs">
-                    {st === "sent" ? <><Check size={12} strokeWidth={3} /> Invité</> : st === "copied" ? <><Check size={12} /> Copié</> : <><Send size={12} /> Inviter</>}
+                choice === f.id ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <button type="button" onClick={() => void inviteInGame(f)} className="sticker sticker-sm !min-h-[36px] !px-3 !text-xs"><MessageCircle size={12} /> Dans le jeu</button>
+                    <button type="button" onClick={() => { setChoice(null); void shareLink(f); }} className="sticker sticker-ghost sticker-sm !min-h-[36px] !px-3 !text-xs"><Link2 size={12} /> Lien</button>
+                    <button type="button" onClick={() => setChoice(null)} aria-label="Annuler" className="w-8 h-8 rounded-full grid place-items-center text-ink-faint"><X size={14} /></button>
+                  </span>
+                ) : (
+                  <button type="button" onClick={() => setChoice(f.id)} disabled={st === "busy" || !dm.ready} className="sticker sticker-sm !min-h-[36px] !px-3 !text-xs">
+                    {st === "sent" ? <><Check size={12} strokeWidth={3} /> Invité</> : st === "pending" ? <><Check size={12} /> Invité · en attente</> : st === "copied" ? <><Check size={12} /> Copié</> : <><Send size={12} /> Inviter</>}
                   </button>
-                  <button type="button" onClick={() => shareLink(f)} aria-label={`Envoyer le lien à ${f.name}`} className="w-9 h-9 rounded-xl bg-white/6 border border-white/10 grid place-items-center text-ink-muted"><Link2 size={14} /></button>
-                </span>
+                )
               )}
             </li>
           );

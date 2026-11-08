@@ -546,6 +546,8 @@ export function Thread({ peer }: { peer: Lite }) {
                         <VoiceBubble p={p} mine={dm.mine} />
                       ) : p.k === "gimmick" ? (
                         <GimmickBubble p={p} />
+                      ) : p.k === "invite" ? (
+                        <InviteBubble p={p} mine={dm.mine} from={dm.mine ? myName : (peer.display_name ?? "Un pote")} />
                       ) : p.k === "poll" ? (
                         <PollBubble p={p} votes={votes.get(dm.msgId)} me={user.id} peerName={peer.display_name ?? "Ton pote"} onVote={(i) => void vote(dm.msgId, i)} />
                       ) : null}
@@ -816,6 +818,22 @@ function GimmickPicker({ onPick, onClose }: { onPick: (id: string) => void; onCl
         </section>
       ))}
     </Sheet>
+  );
+}
+
+/* ── Invitation dans un salon ───────────────────────────────────────────── */
+function InviteBubble({ p, mine, from }: { p: Extract<DMPayload, { k: "invite" }>; mine: boolean; from: string }) {
+  const href = `/jouer?mode=online&room=${encodeURIComponent(p.code)}`;
+  return (
+    <div className="dm-challenge">
+      <span className="dm-challenge-icon"><Swords size={18} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] uppercase tracking-wider font-bold text-gold">Salon privé</span>
+        <span className="block text-[15px] font-extrabold leading-tight">{p.label}</span>
+        <span className="block text-[12px] text-ink-muted">{mine ? "Ton invitation · " : `${from} t'invite · `}code {p.code}{p.rounds ? ` · ${p.rounds} manches` : ""}</span>
+      </span>
+      <a href={href} className="sticker sticker-sm shrink-0">{mine ? "Ouvrir" : "Rejoindre"}</a>
+    </div>
   );
 }
 
