@@ -77,7 +77,7 @@ function SecurityExplainer({ compact = false }: { compact?: boolean }) {
       </button>
       {open && (
         <ul className="dm-secure-list">
-          <li><ShieldCheck size={14} /> <span><b>Une clé par téléphone.</b> Elle est créée ici et ne quitte jamais ton appareil : le navigateur lui-même refuse de l&apos;exporter.</span></li>
+          <li><ShieldCheck size={14} /> <span><b>Une clé par téléphone.</b> Elle est créée ici et ne quitte jamais ton appareil : nos serveurs ne la voient jamais.</span></li>
           <li><Zap size={14} /> <span><b>Instantané.</b> Les messages arrivent en temps réel, sans rechargement, et sont marqués lus quand ton pote les ouvre.</span></li>
           <li><Smartphone size={14} /> <span><b>Comme WhatsApp sans sauvegarde.</b> Un message se lit sur les appareils qui existaient à l&apos;envoi. Si tu effaces les données du site, l&apos;historique part avec.</span></li>
           <li><Lock size={14} /> <span><b>Entre amis seulement.</b> La base refuse tout message vers quelqu&apos;un qui n&apos;est pas ami accepté.</span></li>

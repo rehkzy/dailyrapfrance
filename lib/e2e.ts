@@ -1,9 +1,8 @@
 /*
  * Chiffrement de bout en bout de la messagerie — Web Crypto uniquement, rien de custom.
  *
- *  · Identité d'appareil : une paire ECDH P-256 générée ici, clé privée stockée dans
- *    IndexedDB (non extractible : le navigateur refuse de l'exporter, même à notre code),
- *    clé publique publiée dans user_keys.
+ *  · Identité d'appareil : une paire ECDH P-256 générée ici, clé privée stockée sur
+ *    l'appareil (IndexedDB + localStorage, jamais envoyée), clé publique publiée dans user_keys.
  *  · Secret partagé : ECDH(ma privée, sa publique) → HKDF-SHA256 (info = les deux ids
  *    d'appareils triés) → clé AES-256-GCM. Même secret des deux côtés, jamais transmis.
  *  · Message : AES-GCM, IV aléatoire de 12 octets, texte UTF-8. Un chiffré par appareil
@@ -39,16 +38,40 @@ export function e2eSupported(): boolean {
   return typeof window !== "undefined" && !!window.crypto?.subtle && !!window.indexedDB;
 }
 
-/** Identité de cet appareil (créée au premier appel, puis réutilisée). */
-export async function deviceIdentity(): Promise<DeviceIdentity> {
-  const existing = await idbGet<{ deviceId: string; publicJwk: JsonWebKey; privateKey: CryptoKey }>("identity");
-  if (existing?.privateKey) return existing;
-  const pair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, false, ["deriveKey", "deriveBits"]);
-  const publicJwk = await crypto.subtle.exportKey("jwk", pair.publicKey);
-  const deviceId = crypto.randomUUID();
-  const identity = { deviceId, publicJwk, privateKey: pair.privateKey };
-  await idbSet("identity", identity);
-  return identity;
+/*
+ * Identité de cet appareil (créée au premier appel, puis réutilisée).
+ * La clé privée est gardée au format JWK dans IndexedDB ET dans localStorage : Safari iPhone
+ * ne conserve pas de façon fiable un objet CryptoKey d'un chargement à l'autre, ce qui
+ * recréait une identité à chaque visite — et rendait illisibles tous les messages précédents,
+ * même ceux envoyés depuis ce téléphone. Elle ne quitte jamais l'appareil pour autant.
+ */
+type Stored = { deviceId: string; publicJwk: JsonWebKey; privateJwk: JsonWebKey };
+const LS_KEY = "drf-e2e-identity";
+const ECDH = { name: "ECDH", namedCurve: "P-256" } as const;
+
+function readLocal(): Stored | null { try { return JSON.parse(localStorage.getItem(LS_KEY) ?? "null"); } catch { return null; } }
+function writeLocal(s: Stored) { try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch {} }
+
+async function importIdentity(st: Stored): Promise<DeviceIdentity> {
+  const privateKey = await crypto.subtle.importKey("jwk", st.privateJwk, ECDH, false, ["deriveKey", "deriveBits"]);
+  return { deviceId: st.deviceId, publicJwk: st.publicJwk, privateKey };
+}
+
+let identityPromise: Promise<DeviceIdentity> | null = null;
+export function deviceIdentity(): Promise<DeviceIdentity> {
+  if (!identityPromise) identityPromise = (async () => {
+    let st = await idbGet<Stored>("identity-v2").catch(() => undefined) ?? readLocal();
+    if (st?.privateJwk) {
+      try { const id = await importIdentity(st); writeLocal(st); return id; } catch { /* corrompu : on régénère */ }
+    }
+    const pair = await crypto.subtle.generateKey(ECDH, true, ["deriveKey", "deriveBits"]);
+    const [publicJwk, privateJwk] = await Promise.all([crypto.subtle.exportKey("jwk", pair.publicKey), crypto.subtle.exportKey("jwk", pair.privateKey)]);
+    st = { deviceId: crypto.randomUUID(), publicJwk, privateJwk };
+    await idbSet("identity-v2", st).catch(() => {});
+    writeLocal(st);
+    return importIdentity(st);
+  })();
+  return identityPromise;
 }
 
 const sharedCache = new Map<string, Promise<CryptoKey>>();
