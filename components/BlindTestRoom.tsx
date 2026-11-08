@@ -749,6 +749,18 @@ function BlindTestRoom({
   // le « parfois ça se lance, parfois il faut cliquer ».
   const unlockRef = audioRef;
   const sharedAudio = null;
+  // N'importe quel premier geste dans le salon (scroll, emoji, chat…) arme le lecteur : un ami
+  // arrivé par un lien d'invitation n'a parfois touché à rien avant la première manche.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const arm = () => { unlockAudio(); setArmed(true); };
+    const opts: AddEventListenerOptions = { capture: true, passive: true };
+    document.addEventListener("touchend", arm, opts);
+    document.addEventListener("click", arm, opts);
+    document.addEventListener("keydown", arm, opts);
+    return () => { document.removeEventListener("touchend", arm, opts); document.removeEventListener("click", arm, opts); document.removeEventListener("keydown", arm, opts); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Comportement de l'élément suivant l'état courant (boucle, fin, erreur), sans le remonter.
   const screenRef = useRef(screen); screenRef.current = screen;
   const startedRef = useRef(started); startedRef.current = started;
@@ -1507,11 +1519,20 @@ function BlindTestRoom({
               <p className="mt-4 text-xs text-ink-faint">Manche suivante dans un instant…</p>
             </div>
           ) : showIntro ? (
-            <div className="text-center">
-              <span className="feed-launch-ring mx-auto" style={{ animation: "none" }}><Icon icon="game-icons:headphones" width={34} /></span>
-              <p className="stage-kicker mt-5">Manche {room.current_round + 1}</p>
-              <p className="font-display text-2xl font-extrabold tracking-tight animate-pulse">Prépare-toi…</p>
-            </div>
+            armed || audioUnlockedRef.current ? (
+              <div className="text-center">
+                <span className="feed-launch-ring mx-auto" style={{ animation: "none" }}><Icon icon="game-icons:headphones" width={34} /></span>
+                <p className="stage-kicker mt-5">Manche {room.current_round + 1}</p>
+                <p className="font-display text-2xl font-extrabold tracking-tight animate-pulse">Prépare-toi…</p>
+              </div>
+            ) : (
+              <button type="button" onClick={() => { unlockAudio(); setArmed(true); }} className="feed-launch">
+                <span className="feed-launch-ring"><Icon icon="game-icons:headphones" width={34} /></span>
+                <span className="stage-kicker mt-5">Manche {room.current_round + 1}</span>
+                <span className="font-display text-2xl font-extrabold tracking-tight">Touche l&apos;écran, casque prêt</span>
+                <span className="text-xs text-ink-faint mt-1">Le son partira tout seul ensuite.</span>
+              </button>
+            )
           ) : !started && needsTap ? (
             <button type="button" onClick={() => launchExtract()} className="feed-launch">
               <span className="feed-launch-ring"><Icon icon="game-icons:play-button" width={34} /></span>
