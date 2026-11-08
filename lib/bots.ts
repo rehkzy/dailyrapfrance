@@ -13,14 +13,14 @@ import { speedBonus } from "@/lib/scoring";
  */
 export type BotDef = { slug: string; name: string; level: 1 | 2 | 3 };
 export const BOTS: BotDef[] = [
-  { slug: "yanis", name: "Yanis · IA", level: 2 },
-  { slug: "ines", name: "Inès · IA", level: 3 },
-  { slug: "mehdi", name: "Mehdi · IA", level: 1 },
-  { slug: "lea", name: "Léa · IA", level: 2 },
-  { slug: "ibra", name: "Ibra · IA", level: 3 },
-  { slug: "noa", name: "Noa · IA", level: 1 },
-  { slug: "sofia", name: "Sofia · IA", level: 2 },
-  { slug: "rayan", name: "Rayan · IA", level: 3 },
+  { slug: "yanis", name: "Yanis", level: 2 },
+  { slug: "ines", name: "Inès", level: 3 },
+  { slug: "mehdi", name: "Mehdi", level: 1 },
+  { slug: "lea", name: "Léa", level: 2 },
+  { slug: "ibra", name: "Ibra", level: 3 },
+  { slug: "noa", name: "Noa", level: 1 },
+  { slug: "sofia", name: "Sofia", level: 2 },
+  { slug: "rayan", name: "Rayan", level: 3 },
 ];
 const USERNAME = (b: BotDef) => `ia-${b.slug}`;
 
@@ -58,28 +58,55 @@ function rng(seed: string) {
 }
 const P_FIND: Record<FieldKey, [number, number, number]> = { title: [0.42, 0.6, 0.78], artist: [0.6, 0.76, 0.9], feat: [0.3, 0.45, 0.62] };
 
-export type BotStep = { field: FieldKey | null; atMs: number }; // field null = « j'ai fini » sans trouver
+export type BotStep =
+  | { kind: "solve"; field: FieldKey; atMs: number }
+  | { kind: "done"; atMs: number }
+  | { kind: "react"; emoji: string; atMs: number }
+  | { kind: "chat"; text: string; atMs: number };
+
+/* Lignes de chat : courtes, dans le ton, jamais sur le jeu lui-même. Celles qui citent un son
+ * ne parlent que du PRÉCÉDENT (déjà révélé), jamais de celui en cours. */
+const GENERIC = ["aucune idée là", "trop rapide pour moi", "je l'ai sur le bout de la langue", "ptn je la connais", "nan là je sèche", "facile celle-là", "le flow je le reconnais mais le titre…", "qui c'est le feat sérieux", "j'étais à deux doigts", "ok ok ça monte", "on se calme", "la prod est folle", "je l'écoutais ce matin", "ah ouais c'est vieux ça", "t'es chaud toi", "gg", "arrête de tricher mdr", "je reviens je mets le casque"];
+const ABOUT_PREV = ["ah c'était {a}, je l'avais", "{a} période {t} intouchable", "{t} je l'ai usée celle-là", "jamais j'aurais dit {a}", "{a} franchement sous-coté", "{t} c'est le banger de l'année facile", "le feat sur {t} il est trop fort", "{a} en concert c'était une dinguerie", "je savais que c'était {a} au bout de 2 sec"];
+const EMOJIS_HIT = ["🔥", "🎯", "😎", "💪"];
+const EMOJIS_MISS = ["💀", "😭", "🤡", "😩"];
 
 /** Ce que fait une IA sur une manche : pour chaque champ, trouvé ou non, et à quel moment. */
-export function planFor(roomId: string, round: number, bot: { id: string; def: BotDef }, theme: string, track: { artistName: string; feats: string[] }, answerMode: string, roundSecs: number): BotStep[] {
+export function planFor(roomId: string, round: number, bot: { id: string; def: BotDef }, theme: string, track: { artistName: string; feats: string[] }, answerMode: string, roundSecs: number, prev?: { title: string; artistName: string } | null): BotStep[] {
   const r = rng(`${roomId}|${round}|${bot.id}`);
   const fields = fieldsFor(theme, track);
   const lvl = bot.def.level;
   const steps: BotStep[] = [];
+  const limit = roundSecs * 1000;
+  // Un mot sur le son précédent (révélé), de temps en temps, en tout début de manche
+  if (prev && r() < 0.14) {
+    const tpl = ABOUT_PREV[Math.floor(r() * ABOUT_PREV.length)];
+    steps.push({ kind: "chat", text: tpl.replace("{a}", prev.artistName.split(/ feat| ft\.?|,/i)[0]).replace("{t}", prev.title.replace(/\s*\(.*?\)\s*/g, "").trim()), atMs: Math.round(1200 + r() * 2500) });
+  }
   let t = 2500 + r() * 2500; // personne ne répond avant 2,5 s
+  let found = 0;
   for (const f of fields) {
     let p = P_FIND[f][lvl - 1];
     if (answerMode === "qcm") p = Math.min(0.95, p + 0.12);
     const think = (3500 + r() * 9000) * (lvl === 3 ? 0.65 : lvl === 2 ? 0.85 : 1.05);
     t += think;
-    if (t > roundSecs * 1000 - 1500) break;
-    if (r() < p) steps.push({ field: f, atMs: Math.round(t) });
+    if (t > limit - 1500) break;
+    if (r() < p) {
+      steps.push({ kind: "solve", field: f, atMs: Math.round(t) });
+      found++;
+      if (r() < 0.22) steps.push({ kind: "react", emoji: EMOJIS_HIT[Math.floor(r() * EMOJIS_HIT.length)], atMs: Math.round(t + 600 + r() * 800) });
+    }
   }
-  // « Fini » : un peu après sa dernière action, ou vers la fin si elle a séché
-  const last = steps.length ? steps[steps.length - 1].atMs : 0;
-  const doneAt = steps.length === fields.length ? last + 400 : Math.min(roundSecs * 1000 - 800, Math.max(last + 1500, 9000 + r() * (roundSecs * 1000 - 11000)));
-  steps.push({ field: null, atMs: Math.round(doneAt) });
-  return steps;
+  const last = steps.filter((s) => s.kind === "solve").reduce((m, s) => Math.max(m, s.atMs), 0);
+  const doneAt = found === fields.length ? last + 400 : Math.min(limit - 800, Math.max(last + 1500, 9000 + r() * (limit - 11000)));
+  steps.push({ kind: "done", atMs: Math.round(doneAt) });
+  if (found < fields.length) {
+    if (r() < 0.18) steps.push({ kind: "react", emoji: EMOJIS_MISS[Math.floor(r() * EMOJIS_MISS.length)], atMs: Math.round(doneAt + 300) });
+    else if (r() < 0.12) steps.push({ kind: "chat", text: GENERIC[Math.floor(r() * GENERIC.length)], atMs: Math.round(Math.min(limit - 600, doneAt + 500 + r() * 1500)) });
+  } else if (r() < 0.08) {
+    steps.push({ kind: "chat", text: GENERIC[Math.floor(r() * GENERIC.length)], atMs: Math.round(doneAt + 900) });
+  }
+  return steps.sort((a, b) => a.atMs - b.atMs);
 }
 
 export function bonusAt(atMs: number) { return speedBonus(atMs / 1000); }

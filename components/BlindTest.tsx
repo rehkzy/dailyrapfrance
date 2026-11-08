@@ -25,6 +25,7 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
 import AdSlot from "@/components/AdSlot";
+import ReviewPrompt from "@/components/ReviewPrompt";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
 import HelpTip from "@/components/HelpTip";
@@ -1613,6 +1614,7 @@ export default function BlindTest() {
           <div>
           <h2 className="stage-title mt-4 mb-5">{solo ? (perfect === roundOutcomes.length && perfect > 0 ? "Sans faute." : topScore >= roundOutcomes.length * 2 ? "Solide." : "Fini.") : `${ranked[0]?.name} gagne.`}</h2>
           {guest && <AdSlot slot="final" className="mb-5" />}
+          {user && solo && <ReviewPrompt userId={user.id} />}
 
           <ResultTicket
             points={topScore}

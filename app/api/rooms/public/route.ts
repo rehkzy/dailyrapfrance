@@ -234,9 +234,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ room, players });
   }
 
+  if (body.action === "bot-ids") {
+    const bots = await botIds();
+    return NextResponse.json({ ids: [...bots.keys()] });
+  }
+
   /* ── IA en partie ──
    *  bot-plan { roomId, round } → la partition de chaque IA pour cette manche (déterministe)
-   *  bot-act  { roomId, round, botId, field|null } → le serveur revérifie la partition et
+   *  bot-act  { roomId, round, botId, i } → le serveur revérifie la partition (étape i) et
    *            l'horloge, puis insère la bonne réponse (ou marque « fini »). Idempotent.
    */
   if (body.action === "bot-plan" || body.action === "bot-act") {
@@ -251,20 +256,31 @@ export async function POST(req: NextRequest) {
     const bots = await botIds();
     const inRoom = players.filter((p) => bots.has(p.user_id));
     const secs = Number(room.round_seconds) || ROUND_SECS_DEFAULT;
-    const plans = inRoom.map((p) => ({ botId: p.user_id, steps: planFor(room.id, round, { id: p.user_id, def: bots.get(p.user_id)! }, room.theme, track, room.answer_mode ?? "qcm", secs) }));
-    if (body.action === "bot-plan") return NextResponse.json({ round, startedAt: room.round_started_at, plans });
+    const prev = round > 0 ? ((room.tracks as { title: string; artistName: string }[])[round - 1] ?? null) : null;
+    const plans = inRoom.map((p) => ({ botId: p.user_id, steps: planFor(room.id, round, { id: p.user_id, def: bots.get(p.user_id)! }, room.theme, track, room.answer_mode ?? "qcm", secs, prev) }));
+    // Les clients ne reçoivent que les instants et les types, jamais le contenu (réponses, textes).
+    if (body.action === "bot-plan") return NextResponse.json({ round, startedAt: room.round_started_at, plans: plans.map((pl) => ({ botId: pl.botId, steps: pl.steps.map((st, i) => ({ i, atMs: st.atMs })) })) });
 
     const plan = plans.find((x) => x.botId === b.botId);
     if (!plan) return NextResponse.json({ error: "unknown_bot" }, { status: 400 });
-    const step = plan.steps.find((st) => st.field === (b.field ?? null));
+    const idx = Number((b as { i?: number }).i);
+    const step = plan.steps[idx];
     if (!step) return NextResponse.json({ ok: false, reason: "not_planned" });
     const startedAt = room.round_started_at ? new Date(room.round_started_at).getTime() : now;
     if (now < startedAt + step.atMs - 1500) return NextResponse.json({ ok: false, reason: "too_early" });
-    if (step.field) {
+    const def = bots.get(plan.botId)!;
+    if (step.kind === "solve") {
       const { error } = await db.from("room_round_solves").insert({ room_id: room.id, round_index: round, field: step.field, user_id: plan.botId, bonus: bonusAt(step.atMs) });
       if (error && !/duplicate|unique/i.test(error.message)) await db.from("room_round_solves").insert({ room_id: room.id, round_index: round, field: step.field, user_id: plan.botId });
-    } else {
+    } else if (step.kind === "done") {
       await db.from("room_players").update({ done_round: round }).eq("room_id", room.id).eq("user_id", plan.botId);
+    } else if (step.kind === "chat") {
+      // Idempotent : pas deux fois la même ligne dans la même manche
+      const { data: dup } = await db.from("room_messages").select("id").eq("room_id", room.id).eq("user_id", plan.botId).eq("text", step.text).gte("created_at", new Date(startedAt).toISOString()).limit(1);
+      if (!dup?.length) await db.from("room_messages").insert({ room_id: room.id, user_id: plan.botId, name: def.name, avatar_url: null, text: step.text });
+    } else if (step.kind === "react") {
+      // Diffusé par le client hôte (canal temps réel) : on lui rend juste l'emoji et le nom
+      return NextResponse.json({ ok: true, react: { emoji: step.emoji, from: def.name } });
     }
     return NextResponse.json({ ok: true });
   }

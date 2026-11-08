@@ -3740,3 +3740,4 @@ body { overflow-x: clip; }
 .sdj-how li { display: flex; gap: 10px; align-items: baseline; }
 .sdj-how li > b:first-child { width: 20px; height: 20px; border-radius: 50%; background: var(--red); color: #fff; font-size: 11px; display: inline-grid; place-items: center; flex: 0 0 auto; align-self: center; }
 .sdj-how b { color: var(--ink); }
+.bot-badge { font-size: 10px; line-height: 1; opacity: 0.7; margin-left: 1px; }

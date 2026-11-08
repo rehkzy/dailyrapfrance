@@ -3,6 +3,7 @@ import DailyCard from "@/components/DailyCard";
 import SavedPresets from "@/components/SavedPresets";
 import LiveCounters from "@/components/LiveCounters";
 import HomeFaq from "@/components/HomeFaq";
+import PlayerReviews from "@/components/PlayerReviews";
 import AdSlot from "@/components/AdSlot";
 import SocialLinks from "@/components/SocialLinks";
 import BrandMark, { BrandTile } from "@/components/BrandMark";
@@ -405,6 +406,7 @@ export default async function Home() {
         </div>
       </section>
 
+      <PlayerReviews />
       <section className="max-w-5xl mx-auto px-5 sm:px-6"><AdSlot slot="home" /></section>
       <HomeFaq />
 

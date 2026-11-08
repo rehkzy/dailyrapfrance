@@ -14,6 +14,7 @@ import { sfx, duckMusic, softRepeat } from "@/lib/sfx";
 import { isSoundbiteTheme } from "@/lib/gimmicks";
 import { randomGage } from "@/lib/gages";
 import { speedBonus } from "@/lib/scoring";
+import { onPresenceCount } from "@/lib/presenceStore";
 import { trackEvent } from "@/lib/track";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, type QcmField } from "@/lib/qcmStages";
 import ThemePicker from "@/components/ThemePicker";
@@ -143,6 +144,14 @@ function BlindTestRoom({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players]);
+  // IA du matchmaking : badge ⚡ discret à côté du nom (jamais cachées, jamais mises en avant)
+  const [botIdSet, setBotIdSet] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!room?.is_public || botIdSet.size) return;
+    fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bot-ids" }) }).then((r) => r.json()).then((d: { ids?: string[] }) => { if (d.ids?.length) setBotIdSet(new Set(d.ids)); }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.is_public]);
+  const BotBadge = ({ id }: { id: string }) => (botIdSet.has(id) ? <span className="bot-badge" title="Joueur automatique" aria-label="Joueur automatique">⚡</span> : null);
   const [solves, setSolves] = useState<SolveRow[]>([]);
 
   const [started, setStarted] = useState(false);
@@ -407,6 +416,8 @@ function BlindTestRoom({
    */
   const [pushOn, setPushOn] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [onlineNow, setOnlineNow] = useState(0);
+  useEffect(() => onPresenceCount(setOnlineNow), []);
   useEffect(() => { setPushOn(pushEnabled()); }, [screen]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -455,12 +466,15 @@ function BlindTestRoom({
     let cancelled = false;
     (async () => {
       const res = await fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bot-plan", roomId, round }) }).catch(() => null);
-      const data = res && res.ok ? await res.json().catch(() => null) as { startedAt: string | null; plans: { botId: string; steps: { field: string | null; atMs: number }[] }[] } | null : null;
+      const data = res && res.ok ? await res.json().catch(() => null) as { startedAt: string | null; plans: { botId: string; steps: { i: number; atMs: number }[] }[] } | null : null;
       if (!data || cancelled || !data.plans?.length) return;
       const startedAt = data.startedAt ? new Date(data.startedAt).getTime() : Date.now();
       for (const pl of data.plans) for (const st of pl.steps) {
         const delay = Math.max(0, startedAt + st.atMs - Date.now());
-        timers.push(setTimeout(() => { void fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bot-act", roomId, round, botId: pl.botId, field: st.field }) }).catch(() => {}); }, delay));
+        timers.push(setTimeout(async () => {
+          const r = await fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bot-act", roomId, round, botId: pl.botId, i: st.i }) }).then((x) => x.json()).catch(() => null) as { react?: { emoji: string; from: string } } | null;
+          if (r?.react) roomChannelRef.current?.send({ type: "broadcast", event: "reaction", payload: r.react });
+        }, delay));
       }
     })();
     return () => { cancelled = true; timers.forEach(clearTimeout); };
@@ -1149,6 +1163,7 @@ function BlindTestRoom({
                 <p className="font-display text-2xl font-extrabold leading-tight">{room.format === "1v1" ? "Recherche d'un adversaire…" : room.format === "2v2" ? `Recherche de joueurs… ${players.length} / 4` : "Recherche de joueurs…"}</p>
                 <p className="text-sm text-ink-muted mt-1">{room.format === "1v1" ? "Dès qu'un adversaire est trouvé, ça démarre." : room.format === "2v2" ? "Deux équipes de deux. Dès que les 4 sont là, ça démarre." : "Dès qu'un joueur arrive, le compte à rebours démarre (jusqu'à 8 joueurs)."} Tu peux aussi partager le code à un pote.</p>
                 <div className="flex justify-center gap-1.5 mt-3" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="w-2 h-2 rounded-full bg-gold animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}</div>
+                {onlineNow > 1 && <p className="text-[11px] text-ink-faint mt-2">{onlineNow} personnes sur DailyRap en ce moment</p>}
                 {(() => {
                   const sup = pushSupport();
                   if (pushOn) return <p className="text-xs text-gold font-semibold mt-3 inline-flex items-center gap-1.5"><Icon icon="game-icons:bell-shield" width={14} /> On te prévient dès qu'un joueur est trouvé, même téléphone verrouillé.</p>;
@@ -1221,6 +1236,7 @@ function BlindTestRoom({
                   {p.user_id === room.host_id && <Icon icon="game-icons:crown" width={12} className="text-gold" />}
                   {p.display_name}
                   {verifiedIds.has(p.user_id) && <VerifiedBadge size={13} />}
+                  <BotBadge id={p.user_id} />
                   {p.ready ? <Check size={13} strokeWidth={3} className="text-gold" /> : <span className="w-2 h-2 rounded-full bg-white/20" aria-label="pas encore prêt" />}
                 </span>
               ))}
@@ -1342,7 +1358,7 @@ function BlindTestRoom({
           </div>
         )}
 
-        {!isSpectator && <AfterGameFriends userId={user.id} players={players.map((p) => ({ user_id: p.user_id, display_name: p.display_name }))} />}
+        {!isSpectator && <AfterGameFriends userId={user.id} excludeIds={botIdSet} players={players.map((p) => ({ user_id: p.user_id, display_name: p.display_name }))} />}
 
         <ResultTicket
           points={myScore}
@@ -1516,6 +1532,7 @@ function BlindTestRoom({
               <span className="avatar">{(p.display_name ?? "?").slice(0, 2).toUpperCase()}</span>
               {p.display_name}
               {verifiedIds.has(p.user_id) && <VerifiedBadge size={12} />}
+              <BotBadge id={p.user_id} />
               <b>{scoreFor(p.user_id)}</b>
             </span>
           ))}

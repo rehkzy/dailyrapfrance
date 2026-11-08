@@ -9,10 +9,10 @@ import AddFriendButton from "@/components/AddFriendButton";
  * Fin de partie en ligne : les joueurs qui ne sont pas (encore) tes amis, avec le bouton
  * Ajouter. Une partie ensemble est le meilleur moment pour se suivre.
  */
-export default function AfterGameFriends({ userId, players }: { userId: string; players: { user_id: string; display_name: string }[] }) {
+export default function AfterGameFriends({ userId, players, excludeIds }: { userId: string; players: { user_id: string; display_name: string }[]; excludeIds?: Set<string> }) {
   const [friendIds, setFriendIds] = useState<Set<string> | null>(null);
   const [profiles, setProfiles] = useState<Record<string, { username: string | null; avatar_url: string | null }>>({});
-  const others = players.filter((p) => p.user_id !== userId && !/ · IA$/.test(p.display_name ?? ""));
+  const others = players.filter((p) => p.user_id !== userId && !excludeIds?.has(p.user_id));
 
   useEffect(() => {
     if (others.length === 0) return;
