@@ -4,6 +4,7 @@ import { adminClient } from "@/lib/adminAuth";
 import { generateRoomCode } from "@/lib/roomCode";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { sendPushToUsers } from "@/lib/push";
+import { botIds, planFor, bonusAt } from "@/lib/bots";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -27,6 +28,9 @@ const MIN_START: Record<Format, number> = { "1v1": 2, "2v2": 4, royale: 2 };
 const ALIVE_MS = 90_000;
 const ROYALE_COUNTDOWN_MS = 20_000;
 const FULL_COUNTDOWN_MS = 3_000;
+// Personne au bout de 10 s → des IA comblent le salon (1 en 1v1, le reste en 2v2, 2-3 en royale).
+const BOT_WAIT_MS = 10_000;
+const ROUND_SECS_DEFAULT = 25;
 
 type Player = { room_id: string; user_id: string; display_name: string; team: number | null; last_seen_at: string | null; joined_at?: string };
 
@@ -86,13 +90,23 @@ export async function POST(req: NextRequest) {
       .gte("created_at", since)
       .order("created_at", { ascending: true })
       .limit(20);
+    const bots = await botIds();
     for (const r of open ?? []) {
       const rows = ((r.room_players as Player[] | null) ?? []).filter((p) => alive(p, now));
       if (rows.some((p) => p.user_id === user.id)) {
         // Je suis déjà dans ce salon (double clic, rechargement) : on y retourne.
         return NextResponse.json(await snapshot(r.id));
       }
-      if (rows.length >= 1 && rows.length < capacity) {
+      // Un humain vaut toujours mieux qu'une IA : la capacité se compte en humains, et une IA
+      // cède sa place s'il le faut.
+      const humans = rows.filter((p) => !bots.has(p.user_id));
+      const ias = rows.filter((p) => bots.has(p.user_id));
+      if (humans.length >= 1 && humans.length < capacity) {
+        if (rows.length >= capacity && ias.length) {
+          const victim = format === "2v2" ? (ias.find((x) => x.team === (humans.filter((h) => h.team === 1).length <= humans.filter((h) => h.team === 2).length ? 1 : 2)) ?? ias[0]) : ias[0];
+          await db.from("room_players").delete().eq("room_id", r.id).eq("user_id", victim.user_id);
+          rows.splice(rows.indexOf(victim), 1);
+        }
         const t1 = rows.filter((x) => x.team === 1).length, t2 = rows.filter((x) => x.team === 2).length;
         const team = format === "2v2" ? (t1 <= t2 ? 1 : 2) : null;
         const { error } = await db.from("room_players").upsert({ room_id: r.id, user_id: user.id, display_name: user.name, team, last_seen_at: new Date().toISOString() });
@@ -131,9 +145,12 @@ export async function POST(req: NextRequest) {
     await db.from("room_players").delete().eq("room_id", body.roomId).eq("user_id", user.id);
     const { players, room } = await snapshot(body.roomId);
     if (!room) return NextResponse.json({ ok: true });
-    if (players.length === 0) await db.from("rooms").delete().eq("id", body.roomId);
-    else if (room.host_id === user.id) await db.from("rooms").update({ host_id: players[0].user_id }).eq("id", body.roomId);
-    return NextResponse.json({ ok: true, remaining: players.length });
+    const bots = await botIds();
+    const humans = players.filter((p) => !bots.has(p.user_id));
+    // Un salon où il ne reste que des IA est un salon vide.
+    if (humans.length === 0) await db.from("rooms").delete().eq("id", body.roomId);
+    else if (room.host_id === user.id) await db.from("rooms").update({ host_id: humans[0].user_id }).eq("id", body.roomId);
+    return NextResponse.json({ ok: true, remaining: humans.length });
   }
 
   if (body.action === "tick") {
@@ -150,9 +167,11 @@ export async function POST(req: NextRequest) {
     if (ghosts.length) {
       await db.from("room_players").delete().eq("room_id", room.id).in("user_id", ghosts.map((g) => g.user_id));
       players = players.filter((p) => alive(p, now));
-      if (ghosts.some((g) => g.user_id === room.host_id) && players.length) {
-        await db.from("rooms").update({ host_id: players[0].user_id }).eq("id", room.id);
-        room = { ...room, host_id: players[0].user_id };
+      const botsNow = await botIds();
+      const humansLeft = players.filter((p) => !botsNow.has(p.user_id));
+      if (ghosts.some((g) => g.user_id === room.host_id) && humansLeft.length) {
+        await db.from("rooms").update({ host_id: humansLeft[0].user_id }).eq("id", room.id);
+        room = { ...room, host_id: humansLeft[0].user_id };
       }
     }
 
@@ -160,6 +179,25 @@ export async function POST(req: NextRequest) {
 
     // 3. compte à rebours (salons publics en attente seulement)
     const format: Format = room.format === "1v1" || room.format === "2v2" ? room.format : "royale";
+    // 3a. IA : personne depuis BOT_WAIT_MS → on comble
+    const bots = await botIds();
+    const humansNow = players.filter((p) => !bots.has(p.user_id));
+    const iasNow = players.filter((p) => bots.has(p.user_id));
+    const waitedSince = Math.max(new Date(room.created_at).getTime(), ...humansNow.map((p) => new Date(p.joined_at ?? room.created_at).getTime()));
+    if (iasNow.length === 0 && humansNow.length < CAPACITY[format] && humansNow.length < (format === "royale" ? 2 : CAPACITY[format]) && now - waitedSince >= BOT_WAIT_MS && bots.size) {
+      const want = format === "1v1" ? 1 : format === "2v2" ? CAPACITY[format] - humansNow.length : 2 + Math.floor(Math.random() * 2);
+      const picks = [...bots.entries()].sort(() => Math.random() - 0.5).slice(0, want);
+      let t1 = humansNow.filter((h) => h.team === 1).length, t2 = humansNow.filter((h) => h.team === 2).length;
+      const rows = picks.map(([id, def]) => {
+        let team: number | null = null;
+        if (format === "2v2") { team = t1 <= t2 ? 1 : 2; if (team === 1) t1++; else t2++; }
+        return { room_id: room.id, user_id: id, display_name: def.name, team, ready: true, last_seen_at: null as string | null };
+      });
+      const { error } = await db.from("room_players").upsert(rows, { onConflict: "room_id,user_id" });
+      if (error) await db.from("room_players").upsert(rows.map(({ ready: _r, ...x }) => x), { onConflict: "room_id,user_id" }); // colonne ready absente
+      ({ room, players } = await snapshot(room.id));
+      if (!room) return NextResponse.json({ gone: true });
+    }
     const n = players.length;
     const target = room.starts_at ? new Date(room.starts_at).getTime() : null;
     let next: string | null | undefined = undefined; // undefined = inchangé
@@ -194,6 +232,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(await snapshot(room.id));
     }
     return NextResponse.json({ room, players });
+  }
+
+  /* ── IA en partie ──
+   *  bot-plan { roomId, round } → la partition de chaque IA pour cette manche (déterministe)
+   *  bot-act  { roomId, round, botId, field|null } → le serveur revérifie la partition et
+   *            l'horloge, puis insère la bonne réponse (ou marque « fini »). Idempotent.
+   */
+  if (body.action === "bot-plan" || body.action === "bot-act") {
+    const b = body as unknown as { round?: number; botId?: string; field?: string | null };
+    const { room, players } = await snapshot(body.roomId);
+    if (!room || room.status !== "playing") return NextResponse.json({ error: "not_playing" }, { status: 409 });
+    if (!players.some((p) => p.user_id === user.id)) return NextResponse.json({ error: "not_member" }, { status: 403 });
+    const round = Number(b.round);
+    if (!Number.isInteger(round) || round !== room.current_round) return NextResponse.json({ error: "stale_round" }, { status: 409 });
+    const track = (room.tracks as { artistName: string; feats: string[] }[])[round];
+    if (!track) return NextResponse.json({ error: "no_track" }, { status: 409 });
+    const bots = await botIds();
+    const inRoom = players.filter((p) => bots.has(p.user_id));
+    const secs = Number(room.round_seconds) || ROUND_SECS_DEFAULT;
+    const plans = inRoom.map((p) => ({ botId: p.user_id, steps: planFor(room.id, round, { id: p.user_id, def: bots.get(p.user_id)! }, room.theme, track, room.answer_mode ?? "qcm", secs) }));
+    if (body.action === "bot-plan") return NextResponse.json({ round, startedAt: room.round_started_at, plans });
+
+    const plan = plans.find((x) => x.botId === b.botId);
+    if (!plan) return NextResponse.json({ error: "unknown_bot" }, { status: 400 });
+    const step = plan.steps.find((st) => st.field === (b.field ?? null));
+    if (!step) return NextResponse.json({ ok: false, reason: "not_planned" });
+    const startedAt = room.round_started_at ? new Date(room.round_started_at).getTime() : now;
+    if (now < startedAt + step.atMs - 1500) return NextResponse.json({ ok: false, reason: "too_early" });
+    if (step.field) {
+      const { error } = await db.from("room_round_solves").insert({ room_id: room.id, round_index: round, field: step.field, user_id: plan.botId, bonus: bonusAt(step.atMs) });
+      if (error && !/duplicate|unique/i.test(error.message)) await db.from("room_round_solves").insert({ room_id: room.id, round_index: round, field: step.field, user_id: plan.botId });
+    } else {
+      await db.from("room_players").update({ done_round: round }).eq("room_id", room.id).eq("user_id", plan.botId);
+    }
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "action inconnue" }, { status: 400 });

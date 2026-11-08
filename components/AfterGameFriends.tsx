@@ -12,7 +12,7 @@ import AddFriendButton from "@/components/AddFriendButton";
 export default function AfterGameFriends({ userId, players }: { userId: string; players: { user_id: string; display_name: string }[] }) {
   const [friendIds, setFriendIds] = useState<Set<string> | null>(null);
   const [profiles, setProfiles] = useState<Record<string, { username: string | null; avatar_url: string | null }>>({});
-  const others = players.filter((p) => p.user_id !== userId);
+  const others = players.filter((p) => p.user_id !== userId && !/ · IA$/.test(p.display_name ?? ""));
 
   useEffect(() => {
     if (others.length === 0) return;

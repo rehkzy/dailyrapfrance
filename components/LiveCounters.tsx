@@ -7,8 +7,10 @@ export const revalidate = 600;
 async function count(table: string, since?: string): Promise<number> {
   try {
     const db = adminClient();
-    const base = db.from(table).select("id", { count: "exact", head: true });
-    const { count: c } = await (since ? base.gte("created_at", since) : base);
+    let q = db.from(table).select("id", { count: "exact", head: true });
+    if (since) q = q.gte("created_at", since);
+    if (table === "profiles") q = q.not("username", "like", "ia-%");
+    const { count: c } = await q;
     return c ?? 0;
   } catch { return 0; }
 }

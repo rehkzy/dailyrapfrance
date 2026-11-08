@@ -444,6 +444,29 @@ function BlindTestRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, room?.id, room?.is_public, room?.status]);
 
+  // IA (matchmaking) : l'hôte déclenche leurs actions aux instants prévus par le serveur.
+  // La partition est déterministe et revérifiée côté serveur, donc un changement d'hôte en
+  // cours de manche ne fait ni doublon ni trou.
+  useEffect(() => {
+    if (!isHost || !room?.is_public || screen !== "playing" || room.status !== "playing" || !room.round_started_at) return;
+    const round = room.current_round;
+    const roomId = room.id;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bot-plan", roomId, round }) }).catch(() => null);
+      const data = res && res.ok ? await res.json().catch(() => null) as { startedAt: string | null; plans: { botId: string; steps: { field: string | null; atMs: number }[] }[] } | null : null;
+      if (!data || cancelled || !data.plans?.length) return;
+      const startedAt = data.startedAt ? new Date(data.startedAt).getTime() : Date.now();
+      for (const pl of data.plans) for (const st of pl.steps) {
+        const delay = Math.max(0, startedAt + st.atMs - Date.now());
+        timers.push(setTimeout(() => { void fetch("/api/rooms/public", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bot-act", roomId, round, botId: pl.botId, field: st.field }) }).catch(() => {}); }, delay));
+      }
+    })();
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, room?.is_public, room?.status, room?.current_round, room?.round_started_at, screen]);
+
   const endRoundEarly = useCallback(async () => {
     const r = roomRef.current;
     if (!r) return;

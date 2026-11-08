@@ -56,7 +56,7 @@ export async function GET() {
 
   const ids = [...score.entries()].sort((a, b) => b[1].score - a[1].score).slice(0, 12).map(([id]) => id);
   if (ids.length === 0) return NextResponse.json({ suggestions: [] });
-  const { data: profiles } = await db.from("profiles").select("id,username,display_name,avatar_url,verified").in("id", ids);
+  const { data: profiles } = await db.from("profiles").select("id,username,display_name,avatar_url,verified").in("id", ids).not("username", "like", "ia-%");
   const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
   const suggestions = ids.map((id) => ({ ...(byId.get(id) ?? { id, username: null, display_name: "Joueur", avatar_url: null, verified: false }), reason: score.get(id)!.reason })).filter((p) => !!byId.get(p.id));
   return NextResponse.json({ suggestions });
