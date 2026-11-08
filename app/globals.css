@@ -2236,22 +2236,28 @@ body { overscroll-behavior-y: none; }
 
 /* Segmenté — un seul rail, l'option active en relief */
 .segmented {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  display: flex;
   gap: 4px;
   padding: 4px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.06);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.segmented::-webkit-scrollbar { display: none; }
 .segmented > button, .segmented > a {
-  min-height: 46px;
+  flex: 1 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--ink-2);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+@media (min-width: 640px) { .segmented > button, .segmented > a { flex: 1 1 0; } }
 .segmented > button[aria-pressed="true"], .segmented > a[aria-pressed="true"] { background: #fff; color: #0a0505; }
 .segmented > button:not([aria-pressed="true"]):hover, .segmented > a:not([aria-pressed="true"]):hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
 
