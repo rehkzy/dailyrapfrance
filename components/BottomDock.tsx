@@ -36,7 +36,7 @@ export default function BottomDock() {
     return (
       <a href={href} aria-current={active ? "page" : undefined} className="brand-dock-item" data-active={active}>
         <span className="relative inline-flex"><Icon size={20} strokeWidth={active ? 2.6 : 2} />{dot && <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] px-0.5 rounded-full bg-gold text-white text-[9px] font-bold grid place-items-center ring-2 ring-[#0A0707]">{unread > 9 ? "9+" : unread}</span>}</span>
-        <span>{label}</span>
+        <span className="brand-dock-label">{label}</span>
       </a>
     );
   };
