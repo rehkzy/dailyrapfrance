@@ -206,6 +206,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className="dark">
+      <head>
+        {/* Script AdSense dans le HTML servi : c'est ce que le robot de vérification lit. Les blocs
+            de pub (AdSlot) ne sont rendus que pour les visiteurs sans compte ; les annonces
+            automatiques doivent rester désactivées côté AdSense pour que « connecté = zéro pub ». */}
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9972214408882751" crossOrigin="anonymous" data-drf-ads="1" />
+      </head>
       <body className="font-sans antialiased">
         <script
           type="application/ld+json"
