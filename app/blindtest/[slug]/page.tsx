@@ -8,6 +8,7 @@ import { THEME_CATEGORIES } from "@/lib/themes";
 import BrandMark from "@/components/BrandMark";
 import { AppStoreCallout } from "@/components/AppComingSoon";
 import { resolveArtist, artistTopTracks } from "@/lib/deezerArtist";
+import { artworkAt } from "@/lib/artworkSize";
 import { getDailyTheme } from "@/lib/themes";
 import { weeklyNumber } from "@/lib/dailyStreak";
 import { jsonLd as toJsonLd } from "@/lib/jsonld";
@@ -97,6 +98,17 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
     ],
   };
 
+  // Mur de portraits pour les guides et modes (les pages thème ont déjà le visuel de l'artiste)
+  const WALL: Record<string, string[]> = {
+    noel: ["IAM", "Diam's", "Booba", "PNL", "Jul", "Ninho", "Gims", "Tiakola"],
+    "nouvel-an": ["Jul", "Gims", "Ninho", "Werenoi", "SDM", "Tiakola", "Gazo", "Aya Nakamura"],
+    "retro-2026": ["Jul", "Gims", "Ninho", "Werenoi", "PLK", "SDM", "Tiakola", "Gazo"],
+    "meilleurs-sons-rap-2026": ["Jul", "Gims", "Ninho", "Werenoi", "PLK", "SDM", "Tiakola", "Gazo"],
+  };
+  const wallNames = l.kind === "theme" ? [] : (WALL[l.slug] ?? ["Jul", "Ninho", "SCH", "PNL", "Gazo", "Werenoi", "Tiakola", "Damso"]);
+  const wall = (await Promise.all(wallNames.map((n) => resolveArtist(n).catch(() => null)))).filter((a): a is NonNullable<typeof a> => !!a?.picture_medium);
+  const isGuide = l.kind === "guide";
+
   const relatedThemes = l.kind === "theme" && l.theme
     ? THEME_LANDINGS.filter((t) => t.theme?.category === l.theme?.category && t.slug !== l.slug).slice(0, 8)
     : THEME_LANDINGS.slice(0, 8);
@@ -105,42 +117,60 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: toJsonLd(jsonLd) }} />
 
-      <article className="max-w-3xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-16">
-        <nav aria-label="Fil d'Ariane" className="text-xs text-ink-faint mb-5 flex items-center gap-1.5 flex-wrap">
-          <a href="/" className="hover:text-ink">DailyRapFrance</a>
-          <span aria-hidden="true">›</span>
-          <a href="/blindtest" className="hover:text-ink">Blind test rap français</a>
-          <span aria-hidden="true">›</span>
-          <span className="text-ink-muted">{l.kind === "theme" ? l.theme?.label : MODE_LINKS.find((m) => m.href === `/blindtest/${l.slug}`)?.label ?? l.title}</span>
-        </nav>
-
-        <div className="flex items-center gap-2 text-xs font-semibold text-gold mb-3">
-          <BrandMark size={12} /> Gratuit · Compte en 10 s · Dans le navigateur
-        </div>
-        <div className="flex items-start gap-4">
-          {artist?.picture_medium && <img src={artist.picture_medium} alt={artistName ?? ""} width={96} height={96} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 border border-white/10" />}
-          <div className="min-w-0">
-            <h1 className="poster-title text-3xl sm:text-5xl mb-3">{l.title}</h1>
-            {isWeekly && <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gold mb-2">🔥 C&apos;est le défi de la semaine #{weeklyNumber()} — même thème pour tout le monde jusqu&apos;à dimanche.</p>}
+      {/* Affiche : mur de visages en bichromie, titre, promesse, un seul gros bouton. */}
+      <section className="relative overflow-hidden landing-hero">
+        {wall.length > 0 && (
+          <div className="hero-wall" aria-hidden="true">
+            {wall.map((a, i) => <img key={a.id} src={artworkAt(a.picture_medium!, 500)} alt="" loading={i < 4 ? "eager" : "lazy"} decoding="async" />)}
+          </div>
+        )}
+        <div className="hero-fade" aria-hidden="true" />
+        <div className="relative z-[2] max-w-3xl mx-auto px-5 sm:px-6 pt-8 sm:pt-14 pb-10">
+          <nav aria-label="Fil d'Ariane" className="text-xs text-ink-faint mb-5 flex items-center gap-1.5 flex-wrap">
+            <a href="/" className="hover:text-ink">DailyRapFrance</a>
+            <span aria-hidden="true">›</span>
+            <a href="/blindtest" className="hover:text-ink">Blind test</a>
+            <span aria-hidden="true">›</span>
+            <span className="text-ink-muted">{l.kind === "theme" ? l.theme?.label : MODE_LINKS.find((m) => m.href === `/blindtest/${l.slug}`)?.label ?? l.title}</span>
+          </nav>
+          <div className="flex items-center gap-2 text-xs font-semibold text-gold mb-3">
+            <BrandMark size={12} /> Gratuit · Sans application · Dans le navigateur
+          </div>
+          <div className="flex items-start gap-4">
+            {artist?.picture_medium && <img src={artist.picture_medium} alt={artistName ?? ""} width={96} height={96} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover shrink-0 border border-white/10" />}
+            <div className="min-w-0">
+              <h1 className="poster-title text-[2.4rem] leading-[0.95] sm:text-6xl mb-3">{l.title}</h1>
+              {isWeekly && <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gold mb-2">🔥 Défi de la semaine #{weeklyNumber()} — même thème pour tout le monde jusqu&apos;à dimanche.</p>}
+            </div>
+          </div>
+          <p className="text-base sm:text-lg text-ink-muted leading-relaxed max-w-xl mt-2">{l.verdict ?? (isGuide ? l.intro.split(/(?<=[.!?])\s+/)[0] : l.intro)}</p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <a href={l.playHref} className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full sm:w-auto">
+              <Play size={18} fill="currentColor" /> {l.playLabel}
+            </a>
+            {l.kind === "theme" && l.theme && (
+              <a href={`/jouer?mode=local&theme=${l.theme.id}`} className="inline-flex items-center justify-center gap-2 h-14 px-6 rounded-full glass text-sm font-medium hover:border-gold/40 transition-colors">
+                <Users size={16} className="text-gold" /> Entre potes sur ce thème
+              </a>
+            )}
+            {isGuide && (
+              <a href="/jouer" className="inline-flex items-center justify-center gap-2 h-14 px-6 rounded-full glass text-sm font-medium hover:border-gold/40 transition-colors">
+                <Users size={16} className="text-gold" /> Voir tous les modes
+              </a>
+            )}
           </div>
         </div>
-        <p className="text-base sm:text-lg text-ink-muted leading-relaxed max-w-2xl">{l.intro}</p>
+      </section>
 
-        <div className="mt-7 flex flex-col sm:flex-row gap-3">
-          <a href={l.playHref} className="game-btn game-btn-primary h-14 px-7 text-base gap-2.5 w-full sm:w-auto">
-            <Play size={18} fill="currentColor" /> {l.playLabel}
-          </a>
-          {l.kind === "theme" && l.theme && (
-            <a
-              href={`/jouer?mode=local&theme=${l.theme.id}`}
-              className="inline-flex items-center justify-center gap-2 h-14 px-6 rounded-full glass text-sm font-medium hover:border-gold/40 transition-colors"
-            >
-              <Users size={16} className="text-gold" /> Entre potes sur ce thème
-            </a>
-          )}
-        </div>
-
-        {l.verdict && <p className="landing-verdict"><strong>En bref :</strong> {l.verdict}</p>}
+      <article className="max-w-3xl mx-auto px-5 sm:px-6 pt-2 pb-16">
+        {isGuide && (
+          <ol className="landing-steps" aria-label="Comment ça marche">
+            <li><span className="n">1</span><span><b>Choisis</b><small>un thème, une époque, un artiste</small></span></li>
+            <li><span className="n">2</span><span><b>Invite</b><small>QR code sur la TV ou lien à tes potes</small></span></li>
+            <li><span className="n">3</span><span><b>Buzz</b><small>30 s d&apos;extrait, le plus rapide marque</small></span></li>
+          </ol>
+        )}
+        {(l.verdict || isGuide) && <p className="text-sm text-ink-muted leading-relaxed mt-6 max-w-2xl">{l.intro}</p>}
         {l.table && (
           <div className="landing-table-wrap mt-8">
             <table className="landing-table">
@@ -151,15 +181,19 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
           </div>
         )}
         {landingBody(l).length > 0 && (
-          <section className="mt-10 grid md:grid-cols-3 gap-6" aria-label="À propos de ce thème">
-            {landingBody(l).map((b) => (
-              <div key={b.h2}><h2 className="font-display text-base font-bold tracking-tight mb-1.5">{b.h2}</h2><p className="text-sm text-ink-muted leading-relaxed">{b.p}</p></div>
+          <section className="mt-8 grid md:grid-cols-3 gap-3" aria-label={isGuide ? "Le guide" : "À propos de ce thème"}>
+            {landingBody(l).map((b, i) => (
+              <div key={b.h2} className="landing-card" data-i={i}>
+                <span className="landing-card-n">{String(i + 1).padStart(2, "0")}</span>
+                <h2 className="font-display text-[15px] font-bold tracking-tight mb-1.5 leading-snug">{b.h2}</h2>
+                <p className="text-[13px] text-ink-muted leading-relaxed">{b.p}</p>
+              </div>
             ))}
           </section>
         )}
         <AdSlot slot="landing" className="mt-8" />
 
-        <ul className="mt-8 grid sm:grid-cols-3 gap-2.5 text-sm">
+        {!isGuide && <ul className="mt-8 grid sm:grid-cols-3 gap-2.5 text-sm">
           {[
             "Extraits de 30 s fournis par Deezer, nouveaux à chaque partie",
             "Mode facile (3 propositions) ou difficile (écrire la réponse)",
@@ -169,7 +203,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
               <Check size={15} className="text-gold shrink-0 mt-0.5" /> {b}
             </li>
           ))}
-        </ul>
+        </ul>}
 
         {topTracks.length > 0 && (
           <section className="mt-12" aria-labelledby="top-h">

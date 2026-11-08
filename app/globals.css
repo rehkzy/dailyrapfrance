@@ -3756,3 +3756,20 @@ body { overflow-x: clip; }
 .landing-table th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(245, 232, 232, 0.6); background: rgba(255, 255, 255, 0.03); }
 .landing-table td:first-child { font-weight: 700; white-space: nowrap; }
 .landing-table td[data-us="true"] { background: rgba(240, 0, 28, 0.08); font-weight: 600; }
+
+/* Pages guides : affiche + étapes + cartes */
+.landing-hero { background: radial-gradient(120% 70% at 50% 0%, rgba(138, 0, 16, 0.5), transparent 65%), #0a0707; min-height: 300px; }
+.landing-hero .hero-wall { grid-template-columns: repeat(4, 1fr); opacity: 0.55; }
+@media (min-width: 640px) { .landing-hero .hero-wall { grid-template-columns: repeat(8, 1fr); } }
+.landing-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.landing-steps li { display: flex; align-items: center; gap: 10px; padding: 12px 10px; border-radius: 16px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); }
+.landing-steps .n { width: 30px; height: 30px; border-radius: 10px; background: var(--red); color: #fff; font-weight: 900; font-size: 14px; display: grid; place-items: center; flex: 0 0 auto; box-shadow: 0 8px 18px -8px rgba(240, 0, 28, 0.9); }
+.landing-steps b { display: block; font-size: 14px; line-height: 1.1; }
+.landing-steps small { display: block; font-size: 11px; color: rgba(245, 232, 232, 0.55); line-height: 1.2; margin-top: 2px; }
+@media (max-width: 480px) { .landing-steps { grid-template-columns: 1fr; } .landing-steps li { padding: 10px 12px; } }
+.landing-card { position: relative; padding: 16px 16px 14px; border-radius: 18px; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.07); overflow: hidden; }
+.landing-card[data-i="0"] { background: linear-gradient(160deg, rgba(240, 0, 28, 0.16), rgba(255, 255, 255, 0.03)); border-color: rgba(240, 0, 28, 0.35); }
+.landing-card-n { position: absolute; top: 6px; right: 12px; font-family: var(--font-display), system-ui; font-size: 44px; font-weight: 900; line-height: 1; color: rgba(240, 0, 28, 0.14); }
+/* Pub non servie (avant approbation, ou bloqueur) : on n'affiche pas un cadre vide */
+.ad-box .adsbygoogle { min-height: 0; }
+.ad-box:has(.adsbygoogle[data-ad-status="unfilled"]) { display: none; }
