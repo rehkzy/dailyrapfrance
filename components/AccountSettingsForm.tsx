@@ -147,7 +147,6 @@ export default function AccountSettingsForm({
             <button key={b.id} type="button" onClick={() => pickPreset(b.id)} aria-label={b.label} aria-pressed={banner === b.id} className={`h-12 rounded-xl border-2 transition-transform active:scale-95 ${banner === b.id ? "border-white" : "border-transparent"}`} style={{ background: b.css }} />
           ))}
         </div>
-        <p className="text-[11px] text-ink-faint mt-2">Ou ta propre photo avec le bouton sur l&apos;aperçu (6 Mo max).</p>
       </div>
 
       {/* Pseudo + bio */}
@@ -158,7 +157,7 @@ export default function AccountSettingsForm({
             <input id="acc-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="answer-input !min-h-[48px] flex-1" />
             <button type="button" onClick={() => displayName.trim() && update({ display_name: displayName.trim() }, "name")} disabled={busy === "name" || !displayName.trim()} className="sticker sticker-sm shrink-0">{saved === "name" ? <Check size={16} /> : "OK"}</button>
           </div>
-          {username && <p className="text-[11px] text-ink-faint mt-1.5">Ton identifiant @{username} ne change pas — c&apos;est l&apos;adresse de ton profil.</p>}
+          {username && <p className="note mt-2">@{username} · adresse de ton profil</p>}
         </div>
         <div>
           <label className="text-xs font-semibold text-ink-faint mb-2 block" htmlFor="acc-bio">Bio</label>
@@ -176,7 +175,7 @@ export default function AccountSettingsForm({
           <p className="font-display text-lg font-bold inline-flex items-center gap-1.5"><Sparkles size={16} className="text-gold" /> Badges mis en avant</p>
           <span className="text-xs text-ink-faint">{showcase.length} / 3</span>
         </div>
-        <p className="text-xs text-ink-faint mb-3">Choisis jusqu&apos;à 3 succès débloqués à afficher en tête de ton profil.</p>
+        <p className="note mb-3">3 maximum, en tête de ton profil</p>
         {unlocked.length === 0 ? (
           <p className="text-sm text-ink-muted">Aucun succès débloqué pour l&apos;instant — joue une partie connectée et reviens.</p>
         ) : (

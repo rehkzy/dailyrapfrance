@@ -208,7 +208,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
         {topTracks.length > 0 && (
           <section className="mt-12" aria-labelledby="top-h">
             <h2 id="top-h" className="font-display text-xl sm:text-2xl font-bold tracking-tight mb-1">Les titres de {artistName} que tu risques de croiser</h2>
-            <p className="text-sm text-ink-faint mb-4">Les plus écoutés sur Deezer{artist?.nb_fan ? ` — ${artist.nb_fan.toLocaleString("fr-FR")} fans` : ""}. Le blind test pioche dans toute la discographie, pas seulement ici.</p>
+            <p className="note mb-4">Les plus écoutés{artist?.nb_fan ? ` · ${artist.nb_fan.toLocaleString("fr-FR")} fans` : ""}</p>
             <ol className="grid sm:grid-cols-2 gap-2">
               {topTracks.map((t, i) => (
                 <li key={t.id} className="card p-3 flex items-center gap-3">

@@ -136,7 +136,7 @@ export default function OnboardingWelcome() {
           </div>
           <button type="button" onClick={() => save(true)} disabled={busy} aria-label="Garder tel quel" className="w-9 h-9 rounded-full bg-white/6 border border-white/10 grid place-items-center text-ink-muted shrink-0"><X size={15} /></button>
         </div>
-        <p className="text-sm text-ink-muted mt-1.5">On a pris le nom et la photo de ton compte. Garde-les, ou mets ce que les autres joueurs verront. Modifiable plus tard dans Réglages — sauf l&apos;identifiant.</p>
+        <p className="text-sm text-ink-muted mt-1.5">C&apos;est ce que les autres joueurs verront. Modifiable plus tard, sauf l&apos;identifiant.</p>
 
         <div className="flex items-center gap-4 mt-5">
           <div className="relative shrink-0">

@@ -89,10 +89,9 @@ export default async function ShortLinkPage({ params, searchParams }: { params: 
               <a href={playHref(slug, d)} className="sticker h-14 text-base"><Play size={18} fill="currentColor" /> Jouer — choisir le mode</a>
               <a href={playHref(slug, d, "solo", true)} className="sticker sticker-ghost h-14 text-base"><Users size={18} /> Solo, tout de suite</a>
             </div>
-            <p className="text-[11px] text-ink-faint mt-3">Se joue en solo (extraits ou clips), entre potes sur un téléphone, en salon en ligne, en matchmaking ou en soirée sur la TV. Sans compte pour le solo et le même téléphone.</p>
           </div>
         </div>
-        <p className="text-sm text-ink-muted">Envie du tien ? <a href="/creer" className="text-glow font-semibold">Crée ton blind test</a> avec tes morceaux ou ta playlist Spotify, et partage le lien.</p>
+        <a href="/creer" className="hub-link"><span className="min-w-0"><span className="block text-sm font-bold">Crée le tien</span><span className="block text-xs text-ink-muted">Tes morceaux ou ta playlist, un lien à partager</span></span></a>
       </section>
     </>
   );

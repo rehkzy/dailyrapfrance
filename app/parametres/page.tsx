@@ -29,9 +29,8 @@ export default async function ParametresPage() {
         <div className="max-w-sm mx-auto ticket p-8 text-center">
           <div className="w-12 h-12 rounded-full bg-gold/15 text-gold flex items-center justify-center mx-auto mb-4"><LogIn size={20} /></div>
           <p className="font-display text-xl font-bold mb-2">Connecte-toi</p>
-          <p className="text-sm text-ink-muted mb-6">Un compte pour ton profil, tes scores, tes badges et tes blind tests.</p>
+          <p className="text-sm text-ink-muted mb-6">Ton profil, tes scores, tes blind tests.</p>
           <SignInCta />
-          <p className="text-[11px] text-ink-faint mt-3">Gratuit, en 10 secondes.</p>
         </div>
       </section>
     );

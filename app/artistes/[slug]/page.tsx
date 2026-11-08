@@ -146,7 +146,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
           <a href={`/jouer?mode=solo&theme=${a.theme.id}&autostart=1`} className="artist-play" aria-label={`Jouer au blind test ${a.name}`}><Play size={26} fill="currentColor" className="ml-1" /></a>
           <div className="min-w-0 flex-1">
             <p className="font-display text-lg font-extrabold leading-tight">Jouer au blind test {a.name}</p>
-            <p className="text-xs text-ink-muted">Toute la discographie, 30 s par extrait, gratuit.</p>
+            <p className="text-xs text-ink-muted">Gratuit · 30 s par extrait</p>
           </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5 sm:mx-0 sm:px-0" style={{ scrollbarWidth: "none" }}>
@@ -162,7 +162,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
         {gimmicks.length > 0 && (
           <section className="mt-6" aria-labelledby="gim-title">
             <h2 id="gim-title" className="font-display text-lg font-bold mb-1">Ses gimmicks réagissent pendant la partie</h2>
-            <p className="text-xs text-ink-muted mb-3">Bonne réponse, raté, combo : {a.name} commente lui-même. Écoute.</p>
+
             <GimmickChips items={gimmicks} />
           </section>
         )}
@@ -173,7 +173,7 @@ export default async function ArtistPage({ params }: { params: Promise<{ slug: s
             <h2 id="top-title" className="font-display text-2xl font-bold">Titres les plus écoutés</h2>
             <HelpTip title="D'où vient ce classement ?" label="D'où vient ce classement ?"><p className="text-sm">Classement par popularité Deezer, actualisé chaque jour. Les extraits de 30 secondes sont fournis par Deezer.</p></HelpTip>
           </div>
-          <p className="text-xs text-ink-muted mb-4">Appuie sur une pochette pour écouter. Ces sons peuvent tomber dans le blind test, mais pas seulement eux.</p>
+          <div className="mb-4" />
           {tracks.length === 0 ? (
             <p className="text-sm text-ink-faint">Le classement n'est pas disponible pour le moment.</p>
           ) : (

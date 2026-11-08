@@ -34,7 +34,7 @@ export default function PlayGate({ title = "Connecte-toi pour jouer.", sub }: { 
       </ul>
 
       <SignInCta label="Continuer avec Google" />
-      <p className="text-[11px] text-ink-faint text-center mt-5">Aucune pub, aucune carte bancaire. <a href="/confidentialite" className="underline">Ce qu&apos;on garde</a>.</p>
+      <p className="note mx-auto mt-5">Zéro pub avec un compte · <a href="/confidentialite" className="underline">confidentialité</a></p>
     </div>
   );
 }

@@ -515,7 +515,7 @@ export function Thread({ peer }: { peer: Lite }) {
           <div className="text-center py-12 px-8">
             <Avatar p={peer} size={72} />
             <p className="font-display text-lg font-bold mt-3">{peer.display_name ?? "Joueur"}</p>
-            <p className="text-sm text-ink-muted mt-1">Vous êtes amis. Lance un son, une photo ou un défi.</p>
+            <p className="text-sm text-ink-muted mt-1">Un son, une photo, un défi : à toi.</p>
           </div>
         ) : (
           visible.map((dm, i) => {
@@ -675,7 +675,6 @@ function TrackPicker({ onPick, onClose }: { onPick: (t: { id: number | null; tit
   return (
     <Sheet title="Envoyer un son" onClose={onClose}>
       <label className="dm-search mb-3"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Titre ou artiste" aria-label="Chercher un son" enterKeyHint="search" /></label>
-      {q.trim().length < 2 && <p className="text-xs text-ink-faint px-1 mb-2">Astuce : tu peux aussi coller un lien Spotify ou Deezer directement dans le message.</p>}
       {loading && <div className="py-6 grid place-items-center"><BrandLoader size="sm" /></div>}
       <div className="divide-y divide-white/6">
         {res.map((t) => (
@@ -718,7 +717,6 @@ function ChallengePicker({ userId, onPick, onClose }: { userId: string; onPick: 
   );
   return (
     <Sheet title="Lancer un défi" onClose={onClose}>
-      <p className="text-xs text-ink-muted mb-3">Il joue le même thème, on compare. Si tu as déjà un record dessus, c&apos;est lui à battre.</p>
       <label className="dm-search mb-3"><Search size={16} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Un artiste, une époque, une région…" aria-label="Chercher un thème" enterKeyHint="search" /></label>
       {played.length > 0 && <><p className="stage-kicker mb-1">Tes records</p><div className="divide-y divide-white/6 mb-4">{played.slice(0, 12).map((t) => <Row key={t.id} t={t} />)}</div></>}
       <div className="divide-y divide-white/6">{rest.slice(0, 40).map((t) => <Row key={t.id} t={t} />)}</div>

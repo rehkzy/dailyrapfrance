@@ -261,7 +261,7 @@ export default function AmisPage() {
               <div className="ticket p-8 text-center">
                 <span className="w-14 h-14 rounded-2xl bg-gold/15 text-gold grid place-items-center mx-auto mb-3"><Swords size={24} /></span>
                 <p className="font-display text-lg font-bold mb-1">Personne à défier pour l&apos;instant</p>
-                <p className="text-sm text-ink-muted">Cherche un pseudo au-dessus, ou envoie ton lien : tes potes arrivent ici tout seuls.</p>
+                <p className="text-sm text-ink-muted">Cherche un pseudo, ou envoie ton lien.</p>
               </div>
             ) : (
               <div className="ticket divide-y divide-white/6 overflow-hidden">

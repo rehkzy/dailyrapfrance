@@ -34,7 +34,6 @@ export default function ReviewPrompt({ userId }: { userId: string }) {
   return (
     <div className="ticket p-4 mt-4">
       <p className="font-display text-base font-bold mb-1">Tu kiffes ? Laisse un mot.</p>
-      <p className="text-xs text-ink-muted mb-3">Les avis sur l&apos;accueil, ce sont ceux des joueurs, avec leur pseudo. Rien d&apos;inventé.</p>
       <div className="flex gap-1 mb-3">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" onClick={() => { setRating(n); sfx.click(); }} aria-label={`${n} étoiles`}><Star size={24} className={n <= rating ? "text-gold fill-gold" : "text-ink-faint"} /></button>)}</div>
       <input value={text} onChange={(e) => setText(e.target.value.slice(0, 180))} placeholder="En une phrase" className="answer-input w-full mb-3" aria-label="Ton avis" />
       <div className="flex gap-2"><button type="button" onClick={later} className="sticker sticker-ghost sticker-sm flex-1 justify-center">Plus tard</button><button type="button" onClick={() => void send()} disabled={!rating || text.trim().length < 3} className="sticker sticker-sm flex-1 justify-center disabled:opacity-40">Envoyer</button></div>

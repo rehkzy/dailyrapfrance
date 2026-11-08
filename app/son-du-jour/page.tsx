@@ -19,7 +19,7 @@ export default function Page() {
       <BackToGame />
       <p className="stage-kicker mb-1">Chaque jour, le même pour tous</p>
       <h1 className="font-display text-4xl font-semibold tracking-tight mb-2">Le son du jour</h1>
-      <p className="text-sm text-ink-muted mb-6">Un morceau rap FR. Six essais. L&apos;extrait s&apos;allonge à chaque raté : 1 s, 2 s, 4 s, 7 s, 11 s, 16 s. Tu le trouves en combien ?</p>
+      <div className="mb-6" />
       <SonDuJour />
     </section>
   );

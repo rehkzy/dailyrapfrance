@@ -1690,7 +1690,7 @@ function BlindTestRoom({
                         className="answer-input"
                         style={f === "feat" ? { borderColor: "rgba(240,0,28,0.45)" } : undefined}
                       />
-                      {isSolved(f) && <p className="text-[11px] text-ink-faint mt-1 ml-1">Déjà trouvé par {otherFinders(f).join(", ")} — tente ta chance quand même.</p>}
+                      {isSolved(f) && <p className="note mt-1">Déjà trouvé par {otherFinders(f).join(", ")}</p>}
                     </div>
                   )
                 )}

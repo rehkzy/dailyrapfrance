@@ -424,7 +424,7 @@ export default function BlindTestBuilder() {
             {/* Import playlist */}
             <div className="ticket p-5">
               <p className="text-xs font-semibold text-ink-faint mb-1 inline-flex items-center gap-1.5"><Link2 size={13} /> Ou colle une playlist Spotify ou Deezer</p>
-              <p className="text-xs text-ink-faint mb-3">Playlist publique. Pour Spotify, chaque titre est retrouvé dans le catalogue des extraits ; ceux qui n&apos;y sont pas te sont signalés.</p>
+              <p className="note mb-3">Playlist publique · les titres sans extrait te sont signalés</p>
               <div className="flex gap-2">
                 <input value={playlistUrl} onChange={(e) => { setPlaylistUrl(e.target.value); setPlaylistState("idle"); }} placeholder="https://open.spotify.com/playlist/… ou deezer.com/playlist/…" className="answer-input !min-h-[48px] !text-sm flex-1" inputMode="url" />
                 <button type="button" onClick={importPlaylist} disabled={!playlistUrl.trim() || playlistState === "loading"} className="sticker sticker-ghost sticker-sm shrink-0">{playlistState === "loading" ? "…" : "Importer"}</button>
@@ -532,7 +532,7 @@ export default function BlindTestBuilder() {
                 </button>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">Couverture</p>
-                  <p className="text-xs text-ink-faint">Une image pour ton blind test (carré, 6 Mo max). Sinon, l&apos;icône par défaut.</p>
+                  <p className="note">Carré · 6 Mo max</p>
                   <div className="flex gap-2 mt-1.5">
                     <button type="button" onClick={() => coverInput.current?.click()} className="text-xs font-semibold text-glow">{cover ? "Changer" : "Ajouter une image"}</button>
                     {cover && <button type="button" onClick={() => setCover(null)} className="text-xs font-semibold text-ink-faint hover:text-ink">Retirer</button>}

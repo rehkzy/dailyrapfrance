@@ -169,7 +169,7 @@ export default function SonDuJour() {
             <a href={`/jouer?mode=solo&theme=${encodeURIComponent("artist-" + (state.artistName ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""))}`} className="sticker sticker-ghost flex-1 justify-center">Blind test {state.artistName?.split(" ")[0]}</a>
           </div>
           <p className="text-xs text-ink-faint mt-4">{st.played} joué{st.played > 1 ? "s" : ""} · {st.won} trouvé{st.won > 1 ? "s" : ""} · série {st.streak}</p>
-          <p className="text-xs text-ink-faint mt-1">Nouveau son demain à minuit.</p>
+          <p className="note mt-3">Nouveau son demain à minuit</p>
           {!user && <AdSlot slot="final" className="mt-4" />}
         </div>
       )}

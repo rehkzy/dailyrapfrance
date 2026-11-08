@@ -323,7 +323,7 @@ function CommunitySection({ title, sectionRef }: { title: string; sectionRef: (e
       {list.length > 12 && !showAll && (
         <button type="button" onClick={() => setShowAll(true)} className="sticker sticker-ghost sticker-sm mt-3">Voir les {list.length - 12} autres</button>
       )}
-      {list.length > 0 && <p className="text-xs text-ink-faint mt-3">Le tien peut être ici : <a href="/creer" className="text-glow font-semibold">crée ton blind test</a> et rends-le public.</p>}
+      {list.length > 0 && <a href="/creer" className="hub-link mt-3"><span className="min-w-0"><span className="block text-sm font-bold">Crée ton blind test</span><span className="block text-xs text-ink-muted">Tes morceaux, ton lien, public si tu veux</span></span></a>}
     </section>
   );
 }

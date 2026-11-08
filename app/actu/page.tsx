@@ -53,7 +53,7 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
     <section className="max-w-2xl lg:max-w-4xl mx-auto px-7 sm:px-8 pt-8 sm:pt-14 pb-32">
       <p className="stage-kicker mb-2">Le média</p>
       <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tight mb-2">Actu &amp; tendances</h1>
-      <p className="text-ink-muted mb-5">Ce qui tourne en ce moment, les sorties, l&apos;actu — et un blind test dessus en un tap.</p>
+      <p className="text-ink-muted mb-5">Ce qui tourne, les sorties, l&apos;actu. Un blind test dessus en un tap.</p>
       <AdSlot slot="actu" className="mb-5" />
 
       <nav className="segmented mb-5" aria-label="Rubriques">
@@ -68,7 +68,6 @@ export default async function ActuPage({ searchParams }: { searchParams: Promise
             {[{ id: "rap", label: "Rap FR" }, { id: "tout", label: "Tout genre" }].map((g) => (
               <a key={g.id} href={`/actu?onglet=tendances&genre=${g.id}`} aria-current={genre === g.id ? "page" : undefined} className={`rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-colors ${genre === g.id ? "bg-white text-black border-white" : "bg-white/6 border-white/10 text-ink-muted hover:text-ink"}`}>{g.label}</a>
             ))}
-            <span className="text-[11px] text-ink-faint ml-auto whitespace-nowrap">Mis à jour toutes les 30 min</span>
           </div>
           <TrendingList tracks={tracks} />
         </>
