@@ -121,7 +121,15 @@ export default function SonDuJour() {
       </div>
       <div className="flex items-center justify-between text-[11px] text-ink-faint -mt-1 mb-4"><span>0 s</span><span>{state.done ? "30 s" : `${allowed} s débloquées`}</span></div>
 
+      {!state.done && state.tries.length === 0 && (
+        <ol className="sdj-how">
+          <li><b>1</b> Appuie sur lecture : tu entends <b>1 seconde</b> du morceau.</li>
+          <li><b>2</b> Tape le titre (ou choisis-le dans la liste) et valide.</li>
+          <li><b>3</b> Raté ou passé ? L&apos;extrait s&apos;allonge. Six essais maximum.</li>
+        </ol>
+      )}
       <button type="button" onClick={play} className="sdj-play" aria-label={playing ? "Stop" : "Écouter"}>{playing ? <Square size={22} /> : <Play size={24} className="ml-1" />}</button>
+      <p className="text-center text-xs text-ink-faint -mt-3 mb-4">{state.done ? "Écouter l'extrait complet" : playing ? "Ça joue…" : `Écouter ${allowed} s`}</p>
 
       {/* Essais */}
       <ol className="sdj-tries">

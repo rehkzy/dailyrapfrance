@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { parisDateString } from "@/lib/dailyStreak";
 import { isCloseMatch } from "@/lib/blindtest-match";
+import { GET as poolGET } from "@/app/api/blindtest/pool/route";
+import { GET as previewGET } from "@/app/api/blindtest/preview/route";
 import { SITE } from "@/lib/seo";
 
 /*
@@ -11,7 +13,7 @@ import { SITE } from "@/lib/seo";
  *  POST { guess, attempt } → { correct, done, title?, artistName?, cover? }
  */
 const THEMES = ["hits-2026", "2010s", "pop", "melodique", "93", "13", "trap", "2000s", "viral", "91", "drill", "92", "recent", "nouvelle-gen", "afro", "94", "90s", "classics-ninho", "classics-pnl", "boombap"];
-const EPOCH = "2026-11-09";
+const EPOCH = "2026-11-08";
 const ATTEMPTS = 6;
 
 type Track = { id: string; title: string; artistName: string; coverUrl: string | null; previewUrl: string };
@@ -21,7 +23,8 @@ function hash(s: string): number { let h = 2166136261; for (let i = 0; i < s.len
 
 const pickOfDay = unstable_cache(async (date: string): Promise<Track | null> => {
   const theme = THEMES[hash(date) % THEMES.length];
-  const res = await fetch(`${SITE}/api/blindtest/pool?theme=${theme}&count=30`, { cache: "no-store" }).catch(() => null);
+  // Appel interne du tirage (pas de requête réseau vers soi-même : évite redirections et quotas).
+  const res = await poolGET(new NextRequest(`${SITE}/api/blindtest/pool?theme=${theme}&count=30`)).catch(() => null);
   const data = res && res.ok ? ((await res.json()) as { tracks?: Track[] }) : null;
   const pool = (data?.tracks ?? []).filter((t) => t.previewUrl && t.title && t.artistName).sort((a, b) => a.id.localeCompare(b.id));
   if (!pool.length) return null;
@@ -34,7 +37,7 @@ export async function GET() {
   if (!t) return NextResponse.json({ error: "unavailable" }, { status: 503 });
   // L'URL d'extrait Deezer expire : on la re-signe à chaque appel.
   let previewUrl = t.previewUrl;
-  try { const r = await fetch(`${SITE}/api/blindtest/preview?id=${t.id}`, { cache: "no-store" }); if (r.ok) { const d = (await r.json()) as { previewUrl?: string }; if (d.previewUrl) previewUrl = d.previewUrl; } } catch {}
+  try { const r = await previewGET(new NextRequest(`${SITE}/api/blindtest/preview?id=${t.id}`)); if (r.ok) { const d = (await r.json()) as { previewUrl?: string }; if (d.previewUrl) previewUrl = d.previewUrl; } } catch {}
   return NextResponse.json({ date, number: dayNumber(date), previewUrl, cover: t.coverUrl, attempts: ATTEMPTS }, { headers: { "Cache-Control": "no-store" } });
 }
 
