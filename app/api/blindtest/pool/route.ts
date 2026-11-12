@@ -236,9 +236,15 @@ export async function GET(req: NextRequest) {
       .map((full, i) => (full ? toGameTrack(full) : toGameTrack({ ...shuffled[i], contributors: [] })))
       .filter(isPlayableTrack);
 
+    if (tracks.length < 3) {
+      // Diagnostic renvoyé au client (affiché dans l'erreur de lancement) : on sait d'où ça vient.
+      const reason = raw.length === 0 ? "Deezer n'a renvoyé aucun titre (quota ou indisponibilité)" : withPreview.length < 3 ? `${raw.length} titres mais ${withPreview.length} avec extrait audio` : `${shuffled.length} tirés, ${tracks.length} jouables`;
+      console.error("[blindtest/pool] pool insuffisant —", themeId, reason);
+      return NextResponse.json({ tracks, reason }, { headers: { "Cache-Control": "no-store" } });
+    }
     return NextResponse.json({ tracks });
   } catch (err) {
     console.error("[blindtest/pool] erreur —", err instanceof Error ? err.message : err);
-    return NextResponse.json({ tracks: [] });
+    return NextResponse.json({ tracks: [], reason: err instanceof Error ? err.message : "erreur" }, { status: 200, headers: { "Cache-Control": "no-store" } });
   }
 }

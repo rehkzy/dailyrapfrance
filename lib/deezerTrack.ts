@@ -12,14 +12,33 @@ export type DeezerTrackFull = DeezerTrackSummary & {
   contributors?: { id: number; name: string }[];
 };
 
-export async function deezerFetch<T = { data?: DeezerTrackSummary[] }>(path: string): Promise<T> {
+// Deezer limite à ~50 requêtes / 5 s par IP, et sur Vercel l'IP est partagée : un pool de
+// 10 morceaux (recherche + détails) tombe parfois sur « Quota limit exceeded » (code 4) ou un
+// HTTP 429. On attend un peu et on réessaie, deux fois, avant d'abandonner — sinon le jeu
+// affichait « Deezer n'a pas renvoyé assez de titres » alors que l'artiste en a cent.
+export async function deezerFetch<T = { data?: DeezerTrackSummary[] }>(path: string, revalidate = 600): Promise<T> {
   // Les URL de preview Deezer sont signées et expirent ~15 min après la réponse : un cache
   // plus long sert des extraits morts (« le son ne part pas »). 10 min, pas plus.
-  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 600 } });
-  if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
-  const json = await res.json();
-  if (json?.error) throw new Error(`Deezer ${path} → ${json.error.message}`);
-  return json;
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 900 * attempt + Math.random() * 400));
+    try {
+      const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate } });
+      if (res.status === 429 || res.status >= 500) { lastErr = new Error(`Deezer ${path} → HTTP ${res.status}`); continue; }
+      if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
+      const json = await res.json();
+      if (json?.error) {
+        const e = new Error(`Deezer ${path} → ${json.error.message}`);
+        if (json.error.code === 4 || /quota/i.test(json.error.message ?? "")) { lastErr = e; continue; }
+        throw e;
+      }
+      return json;
+    } catch (e) {
+      if (e instanceof TypeError) { lastErr = e; continue; } // réseau
+      throw e;
+    }
+  }
+  throw lastErr ?? new Error(`Deezer ${path} → échec`);
 }
 
 export async function fetchTrackDetail(id: number): Promise<DeezerTrackFull | null> {

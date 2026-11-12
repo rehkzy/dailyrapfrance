@@ -499,7 +499,7 @@ export default function BlindTest() {
       const data = await res.json();
       let pool: Track[] = data.tracks ?? [];
       if (pool.length < 3) {
-        setSetupError("Deezer n'a pas renvoyé assez de titres pour ce thème. Réessaie, ou choisis un autre thème.");
+        setSetupError(data.reason ? `Deezer a répondu en erreur (${String(data.reason).replace(/^Deezer \S+ → /, "")}). Réessaie dans quelques secondes.` : "Deezer n'a pas renvoyé assez de titres pour ce thème. Réessaie, ou choisis un autre thème.");
         setPhase("setup");
         return;
       }

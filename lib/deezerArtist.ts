@@ -1,3 +1,4 @@
+import { deezerFetch as baseDeezerFetch } from "@/lib/deezerTrack";
 // Résolution d'artiste Deezer partagée par le pool de titres et les pochettes de thème.
 //
 // Le bug rapporté : `/search/artist?q=sadek&limit=1` renvoyait "Sadek (MAR)", un artiste
@@ -24,13 +25,9 @@ export type DeezerArtistLite = {
 
 async function deezerFetch<T>(path: string): Promise<T> {
   // Tout ce qui renvoie des previews (top, tracks) expire vite (URL signées ~15 min) ;
-  // le reste (recherche, albums, similaires) peut vivre 24 h.
+  // le reste (recherche, albums, similaires) peut vivre 24 h. Réessais quota : voir deezerTrack.
   const hasPreviews = /\/(top|tracks)\b/.test(path);
-  const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: hasPreviews ? 600 : 86400 } });
-  if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
-  const json = await res.json();
-  if (json?.error) throw new Error(`Deezer ${path} → ${json.error.message}`);
-  return json;
+  return baseDeezerFetch<T>(path, hasPreviews ? 600 : 86400);
 }
 
 const norm = (s: string) => s.toLowerCase().trim();
