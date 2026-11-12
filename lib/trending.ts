@@ -1,3 +1,4 @@
+import { deezerFetch } from "@/lib/deezerTrack";
 /*
  * Tendances — ce qui s'écoute en ce moment, via les playlists éditoriales Deezer France (pas de clé).
  *   rap   : genre 116 (Rap/Hip-Hop), le cœur du média
@@ -13,9 +14,7 @@ type DzTrack = { id: number; title_short?: string; title: string; preview?: stri
 
 async function dz<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate: 1800 }, headers: { "User-Agent": "DailyRapFrance/1.0" } });
-    if (!res.ok) return null;
-    const j = await res.json();
+    const j = await deezerFetch<{ data?: T }>(path, 1800);
     return (j?.data ?? null) as T | null;
   } catch {
     return null;

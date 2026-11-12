@@ -12,18 +12,34 @@ export type DeezerTrackFull = DeezerTrackSummary & {
   contributors?: { id: number; name: string }[];
 };
 
-// Deezer limite à ~50 requêtes / 5 s par IP, et sur Vercel l'IP est partagée : un pool de
-// 10 morceaux (recherche + détails) tombe parfois sur « Quota limit exceeded » (code 4) ou un
-// HTTP 429. On attend un peu et on réessaie, deux fois, avant d'abandonner — sinon le jeu
-// affichait « Deezer n'a pas renvoyé assez de titres » alors que l'artiste en a cent.
+/*
+ * Appels Deezer. Deux pièges rencontrés en prod :
+ *  · Deezer limite à ~50 requêtes / 5 s par IP, et sur Vercel l'IP est partagée : une partie
+ *    (recherche + 10 fiches) tombe parfois sur « Quota limit exceeded ». On réessaie, 2 fois.
+ *  · Ces erreurs arrivent en HTTP 200 avec { error } dans le corps — et le cache de données
+ *    de Next (next: { revalidate }) gardait ce 200 comme une bonne réponse pendant 24 h : plus
+ *    aucun blind test d'artiste n'avait de morceaux jusqu'au lendemain. Donc : fetch sans le
+ *    cache Next, et un cache mémoire à nous qui ne retient QUE les réponses correctes.
+ */
+const memo = new Map<string, { at: number; value: unknown }>();
+function remember(path: string, ttlMs: number) {
+  const hit = memo.get(path);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.value;
+  if (hit) memo.delete(path);
+  if (memo.size > 3000) memo.clear();
+  return undefined;
+}
+
 export async function deezerFetch<T = { data?: DeezerTrackSummary[] }>(path: string, revalidate = 600): Promise<T> {
   // Les URL de preview Deezer sont signées et expirent ~15 min après la réponse : un cache
   // plus long sert des extraits morts (« le son ne part pas »). 10 min, pas plus.
+  const cached = remember(path, revalidate * 1000);
+  if (cached !== undefined) return cached as T;
   let lastErr: Error | null = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 900 * attempt + Math.random() * 400));
     try {
-      const res = await fetch(`https://api.deezer.com${path}`, { next: { revalidate } });
+      const res = await fetch(`https://api.deezer.com${path}`, { cache: "no-store", headers: { "User-Agent": "DailyRapFrance/1.0 (+https://dailyrapfrance.best)" } });
       if (res.status === 429 || res.status >= 500) { lastErr = new Error(`Deezer ${path} → HTTP ${res.status}`); continue; }
       if (!res.ok) throw new Error(`Deezer ${path} → HTTP ${res.status}`);
       const json = await res.json();
@@ -32,6 +48,7 @@ export async function deezerFetch<T = { data?: DeezerTrackSummary[] }>(path: str
         if (json.error.code === 4 || /quota/i.test(json.error.message ?? "")) { lastErr = e; continue; }
         throw e;
       }
+      memo.set(path, { at: Date.now(), value: json });
       return json;
     } catch (e) {
       if (e instanceof TypeError) { lastErr = e; continue; } // réseau
