@@ -28,7 +28,7 @@ export default function BottomDock() {
   const pathname = usePathname() ?? "/";
   const { user } = useUser();
   const unread = useUnreadMessages(user?.id) + useUnreadNotifications(user?.id);
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/admin") || pathname.startsWith("/ecran")) return null;
   const onPlay = pathname.startsWith("/jouer") || pathname === "/blindtest" || pathname.startsWith("/b/");
   const Item = ({ href, label, Icon, match }: (typeof LEFT)[number]) => {
     const active = match(pathname);

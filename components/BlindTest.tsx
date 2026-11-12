@@ -28,6 +28,7 @@ import AdSlot from "@/components/AdSlot";
 import ReviewPrompt from "@/components/ReviewPrompt";
 import SeasonBanner from "@/components/SeasonBanner";
 import { SoloIcon, SamePhoneIcon, SwordsIcon, FriendsIcon, PartyIcon } from "@/components/ModeIcons";
+import GuestJoin from "@/components/GuestJoin";
 import Confetti from "@/components/Confetti";
 import ThemePicker from "@/components/ThemePicker";
 import HelpTip from "@/components/HelpTip";
@@ -187,6 +188,7 @@ export default function BlindTest() {
   // Mode découverte (sans compte) : solo, QCM, 5 manches, avec pub. Un compte enlève la pub et
   // ouvre tout le reste (score, classement, potes, salons). Les robots de Google voient le jeu.
   const guest = !userLoading && !user;
+  const [guestDeclined, setGuestDeclined] = useState(false);
   const GUEST_ROUNDS = 5;
   const effectiveRounds = customSet ? customSet.i.length : variant === "sprint" ? SPRINT_ROUNDS : variant === "survival" ? SURVIVAL_POOL : guest ? Math.min(GUEST_ROUNDS, roundCount) : roundCount;
   const effectiveJokers = variant === "sprint" ? 0 : jokerCount;
@@ -1152,6 +1154,10 @@ export default function BlindTest() {
   // sauvegarder les scores et créer des salons). Le mur de connexion ne se dresse
   // qu'au moment où il est réellement nécessaire : salon en ligne / soirée.
   if (mode === "online" || mode === "party") {
+    if (!user && joinRoomCode && !guestDeclined) {
+      // Invité d'une soirée : pseudo et c'est tout. (Si ce n'est pas une soirée, on retombe sur la connexion.)
+      return <GuestJoin code={joinRoomCode} onBack={() => setMode(null)} onNeedAccount={() => setGuestDeclined(true)} />;
+    }
     if (!user) {
       return (
         <SignInGate

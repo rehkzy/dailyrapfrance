@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv, ChevronRight, MessageCircle } from "lucide-react";
+import { Users, Copy, Check, ArrowLeft, SkipForward, Share2, VolumeX, RotateCcw, LogOut, Tv, ChevronRight, MessageCircle, Headphones } from "lucide-react";
 import { THEME_OPTIONS } from "@/lib/themes";
 import { fieldsFor, fieldPrompt, guessableFeats } from "@/lib/fields";
 import { enablePush, pushEnabled, pushSupport } from "@/lib/pushClient";
@@ -61,6 +61,7 @@ type RoomRow = {
   gages_intensity: "soft" | "hard";
   round_seconds?: number | null;
   is_public?: boolean;
+  is_party?: boolean;
   starts_at?: string | null;
   created_at?: string;
   custom_ids?: number[] | null;
@@ -155,6 +156,15 @@ function BlindTestRoom({
   const [solves, setSolves] = useState<SolveRow[]>([]);
 
   const [started, setStarted] = useState(false);
+  // Soirée : la TV joue le son, les téléphones sont muets (sauf casque : bascule dans le HUD).
+  const isParty = !!(room?.is_party || party);
+  const [phoneAudio, setPhoneAudio] = useState<boolean>(() => { try { return localStorage.getItem("drf-party-phone-audio") === "on"; } catch { return false; } });
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.muted = isParty && !phoneAudio;
+  }, [isParty, phoneAudio, screen, room?.current_round]);
+
   const roundSecs = room?.round_seconds && room.round_seconds >= 10 ? room.round_seconds : ROUND_SECONDS;
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   const [revealed, setRevealed] = useState(false);
@@ -593,15 +603,23 @@ function BlindTestRoom({
         ...(roundSeconds !== ROUND_SECONDS ? { round_seconds: roundSeconds } : {}),
         is_public: isPublic,
         format,
+        ...(party ? { is_party: true } : {}),
         ...(custom ? { custom_ids: custom.ids, custom_title: custom.title } : {}),
       })
       .select()
       .single();
-    if (err || !data) {
-      console.error("[createRoom]", err);
+    // Colonne is_party absente (migration pas encore passée) : on crée sans.
+    const retried = err && party && /is_party/.test(err.message ?? "")
+      ? await supabase.from("rooms").insert({ code, host_id: user.id, theme, rounds, answer_mode: answerMode, gages_enabled: gagesEnabled, gages_intensity: gagesIntensity, ...(roundSeconds !== ROUND_SECONDS ? { round_seconds: roundSeconds } : {}), is_public: isPublic, format, ...(custom ? { custom_ids: custom.ids, custom_title: custom.title } : {}) }).select().single()
+      : null;
+    const data2 = retried?.data ?? data;
+    const err2 = retried ? retried.error : err;
+    const created = data2 as NonNullable<typeof data>;
+    if (err2 || !data2) {
+      console.error("[createRoom]", err2);
       setError(
-        err?.message
-          ? `Impossible de créer le salon (${err.message}). Vérifie que les tables "rooms" existent bien dans Supabase.`
+        err2?.message
+          ? `Impossible de créer le salon (${err2.message}). Vérifie que les tables "rooms" existent bien dans Supabase.`
           : "Impossible de créer le salon. Réessaie."
       );
       setBusy(false);
@@ -609,15 +627,15 @@ function BlindTestRoom({
     }
     const { error: joinErr } = await supabase
       .from("room_players")
-      .insert({ room_id: data.id, user_id: user.id, display_name: displayName, team: format === "2v2" ? 1 : null });
+      .insert({ room_id: created.id, user_id: user.id, display_name: displayName, team: format === "2v2" ? 1 : null });
     if (joinErr) {
       console.error("[createRoom:joinSelf]", joinErr);
       setError(`Salon créé mais impossible de te rejoindre (${joinErr.message}).`);
       setBusy(false);
       return;
     }
-    setRoom(data as RoomRow);
-    setPlayers([{ room_id: data.id, user_id: user.id, display_name: displayName, team: format === "2v2" ? 1 : null }]);
+    setRoom(created as RoomRow);
+    setPlayers([{ room_id: created.id, user_id: user.id, display_name: displayName, team: format === "2v2" ? 1 : null }]);
     setScreen("lobby");
     setBusy(false);
   }
@@ -1188,31 +1206,44 @@ function BlindTestRoom({
             {copied ? <Check size={20} className="text-gold" /> : <Copy size={18} className="text-ink-faint group-hover:text-ink" />}
           </button>
 
-          <div className="mb-6">
-            <button onClick={shareRoom} className="sticker h-12 px-6">
-              <Share2 size={15} />
-              {shared ? "Lien envoyé !" : "Partager l'invitation"}
-            </button>
-          </div>
+          {(!party || isHost) && (
+            <div className="mb-6">
+              <button onClick={shareRoom} className="sticker h-12 px-6">
+                <Share2 size={15} />
+                {shared ? "Lien envoyé !" : "Partager l'invitation"}
+              </button>
+            </div>
+          )}
 
-          {party ? (
-            <a
-              href={`/ecran?code=${room.code}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mb-6 flex items-center gap-3.5 rounded-2xl border border-gold/40 bg-gold/[0.07] p-4 text-left hover:border-gold transition-colors"
-            >
-              <span className="icon-tile w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#7a0f0f] to-[#F0001C] text-white">
-                <Tv size={20} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">Ouvrir l&apos;écran partagé</span>
-                <span className="block text-xs text-ink-faint mt-0.5 leading-snug">
-                  Sur la TV ou un laptop : QR pour rejoindre, décompte et classement en direct.
-                </span>
-              </span>
-            </a>
-          ) : (
+          {party && !isHost ? (
+            <div className="party-steps mb-6">
+              <div className="party-step">
+                <span className="party-step-n"><Tv size={18} /></span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-extrabold">Le son sort de la TV</span><span className="block text-xs text-ink-muted">Ton téléphone reste muet. Casque ? Bascule « Casque » en haut pendant la partie.</span></span>
+              </div>
+              <div className="party-step">
+                <span className="party-step-n"><Icon icon="game-icons:thumb-up" width={18} /></span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-extrabold">Appuie sur « Je suis prêt »</span><span className="block text-xs text-ink-muted">L&apos;hôte lance quand tout le monde y est. Tu réponds ici, à chaque manche.</span></span>
+              </div>
+            </div>
+          ) : party ? (
+            <div className="party-steps mb-6">
+              <a href={`/ecran?code=${room.code}`} target="_blank" rel="noopener noreferrer" className="party-step party-step-main">
+                <span className="party-step-n"><Tv size={18} /></span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-extrabold">1 · Ouvre l&apos;écran sur la TV</span><span className="block text-xs text-ink-muted">Ce lien, dans le navigateur de la TV ou d&apos;un ordi branché. Le son sort de là.</span></span>
+                <ChevronRight size={18} className="text-ink-faint shrink-0" />
+              </a>
+              <div className="party-step">
+                <span className="party-step-n">2</span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-extrabold">Tes invités scannent le QR</span><span className="block text-xs text-ink-muted">Un pseudo, pas de compte. Ou le code <b className="text-ink">{room.code}</b> sur dailyrapfrance.best/jouer.</span></span>
+                <button type="button" onClick={shareRoom} className="sticker sticker-ghost sticker-sm shrink-0"><Share2 size={14} /> Lien</button>
+              </div>
+              <div className="party-step">
+                <span className="party-step-n">3</span>
+                <span className="min-w-0 flex-1"><span className="block text-[15px] font-extrabold">Tu lances, les téléphones répondent</span><span className="block text-xs text-ink-muted">Ton téléphone est la télécommande : démarrer, passer, relancer.</span></span>
+              </div>
+            </div>
+          ) : isHost ? (
             <a
               href={`/ecran?code=${room.code}`}
               target="_blank"
@@ -1221,7 +1252,7 @@ function BlindTestRoom({
             >
               <Tv size={13} /> Ouvrir l&apos;écran salon (TV / laptop)
             </a>
-          )}
+          ) : null}
 
           {!room.is_public && <RoomFriendInvites userId={user.id} roomCode={room.code} roomLabel={room.custom_title ?? THEME_OPTIONS.find((t) => t.id === room.theme)?.label.replace(/^Blind Test /i, "") ?? room.theme} rounds={room.rounds} inRoomIds={players.map((p) => p.user_id)} />}
 
@@ -1614,6 +1645,12 @@ function BlindTestRoom({
                 <span className="feed-rail-icon text-xl">{e}</span>
               </button>
             ))}
+            {isParty && (
+              <button type="button" onClick={() => { const v = !phoneAudio; setPhoneAudio(v); try { localStorage.setItem("drf-party-phone-audio", v ? "on" : "off"); } catch {} sfx.click(); }} aria-pressed={phoneAudio} className="feed-rail-btn" aria-label={phoneAudio ? "Son sur mon téléphone (activé)" : "Son sur la TV"}>
+                <span className="feed-rail-icon">{phoneAudio ? <Headphones size={20} /> : <Tv size={20} />}</span>
+                <span>{phoneAudio ? "Casque" : "Son TV"}</span>
+              </button>
+            )}
             {isHost && (
               <button type="button" onClick={endRoundEarly} className="feed-rail-btn">
                 <span className="feed-rail-icon"><SkipForward size={20} /></span>

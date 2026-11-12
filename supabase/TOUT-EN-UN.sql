@@ -614,3 +614,15 @@ drop policy if exists "Avis approuvés visibles, les miens aussi" on public.play
 create policy "Avis approuvés visibles, les miens aussi" on public.player_reviews for select using (approved = true or auth.uid() = user_id);
 drop policy if exists "Je dépose mon avis" on public.player_reviews;
 create policy "Je dépose mon avis" on public.player_reviews for insert with check (auth.uid() = user_id);
+
+
+-- ═══ Mode soirée (TV) ════════════════════════════════════════════════════
+-- Un salon marqué « soirée » : la TV joue le son, les téléphones sont les manettes,
+-- les invités rejoignent SANS compte (connexion anonyme Supabase, pseudo seulement).
+alter table public.rooms add column if not exists is_party boolean not null default false;
+
+-- ⚠️ À activer aussi dans le tableau de bord Supabase (pas faisable en SQL) :
+--   Authentication → Sign In / Providers → « Allow anonymous sign-ins » → ON
+-- Sans ça, les invités devront se connecter avec Google ou un e-mail.
+
+-- Les comptes invités (anonymes) sont nettoyés au bout de 7 jours par le cron de ménage.

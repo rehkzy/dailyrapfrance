@@ -80,7 +80,7 @@ export default function LiveNotifier() {
 
   // Proposer les notifications au bon moment
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.is_anonymous) return; // invités d'une soirée : pas de sollicitation
     const onNudge = () => {
       if (pushEnabled() || pushSnoozed()) return;
       const s = pushSupport();

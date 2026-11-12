@@ -34,7 +34,7 @@ export default function OnboardingWelcome() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.is_anonymous) return;
     if (typeof window !== "undefined" && (/^\/(jouer|ecran|admin|b\/)/.test(window.location.pathname) || document.querySelector(".feed, .reel-feed, .swipe-screen"))) return;
     try { if (localStorage.getItem(localKey(user.id))) return; } catch {}
     (async () => {
