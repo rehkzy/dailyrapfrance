@@ -20,6 +20,7 @@ import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, type QcmField } from "@/l
 import ThemePicker from "@/components/ThemePicker";
 import BrandLoader from "@/components/BrandLoader";
 import RoomFriendInvites from "@/components/RoomFriendInvites";
+import SoundCheck from "@/components/SoundCheck";
 import { LobbyChat, LiveChat } from "@/components/RoomChat";
 import ResultTicket from "@/components/ResultTicket";
 import AfterGameFriends from "@/components/AfterGameFriends";
@@ -1276,6 +1277,8 @@ function BlindTestRoom({
           </div>
 
           <div id="lobby-chat"><LobbyChat roomId={room.id} userId={user.id} name={me?.display_name ?? displayName} avatarUrl={avatarUrl} /></div>
+
+          {(!party || phoneAudio) && <SoundCheck className="mb-3 text-left" />}
 
           {!room.is_public && (
             <button type="button" onClick={toggleReady} aria-pressed={!!me?.ready} className={`w-full h-14 mb-3 ${me?.ready ? "sticker sticker-ghost" : "sticker"}`}>

@@ -12,6 +12,7 @@ import { THEME_OPTIONS } from "@/lib/themes";
 import { sfx } from "@/lib/sfx";
 import { isSoundbiteTheme } from "@/lib/gimmicks";
 import { fieldsFor } from "@/lib/fields";
+import SoundCheck from "@/components/SoundCheck";
 
 /*
  * L'ÉCRAN DE LA SOIRÉE — à ouvrir sur la TV (navigateur de la TV, ordi en HDMI, Chromecast).
@@ -238,7 +239,8 @@ export default function PartyDisplay({ code }: { code: string }) {
               ))}
               {players.length === 0 && <span className="tv-sub">En attente des premiers joueurs…</span>}
             </div>
-            <p className="tv-sub mt-auto">{players.length} joueur{players.length > 1 ? "s" : ""} · l&apos;hôte lance depuis son téléphone</p>
+            <SoundCheck screen="tv" className="mt-auto" />
+            <p className="tv-sub">{players.length} joueur{players.length > 1 ? "s" : ""} · l&apos;hôte lance depuis son téléphone</p>
           </section>
         </main>
       )}

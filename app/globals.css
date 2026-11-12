@@ -3926,3 +3926,23 @@ body { overflow-x: clip; }
 .tv-msg { background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 1em; padding: 0.6em 1em; backdrop-filter: blur(10px); animation: solved-pop 0.3s ease; }
 .tv-msg b { color: #F0001C; margin-right: 0.3em; }
 @media (max-aspect-ratio: 1/1) { .tv-lobby, .tv-round { grid-template-columns: 1fr; } .tv-reveal { flex-direction: column; } .tv-reveal-text { max-width: none; } }
+
+/* ── Test du son (avant de lancer, tous les modes) ──────────────────── */
+.soundcheck { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 6px 8px 6px 14px; border-radius: 999px; background: #151010; border: 1px solid rgba(255,255,255,0.12); font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+.soundcheck[data-state="help"] { border-radius: 18px; padding: 12px 14px; }
+.soundcheck[data-state="ok"] { border-color: rgba(240,0,28,0.5); background: #1e0b0e; }
+.soundcheck-main { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #fff; min-height: 32px; }
+.soundcheck-main svg { color: #F0001C; flex-shrink: 0; }
+.soundcheck-okmsg svg { color: #F0001C; }
+.soundcheck-actions { display: inline-flex; gap: 6px; }
+.soundcheck-btn { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 12px; border-radius: 999px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); font-size: 13px; font-weight: 700; color: #fff; }
+.soundcheck-yes { background: #F0001C; border-color: #F0001C; }
+.soundcheck-help { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.soundcheck-help ul { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: rgba(255,255,255,0.7); padding-left: 0; }
+.soundcheck-help li { display: flex; gap: 8px; }
+.soundcheck-help li::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: #F0001C; flex-shrink: 0; margin-top: 7px; }
+.soundcheck-eq { display: inline-flex; align-items: flex-end; gap: 2px; width: 16px; height: 14px; }
+.soundcheck-eq i { width: 3px; background: #F0001C; border-radius: 2px; animation: scEq 0.7s ease-in-out infinite; height: 40%; }
+.soundcheck-eq i:nth-child(2) { animation-delay: 0.15s; } .soundcheck-eq i:nth-child(3) { animation-delay: 0.3s; } .soundcheck-eq i:nth-child(4) { animation-delay: 0.45s; }
+@keyframes scEq { 0%,100% { height: 30%; } 50% { height: 100%; } }
+.tv .soundcheck { font-size: 0.85em; align-self: flex-start; }

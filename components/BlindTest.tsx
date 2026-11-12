@@ -25,6 +25,7 @@ import { lockScroll, unlockScroll } from "@/lib/scrollLock";
 import { qcmStageOrder, qcmStageOptions, qcmIsCorrect, qcmCorrectLabel } from "@/lib/qcmStages";
 import EmailAuthForm from "@/components/EmailAuthForm";
 import AdSlot from "@/components/AdSlot";
+import SoundCheck from "@/components/SoundCheck";
 import ReviewPrompt from "@/components/ReviewPrompt";
 import SeasonBanner from "@/components/SeasonBanner";
 import { SoloIcon, SamePhoneIcon, SwordsIcon, FriendsIcon, PartyIcon } from "@/components/ModeIcons";
@@ -1599,9 +1600,12 @@ export default function BlindTest() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#070404] via-[#070404]/90 to-transparent -z-10" aria-hidden="true" />
             <div className="max-w-2xl mx-auto pointer-events-auto">
               {wizardStep === 2 ? (
-                <button type="button" onClick={startGame} className="sticker w-full h-16 text-lg">
-                  <Icon icon="game-icons:play-button" width={20} /> Lancer la partie
-                </button>
+                <>
+                  <SoundCheck className="mb-2.5" />
+                  <button type="button" onClick={startGame} className="sticker w-full h-16 text-lg">
+                    <Icon icon="game-icons:play-button" width={20} /> Lancer la partie
+                  </button>
+                </>
               ) : (
                 <button type="button" disabled={!canContinue} onClick={() => { setSetupError(null); setWizardStep(isCustom ? 2 : 1); }} className="sticker w-full h-16 text-lg">
                   {!mode ? "Choisis un mode pour continuer" : mode === "local" && !canContinue ? "Ajoute au moins 2 joueurs" : isCustom ? "Continuer" : "Choisir le thème"} {canContinue && <ChevronRight size={18} />}

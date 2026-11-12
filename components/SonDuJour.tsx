@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play, Square, Share2, SkipForward, Check, X, Lock } from "lucide-react";
+import SoundCheck from "@/components/SoundCheck";
 import { useUser } from "@/lib/useUser";
 import { sfx } from "@/lib/sfx";
 import { markPlayedToday } from "@/lib/dailyStreak";
@@ -128,6 +129,7 @@ export default function SonDuJour() {
           <li><b>3</b> Raté ou passé ? L&apos;extrait s&apos;allonge. Six essais maximum.</li>
         </ol>
       )}
+      {!state.done && state.tries.length === 0 && <SoundCheck className="mb-4" />}
       <button type="button" onClick={play} className="sdj-play" aria-label={playing ? "Stop" : "Écouter"}>{playing ? <Square size={22} /> : <Play size={24} className="ml-1" />}</button>
       <p className="text-center text-xs text-ink-faint -mt-3 mb-4">{state.done ? "Écouter l'extrait complet" : playing ? "Ça joue…" : `Écouter ${allowed} s`}</p>
 
