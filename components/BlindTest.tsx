@@ -484,7 +484,6 @@ export default function BlindTest() {
     }
     setPhase("loading");
     sfx.newGame();
-    sfx.tag();
     // Thème surprise : tiré au sort au lancement, puis affiché comme n'importe quel thème.
     let playTheme = themeId;
     if (themeId === "random") {
@@ -496,6 +495,7 @@ export default function BlindTest() {
       const poolQuery = buildQuery(playTheme, effectiveRounds);
       if (customSet) poolQuery.set("ids", customSet.i.join(","));
       const res = await fetch(`/api/blindtest/pool?${poolQuery}`);
+      if (!res.ok) throw new Error(res.status === 429 ? "accès bloqué par la protection du site, code 429" : `erreur ${res.status}`);
       const data = await res.json();
       let pool: Track[] = data.tracks ?? [];
       if (pool.length < 3) {
@@ -539,9 +539,10 @@ export default function BlindTest() {
           : playerNames.filter((n) => n.trim()).map((n, i) => ({ id: `p${i}`, name: n.trim(), score: 0, jokersLeft: effectiveJokers, timeJokerUsed: false }))
       );
       setRoundIndex(0);
+      sfx.tag();
       setPhase("playing");
-    } catch {
-      setSetupError("Impossible de charger le pool de titres. Réessaie.");
+    } catch (e) {
+      setSetupError(`Impossible de charger les morceaux (${e instanceof Error ? e.message : "réseau"}). Réessaie.`);
       setPhase("setup");
     }
   }
@@ -1601,6 +1602,7 @@ export default function BlindTest() {
             <div className="max-w-2xl mx-auto pointer-events-auto">
               {wizardStep === 2 ? (
                 <>
+                  {setupError && <p className="note mb-2.5 !text-riseNeg">{setupError}</p>}
                   <SoundCheck className="mb-2.5" />
                   <button type="button" onClick={startGame} className="sticker w-full h-16 text-lg">
                     <Icon icon="game-icons:play-button" width={20} /> Lancer la partie
