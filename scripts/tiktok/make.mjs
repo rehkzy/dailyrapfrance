@@ -57,6 +57,9 @@ const { values: opt } = parseArgs({
     theme: { type: "string" },
     ids: { type: "string" },
     search: { type: "string" },
+    artist: { type: "string" },
+    playlist: { type: "string" },
+    hook: { type: "string" },
     count: { type: "string", default: "3" },
     tracks: { type: "string", default: "1" },
     name: { type: "string" },
@@ -66,8 +69,8 @@ const { values: opt } = parseArgs({
     offset: { type: "string", default: "5" },
     guess: { type: "string", default: "8" },
     reveal: { type: "string" },
-    intro: { type: "string", default: "3" },
-    end: { type: "string", default: "3" },
+    intro: { type: "string", default: "2.4" },
+    end: { type: "string", default: "3.2" },
     fps: { type: "string", default: "12" },
     "keep-frames": { type: "boolean", default: false },
     "no-tag": { type: "boolean", default: false },
@@ -77,7 +80,7 @@ const { values: opt } = parseArgs({
   },
 });
 
-if (opt.help || (!opt.theme && !opt.ids && !opt.search)) {
+if (opt.help || (!opt.theme && !opt.ids && !opt.search && !opt.artist && !opt.playlist)) {
   console.log(`Usage :
   node scripts/tiktok/make.mjs --theme <id> [--count 3] [--out ./out]
   node scripts/tiktok/make.mjs --theme <id> --tracks 5 --label "Top 50" --name top50
@@ -88,6 +91,9 @@ Options :
   --theme <id>       thème du blind test (ex. pop, 2010s, 13, artist-ninho) via l'API du site
   --ids a,b,c        IDs de titres Deezer (détail via api.deezer.com, sans passer par le site)
   --search "texte"   recherche Deezer, prend les premiers titres avec preview
+  --artist "Nom"     top titres Deezer de l'artiste (sans passer par le site)
+  --playlist <id>    titres d'une playlist Deezer (sans passer par le site)
+  --hook "Texte"     accroche de l'intro (défaut : tirée au sort parmi des accroches qui font réagir)
   --tracks N         sons par vidéo (défaut 1 ; >1 ajoute une intro et un compteur « Son k/N »)
   --count N          nombre de vidéos (défaut 3)
   --name a,b         noms de fichiers de sortie sans extension (un par vidéo, dans l'ordre)
@@ -123,8 +129,10 @@ const XF_SCREEN = 0.35; // fondu devine → révèle
 const XF_TRACK = 0.3; // fondu entre deux sons / intro / fin
 const AUDIO_FADE = 0.4;
 const TAG_FILE = path.join(REPO_ROOT, "public", "audio", "tag.mp3"); // signature sonore (~2 s)
-const TAG_AT_INTRO = 0.4;
+const TAG_AT_INTRO = 0.05; // le tag ouvre la vidéo, tout de suite
 const TAG_AT_END = 0.3;
+const BED_INTRO = 0.42; // niveau de l'extrait du son 1 sous l'intro (jamais de silence)
+const BED_END = 0.55; // l'extrait du dernier son continue sous l'écran de fin
 const GIMMICK_DIR = path.join(REPO_ROOT, "public", "audio", "gimmicks");
 const GIMMICK_CATALOG = path.join(REPO_ROOT, "lib", "gimmicks.ts");
 const GIMMICK_AT_REVEAL = 0.2; // après le début de la révélation
@@ -151,6 +159,26 @@ async function loadGimmicks() {
 }
 
 const pick = (arr) => (arr.length ? arr[Math.floor(Math.random() * arr.length)] : null);
+
+// Accroches d'intro (tirées au sort sauf --hook) : une question qu'on a envie de contredire
+// en commentaire. <span> = mot en rouge.
+const HOOKS = [
+  "T'ES UN <span>VRAI</span> ?",
+  "SI TU LES TROUVES PAS<br>T'ES <span>PAS</span> UN VRAI",
+  "TON SCORE<br>EN <span>COMMENTAIRE</span>",
+  "TROUVE-LES<br><span>TOUS</span>.",
+  "PERSONNE<br>FAIT <span>5/5</span>",
+  "TAG LE POTE<br>QUI VA <span>RATER</span>",
+];
+// Relances pendant la devinette : une différente par son.
+const PROMPTS = [
+  ["Mets ta réponse en commentaire ↓", "Artiste + titre"],
+  ["Tag le pote qui va rater ↓", "Lui il sait pas"],
+  ["Trop facile ? Prouve-le ↓", "Artiste + titre, sans Shazam"],
+  ["Pause interdite.", "T'as le droit à un seul essai"],
+  ["Celui-là sépare les vrais ↓", "Artiste + titre"],
+  ["Si tu l'as en 2 secondes, respect ↓", "Commente ton temps"],
+];
 
 // Plan sonore d'une vidéo : gimmick de l'artiste à sa révélation ; sinon, au plus un gimmick
 // « hit » sur une révélation au hasard ; un « win » sur l'écran de fin.
@@ -316,6 +344,38 @@ async function tracksFromSearch(q, count) {
   return tracksFromIds(withPreview.map((t) => t.id));
 }
 
+async function tracksFromArtist(name, count) {
+  const search = await fetchJson(`${DEEZER}/search/artist?q=${encodeURIComponent(name)}&limit=8`);
+  // Homonymes : plusieurs « Ninho » — on prend celui qui a le plus de fans parmi les noms exacts.
+  const exact = (search.data ?? []).filter((a) => a.name.toLowerCase() === name.toLowerCase());
+  const artist = (exact.length ? exact : search.data ?? []).sort((a, b) => (b.nb_fan ?? 0) - (a.nb_fan ?? 0))[0];
+  if (!artist) throw new Error(`Artiste Deezer introuvable : ${name}`);
+  const top = await fetchJson(`${DEEZER}/artist/${artist.id}/top?limit=${Math.min(100, count * 3)}`);
+  let candidates = (top.data ?? []).filter((t) => t.preview);
+  if (candidates.length < count) {
+    // Hors de France, /top est souvent vide (catalogue géo-restreint) : on passe par les albums,
+    // en gardant les titres dont l'artiste principal est bien lui (pas les feats).
+    const albums = await fetchJson(`${DEEZER}/artist/${artist.id}/albums?limit=8`);
+    for (const a of albums.data ?? []) {
+      const list = await fetchJson(`${DEEZER}/album/${a.id}/tracks?limit=20`).catch(() => ({ data: [] }));
+      for (const t of list.data ?? []) if (t.preview && (t.artist?.name ?? "").toLowerCase() === artist.name.toLowerCase()) candidates.push(t);
+    }
+  }
+  const seen = new Set();
+  const withPreview = candidates.filter((t) => { const k = (t.title_short || t.title).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  if (!withPreview.length) throw new Error(`Pas de preview pour ${artist.name}.`);
+  const shuffled = withPreview.sort(() => Math.random() - 0.5).slice(0, count);
+  return tracksFromIds(shuffled.map((t) => t.id));
+}
+
+async function tracksFromPlaylist(id, count) {
+  const json = await fetchJson(`${DEEZER}/playlist/${id}/tracks?limit=200`);
+  const withPreview = (json.data ?? []).filter((t) => t.preview);
+  if (!withPreview.length) throw new Error(`Playlist ${id} : aucun titre avec preview.`);
+  const shuffled = withPreview.sort(() => Math.random() - 0.5).slice(0, count);
+  return tracksFromIds(shuffled.map((t) => t.id));
+}
+
 // ---------------------------------------------------------------------------
 // Assets : logos du repo, polices Google (cache local), pochette + preview par titre
 // ---------------------------------------------------------------------------
@@ -400,9 +460,10 @@ async function downloadTrackAssets(track, dir) {
 // Rendu HTML — une seule page par titre, écrans pilotés par data-screen :
 // intro (multi), guess, reveal, end
 // ---------------------------------------------------------------------------
-function buildHtml({ track, coverUri, logos, fontFaces, label, index, total }) {
+function buildHtml({ track, coverUri, logos, fontFaces, label, index, total, hook, prompt }) {
   const feats = track.feats?.length ? `feat. ${track.feats.join(", ")}` : "";
   const multi = total > 1;
+  const dots = multi ? `<div class="dots">${Array.from({ length: total }, (_, k) => `<i class="${k < index ? "done" : k === index ? "now" : ""}"></i>`).join("")}</div>` : "";
   const chips = multi
     ? `<span class="chip">Son ${index + 1}/${total}</span>${label ? `<span class="chip alt">${esc(label)}</span>` : ""}`
     : `<span class="chip">Blind test</span>${label ? `<span class="chip alt">${esc(label)}</span>` : ""}`;
@@ -427,6 +488,14 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
 .brand img.word{height:46px}
 .chip{display:inline-block;font:700 28px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;background:var(--red);color:#fff;padding:16px 26px;border-radius:999px;box-shadow:0 0 40px rgba(255,59,78,.55)}
 .chip.alt{background:var(--ivory);color:#0A0707;box-shadow:none}
+.dots{position:absolute;top:1480px;left:0;right:0;display:flex;justify-content:center;gap:18px}
+.dots i{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.18)}
+.dots i.done{background:rgba(255,255,255,.6)}
+.dots i.now{background:var(--red);box-shadow:0 0 24px var(--glow);transform:scale(1.25)}
+.timer .num.pop{transform:scale(1.12)}
+.timer .num{transition:transform .12s ease-out}
+.comment{position:absolute;left:90px;right:90px;top:1690px;display:flex;align-items:center;gap:20px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.16);border-radius:999px;padding:22px 34px;font:500 36px var(--body);color:rgba(255,255,255,.65);backdrop-filter:blur(10px)}
+.comment b{margin-left:auto;background:var(--red);color:#fff;border-radius:999px;padding:12px 26px;font:800 30px var(--display);letter-spacing:.04em}
 .site{position:absolute;bottom:90px;left:0;right:0;text-align:center;font:700 32px var(--body);letter-spacing:.06em;color:rgba(255,255,255,.75)}
 .site b{color:#fff}
 
@@ -443,12 +512,12 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
 .poster .sub{position:absolute;left:60px;right:60px;text-align:center;font:500 38px/1.3 var(--body);color:rgba(255,255,255,.8)}
 
 /* --- INTRO --- */
-.intro .brand{top:470px}
-.intro .brand img.tile{height:220px;border-radius:50px}
-.intro .brand img.word{height:80px}
-.intro .big{top:860px}
-.intro .chips{position:absolute;top:1290px;left:0;right:0;display:flex;justify-content:center;gap:16px}
-.intro .sub{top:1420px;font-weight:700;color:#fff}
+.intro .brand{top:300px}
+.intro .brand img.tile{height:200px;border-radius:46px}
+.intro .brand img.word{height:70px}
+.intro .big{top:720px;font-size:140px}
+.intro .chips{position:absolute;top:1300px;left:0;right:0;display:flex;justify-content:center;gap:16px}
+.intro .sub{top:1420px;font-weight:700;color:#fff;font-size:44px}
 .intro .sub2{top:1510px;color:rgba(255,255,255,.7)}
 
 /* --- DEVINE --- */
@@ -490,10 +559,10 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
 <section class="screen intro poster">
   <div class="photo"></div><div class="shade"></div><div class="grain"></div>
   <div class="brand"><img class="tile" src="${logos.tile}"><img class="word" src="${logos.wordmark}"></div>
-  <h1 class="big">BLIND<br>TEST<br><span>RAP FR</span></h1>
-  <div class="chips">${label ? `<span class="chip alt">${esc(label)}</span>` : `<span class="chip">Daily Rap</span>`}</div>
+  <h1 class="big">${hook}</h1>
+  <div class="chips"><span class="chip">Blind test rap FR</span>${label ? `<span class="chip alt">${esc(label)}</span>` : ""}</div>
   <p class="sub">${total} sons · ${GUESS} secondes chacun</p>
-  <p class="sub sub2">Trouve l'artiste + le titre</p>
+  <p class="sub sub2">Artiste + titre, en commentaire</p>
   <p class="site"><b>dailyrapfrance</b>.best</p>
 </section>
 
@@ -509,8 +578,9 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
     <svg class="glow" viewBox="0 0 420 420"><circle class="arc" id="arc" cx="210" cy="210" r="188"/></svg>
     <div class="num" id="num">${GUESS}</div>
   </div>
-  <p class="cta">Mets ta réponse en commentaire ↓<small>Artiste + titre</small></p>
-  <p class="site"><b>dailyrapfrance</b>.best</p>
+  ${dots}
+  <p class="cta" style="top:${multi ? 1540 : 1530}px">${esc(prompt[0])}<small>${esc(prompt[1])}</small></p>
+  <div class="comment">Ajouter un commentaire…<b>Publier</b></div>
 </section>
 
 <section class="screen reveal">
@@ -527,15 +597,15 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
   <div class="brand"><img class="tile" src="${logos.tile}"><img class="word" src="${logos.wordmark}"></div>
   ${
     multi
-      ? `<h2 class="big">TON<br>SCORE<span>?</span></h2>
+      ? `<h2 class="big">TON<br>SCORE<span>/${total}</span></h2>
   <p class="arrow">↓</p>
   <p class="pill">dailyrapfrance.best</p>
-  <p class="sub">Joue au vrai blind test</p>
-  <p class="sub sub2">Mets ton score en commentaire ↓</p>`
+  <p class="sub">Le vrai blind test rap FR · gratuit · sans appli · lien en bio</p>
+  <p class="sub sub2">Commente ton score ↓</p>`
       : `<h2 class="big">JOUE AU<br>BLIND<br>TEST<span>.</span></h2>
   <p class="arrow">↓</p>
   <p class="pill">dailyrapfrance.best</p>
-  <p class="sub">Gratuit · 100 % rap FR · des dizaines de thèmes</p>`
+  <p class="sub">Gratuit · 100 % rap FR · entre potes ou en solo · lien en bio</p>`
   }
 </section>
 
@@ -547,7 +617,9 @@ body[data-screen="intro"] .intro,body[data-screen="guess"] .guess,body[data-scre
   window.setTimer = (remaining, total) => {
     const p = Math.max(0, Math.min(1, remaining / total));
     arc.style.strokeDashoffset = C * (1 - p);
-    document.getElementById("num").textContent = Math.ceil(remaining - 1e-6);
+    const el = document.getElementById("num");
+    el.textContent = Math.ceil(remaining - 1e-6);
+    el.classList.toggle("pop", (remaining % 1) > 0.78 || remaining === total);
   };
   window.setScreen = (s) => { document.body.dataset.screen = s; };
   window.setTimer(${GUESS}, ${GUESS});
@@ -599,6 +671,8 @@ async function renderTrack(browser, html, workDir, { intro = false, end = false 
 // (vidéo) et acrossfade (audio). Chaque segment a une durée vidéo = durée audio.
 // ---------------------------------------------------------------------------
 async function assemble({ intro, parts, end, output, tag, plan }) {
+  const firstAudio = parts[0]?.audio;
+  const lastAudio = parts[parts.length - 1]?.audio;
   const args = ["-y", "-hide_banner", "-loglevel", "error"];
   const filters = [];
   const segs = []; // { v, a, len }
@@ -629,7 +703,12 @@ async function assemble({ intro, parts, end, output, tag, plan }) {
   if (intro) {
     const i = addInput("-loop", "1", "-t", String(INTRO + 1), "-i", intro);
     filters.push(`[${i}:v]fps=30,format=yuv420p,setsar=1,trim=duration=${f3(INTRO)}[vi]`);
-    fixedAudio([{ file: tag, at: TAG_AT_INTRO }], INTRO, "ai");
+    // Jamais de vide : le son 1 démarre déjà sous le tag (depuis le début de la preview, bas),
+    // puis monte pour enchaîner sur la devinette.
+    fixedAudio([{ file: tag, at: TAG_AT_INTRO }], INTRO, "aitag");
+    const b = addInput("-ss", String(Math.max(0, OFFSET - INTRO)), "-t", String(INTRO + 0.5), "-i", firstAudio);
+    filters.push(`[${b}:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur=${f3(INTRO)},atrim=duration=${f3(INTRO)},afade=t=in:st=0:d=0.5,volume='${BED_INTRO}+${f3(1 - BED_INTRO)}*max(0,min(1,(t-${f3(INTRO - 0.9)})/0.8))':eval=frame[aibed]`);
+    filters.push(`[aitag][aibed]amix=inputs=2:duration=first:normalize=0[ai]`);
     segs.push({ v: "[vi]", a: "[ai]", len: INTRO });
   }
 
@@ -658,7 +737,11 @@ async function assemble({ intro, parts, end, output, tag, plan }) {
   {
     const i = addInput("-loop", "1", "-t", String(endLen + 1), "-i", end);
     filters.push(`[${i}:v]fps=30,format=yuv420p,setsar=1,trim=duration=${f3(endLen)}[ve]`);
-    fixedAudio([{ file: tag, at: TAG_AT_END }, { file: plan?.end?.file, at: GIMMICK_AT_END }], endLen, "ae");
+    fixedAudio([{ file: tag, at: TAG_AT_END }, { file: plan?.end?.file, at: GIMMICK_AT_END }], endLen, "aeclips");
+    // Le dernier extrait continue sous l'écran de fin, puis s'éteint avec la vidéo.
+    const b = addInput("-ss", String(OFFSET + GUESS + REVEAL - XF_TRACK), "-t", String(endLen + 0.5), "-i", lastAudio);
+    filters.push(`[${b}:a]aformat=sample_rates=44100:channel_layouts=stereo,apad=whole_dur=${f3(endLen)},atrim=duration=${f3(endLen)},volume=${BED_END},afade=t=out:st=${f3(Math.max(0, endLen - 1.2))}:d=1.2[aebed]`);
+    filters.push(`[aeclips][aebed]amix=inputs=2:duration=first:normalize=0[ae]`);
     segs.push({ v: "[ve]", a: "[ae]", len: endLen });
   }
 
@@ -702,6 +785,8 @@ async function main() {
   let tracks;
   if (opt.ids) tracks = await tracksFromIds(opt.ids.split(",").map((s) => s.trim()).filter(Boolean));
   else if (opt.theme) tracks = await tracksFromTheme(opt.theme, MULTI ? Math.min(100, need * 6) : need);
+  else if (opt.artist) tracks = await tracksFromArtist(opt.artist, MULTI ? need * 2 : need);
+  else if (opt.playlist) tracks = await tracksFromPlaylist(opt.playlist, MULTI ? need * 2 : need);
   else tracks = await tracksFromSearch(opt.search, MULTI ? need * 2 : need);
   if (opt.exclude) {
     const ex = new Set(opt.exclude.split(",").map((x) => x.trim()));
@@ -733,7 +818,7 @@ async function main() {
       const base = names[gi]
         ? slug(names[gi])
         : MULTI
-          ? `${slug(opt.label || opt.theme || opt.search || "blindtest")}-${group.length}-sons-${group[0].id}`
+          ? `${slug(opt.label || opt.theme || opt.artist || opt.search || "blindtest")}-${group.length}-sons-${group[0].id}`
           : `${slug(group[0].artistName)}-${slug(group[0].title)}`;
       const workDir = path.join(OUT, base);
       await mkdir(workDir, { recursive: true });
@@ -742,13 +827,15 @@ async function main() {
       const parts = [];
       let intro = null;
       let end = null;
+      const hook = opt.hook ? esc(opt.hook).replace(/\*([^*]+)\*/g, "<span>$1</span>").replace(/\n/g, "<br>") : pick(HOOKS);
+      const promptOrder = [...PROMPTS].sort(() => Math.random() - 0.5);
       for (let i = 0; i < group.length; i++) {
         const track = group[i];
         const dir = MULTI ? path.join(workDir, `${String(i + 1).padStart(2, "0")}-${slug(track.artistName)}-${slug(track.title)}`) : workDir;
         await mkdir(dir, { recursive: true });
         const { cover, audio } = await downloadTrackAssets(track, dir);
         const coverUri = `data:image/jpeg;base64,${(await readFile(cover)).toString("base64")}`;
-        const html = buildHtml({ track, coverUri, logos, fontFaces, label: opt.label, index: i, total: group.length });
+        const html = buildHtml({ track, coverUri, logos, fontFaces, label: opt.label, index: i, total: group.length, hook, prompt: promptOrder[i % promptOrder.length] });
         // L'intro porte la pochette du 1er son, la fin celle du dernier (en bichromie).
         const frames = await renderTrack(browser, html, dir, { intro: MULTI && i === 0, end: i === group.length - 1 });
         if (frames.intro) intro = frames.intro;
@@ -766,6 +853,17 @@ async function main() {
       if (!opt["keep-frames"]) for (const p of parts) await rm(p.framesDir, { recursive: true, force: true });
       log(`  ✓ ${output} (${dur.toFixed(1)} s)`);
       results.push(output);
+      // Légende prête à coller (réponses en commentaire épinglé, pas dans la légende).
+      const theme = opt.label || opt.artist || opt.theme || opt.search || "rap FR";
+      const caption = [
+        `Blind test ${theme} : ${group.length > 1 ? `${group.length} sons, ${GUESS} s chacun. Ton score /${group.length} en commentaire 👇` : "t'as trouvé ? Artiste + titre en commentaire 👇"}`,
+        "Le vrai jeu (10 sons, classement, entre potes) → dailyrapfrance.best, lien en bio.",
+        "#blindtest #rapfr #rapfrancais #blindtestrap #quizrap #" + slug(theme).replace(/-/g, "") + " #pourtoi",
+        "",
+        "Réponses (à épingler en commentaire 10 min après la publication) :",
+        ...group.map((t, k) => `${k + 1}. ${t.artistName} – ${t.title}${t.feats?.length ? ` (feat. ${t.feats.join(", ")})` : ""}`),
+      ].join("\n");
+      await writeFile(path.join(OUT, `${base}.txt`), caption);
     }
   } finally {
     await browser.close();

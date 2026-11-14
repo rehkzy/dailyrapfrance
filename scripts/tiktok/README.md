@@ -32,6 +32,28 @@ bichromie rouge/noir, seule la pochette révélée est en couleur ; Bricolage Gr
 tuile « DR » `public/icon-512.png` et wordmark `public/logo.svg`), capturée puis assemblée
 par ffmpeg (xfade vidéo + acrossfade audio). Rien d'autre du repo n'est touché ni importé.
 
+## Campagne (novembre 2026) — ce qui a changé
+
+- **Jamais de silence** : le tag ouvre la vidéo à 0,05 s et l'extrait du son 1 joue déjà
+  dessous (bas, puis monte) ; l'extrait du dernier son continue sous l'écran de fin.
+- **Accroche d'intro** qui fait réagir (`--hook "TEXTE *mot rouge* \n ligne 2"`, sinon tirage
+  au sort : « T'es un vrai ? », « Personne fait 5/5 », « Tag le pote qui va rater »…).
+- **Relance différente à chaque son** sous le chrono + faux champ « Ajouter un commentaire »
+  (ça fait écrire), points de progression, chiffre qui pulse à chaque seconde.
+- **Fin** : « Ton score /N » + pilule `dailyrapfrance.best` + « lien en bio » + « Commente ton score ».
+- **Sources sans passer par le site** : `--artist "Ninho"` (homonymes départagés au nombre de
+  fans, repli albums quand /top est vide hors de France), `--playlist <id Deezer>`.
+- Une **légende prête à coller** est écrite à côté de chaque vidéo (`<nom>.txt`) : texte,
+  hashtags, et la liste des réponses à épingler en commentaire 10 min après la publication.
+
+Exemples de la campagne :
+
+```
+node scripts/tiktok/make.mjs --artist "Ninho" --tracks 5 --guess 6 --label "Spécial Ninho" --hook "PERSONNE\nFAIT *5/5*" --name 01-ninho --out ./out
+node scripts/tiktok/make.mjs --playlist 1071669561 --tracks 5 --guess 6 --label "Actu rap FR" --name actu --out ./out
+node scripts/tiktok/make.mjs --playlist 1109890291 --tracks 1 --count 3 --guess 8 --label "Top France" --out ./out
+```
+
 ## Prérequis
 
 - Node 22+
