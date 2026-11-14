@@ -331,6 +331,10 @@ async function tracksFromIds(ids) {
       log(`! Deezer ${id} : pas de preview, ignoré`);
       continue;
     }
+    if (!(t.album?.cover_xl || t.album?.cover_big || t.album?.cover_medium)) {
+      log(`! Deezer ${id} : pas de pochette, ignoré`);
+      continue;
+    }
     out.push(fromDeezerTrack(t));
   }
   return out;
@@ -351,7 +355,9 @@ async function tracksFromArtist(name, count) {
   const artist = (exact.length ? exact : search.data ?? []).sort((a, b) => (b.nb_fan ?? 0) - (a.nb_fan ?? 0))[0];
   if (!artist) throw new Error(`Artiste Deezer introuvable : ${name}`);
   const top = await fetchJson(`${DEEZER}/artist/${artist.id}/top?limit=${Math.min(100, count * 3)}`);
-  let candidates = (top.data ?? []).filter((t) => t.preview);
+  // Spécial X = X en artiste principal (sinon la révélation affiche « Angèle – Démons » dans un Spécial Damso).
+  const isMain = (t) => (t.artist?.name ?? "").toLowerCase() === artist.name.toLowerCase();
+  let candidates = (top.data ?? []).filter((t) => t.preview && isMain(t));
   if (candidates.length < count) {
     // Hors de France, /top est souvent vide (catalogue géo-restreint) : on passe par les albums,
     // en gardant les titres dont l'artiste principal est bien lui (pas les feats).
