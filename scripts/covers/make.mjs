@@ -74,7 +74,9 @@ async function artistPhoto(name) {
   const exact = (j.data ?? []).filter((a) => a.name.toLowerCase() === name.toLowerCase());
   const a = (exact.length ? exact : j.data ?? []).sort((x, y) => (y.nb_fan ?? 0) - (x.nb_fan ?? 0))[0];
   if (!a) throw new Error(`Artiste Deezer introuvable : ${name}`);
-  return a.picture_xl || a.picture_big;
+  const xl = a.picture_xl || a.picture_big;
+  // L'API s'arrête à 1000 px ; le CDN sert la même image en 1800 px qualité 100.
+  return xl.replace(/\/\d+x\d+-000000-80-0-0\.jpg$/, "/1800x1800-000000-100-0-0.jpg");
 }
 async function toDataUri(src, mime = "image/jpeg") {
   if (!src) return null;
@@ -129,7 +131,9 @@ async function loadFonts() {
 
 /*
  * Composition (ce que font les covers Spotify qui marchent) :
- *  · photo plein cadre, couleur ou N&B (`tone`: "color" | "bw" | "red"), visage dans le tiers haut ;
+ *  · photo plein cadre, visage dans le tiers haut. `tone` : "brand" (défaut : bichromie noir →
+ *    rouge → ivoire, contraste et netteté renforcés — la signature des covers DailyRap),
+ *    "color", "bw" ou "red" ;
  *  · logo petit dans le coin haut-gauche (tuile DR ou wordmark — jamais les deux), et rien
  *    d'autre à côté : pas de kicker, pas de liste d'artistes (kicker/sub restent possibles
  *    dans le JSON mais la série DailyRap ne les utilise pas) ;
@@ -141,7 +145,7 @@ async function loadFonts() {
 function html({ fonts, logos, entry, photo }) {
   const L = LETTERINGS[entry.lettering] || LETTERINGS.grotesk;
   const accent = entry.accent || "#F0001C";
-  const tone = entry.tone || (photo ? "color" : "none");
+  const tone = entry.tone || (photo ? "brand" : "none");
   const bg = entry.bg || "black";
   const dark = bg !== "ivory";
   const ink = entry.ink || (dark ? "#F7EFE6" : "#0A0707");
@@ -157,6 +161,9 @@ html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:#0A0707}
 .c{position:relative;width:${SIZE}px;height:${SIZE}px;overflow:hidden;color:${ink};background:${bg === "red" ? "#F0001C" : bg === "ivory" ? "#F7EFE6" : "#0A0707"}}
 .halo{position:absolute;width:1200px;height:1200px;border-radius:50%;filter:blur(100px);opacity:.6;background:${bg === "red" ? "#6b000e" : bg === "ivory" ? "#ffc1c7" : accent};right:-520px;bottom:-560px}
 img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%}
+.brand img.p{filter:url(#brand)}
+.brand .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 28%,rgba(10,7,7,0) 50%,rgba(10,7,7,.9) 82%)}
+.vignette{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,transparent 55%,rgba(10,7,7,.55) 100%)}
 .bw img.p{filter:grayscale(1) contrast(1.12)}
 .red img.p{filter:grayscale(1) contrast(1.25) brightness(.9)}
 .red .tint{position:absolute;inset:0;background:${accent};mix-blend-mode:multiply;opacity:.9}
@@ -177,8 +184,14 @@ img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-p
 ${L.outline ? `.title{color:transparent;-webkit-text-stroke:5px ${ink}} .title em{color:${accent};-webkit-text-stroke:0}` : ""}
 .sub{margin-top:18px;font:600 27px/1.25 "Inter",sans-serif;opacity:.85}
 </style></head><body><div class="c ${tone} ${entry.band ? "band" : ""} ${dark && !photo ? "" : (bg === "ivory" && !photo ? "light" : "")}">
-${photo ? `<img class="p" src="${photo}">${tone === "red" ? `<div class="tint"></div>` : ""}<div class="shade"></div>` : `<div class="halo"></div>`}
+${photo ? `<img class="p" src="${photo}">${tone === "red" ? `<div class="tint"></div>` : ""}${tone === "brand" ? `<div class="vignette"></div>` : ""}<div class="shade"></div>` : `<div class="halo"></div>`}
 <div class="grain"></div>
+<svg width="0" height="0" style="position:absolute"><filter id="brand" color-interpolation-filters="sRGB">
+  <feColorMatrix type="saturate" values="0"/>
+  <feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="0.92" offset="0"/><feFuncG type="gamma" amplitude="1" exponent="0.92" offset="0"/><feFuncB type="gamma" amplitude="1" exponent="0.92" offset="0"/></feComponentTransfer>
+  <feComponentTransfer><feFuncR type="table" tableValues="0.04 0.72 0.96 1"/><feFuncG type="table" tableValues="0.03 0.02 0.10 0.95"/><feFuncB type="table" tableValues="0.03 0.07 0.16 0.90"/></feComponentTransfer>
+  <feConvolveMatrix order="3" kernelMatrix="0 -0.35 0 -0.35 2.4 -0.35 0 -0.35 0" divisor="1" preserveAlpha="true"/>
+</filter></svg>
 ${entry.logo === "word" ? `<img class="word" src="${logos.wordmark}">` : `<img class="tile" src="${logos.tile}">`}
 ${entry.kicker ? `<div class="kicker">${rich(entry.kicker)}${entry.sub && entry.subTop ? `<small>${esc(entry.sub)}</small>` : ""}</div>` : ""}
 <div class="wrap"><h1 class="title">${title}</h1>${entry.sub && !entry.subTop ? `<p class="sub">${esc(entry.sub)}</p>` : ""}</div>

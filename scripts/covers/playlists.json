@@ -4,14 +4,14 @@
     "title": "rap fr\n*2026*",
     "lettering": "block",
     "artist": "Ninho",
-    "tone": "color"
+    "tone": "brand"
   },
   {
     "file": "mood-triste",
     "title": "mood\ntriste",
     "lettering": "script",
     "artist": "PLK",
-    "tone": "bw"
+    "tone": "brand"
   },
   {
     "file": "rap-chretien",
@@ -25,14 +25,14 @@
     "title": "Perdu(e) ?",
     "lettering": "serif",
     "artist": "Nekfeu",
-    "tone": "bw"
+    "tone": "brand"
   },
   {
     "file": "radar-sorties",
     "title": "radar\nsorties",
     "lettering": "condensed",
     "artist": "Gazo",
-    "tone": "color",
+    "tone": "brand",
     "band": true
   },
   {
@@ -40,14 +40,14 @@
     "title": "les\n*pépites*",
     "lettering": "outline",
     "artist": "Bouss",
-    "tone": "color"
+    "tone": "brand"
   },
   {
     "file": "new-gen",
     "title": "new\ngen",
     "lettering": "pixel",
     "artist": "Jolagreen23",
-    "tone": "color",
+    "tone": "brand",
     "accent": "#F0001C"
   },
   {
@@ -55,7 +55,7 @@
     "title": "hits\ntiktok",
     "lettering": "impact",
     "artist": "SDM",
-    "tone": "color",
+    "tone": "brand",
     "band": true,
     "focus": 25
   },
@@ -64,7 +64,7 @@
     "title": "rap\n*été*",
     "lettering": "hand",
     "artist": "Jul",
-    "tone": "color",
+    "tone": "brand",
     "accent": "#FFB800"
   },
   {
@@ -79,14 +79,14 @@
     "title": "Booba\n*Prime*",
     "lettering": "gothic",
     "artist": "Booba",
-    "tone": "bw"
+    "tone": "brand"
   },
   {
     "file": "deutsch-rap",
     "title": "deutsch\nrap",
     "lettering": "stencil",
     "artist": "Capital Bra",
-    "tone": "color",
+    "tone": "brand",
     "band": "#0A0707"
   },
   {
@@ -94,7 +94,7 @@
     "title": "polak\nrap",
     "lettering": "mono",
     "artist": "Mata",
-    "tone": "bw",
+    "tone": "brand",
     "band": true
   },
   {
@@ -102,14 +102,13 @@
     "title": "chinese\n*rap*",
     "lettering": "pixel",
     "artist": "Higher Brothers",
-    "tone": "red"
+    "tone": "brand"
   },
   {
     "file": "nigerian-songs",
     "title": "nigerian\nsongs",
     "lettering": "condensed",
     "artist": "Rema",
-    "tone": "color",
-    "accent": "#1DB954"
+    "tone": "brand"
   }
 ]
