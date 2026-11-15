@@ -22,6 +22,7 @@
  *   shift / shiftY (% de la largeur, + = vers la droite / le bas) et zoom : recadrage du sujet.
  *   album : id d'album Deezer → sa pochette comme photo (utile quand la photo d'artiste est faible).
  *   lettering2 : police du mot *accentué* (typo alternée, ex. BOOBA en bloc + Prime en gothique).
+ *   origin : origine du zoom (ex. "50% 0" pour zoomer en gardant le haut et sortir un texte du bas).
  *   size : facteur sur la taille du titre (0.8 = plus petit). cutout:false : photo entière, pas de détourage.
  *   align : "bottom" (défaut, titre en bas à gauche) ou "center" (titre centré).
  *   Ce qui fait cliquer (covers éditoriales Spotify, RapCaviar & co) : un visage connu, un
@@ -172,15 +173,15 @@ ${fonts}
 html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:#0A0707}
 .c{position:relative;width:${SIZE}px;height:${SIZE}px;overflow:hidden;color:${ink};background:${bg === "red" ? "#F0001C" : bg === "ivory" ? "#F7EFE6" : "#0A0707"}}
 .halo{position:absolute;width:1200px;height:1200px;border-radius:50%;filter:blur(100px);opacity:.6;background:${bg === "red" ? "#6b000e" : bg === "ivory" ? "#ffc1c7" : accent};right:-520px;bottom:-560px}
-img.p,img.s{transform:translate(${entry.shift ?? 0}%,${entry.shiftY ?? 0}%) scale(${entry.zoom ?? 1});transform-origin:50% 30%}
+img.p,img.s{transform:translate(${entry.shift ?? 0}%,${entry.shiftY ?? 0}%) scale(${entry.zoom ?? 1});transform-origin:${entry.origin || "50% 30%"}}
 img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%}
 .brand img.p{filter:url(#brand)}
 .brand img.p.bg{filter:url(#brand) blur(2px) brightness(.9)}
 img.s{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%;filter:url(#crisp)}
-.color img.p,.bw img.p{filter:url(#crisp)} .bw img.p{filter:url(#crisp) grayscale(1) contrast(1.1)}
+.color img.p,.bw img.p{filter:url(#crisp)} .bw img.p{filter:url(#crisp) grayscale(1) contrast(1.22) brightness(1.04)}
 .hasphoto .grain{opacity:.3}
 .brand .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 28%,rgba(10,7,7,0) 50%,rgba(10,7,7,.9) 82%)}
-${entry.shadeStrong ? ".c .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 26%,rgba(10,7,7,.35) 42%,rgba(10,7,7,.98) 57%)}" : ""}
+${entry.shadeStrong ? ".c .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 34%,rgba(10,7,7,.3) 52%,rgba(10,7,7,.97) 70%)}" : ""}
 .vignette{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,transparent 55%,rgba(10,7,7,.55) 100%)}
 .bw img.p{filter:grayscale(1) contrast(1.12)}
 .red img.p{filter:url(#crisp) grayscale(1) contrast(1.25) brightness(.9)}

@@ -50,7 +50,7 @@ export const TYPE = {
   rocksalt:    { fam: "Rock Salt",        src: "google", css: "family=Rock+Salt",                   weights: [400], up: false, ls: "0",      lh: 1.1, scale: .7,   mood: "craie, brut, perdu(e)" },
 
   /* ── Rétro / jeu / effet : à doser ────────────────────────────────────── */
-  pixel:       { fam: "Press Start 2P",   src: "google", css: "family=Press+Start+2P",              weights: [400], up: true, ls: "0",      lh: 1.2, scale: .5,   mood: "pixel 8-bit, new gen, Chine" },
+  pixel:       { fam: "Press Start 2P",   src: "google", css: "family=Press+Start+2P",              weights: [400], up: true, ls: "0",      lh: 1.1, scale: .62,  mood: "pixel 8-bit, new gen, Chine" },
   silkscreen:  { fam: "Silkscreen",       src: "google", css: "family=Silkscreen:wght@700",         weights: [700], up: true, ls: "0",      lh: 1.1, scale: .75,  mood: "pixel fin, lisible" },
   jersey:      { fam: "Jersey 10",        src: "google", css: "family=Jersey+10",                   weights: [400], up: true, ls: ".02em",  lh: .9,  scale: 1.25, mood: "maillot de sport, pixel condensé" },
   bungee:      { fam: "Bungee",           src: "google", css: "family=Bungee",                      weights: [400], up: true, ls: "0",      lh: .95, scale: .85,  mood: "enseigne, contour, pépites" },

@@ -4,26 +4,23 @@
     "title": "RAP FR\n*2026*",
     "lettering": "archivo",
     "artist": "Ninho",
-    "tone": "brand",
-    "lettering2": "figtree"
+    "tone": "brand"
   },
   {
     "file": "mood-triste",
-    "title": "Mood\n*Triste*",
+    "title": "Mood\nTriste",
     "lettering": "figtree",
     "artist": "PLK",
     "tone": "brand",
     "shift": 14,
-    "zoom": 1.08,
-    "lettering2": "instrument"
+    "zoom": 1.08
   },
   {
     "file": "rap-chretien",
     "title": "Rap\n*Chrétien*",
     "lettering": "playfair",
     "bg": "ivory",
-    "logo": "word",
-    "lettering2": "figtree"
+    "logo": "word"
   },
   {
     "file": "perdu-e",
@@ -32,106 +29,106 @@
     "artist": "Zamdane",
     "tone": "bw",
     "cutout": false,
-    "focus": 20,
-    "lettering2": "figtree"
+    "focus": 15,
+    "lettering2": "figtree",
+    "zoom": 1.35,
+    "shiftY": -4,
+    "origin": "50% 25%"
   },
   {
     "file": "radar-sorties",
-    "title": "RADAR\n*sorties*",
-    "lettering": "league",
+    "title": "Radar\nSorties",
+    "lettering": "anton",
     "artist": "Gazo",
-    "tone": "brand",
-    "lettering2": "marker"
+    "tone": "brand"
   },
   {
     "file": "les-pepites",
-    "title": "Les\n*pépites*",
-    "lettering": "clash",
+    "title": "Les\n*Pépites*",
+    "lettering": "figtree",
     "artist": "Bouss",
-    "tone": "brand",
-    "lettering2": "graffiti"
+    "tone": "brand"
   },
   {
     "file": "new-gen",
-    "title": "NEW\n*gen*",
-    "lettering": "pixel",
+    "title": "New\n*GEN*",
+    "lettering": "clash",
     "artist": "Jolagreen23",
     "tone": "brand",
     "accent": "#F0001C",
-    "lettering2": "clash"
+    "lettering2": "pixel"
   },
   {
     "file": "hits-tiktok",
-    "title": "Hits\n*TikTok*",
-    "lettering": "unbounded",
-    "artist": "Aya Nakamura",
-    "tone": "brand",
-    "focus": 10,
-    "lettering2": "bebas"
+    "title": "Hits\nTikTok",
+    "lettering": "figtree",
+    "tone": "color",
+    "focus": 0,
+    "album": 185386862,
+    "cutout": false,
+    "zoom": 1.12,
+    "shift": 5,
+    "origin": "0 0"
   },
   {
     "file": "rap-ete",
-    "title": "Rap\n*Été*",
-    "lettering": "fraunces",
+    "title": "Rap\nÉté",
+    "lettering": "figtree",
     "artist": "Naps",
     "tone": "brand",
-    "accent": "#F0001C",
-    "lettering2": "figtree"
+    "accent": "#F0001C"
   },
   {
     "file": "nouvel-an",
-    "title": "Nouvel\n*An*",
-    "lettering": "monoton",
-    "artist": "SDM",
-    "tone": "brand",
-    "lettering2": "figtree"
+    "title": "Nouvel\nAn",
+    "lettering": "figtree",
+    "artist": "Niska",
+    "tone": "color",
+    "cutout": false,
+    "focus": 0
   },
   {
     "file": "booba-prime",
     "title": "Booba\n*Prime*",
     "lettering": "archivo",
-    "tone": "brand",
+    "tone": "color",
     "album": 52475732,
     "lettering2": "pirata",
     "focus": 0,
-    "shiftY": -8,
     "cutout": false,
+    "zoom": 1.4,
+    "origin": "50% 0",
+    "shift": 12,
     "shadeStrong": true
   },
   {
     "file": "deutsch-rap",
-    "title": "Deutsch\n*Rap*",
+    "title": "Deutsch\nRap",
     "lettering": "stencil",
     "artist": "Capital Bra",
-    "tone": "brand",
-    "band": "#0A0707",
-    "lettering2": "figtree"
+    "tone": "brand"
   },
   {
     "file": "polak-rap",
-    "title": "Polak\n*Rap*",
+    "title": "Polak\nRap",
     "lettering": "tanker",
     "artist": "Mata",
-    "tone": "brand",
-    "band": true,
-    "lettering2": "figtree"
+    "tone": "brand"
   },
   {
     "file": "chinese-rap",
     "title": "Chinese\n*Rap*",
-    "lettering": "silkscreen",
+    "lettering": "pixel",
     "artist": "Higher Brothers",
-    "tone": "brand",
-    "lettering2": "figtree"
+    "tone": "brand"
   },
   {
     "file": "nigerian-songs",
-    "title": "Nigerian\n*Songs*",
-    "lettering": "shrikhand",
+    "title": "Nigerian\nSongs",
+    "lettering": "anton",
     "artist": "Rema",
     "tone": "color",
     "cutout": false,
-    "size": 0.8,
-    "lettering2": "bebas"
+    "size": 1
   }
 ]
