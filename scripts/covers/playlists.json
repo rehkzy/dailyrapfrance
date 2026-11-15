@@ -1,12 +1,17 @@
 [
-  { "file": "mood-triste", "title": "mood\n*triste*", "kicker": "Rap français", "sub": "Les incontournables pour pleurer", "style": "noir" },
+  { "file": "rap-fr-2026", "title": "rap fr\n*2026*", "kicker": "Les incontournables", "sub": "Mis à jour chaque semaine", "style": "red" },
+  { "file": "mood-triste", "title": "mood\n*triste*", "kicker": "Les incontournables", "sub": "Pour pleurer comme une de-mer", "style": "noir" },
+  { "file": "rap-chretien", "title": "rap\n*chrétien*", "kicker": "Les incontournables", "style": "ivory" },
+  { "file": "perdu-e", "title": "perdu(e)\n*?*", "kicker": "Les incontournables", "sub": "Quand tu sais plus où t'en es", "style": "noir" },
+  { "file": "radar-sorties", "title": "radar\n*sorties*", "kicker": "Rap français", "sub": "Les nouveautés chaque vendredi", "style": "red" },
+  { "file": "les-pepites", "title": "les\n*pépites*", "kicker": "Rap français", "sub": "Ceux qu'il faut écouter avant tout le monde", "style": "red" },
+  { "file": "new-gen", "title": "new\n*gen*", "kicker": "Rap français", "sub": "La relève", "style": "noir" },
+  { "file": "hits-tiktok", "title": "hits\n*tiktok*", "kicker": "France", "sub": "Les sons qui tournent en ce moment", "style": "noir" },
+  { "file": "rap-ete", "title": "rap\n*été*", "kicker": "Rap français", "sub": "Fenêtres ouvertes, son à fond", "style": "red" },
+  { "file": "nouvel-an", "title": "nouvel\n*an*", "kicker": "Rap français · réveillon", "style": "red", "year": "2027" },
   { "file": "booba-prime", "title": "booba\n*prime*", "kicker": "Le meilleur de B2O", "style": "photo", "artist": "Booba" },
-  { "file": "rap-francais-2026", "title": "rap\nfrançais\n*2026*", "kicker": "Les sons du moment", "sub": "Mise à jour chaque semaine", "style": "red" },
-  { "file": "soiree", "title": "*soirée*\nrap", "kicker": "Pour faire bouger tout le monde", "style": "red" },
-  { "file": "sport", "title": "rap\n*sport*", "kicker": "Salle · course · combat", "style": "noir" },
-  { "file": "chill", "title": "rap\n*chill*", "kicker": "Posé, sans prise de tête", "style": "ivory" },
-  { "file": "old-school", "title": "old\n*school*", "kicker": "Rap français 1995 – 2010", "style": "ivory" },
-  { "file": "drill-fr", "title": "*drill*\nfr", "kicker": "Le son de la rue", "style": "noir" },
-  { "file": "ninho", "title": "ninho\n*essentiels*", "kicker": "Ce qu'il faut avoir écouté", "style": "photo", "artist": "Ninho" },
-  { "file": "pnl", "title": "pnl\n*qlf*", "kicker": "Que la famille", "style": "photo", "artist": "PNL" }
+  { "file": "deutsch-rap", "title": "deutsch\n*rap*", "kicker": "Le rap allemand", "style": "noir" },
+  { "file": "polak-rap", "title": "polak\n*rap*", "kicker": "Le rap polonais", "style": "ivory" },
+  { "file": "chinese-rap", "title": "chinese\n*rap*", "kicker": "Le rap chinois", "style": "red" },
+  { "file": "nigerian-songs", "title": "nigerian\n*songs*", "kicker": "Afrobeats · Naija", "style": "noir" }
 ]
