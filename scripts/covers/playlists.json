@@ -100,10 +100,12 @@
     "lettering2": "pirata",
     "focus": 0,
     "cutout": false,
-    "zoom": 1.0,
-    "origin": "50% 0",
+    "zoom": 1.1,
+    "origin": "50% 50%",
     "size": 0.85,
-    "photo": "scripts/covers/assets/booba-trone.jpg"
+    "album": 52756662,
+    "shiftY": -17,
+    "shadeStrong": true
   },
   {
     "file": "deutsch-rap",
