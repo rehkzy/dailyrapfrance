@@ -23,6 +23,8 @@
  *   album : id d'album Deezer → sa pochette comme photo (utile quand la photo d'artiste est faible).
  *   lettering2 : police du mot *accentué* (typo alternée, ex. BOOBA en bloc + Prime en gothique).
  *   origin : origine du zoom (ex. "50% 0" pour zoomer en gardant le haut et sortir un texte du bas).
+ *   badge : étiquette au-dessus du titre (« NEW », « VIRAL ») ; badgeStyle:"outline" pour un cadre ; badgeDot : point.
+ *   flag : couleurs d'un petit drapeau en bandes sous le titre, ex. ["#fff","#dc143c"].
  *   size : facteur sur la taille du titre (0.8 = plus petit). cutout:false : photo entière, pas de détourage.
  *   align : "bottom" (défaut, titre en bas à gauche) ou "center" (titre centré).
  *   Ce qui fait cliquer (covers éditoriales Spotify, RapCaviar & co) : un visage connu, un
@@ -181,7 +183,7 @@ img.s{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-p
 .color img.p,.bw img.p{filter:url(#crisp)} .bw img.p{filter:url(#crisp) grayscale(1) contrast(1.22) brightness(1.04)}
 .hasphoto .grain{opacity:.3}
 .brand .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 28%,rgba(10,7,7,0) 50%,rgba(10,7,7,.9) 82%)}
-${entry.shadeStrong ? ".c .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 34%,rgba(10,7,7,.3) 52%,rgba(10,7,7,.97) 70%)}" : ""}
+${entry.shadeStrong ? ".c .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 30%,rgba(10,7,7,.4) 48%,rgba(10,7,7,.99) 60%)}" : ""}
 .vignette{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,transparent 55%,rgba(10,7,7,.55) 100%)}
 .bw img.p{filter:grayscale(1) contrast(1.12)}
 .red img.p{filter:url(#crisp) grayscale(1) contrast(1.25) brightness(.9)}
@@ -203,6 +205,13 @@ ${entry.shadeStrong ? ".c .shade{background:linear-gradient(180deg,rgba(10,7,7,.
 ${L2 ? `.title em{font-family:"${L2.fam}",system-ui,sans-serif;font-weight:${L2.weights[0]};${L2.italic ? "font-style:italic;" : "font-style:normal;"}${L2.up ? "text-transform:uppercase;" : "text-transform:none;"}letter-spacing:${L2.ls};font-size:${Math.round(100 * L2.scale / L.scale)}%}` : ""}
 ${L.outline ? `.title{color:transparent;-webkit-text-stroke:5px ${ink}} .title em{color:${accent};-webkit-text-stroke:0}` : ""}
 .sub{margin-top:18px;font:600 27px/1.25 "Inter",sans-serif;opacity:.85}
+/* Étiquette « NEW » / « VIRAL » au-dessus du titre, façon tag marketing */
+.badge{display:inline-flex;align-items:center;gap:12px;margin-bottom:22px;padding:10px 22px;border-radius:10px;font:800 ${Math.round(fs * .22)}px/1 "Inter",sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:${accent};box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.badge.outline{background:transparent;border:4px solid ${ink};color:${ink};box-shadow:none}
+.badge i{width:12px;height:12px;border-radius:50%;background:#fff;animation:none}
+/* Petit drapeau en bandes sous le titre (Pologne, Allemagne…) */
+.flag{display:flex;width:150px;height:22px;margin-top:22px;border-radius:5px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.flag i{flex:1}
 </style></head><body><div class="c ${tone} ${photo ? "hasphoto" : ""} ${entry.band ? "band" : ""} ${dark && !photo ? "" : (bg === "ivory" && !photo ? "light" : "")}">
 ${photo ? `<img class="p ${subject ? "bg" : ""}" src="${photo}">${subject ? `<img class="s" src="${subject}">` : ""}${tone === "red" ? `<div class="tint"></div>` : ""}${tone === "brand" ? `<div class="vignette"></div>` : ""}<div class="shade"></div>` : `<div class="halo"></div>`}
 <div class="grain"></div>
@@ -222,7 +231,7 @@ ${photo ? `<img class="p ${subject ? "bg" : ""}" src="${photo}">${subject ? `<im
 </filter></svg>
 ${entry.logo === "word" ? `<img class="word" src="${logos.wordmark}">` : `<img class="tile" src="${logos.tile}">`}
 ${entry.kicker ? `<div class="kicker">${rich(entry.kicker)}${entry.sub && entry.subTop ? `<small>${esc(entry.sub)}</small>` : ""}</div>` : ""}
-<div class="wrap"><h1 class="title">${title}</h1>${entry.sub && !entry.subTop ? `<p class="sub">${esc(entry.sub)}</p>` : ""}</div>
+<div class="wrap">${entry.badge ? `<div class="badge ${entry.badgeStyle === "outline" ? "outline" : ""}">${entry.badgeDot ? "<i></i>" : ""}${esc(entry.badge)}</div>` : ""}<h1 class="title">${title}</h1>${entry.flag ? `<div class="flag">${entry.flag.map((c) => `<i style="background:${c}"></i>`).join("")}</div>` : ""}${entry.sub && !entry.subTop ? `<p class="sub">${esc(entry.sub)}</p>` : ""}</div>
 </div></body></html>`;
 }
 
