@@ -71,17 +71,22 @@
   },
   {
     "file": "nouvel-an",
-    "title": "nouvel\nan",
-    "lettering": "shade",
-    "bg": "red",
-    "ink": "#F7EFE6"
+    "title": "Nouvel\nAn",
+    "lettering": "sans",
+    "artist": "SDM",
+    "tone": "brand"
   },
   {
     "file": "booba-prime",
     "title": "Booba\n*Prime*",
-    "lettering": "gothic",
-    "artist": "Booba",
-    "tone": "brand"
+    "lettering": "block",
+    "tone": "brand",
+    "album": 52475732,
+    "lettering2": "gothic",
+    "focus": 0,
+    "shiftY": -8,
+    "cutout": false,
+    "shadeStrong": true
   },
   {
     "file": "deutsch-rap",

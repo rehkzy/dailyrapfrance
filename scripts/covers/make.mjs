@@ -20,6 +20,8 @@
  *           ou chemin, ou `artist` = nom Deezer : photo récupérée.
  *   logo : "tile" (défaut, la tuile DR) ou "word" (le logo typographique) — jamais les deux.
  *   shift / shiftY (% de la largeur, + = vers la droite / le bas) et zoom : recadrage du sujet.
+ *   album : id d'album Deezer → sa pochette comme photo (utile quand la photo d'artiste est faible).
+ *   lettering2 : police du mot *accentué* (typo alternée, ex. BOOBA en bloc + Prime en gothique).
  *   size : facteur sur la taille du titre (0.8 = plus petit). cutout:false : photo entière, pas de détourage.
  *   align : "bottom" (défaut, titre en bas à gauche) ou "center" (titre centré).
  *   Ce qui fait cliquer (covers éditoriales Spotify, RapCaviar & co) : un visage connu, un
@@ -94,6 +96,12 @@ async function cutout(buf) {
   return readFile(dst);
 }
 
+async function albumCover(id) {
+  const a = await (await fetch(`https://api.deezer.com/album/${id}`)).json();
+  if (!a.cover_xl) throw new Error(`Album Deezer ${id} sans pochette`);
+  return a.cover_xl.replace(/\/\d+x\d+-000000-80-0-0\.jpg$/, "/1800x1800-000000-100-0-0.jpg");
+}
+
 async function toDataUri(src, mime = "image/jpeg") {
   if (!src) return null;
   const buf = /^https?:/.test(src) ? await fetchBuffer(src) : await readFile(path.resolve(src));
@@ -161,6 +169,7 @@ async function loadFonts() {
  */
 function html({ fonts, logos, entry, photo, subject }) {
   const L = LETTERINGS[entry.lettering] || LETTERINGS.grotesk;
+  const L2 = entry.lettering2 ? LETTERINGS[entry.lettering2] : null;
   const accent = entry.accent || "#F0001C";
   const tone = entry.tone || (photo ? "brand" : "none");
   const bg = entry.bg || "black";
@@ -182,11 +191,14 @@ img.p,img.s{transform:translate(${entry.shift ?? 0}%,${entry.shiftY ?? 0}%) scal
 img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%}
 .brand img.p{filter:url(#brand)}
 .brand img.p.bg{filter:url(#brand) blur(2px) brightness(.9)}
-img.s{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%;filter:contrast(1.06) saturate(1.05)}
+img.s{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%;filter:url(#crisp)}
+.color img.p,.bw img.p{filter:url(#crisp)} .bw img.p{filter:url(#crisp) grayscale(1) contrast(1.1)}
+.hasphoto .grain{opacity:.3}
 .brand .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 28%,rgba(10,7,7,0) 50%,rgba(10,7,7,.9) 82%)}
+${entry.shadeStrong ? ".c .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 26%,rgba(10,7,7,.35) 42%,rgba(10,7,7,.98) 57%)}" : ""}
 .vignette{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,transparent 55%,rgba(10,7,7,.55) 100%)}
 .bw img.p{filter:grayscale(1) contrast(1.12)}
-.red img.p{filter:grayscale(1) contrast(1.25) brightness(.9)}
+.red img.p{filter:url(#crisp) grayscale(1) contrast(1.25) brightness(.9)}
 .red .tint{position:absolute;inset:0;background:${accent};mix-blend-mode:multiply;opacity:.9}
 .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,7,.18) 0%,rgba(10,7,7,0) 30%,rgba(10,7,7,0) 45%,rgba(10,7,7,.88) 78%)}
 .grain{position:absolute;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .26 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");opacity:.16;mix-blend-mode:overlay}
@@ -202,12 +214,21 @@ img.s{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-p
 .title{font-family:"${L.fam}",system-ui,sans-serif;font-weight:${L.weights[0]};${L.italic ? "font-style:italic;" : ""}font-size:${fs}px;line-height:${L.lh};letter-spacing:${L.ls};${L.up ? "text-transform:uppercase;" : ""}text-wrap:balance;${L.italic && entry.lettering === "condensed" ? "transform:skewX(-6deg);transform-origin:left bottom;" : ""}text-shadow:0 8px 40px rgba(0,0,0,.35)}
 .light .title{text-shadow:none}
 .title em{font-style:inherit;color:${entry.band ? ink : accent}}
+${L2 ? `.title em{font-family:"${L2.fam}",system-ui,sans-serif;font-weight:${L2.weights[0]};${L2.italic ? "font-style:italic;" : "font-style:normal;"}${L2.up ? "text-transform:uppercase;" : "text-transform:none;"}letter-spacing:${L2.ls};font-size:${Math.round(100 * L2.scale / L.scale)}%}` : ""}
 ${L.outline ? `.title{color:transparent;-webkit-text-stroke:5px ${ink}} .title em{color:${accent};-webkit-text-stroke:0}` : ""}
 .sub{margin-top:18px;font:600 27px/1.25 "Inter",sans-serif;opacity:.85}
-</style></head><body><div class="c ${tone} ${entry.band ? "band" : ""} ${dark && !photo ? "" : (bg === "ivory" && !photo ? "light" : "")}">
+</style></head><body><div class="c ${tone} ${photo ? "hasphoto" : ""} ${entry.band ? "band" : ""} ${dark && !photo ? "" : (bg === "ivory" && !photo ? "light" : "")}">
 ${photo ? `<img class="p ${subject ? "bg" : ""}" src="${photo}">${subject ? `<img class="s" src="${subject}">` : ""}${tone === "red" ? `<div class="tint"></div>` : ""}${tone === "brand" ? `<div class="vignette"></div>` : ""}<div class="shade"></div>` : `<div class="halo"></div>`}
 <div class="grain"></div>
-<svg width="0" height="0" style="position:absolute"><filter id="brand" color-interpolation-filters="sRGB">
+<svg width="0" height="0" style="position:absolute">
+<filter id="crisp" color-interpolation-filters="sRGB">
+  <!-- Netteté « traits marqués » : masque flou large (clarté) + accentuation fine, puis micro-contraste -->
+  <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="soft"/>
+  <feComposite in="SourceGraphic" in2="soft" operator="arithmetic" k1="0" k2="1.55" k3="-0.55" k4="0" result="clarity"/>
+  <feConvolveMatrix in="clarity" order="3" kernelMatrix="0 -0.5 0 -0.5 3 -0.5 0 -0.5 0" divisor="1" preserveAlpha="true" result="sharp"/>
+  <feComponentTransfer in="sharp"><feFuncR type="linear" slope="1.08" intercept="-0.04"/><feFuncG type="linear" slope="1.08" intercept="-0.04"/><feFuncB type="linear" slope="1.08" intercept="-0.04"/></feComponentTransfer>
+</filter>
+<filter id="brand" color-interpolation-filters="sRGB">
   <feColorMatrix type="saturate" values="0"/>
   <feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="0.92" offset="0"/><feFuncG type="gamma" amplitude="1" exponent="0.92" offset="0"/><feFuncB type="gamma" amplitude="1" exponent="0.92" offset="0"/></feComponentTransfer>
   <feComponentTransfer><feFuncR type="table" tableValues="0.04 0.72 0.96 1"/><feFuncG type="table" tableValues="0.03 0.02 0.10 0.95"/><feFuncB type="table" tableValues="0.03 0.07 0.16 0.90"/></feComponentTransfer>
@@ -233,7 +254,7 @@ async function main() {
   for (const entry of entries) {
     let photo = null, subject = null;
     try {
-      const src = entry.photo || (entry.artist ? await artistPhoto(entry.artist) : null);
+      const src = entry.photo || (entry.album ? await albumCover(entry.album) : entry.artist ? await artistPhoto(entry.artist) : null);
       if (src) {
         const buf = /^https?:/.test(src) ? await fetchBuffer(src) : await readFile(path.resolve(src));
         photo = `data:image/jpeg;base64,${buf.toString("base64")}`;
