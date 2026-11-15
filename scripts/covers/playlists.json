@@ -3,114 +3,138 @@
     "file": "rap-fr-2026",
     "title": "rap fr\n*2026*",
     "kicker": "Les incontournables",
-    "sub": "Ninho · SDM · Werenoi · Gazo · Tiakola · Jul",
-    "style": "photo",
-    "artist": "SDM"
+    "sub": "Ninho · SDM · Gazo · Tiakola · Jul",
+    "lettering": "block",
+    "artist": "Ninho",
+    "tone": "color"
   },
   {
     "file": "mood-triste",
-    "title": "mood\n*triste*",
+    "title": "mood\ntriste",
     "kicker": "Les incontournables",
     "sub": "Damso · PLK · Nekfeu · Lomepal · Josman",
-    "style": "photo-noir",
-    "artist": "Damso"
+    "lettering": "script",
+    "artist": "PLK",
+    "tone": "bw"
   },
   {
     "file": "rap-chretien",
-    "title": "rap\n*chrétien*",
+    "title": "Rap\n*Chrétien*",
     "kicker": "Les incontournables",
     "sub": "Foi, espoir et bons sons",
-    "style": "ivory",
+    "lettering": "serif",
+    "bg": "ivory",
     "logo": "word"
   },
   {
     "file": "perdu-e",
-    "title": "perdu(e)\n*?*",
+    "title": "Perdu(e) ?",
     "kicker": "Les incontournables",
     "sub": "Nekfeu · Lomepal · Laylow · Luther",
-    "style": "photo-noir",
-    "artist": "Nekfeu"
+    "lettering": "serif",
+    "artist": "Nekfeu",
+    "tone": "bw"
   },
   {
     "file": "radar-sorties",
-    "title": "radar\n*sorties*",
+    "title": "radar\nsorties",
     "kicker": "Rap français",
     "sub": "Les nouveautés chaque vendredi",
-    "style": "red",
-    "logo": "word"
+    "lettering": "condensed",
+    "artist": "Gazo",
+    "tone": "color",
+    "band": true
   },
   {
     "file": "les-pepites",
     "title": "les\n*pépites*",
     "kicker": "Rap français",
     "sub": "Ceux qu'il faut écouter avant tout le monde",
-    "style": "red"
+    "lettering": "outline",
+    "artist": "Bouss",
+    "tone": "color"
   },
   {
     "file": "new-gen",
-    "title": "new\n*gen*",
+    "title": "new\ngen",
     "kicker": "Rap français",
     "sub": "La relève : Bouss · Theodora · Jolagreen23 · Lybro",
-    "style": "photo-noir",
-    "artist": "Bouss"
+    "lettering": "pixel",
+    "artist": "Jolagreen23",
+    "tone": "color",
+    "accent": "#F0001C"
   },
   {
     "file": "hits-tiktok",
-    "title": "hits\n*tiktok*",
+    "title": "hits\ntiktok",
     "kicker": "France",
     "sub": "Les sons qui tournent en ce moment",
-    "style": "noir",
-    "align": "center"
+    "lettering": "impact",
+    "artist": "SDM",
+    "tone": "color",
+    "band": true,
+    "focus": 25
   },
   {
     "file": "rap-ete",
     "title": "rap\n*été*",
     "kicker": "Rap français",
     "sub": "Fenêtres ouvertes, son à fond",
-    "style": "red",
-    "logo": "word"
+    "lettering": "hand",
+    "artist": "Jul",
+    "tone": "color",
+    "accent": "#FFB800"
   },
   {
     "file": "nouvel-an",
-    "title": "nouvel\n*an*",
+    "title": "nouvel\nan",
     "kicker": "Rap français · réveillon",
-    "style": "red",
-    "align": "center"
+    "lettering": "shade",
+    "bg": "red",
+    "ink": "#F7EFE6"
   },
   {
     "file": "booba-prime",
-    "title": "booba\n*prime*",
+    "title": "Booba\n*Prime*",
     "kicker": "Le meilleur de B2O",
     "sub": "Temps mort · Ouest Side · Lunatic · Ultra",
-    "style": "photo",
-    "artist": "Booba"
+    "lettering": "gothic",
+    "artist": "Booba",
+    "tone": "bw"
   },
   {
     "file": "deutsch-rap",
-    "title": "deutsch\n*rap*",
+    "title": "deutsch\nrap",
     "kicker": "Le rap allemand",
-    "style": "noir",
-    "align": "center"
+    "lettering": "stencil",
+    "artist": "Capital Bra",
+    "tone": "color",
+    "band": "#0A0707"
   },
   {
     "file": "polak-rap",
-    "title": "polak\n*rap*",
+    "title": "polak\nrap",
     "kicker": "Le rap polonais",
-    "style": "ivory",
-    "logo": "word"
+    "lettering": "mono",
+    "artist": "Mata",
+    "tone": "bw",
+    "band": true
   },
   {
     "file": "chinese-rap",
     "title": "chinese\n*rap*",
     "kicker": "Le rap chinois",
-    "style": "red",
-    "align": "center"
+    "lettering": "pixel",
+    "artist": "Higher Brothers",
+    "tone": "red"
   },
   {
     "file": "nigerian-songs",
-    "title": "nigerian\n*songs*",
+    "title": "nigerian\nsongs",
     "kicker": "Afrobeats · Naija",
-    "style": "noir",
-    "align": "center"
+    "lettering": "condensed",
+    "artist": "Rema",
+    "tone": "color",
+    "accent": "#1DB954"
   }
 ]

@@ -25,7 +25,7 @@
  *   va entendre avant d'ouvrir).
  */
 import { parseArgs } from "node:util";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
@@ -46,6 +46,8 @@ const { values: opt } = parseArgs({
     kicker: { type: "string" },
     sub: { type: "string" },
     style: { type: "string" },
+    lettering: { type: "string" },
+    tone: { type: "string" },
     artist: { type: "string" },
     photo: { type: "string" },
     out: { type: "string", default: path.join(REPO_ROOT, "out", "covers") },
@@ -80,86 +82,109 @@ async function toDataUri(src, mime = "image/jpeg") {
   return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
+/*
+ * Lettrages — un par ambiance, comme les couvertures éditoriales Spotify (Fresh Rap en
+ * condensé italique, Westside en gothique, Peaceful Piano en script, Rap Diggers en pixel,
+ * New Music Friday en bloc sur bandeau…). Toutes des Google Fonts, téléchargées une fois.
+ */
+const LETTERINGS = {
+  block:     { fam: "Archivo Black",    css: "family=Archivo+Black",                 weights: [400], up: true,  ls: "-.02em", lh: .88, scale: .82 },
+  condensed: { fam: "Anton",            css: "family=Anton",                         weights: [400], up: true,  ls: ".01em",  lh: .9,  scale: 1.25, italic: true },
+  impact:    { fam: "Bebas Neue",       css: "family=Bebas+Neue",                    weights: [400], up: true,  ls: ".02em",  lh: .86, scale: 1.1 },
+  script:    { fam: "Pacifico",         css: "family=Pacifico",                      weights: [400], up: false, ls: "0",      lh: 1.15, scale: .78 },
+  hand:      { fam: "Caveat",           css: "family=Caveat:wght@700",               weights: [700], up: false, ls: "0",      lh: .95, scale: 1.15 },
+  serif:     { fam: "Playfair Display", css: "family=Playfair+Display:ital,wght@1,800", weights: [800], up: false, ls: "-.03em", lh: .95, scale: .95, italic: true },
+  gothic:    { fam: "Pirata One",       css: "family=Pirata+One",                    weights: [400], up: false, ls: "0",      lh: .9,  scale: 1.1 },
+  pixel:     { fam: "Press Start 2P",   css: "family=Press+Start+2P",                weights: [400], up: true,  ls: "0",      lh: 1.2, scale: .5 },
+  stencil:   { fam: "Black Ops One",    css: "family=Black+Ops+One",                 weights: [400], up: true,  ls: "0",      lh: .95, scale: .9 },
+  shade:     { fam: "Bungee Shade",     css: "family=Bungee+Shade",                  weights: [400], up: true,  ls: "0",      lh: 1,   scale: .7 },
+  outline:   { fam: "Bungee",           css: "family=Bungee",                        weights: [400], up: true,  ls: "0",      lh: .95, scale: .85, outline: true },
+  mono:      { fam: "Rubik Mono One",   css: "family=Rubik+Mono+One",                weights: [400], up: true,  ls: "-.02em", lh: .95, scale: .7 },
+  grotesk:   { fam: "Bricolage Grotesque", css: "family=Bricolage+Grotesque:wght@800", weights: [800], up: false, ls: "-.045em", lh: .9, scale: 1 },
+};
+
 async function loadFonts() {
-  // Même cache que le générateur TikTok (Bricolage Grotesque + Inter), sinon Google Fonts.
   const cacheDir = path.join(process.env.TMPDIR || "/tmp", "drf-fonts");
   await mkdir(cacheDir, { recursive: true });
-  const fams = [
-    { name: "Bricolage Grotesque", css: "family=Bricolage+Grotesque:wght@700;800", weights: [700, 800] },
-    { name: "Inter", css: "family=Inter:wght@500;700", weights: [500, 700] },
-  ];
+  const fams = [{ fam: "Inter", css: "family=Inter:wght@600;700", weights: [600, 700] }, ...Object.values(LETTERINGS)];
   const faces = [];
-  for (const fam of fams) for (const w of fam.weights) {
-    const file = path.join(cacheDir, `${slug(fam.name)}-${w}.ttf`);
+  for (const f of fams) for (const w of f.weights) {
+    const file = path.join(cacheDir, `${slug(f.fam)}-${w}${f.italic ? "i" : ""}.ttf`);
     try {
       await readFile(file);
     } catch {
       try {
-        const css = await (await fetch(`https://fonts.googleapis.com/css2?${fam.css}&display=swap`, { headers: { "user-agent": "Mozilla/5.0 (X11; Linux x86_64) Chrome/60" } })).text();
+        const css = await (await fetch(`https://fonts.googleapis.com/css2?${f.css}&display=swap`, { headers: { "user-agent": "Mozilla/5.0 (X11; Linux x86_64) Chrome/60" } })).text();
         const re = /font-weight:\s*(\d+);[^}]*?src:\s*url\(([^)]+\.ttf)\)/g;
         let m, url = null;
         while ((m = re.exec(css))) if (parseInt(m[1], 10) === w) url = m[2];
         if (!url) throw new Error("pas de TTF");
         await writeFile(file, await fetchBuffer(url));
-      } catch (e) { console.error(`! police ${fam.name} ${w} : ${e.message} (fallback système)`); continue; }
+      } catch (e) { console.error(`! police ${f.fam} ${w} : ${e.message} (fallback système)`); continue; }
     }
-    faces.push(`@font-face{font-family:"${fam.name}";font-weight:${w};src:url("${pathToFileURL(file).href}") format("truetype")}`);
+    faces.push(`@font-face{font-family:"${f.fam}";font-weight:${w};${f.italic ? "font-style:italic;" : ""}src:url("${pathToFileURL(file).href}") format("truetype")}`);
   }
   return faces.join("\n");
 }
 
+/*
+ * Composition (ce que font les covers Spotify qui marchent) :
+ *  · photo plein cadre, couleur ou N&B (`tone`: "color" | "bw" | "red"), visage dans le tiers haut ;
+ *  · logo petit dans le coin haut-gauche (tuile DR ou wordmark — jamais les deux) ;
+ *  · le titre en gros, en bas à gauche, dans un lettrage adapté au mood (`lettering`) ;
+ *  · option `band` : bandeau de couleur derrière le titre (New Music Friday, All Out) ;
+ *  · `accent` : couleur du mot *accentué* / du bandeau (défaut rouge marque).
+ *  Sans photo : fond `bg` (red | black | ivory) avec halo.
+ */
 function html({ fonts, logos, entry, photo }) {
-  const style = entry.style || (photo ? "photo" : "red");
-  const isPhoto = style.startsWith("photo");
+  const L = LETTERINGS[entry.lettering] || LETTERINGS.grotesk;
+  const accent = entry.accent || "#F0001C";
+  const tone = entry.tone || (photo ? "color" : "none");
+  const bg = entry.bg || "black";
+  const dark = bg !== "ivory";
+  const ink = entry.ink || (dark ? "#F7EFE6" : "#0A0707");
+  const raw = entry.title.replace(/\*/g, "");
+  const lines = raw.split(/\\n|\n/);
+  const longest = Math.max(...lines.map((l) => l.length));
+  const fs = Math.round(Math.max(90, Math.min(260, (1500 / Math.max(longest, 4)) * L.scale)));
   const title = rich(entry.title);
-  const words = entry.title.replace(/\*/g, "").split(/\s+/);
-  const longest = Math.max(...words.map((w) => w.length));
-  // Taille du titre : un mot court = énorme, une phrase = plus petit, toujours sur ≤ 3 lignes.
-  const fs = Math.max(100, Math.min(250, Math.floor(1450 / Math.max(longest, 5))));
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>
 ${fonts}
 *{margin:0;box-sizing:border-box}
-:root{--red:#F0001C;--black:#0A0707;--ivory:#F7EFE6;--display:"Bricolage Grotesque",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif}
-html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:var(--black)}
-.c{position:relative;width:${SIZE}px;height:${SIZE}px;overflow:hidden;font-family:var(--display);color:var(--ivory);background:var(--red)}
-.c.noir{background:var(--black)} .c.ivory{background:var(--ivory);color:var(--black)} .c.photo,.c.photo-noir{background:var(--black)}
-/* matière : grain + halo, pour ne pas avoir un aplat plat dans la grille */
-.grain{position:absolute;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .26 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");opacity:.22;mix-blend-mode:overlay;pointer-events:none}
-.halo{position:absolute;width:1100px;height:1100px;border-radius:50%;filter:blur(90px);opacity:.55}
-.red .halo{background:#7a0010;right:-420px;bottom:-520px}
-.noir .halo{background:var(--red);left:-520px;top:-520px;opacity:.5}
-.ivory .halo{background:#ffb3bb;right:-500px;top:-500px;opacity:.6}
-.photo img.p,.photo-noir img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%;filter:grayscale(1) contrast(1.2) brightness(.9)}
-.photo-noir img.p{filter:grayscale(1) contrast(1.1) brightness(1)}
-.photo .tint{position:absolute;inset:0;background:var(--red);mix-blend-mode:multiply;opacity:.92}
-.photo .shade,.photo-noir .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,7,.05) 0%,rgba(10,7,7,0) 40%,rgba(10,7,7,.94) 80%)}
-/* Un seul logo par cover (règle de marque) : la tuile DR OU le wordmark, en haut à gauche, comme
-   Spotify place son propre logo sur ses couvertures éditoriales. */
-.tile{position:absolute;top:60px;left:60px;width:112px;height:112px;border-radius:26px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
-.word{position:absolute;top:78px;left:60px;height:60px}
-.ivory .word{filter:invert(1)}
-.ivory .tile{box-shadow:0 14px 40px rgba(0,0,0,.18)}
-.kicker{position:absolute;top:70px;left:196px;right:60px;font:800 30px/1.1 var(--display);letter-spacing:.14em;text-transform:uppercase;opacity:.9}
-.word ~ .kicker{left:60px;top:170px}
-.kicker small{display:block;margin-top:10px;font:600 26px/1.25 var(--body);letter-spacing:0;text-transform:none;opacity:.8}
-.title{position:absolute;left:60px;right:60px;bottom:76px;font:800 ${fs}px/0.9 var(--display);letter-spacing:-.045em;text-wrap:balance;overflow-wrap:normal}
-.c.center .title{left:60px;right:60px;top:50%;bottom:auto;transform:translateY(-40%);text-align:center}
-.sub{position:absolute;left:60px;right:60px;bottom:0;font:600 28px var(--body);opacity:.82}
-.title em{font-style:normal;color:var(--ivory)}
-.red .title em{color:var(--black)} .noir .title em,.photo .title em,.photo-noir .title em{color:var(--red)} .ivory .title em{color:var(--red)}
-.red .title{text-shadow:0 10px 40px rgba(0,0,0,.18)}
-</style></head><body><div class="c ${style} ${entry.align === "center" ? "center" : ""}">
-${isPhoto && photo ? `<img class="p" src="${photo}">${style === "photo" ? `<div class="tint"></div>` : ""}` : `<div class="halo"></div>`}
-${isPhoto ? `<div class="shade"></div>` : ""}
+html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:#0A0707}
+.c{position:relative;width:${SIZE}px;height:${SIZE}px;overflow:hidden;color:${ink};background:${bg === "red" ? "#F0001C" : bg === "ivory" ? "#F7EFE6" : "#0A0707"}}
+.halo{position:absolute;width:1200px;height:1200px;border-radius:50%;filter:blur(100px);opacity:.6;background:${bg === "red" ? "#6b000e" : bg === "ivory" ? "#ffc1c7" : accent};right:-520px;bottom:-560px}
+img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%}
+.bw img.p{filter:grayscale(1) contrast(1.12)}
+.red img.p{filter:grayscale(1) contrast(1.25) brightness(.9)}
+.red .tint{position:absolute;inset:0;background:${accent};mix-blend-mode:multiply;opacity:.9}
+.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,7,.18) 0%,rgba(10,7,7,0) 30%,rgba(10,7,7,0) 45%,rgba(10,7,7,.88) 78%)}
+.grain{position:absolute;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .26 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");opacity:.16;mix-blend-mode:overlay}
+.tile{position:absolute;top:56px;left:56px;width:104px;height:104px;border-radius:24px;box-shadow:0 12px 36px rgba(0,0,0,.35)}
+.word{position:absolute;top:70px;left:56px;height:56px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))}
+.light .word{filter:invert(1)}
+.kicker{position:absolute;top:60px;left:184px;right:56px;font:700 28px/1.15 "Inter",sans-serif;letter-spacing:.12em;text-transform:uppercase;opacity:.92;text-shadow:0 2px 14px rgba(0,0,0,.4)}
+.word ~ .kicker{left:56px;top:150px}
+.kicker small{display:block;margin-top:8px;font:600 25px/1.25 "Inter",sans-serif;letter-spacing:0;text-transform:none;opacity:.78}
+.light .kicker{text-shadow:none}
+.wrap{position:absolute;left:56px;right:56px;bottom:${entry.band ? 0 : 64}px}
+.band .wrap{left:0;right:0;padding:40px 56px 48px;background:${entry.band === true ? accent : entry.band}}
+.title{font-family:"${L.fam}",system-ui,sans-serif;font-weight:${L.weights[0]};${L.italic ? "font-style:italic;" : ""}font-size:${fs}px;line-height:${L.lh};letter-spacing:${L.ls};${L.up ? "text-transform:uppercase;" : ""}text-wrap:balance;${L.italic && entry.lettering === "condensed" ? "transform:skewX(-6deg);transform-origin:left bottom;" : ""}text-shadow:0 8px 40px rgba(0,0,0,.35)}
+.light .title{text-shadow:none}
+.title em{font-style:inherit;color:${entry.band ? ink : accent}}
+${L.outline ? `.title{color:transparent;-webkit-text-stroke:5px ${ink}} .title em{color:${accent};-webkit-text-stroke:0}` : ""}
+.sub{margin-top:18px;font:600 27px/1.25 "Inter",sans-serif;opacity:.85}
+</style></head><body><div class="c ${tone} ${entry.band ? "band" : ""} ${dark && !photo ? "" : (bg === "ivory" && !photo ? "light" : "")}">
+${photo ? `<img class="p" src="${photo}">${tone === "red" ? `<div class="tint"></div>` : ""}<div class="shade"></div>` : `<div class="halo"></div>`}
 <div class="grain"></div>
 ${entry.logo === "word" ? `<img class="word" src="${logos.wordmark}">` : `<img class="tile" src="${logos.tile}">`}
-${entry.kicker ? `<div class="kicker">${rich(entry.kicker)}${entry.sub ? `<small>${esc(entry.sub)}</small>` : ""}</div>` : ""}
-<h1 class="title">${title}</h1>
+${entry.kicker ? `<div class="kicker">${rich(entry.kicker)}${entry.sub && entry.subTop ? `<small>${esc(entry.sub)}</small>` : ""}</div>` : ""}
+<div class="wrap"><h1 class="title">${title}</h1>${entry.sub && !entry.subTop ? `<p class="sub">${esc(entry.sub)}</p>` : ""}</div>
 </div></body></html>`;
 }
 
 async function main() {
-  const entries = opt.list ? JSON.parse(await readFile(opt.list, "utf8")) : [{ title: opt.title, kicker: opt.kicker, sub: opt.sub, style: opt.style, artist: opt.artist, photo: opt.photo }];
+  const entries = opt.list ? JSON.parse(await readFile(opt.list, "utf8")) : [{ title: opt.title, kicker: opt.kicker, sub: opt.sub, bg: opt.style, lettering: opt.lettering, tone: opt.tone, artist: opt.artist, photo: opt.photo }];
   await mkdir(opt.out, { recursive: true });
   const [wordmark, tile, fonts] = await Promise.all([
     readFile(path.join(REPO_ROOT, "public", "logo.svg"), "utf8"),
@@ -175,12 +200,16 @@ async function main() {
       if (entry.photo) photo = await toDataUri(entry.photo);
       else if (entry.artist) photo = await toDataUri(await artistPhoto(entry.artist));
     } catch (e) { console.error(`! photo ${entry.title} : ${e.message}`); }
-    await page.setContent(html({ fonts, logos, entry, photo }), { waitUntil: "load" });
+    // Via un fichier (pas setContent) : depuis about:blank, Chromium refuse les polices en file://.
+    const tmpHtml = path.join(opt.out, `.${entry.file || slug(entry.title)}.html`);
+    await writeFile(tmpHtml, html({ fonts, logos, entry, photo }));
+    await page.goto(pathToFileURL(tmpHtml).href, { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
     const file = path.join(opt.out, `${entry.file || slug(entry.title)}.jpg`);
     let q = 94, buf;
     do { buf = await page.screenshot({ type: "jpeg", quality: q }); q -= 4; } while (buf.length > MAX_BYTES && q > 60);
     await writeFile(file, buf);
+    await rm(tmpHtml, { force: true });
     console.log(`✓ ${file} (${Math.round(buf.length / 1024)} Ko)`);
   }
   await browser.close();
