@@ -18,6 +18,8 @@
  *           (fond ivoire, texte noir, pour les playlists calmes) · "photo" (portrait bichrome
  *           rouge) · "photo-noir" (portrait noir & blanc sombre, accent rouge) — `photo` = URL
  *           ou chemin, ou `artist` = nom Deezer : photo récupérée.
+ *   logo : "tile" (défaut, la tuile DR) ou "word" (le logo typographique) — jamais les deux.
+ *   align : "bottom" (défaut, titre en bas à gauche) ou "center" (titre centré).
  *   Ce qui fait cliquer (covers éditoriales Spotify, RapCaviar & co) : un visage connu, un
  *   titre de 1–2 mots lisible à 60 px, et les noms d'artistes en petit (on sait ce qu'on
  *   va entendre avant d'ouvrir).
@@ -113,7 +115,7 @@ function html({ fonts, logos, entry, photo }) {
   const words = entry.title.replace(/\*/g, "").split(/\s+/);
   const longest = Math.max(...words.map((w) => w.length));
   // Taille du titre : un mot court = énorme, une phrase = plus petit, toujours sur ≤ 3 lignes.
-  const fs = Math.max(96, Math.min(230, Math.floor(1700 / Math.max(longest, 6))));
+  const fs = Math.max(100, Math.min(250, Math.floor(1450 / Math.max(longest, 5))));
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>
 ${fonts}
 *{margin:0;box-sizing:border-box}
@@ -131,27 +133,28 @@ html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:var(--blac
 .photo-noir img.p{filter:grayscale(1) contrast(1.1) brightness(1)}
 .photo .tint{position:absolute;inset:0;background:var(--red);mix-blend-mode:multiply;opacity:.92}
 .photo .shade,.photo-noir .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,7,.05) 0%,rgba(10,7,7,0) 40%,rgba(10,7,7,.94) 80%)}
-.tile{position:absolute;top:56px;left:56px;width:118px;height:118px;border-radius:28px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+/* Un seul logo par cover (règle de marque) : la tuile DR OU le wordmark, en haut à gauche, comme
+   Spotify place son propre logo sur ses couvertures éditoriales. */
+.tile{position:absolute;top:60px;left:60px;width:112px;height:112px;border-radius:26px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.word{position:absolute;top:78px;left:60px;height:60px}
+.ivory .word{filter:invert(1)}
 .ivory .tile{box-shadow:0 14px 40px rgba(0,0,0,.18)}
-.kicker{position:absolute;top:70px;left:200px;right:56px;font:800 30px/1.1 var(--display);letter-spacing:.14em;text-transform:uppercase;opacity:.9}
+.kicker{position:absolute;top:70px;left:196px;right:60px;font:800 30px/1.1 var(--display);letter-spacing:.14em;text-transform:uppercase;opacity:.9}
+.word ~ .kicker{left:60px;top:170px}
 .kicker small{display:block;margin-top:10px;font:600 26px/1.25 var(--body);letter-spacing:0;text-transform:none;opacity:.8}
-.title{position:absolute;left:56px;right:56px;bottom:150px;font:800 ${fs}px/0.92 var(--display);letter-spacing:-.045em;text-wrap:balance;overflow-wrap:anywhere}
+.title{position:absolute;left:60px;right:60px;bottom:76px;font:800 ${fs}px/0.9 var(--display);letter-spacing:-.045em;text-wrap:balance;overflow-wrap:normal}
+.c.center .title{left:60px;right:60px;top:50%;bottom:auto;transform:translateY(-40%);text-align:center}
+.sub{position:absolute;left:60px;right:60px;bottom:0;font:600 28px var(--body);opacity:.82}
 .title em{font-style:normal;color:var(--ivory)}
 .red .title em{color:var(--black)} .noir .title em,.photo .title em,.photo-noir .title em{color:var(--red)} .ivory .title em{color:var(--red)}
 .red .title{text-shadow:0 10px 40px rgba(0,0,0,.18)}
-.sub{position:absolute;left:56px;right:56px;bottom:96px;font:700 30px var(--body);opacity:.85}
-.foot{position:absolute;left:56px;right:56px;bottom:50px;display:flex;align-items:center;justify-content:space-between}
-.foot img{height:26px;opacity:.95}
-.ivory .foot img{filter:invert(1)}
-.foot b{font:800 24px var(--display);letter-spacing:.16em;text-transform:uppercase;opacity:.85;padding:10px 18px;border:3px solid currentColor;border-radius:999px}
-</style></head><body><div class="c ${style}">
+</style></head><body><div class="c ${style} ${entry.align === "center" ? "center" : ""}">
 ${isPhoto && photo ? `<img class="p" src="${photo}">${style === "photo" ? `<div class="tint"></div>` : ""}` : `<div class="halo"></div>`}
 ${isPhoto ? `<div class="shade"></div>` : ""}
 <div class="grain"></div>
-<img class="tile" src="${logos.tile}">
+${entry.logo === "word" ? `<img class="word" src="${logos.wordmark}">` : `<img class="tile" src="${logos.tile}">`}
 ${entry.kicker ? `<div class="kicker">${rich(entry.kicker)}${entry.sub ? `<small>${esc(entry.sub)}</small>` : ""}</div>` : ""}
 <h1 class="title">${title}</h1>
-<div class="foot"><img src="${logos.wordmark}"><b>${esc(entry.year || String(new Date().getFullYear()))}</b></div>
 </div></body></html>`;
 }
 

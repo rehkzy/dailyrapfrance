@@ -20,7 +20,8 @@
     "title": "rap\n*chrétien*",
     "kicker": "Les incontournables",
     "sub": "Foi, espoir et bons sons",
-    "style": "ivory"
+    "style": "ivory",
+    "logo": "word"
   },
   {
     "file": "perdu-e",
@@ -35,7 +36,8 @@
     "title": "radar\n*sorties*",
     "kicker": "Rap français",
     "sub": "Les nouveautés chaque vendredi",
-    "style": "red"
+    "style": "red",
+    "logo": "word"
   },
   {
     "file": "les-pepites",
@@ -57,21 +59,23 @@
     "title": "hits\n*tiktok*",
     "kicker": "France",
     "sub": "Les sons qui tournent en ce moment",
-    "style": "noir"
+    "style": "noir",
+    "align": "center"
   },
   {
     "file": "rap-ete",
     "title": "rap\n*été*",
     "kicker": "Rap français",
     "sub": "Fenêtres ouvertes, son à fond",
-    "style": "red"
+    "style": "red",
+    "logo": "word"
   },
   {
     "file": "nouvel-an",
     "title": "nouvel\n*an*",
     "kicker": "Rap français · réveillon",
     "style": "red",
-    "year": "2027"
+    "align": "center"
   },
   {
     "file": "booba-prime",
@@ -85,24 +89,28 @@
     "file": "deutsch-rap",
     "title": "deutsch\n*rap*",
     "kicker": "Le rap allemand",
-    "style": "noir"
+    "style": "noir",
+    "align": "center"
   },
   {
     "file": "polak-rap",
     "title": "polak\n*rap*",
     "kicker": "Le rap polonais",
-    "style": "ivory"
+    "style": "ivory",
+    "logo": "word"
   },
   {
     "file": "chinese-rap",
     "title": "chinese\n*rap*",
     "kicker": "Le rap chinois",
-    "style": "red"
+    "style": "red",
+    "align": "center"
   },
   {
     "file": "nigerian-songs",
     "title": "nigerian\n*songs*",
     "kicker": "Afrobeats · Naija",
-    "style": "noir"
+    "style": "noir",
+    "align": "center"
   }
 ]
