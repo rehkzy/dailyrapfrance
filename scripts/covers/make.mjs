@@ -19,6 +19,8 @@
  *           rouge) · "photo-noir" (portrait noir & blanc sombre, accent rouge) — `photo` = URL
  *           ou chemin, ou `artist` = nom Deezer : photo récupérée.
  *   logo : "tile" (défaut, la tuile DR) ou "word" (le logo typographique) — jamais les deux.
+ *   shift / shiftY (% de la largeur, + = vers la droite / le bas) et zoom : recadrage du sujet.
+ *   size : facteur sur la taille du titre (0.8 = plus petit). cutout:false : photo entière, pas de détourage.
  *   align : "bottom" (défaut, titre en bas à gauche) ou "center" (titre centré).
  *   Ce qui fait cliquer (covers éditoriales Spotify, RapCaviar & co) : un visage connu, un
  *   titre de 1–2 mots lisible à 60 px, et les noms d'artistes en petit (on sait ce qu'on
@@ -176,6 +178,7 @@ ${fonts}
 html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:#0A0707}
 .c{position:relative;width:${SIZE}px;height:${SIZE}px;overflow:hidden;color:${ink};background:${bg === "red" ? "#F0001C" : bg === "ivory" ? "#F7EFE6" : "#0A0707"}}
 .halo{position:absolute;width:1200px;height:1200px;border-radius:50%;filter:blur(100px);opacity:.6;background:${bg === "red" ? "#6b000e" : bg === "ivory" ? "#ffc1c7" : accent};right:-520px;bottom:-560px}
+img.p,img.s{transform:translate(${entry.shift ?? 0}%,${entry.shiftY ?? 0}%) scale(${entry.zoom ?? 1});transform-origin:50% 30%}
 img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%}
 .brand img.p{filter:url(#brand)}
 .brand img.p.bg{filter:url(#brand) blur(2px) brightness(.9)}

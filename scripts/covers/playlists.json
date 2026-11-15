@@ -11,7 +11,9 @@
     "title": "Mood\nTriste",
     "lettering": "sans",
     "artist": "PLK",
-    "tone": "brand"
+    "tone": "brand",
+    "shift": 14,
+    "zoom": 1.08
   },
   {
     "file": "rap-chretien",
@@ -24,8 +26,10 @@
     "file": "perdu-e",
     "title": "Perdu(e) ?",
     "lettering": "sans",
-    "artist": "Lomepal",
-    "tone": "brand"
+    "artist": "Zamdane",
+    "tone": "bw",
+    "cutout": false,
+    "focus": 20
   },
   {
     "file": "radar-sorties",
@@ -51,20 +55,19 @@
   },
   {
     "file": "hits-tiktok",
-    "title": "hits\ntiktok",
-    "lettering": "impact",
-    "artist": "SDM",
+    "title": "Hits\nTikTok",
+    "lettering": "sans",
+    "artist": "Aya Nakamura",
     "tone": "brand",
-    "band": true,
-    "focus": 25
+    "focus": 10
   },
   {
     "file": "rap-ete",
-    "title": "rap\n*été*",
-    "lettering": "hand",
-    "artist": "Jul",
+    "title": "Rap\nÉté",
+    "lettering": "sans",
+    "artist": "Naps",
     "tone": "brand",
-    "accent": "#FFB800"
+    "accent": "#F0001C"
   },
   {
     "file": "nouvel-an",
@@ -107,7 +110,9 @@
     "file": "nigerian-songs",
     "title": "nigerian\nsongs",
     "lettering": "condensed",
-    "artist": "Burna Boy",
-    "tone": "brand"
+    "artist": "Rema",
+    "tone": "color",
+    "cutout": false,
+    "size": 0.8
   }
 ]
