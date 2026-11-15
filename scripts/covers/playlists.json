@@ -1,17 +1,108 @@
 [
-  { "file": "rap-fr-2026", "title": "rap fr\n*2026*", "kicker": "Les incontournables", "sub": "Mis à jour chaque semaine", "style": "red" },
-  { "file": "mood-triste", "title": "mood\n*triste*", "kicker": "Les incontournables", "sub": "Pour pleurer comme une de-mer", "style": "noir" },
-  { "file": "rap-chretien", "title": "rap\n*chrétien*", "kicker": "Les incontournables", "style": "ivory" },
-  { "file": "perdu-e", "title": "perdu(e)\n*?*", "kicker": "Les incontournables", "sub": "Quand tu sais plus où t'en es", "style": "noir" },
-  { "file": "radar-sorties", "title": "radar\n*sorties*", "kicker": "Rap français", "sub": "Les nouveautés chaque vendredi", "style": "red" },
-  { "file": "les-pepites", "title": "les\n*pépites*", "kicker": "Rap français", "sub": "Ceux qu'il faut écouter avant tout le monde", "style": "red" },
-  { "file": "new-gen", "title": "new\n*gen*", "kicker": "Rap français", "sub": "La relève", "style": "noir" },
-  { "file": "hits-tiktok", "title": "hits\n*tiktok*", "kicker": "France", "sub": "Les sons qui tournent en ce moment", "style": "noir" },
-  { "file": "rap-ete", "title": "rap\n*été*", "kicker": "Rap français", "sub": "Fenêtres ouvertes, son à fond", "style": "red" },
-  { "file": "nouvel-an", "title": "nouvel\n*an*", "kicker": "Rap français · réveillon", "style": "red", "year": "2027" },
-  { "file": "booba-prime", "title": "booba\n*prime*", "kicker": "Le meilleur de B2O", "style": "photo", "artist": "Booba" },
-  { "file": "deutsch-rap", "title": "deutsch\n*rap*", "kicker": "Le rap allemand", "style": "noir" },
-  { "file": "polak-rap", "title": "polak\n*rap*", "kicker": "Le rap polonais", "style": "ivory" },
-  { "file": "chinese-rap", "title": "chinese\n*rap*", "kicker": "Le rap chinois", "style": "red" },
-  { "file": "nigerian-songs", "title": "nigerian\n*songs*", "kicker": "Afrobeats · Naija", "style": "noir" }
+  {
+    "file": "rap-fr-2026",
+    "title": "rap fr\n*2026*",
+    "kicker": "Les incontournables",
+    "sub": "Ninho · SDM · Werenoi · Gazo · Tiakola · Jul",
+    "style": "photo",
+    "artist": "SDM"
+  },
+  {
+    "file": "mood-triste",
+    "title": "mood\n*triste*",
+    "kicker": "Les incontournables",
+    "sub": "Damso · PLK · Nekfeu · Lomepal · Josman",
+    "style": "photo-noir",
+    "artist": "Damso"
+  },
+  {
+    "file": "rap-chretien",
+    "title": "rap\n*chrétien*",
+    "kicker": "Les incontournables",
+    "sub": "Foi, espoir et bons sons",
+    "style": "ivory"
+  },
+  {
+    "file": "perdu-e",
+    "title": "perdu(e)\n*?*",
+    "kicker": "Les incontournables",
+    "sub": "Nekfeu · Lomepal · Laylow · Luther",
+    "style": "photo-noir",
+    "artist": "Nekfeu"
+  },
+  {
+    "file": "radar-sorties",
+    "title": "radar\n*sorties*",
+    "kicker": "Rap français",
+    "sub": "Les nouveautés chaque vendredi",
+    "style": "red"
+  },
+  {
+    "file": "les-pepites",
+    "title": "les\n*pépites*",
+    "kicker": "Rap français",
+    "sub": "Ceux qu'il faut écouter avant tout le monde",
+    "style": "red"
+  },
+  {
+    "file": "new-gen",
+    "title": "new\n*gen*",
+    "kicker": "Rap français",
+    "sub": "La relève : Bouss · Theodora · Jolagreen23 · Lybro",
+    "style": "photo-noir",
+    "artist": "Bouss"
+  },
+  {
+    "file": "hits-tiktok",
+    "title": "hits\n*tiktok*",
+    "kicker": "France",
+    "sub": "Les sons qui tournent en ce moment",
+    "style": "noir"
+  },
+  {
+    "file": "rap-ete",
+    "title": "rap\n*été*",
+    "kicker": "Rap français",
+    "sub": "Fenêtres ouvertes, son à fond",
+    "style": "red"
+  },
+  {
+    "file": "nouvel-an",
+    "title": "nouvel\n*an*",
+    "kicker": "Rap français · réveillon",
+    "style": "red",
+    "year": "2027"
+  },
+  {
+    "file": "booba-prime",
+    "title": "booba\n*prime*",
+    "kicker": "Le meilleur de B2O",
+    "sub": "Temps mort · Ouest Side · Lunatic · Ultra",
+    "style": "photo",
+    "artist": "Booba"
+  },
+  {
+    "file": "deutsch-rap",
+    "title": "deutsch\n*rap*",
+    "kicker": "Le rap allemand",
+    "style": "noir"
+  },
+  {
+    "file": "polak-rap",
+    "title": "polak\n*rap*",
+    "kicker": "Le rap polonais",
+    "style": "ivory"
+  },
+  {
+    "file": "chinese-rap",
+    "title": "chinese\n*rap*",
+    "kicker": "Le rap chinois",
+    "style": "red"
+  },
+  {
+    "file": "nigerian-songs",
+    "title": "nigerian\n*songs*",
+    "kicker": "Afrobeats · Naija",
+    "style": "noir"
+  }
 ]

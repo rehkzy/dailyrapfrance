@@ -16,7 +16,11 @@
  * Chaque entrée de la liste : { title, kicker?, sub?, style?, artist?, photo?, year?, file? }
  *   style : "red" (fond rouge, texte ivoire) · "noir" (fond noir, titre rouge) · "ivory"
  *           (fond ivoire, texte noir, pour les playlists calmes) · "photo" (portrait bichrome
- *           rouge — `photo` = URL ou chemin, ou `artist` = nom Deezer : photo récupérée)
+ *           rouge) · "photo-noir" (portrait noir & blanc sombre, accent rouge) — `photo` = URL
+ *           ou chemin, ou `artist` = nom Deezer : photo récupérée.
+ *   Ce qui fait cliquer (covers éditoriales Spotify, RapCaviar & co) : un visage connu, un
+ *   titre de 1–2 mots lisible à 60 px, et les noms d'artistes en petit (on sait ce qu'on
+ *   va entendre avant d'ouvrir).
  */
 import { parseArgs } from "node:util";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -29,8 +33,9 @@ try { ({ chromium } = require("playwright")); } catch { console.error("Playwrigh
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const SIZE = 1000;
-const MAX_BYTES = 250 * 1024;
+const SIZE = 1000; // composition en 1000, rendue à 2× (2000 × 2000) : net sur l'app desktop et la TV
+const SCALE = 2;
+const MAX_BYTES = 3800 * 1024; // Spotify accepte 4 Mo via l'app (256 Ko seulement via l'API)
 
 const { values: opt } = parseArgs({
   options: {
@@ -103,6 +108,7 @@ async function loadFonts() {
 
 function html({ fonts, logos, entry, photo }) {
   const style = entry.style || (photo ? "photo" : "red");
+  const isPhoto = style.startsWith("photo");
   const title = rich(entry.title);
   const words = entry.title.replace(/\*/g, "").split(/\s+/);
   const longest = Math.max(...words.map((w) => w.length));
@@ -114,23 +120,24 @@ ${fonts}
 :root{--red:#F0001C;--black:#0A0707;--ivory:#F7EFE6;--display:"Bricolage Grotesque",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif}
 html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:var(--black)}
 .c{position:relative;width:${SIZE}px;height:${SIZE}px;overflow:hidden;font-family:var(--display);color:var(--ivory);background:var(--red)}
-.c.noir{background:var(--black)} .c.ivory{background:var(--ivory);color:var(--black)} .c.photo{background:var(--black)}
+.c.noir{background:var(--black)} .c.ivory{background:var(--ivory);color:var(--black)} .c.photo,.c.photo-noir{background:var(--black)}
 /* matière : grain + halo, pour ne pas avoir un aplat plat dans la grille */
-.grain{position:absolute;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .26 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");opacity:.5;mix-blend-mode:overlay;pointer-events:none}
+.grain{position:absolute;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .26 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");opacity:.22;mix-blend-mode:overlay;pointer-events:none}
 .halo{position:absolute;width:1100px;height:1100px;border-radius:50%;filter:blur(90px);opacity:.55}
 .red .halo{background:#7a0010;right:-420px;bottom:-520px}
 .noir .halo{background:var(--red);left:-520px;top:-520px;opacity:.5}
 .ivory .halo{background:#ffb3bb;right:-500px;top:-500px;opacity:.6}
-.photo img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%;filter:grayscale(1) contrast(1.25) brightness(.85)}
+.photo img.p,.photo-noir img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%;filter:grayscale(1) contrast(1.2) brightness(.9)}
+.photo-noir img.p{filter:grayscale(1) contrast(1.1) brightness(1)}
 .photo .tint{position:absolute;inset:0;background:var(--red);mix-blend-mode:multiply;opacity:.92}
-.photo .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,.05) 40%,rgba(10,7,7,.92) 82%)}
+.photo .shade,.photo-noir .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,7,.05) 0%,rgba(10,7,7,0) 40%,rgba(10,7,7,.94) 80%)}
 .tile{position:absolute;top:56px;left:56px;width:118px;height:118px;border-radius:28px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
 .ivory .tile{box-shadow:0 14px 40px rgba(0,0,0,.18)}
 .kicker{position:absolute;top:70px;left:200px;right:56px;font:800 30px/1.1 var(--display);letter-spacing:.14em;text-transform:uppercase;opacity:.9}
-.kicker small{display:block;margin-top:10px;font:500 24px var(--body);letter-spacing:0;text-transform:none;opacity:.75}
+.kicker small{display:block;margin-top:10px;font:600 26px/1.25 var(--body);letter-spacing:0;text-transform:none;opacity:.8}
 .title{position:absolute;left:56px;right:56px;bottom:150px;font:800 ${fs}px/0.92 var(--display);letter-spacing:-.045em;text-wrap:balance;overflow-wrap:anywhere}
 .title em{font-style:normal;color:var(--ivory)}
-.red .title em{color:var(--black)} .noir .title em,.photo .title em{color:var(--red)} .ivory .title em{color:var(--red)}
+.red .title em{color:var(--black)} .noir .title em,.photo .title em,.photo-noir .title em{color:var(--red)} .ivory .title em{color:var(--red)}
 .red .title{text-shadow:0 10px 40px rgba(0,0,0,.18)}
 .sub{position:absolute;left:56px;right:56px;bottom:96px;font:700 30px var(--body);opacity:.85}
 .foot{position:absolute;left:56px;right:56px;bottom:50px;display:flex;align-items:center;justify-content:space-between}
@@ -138,8 +145,8 @@ html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:var(--blac
 .ivory .foot img{filter:invert(1)}
 .foot b{font:800 24px var(--display);letter-spacing:.16em;text-transform:uppercase;opacity:.85;padding:10px 18px;border:3px solid currentColor;border-radius:999px}
 </style></head><body><div class="c ${style}">
-${style === "photo" && photo ? `<img class="p" src="${photo}"><div class="tint"></div>` : `<div class="halo"></div>`}
-${style === "photo" ? `<div class="shade"></div>` : ""}
+${isPhoto && photo ? `<img class="p" src="${photo}">${style === "photo" ? `<div class="tint"></div>` : ""}` : `<div class="halo"></div>`}
+${isPhoto ? `<div class="shade"></div>` : ""}
 <div class="grain"></div>
 <img class="tile" src="${logos.tile}">
 ${entry.kicker ? `<div class="kicker">${rich(entry.kicker)}${entry.sub ? `<small>${esc(entry.sub)}</small>` : ""}</div>` : ""}
@@ -158,7 +165,7 @@ async function main() {
   ]);
   const logos = { wordmark: `data:image/svg+xml;base64,${Buffer.from(wordmark).toString("base64")}`, tile: `data:image/png;base64,${tile.toString("base64")}` };
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: SIZE, height: SIZE }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: SIZE, height: SIZE }, deviceScaleFactor: SCALE });
   for (const entry of entries) {
     let photo = null;
     try {
@@ -168,8 +175,8 @@ async function main() {
     await page.setContent(html({ fonts, logos, entry, photo }), { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
     const file = path.join(opt.out, `${entry.file || slug(entry.title)}.jpg`);
-    let q = 92, buf;
-    do { buf = await page.screenshot({ type: "jpeg", quality: q }); q -= 6; } while (buf.length > MAX_BYTES && q > 40);
+    let q = 94, buf;
+    do { buf = await page.screenshot({ type: "jpeg", quality: q }); q -= 4; } while (buf.length > MAX_BYTES && q > 60);
     await writeFile(file, buf);
     console.log(`✓ ${file} (${Math.round(buf.length / 1024)} Ko)`);
   }
