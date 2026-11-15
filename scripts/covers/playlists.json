@@ -8,8 +8,8 @@
   },
   {
     "file": "mood-triste",
-    "title": "mood\ntriste",
-    "lettering": "script",
+    "title": "Mood\nTriste",
+    "lettering": "sans",
     "artist": "PLK",
     "tone": "brand"
   },
@@ -23,8 +23,8 @@
   {
     "file": "perdu-e",
     "title": "Perdu(e) ?",
-    "lettering": "serif",
-    "artist": "Nekfeu",
+    "lettering": "sans",
+    "artist": "Lomepal",
     "tone": "brand"
   },
   {
@@ -32,8 +32,7 @@
     "title": "radar\nsorties",
     "lettering": "condensed",
     "artist": "Gazo",
-    "tone": "brand",
-    "band": true
+    "tone": "brand"
   },
   {
     "file": "les-pepites",
@@ -108,7 +107,7 @@
     "file": "nigerian-songs",
     "title": "nigerian\nsongs",
     "lettering": "condensed",
-    "artist": "Rema",
+    "artist": "Burna Boy",
     "tone": "brand"
   }
 ]

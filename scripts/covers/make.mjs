@@ -25,6 +25,8 @@
  *   va entendre avant d'ouvrir).
  */
 import { parseArgs } from "node:util";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -78,6 +80,18 @@ async function artistPhoto(name) {
   // L'API s'arrête à 1000 px ; le CDN sert la même image en 1800 px qualité 100.
   return xl.replace(/\/\d+x\d+-000000-80-0-0\.jpg$/, "/1800x1800-000000-100-0-0.jpg");
 }
+/* Détourage du sujet (python rembg) : l'artiste reste en couleurs, le décor passe en bichromie. */
+async function cutout(buf) {
+  const dir = path.join(process.env.TMPDIR || "/tmp", "drf-cutouts");
+  await mkdir(dir, { recursive: true });
+  const key = createHash("md5").update(buf).digest("hex");
+  const src = path.join(dir, `${key}.jpg`), dst = path.join(dir, `${key}.png`);
+  try { return await readFile(dst); } catch {}
+  await writeFile(src, buf);
+  execFileSync("python3", [path.join(__dirname, "cutout.py"), src, dst], { stdio: ["ignore", "ignore", "inherit"], timeout: 300000 });
+  return readFile(dst);
+}
+
 async function toDataUri(src, mime = "image/jpeg") {
   if (!src) return null;
   const buf = /^https?:/.test(src) ? await fetchBuffer(src) : await readFile(path.resolve(src));
@@ -103,6 +117,7 @@ const LETTERINGS = {
   outline:   { fam: "Bungee",           css: "family=Bungee",                        weights: [400], up: true,  ls: "0",      lh: .95, scale: .85, outline: true },
   mono:      { fam: "Rubik Mono One",   css: "family=Rubik+Mono+One",                weights: [400], up: true,  ls: "-.02em", lh: .95, scale: .7 },
   grotesk:   { fam: "Bricolage Grotesque", css: "family=Bricolage+Grotesque:wght@800", weights: [800], up: false, ls: "-.045em", lh: .9, scale: 1 },
+  sans:      { fam: "Figtree",          css: "family=Figtree:wght@800",              weights: [800], up: false, ls: "-.035em", lh: .95, scale: 1 },
 };
 
 async function loadFonts() {
@@ -142,7 +157,7 @@ async function loadFonts() {
  *  · `accent` : couleur du mot *accentué* / du bandeau (défaut rouge marque).
  *  Sans photo : fond `bg` (red | black | ivory) avec halo.
  */
-function html({ fonts, logos, entry, photo }) {
+function html({ fonts, logos, entry, photo, subject }) {
   const L = LETTERINGS[entry.lettering] || LETTERINGS.grotesk;
   const accent = entry.accent || "#F0001C";
   const tone = entry.tone || (photo ? "brand" : "none");
@@ -152,7 +167,8 @@ function html({ fonts, logos, entry, photo }) {
   const raw = entry.title.replace(/\*/g, "");
   const lines = raw.split(/\\n|\n/);
   const longest = Math.max(...lines.map((l) => l.length));
-  const fs = Math.round(Math.max(90, Math.min(260, (1500 / Math.max(longest, 4)) * L.scale)));
+  // Plus petit qu'avant : Spotify laisse respirer la photo, le titre prend ~1/4 de la hauteur.
+  const fs = Math.round(Math.max(72, Math.min(190, (1050 / Math.max(longest, 4)) * L.scale)) * (entry.size || 1));
   const title = rich(entry.title);
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><style>
 ${fonts}
@@ -162,6 +178,8 @@ html,body{width:${SIZE}px;height:${SIZE}px;overflow:hidden;background:#0A0707}
 .halo{position:absolute;width:1200px;height:1200px;border-radius:50%;filter:blur(100px);opacity:.6;background:${bg === "red" ? "#6b000e" : bg === "ivory" ? "#ffc1c7" : accent};right:-520px;bottom:-560px}
 img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%}
 .brand img.p{filter:url(#brand)}
+.brand img.p.bg{filter:url(#brand) blur(2px) brightness(.9)}
+img.s{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% ${entry.focus ?? 12}%;filter:contrast(1.06) saturate(1.05)}
 .brand .shade{background:linear-gradient(180deg,rgba(10,7,7,.1) 0%,rgba(10,7,7,0) 28%,rgba(10,7,7,0) 50%,rgba(10,7,7,.9) 82%)}
 .vignette{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 30%,transparent 55%,rgba(10,7,7,.55) 100%)}
 .bw img.p{filter:grayscale(1) contrast(1.12)}
@@ -177,14 +195,14 @@ img.p{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-p
 .kicker small{display:block;margin-top:8px;font:600 25px/1.25 "Inter",sans-serif;letter-spacing:0;text-transform:none;opacity:.78}
 .light .kicker{text-shadow:none}
 .wrap{position:absolute;left:56px;right:56px;bottom:${entry.band ? 0 : 64}px}
-.band .wrap{left:0;right:0;padding:40px 56px 48px;background:${entry.band === true ? accent : entry.band}}
+.band .wrap{left:0;right:0;padding:34px 56px 40px;background:${entry.band === true ? accent : entry.band}}
 .title{font-family:"${L.fam}",system-ui,sans-serif;font-weight:${L.weights[0]};${L.italic ? "font-style:italic;" : ""}font-size:${fs}px;line-height:${L.lh};letter-spacing:${L.ls};${L.up ? "text-transform:uppercase;" : ""}text-wrap:balance;${L.italic && entry.lettering === "condensed" ? "transform:skewX(-6deg);transform-origin:left bottom;" : ""}text-shadow:0 8px 40px rgba(0,0,0,.35)}
 .light .title{text-shadow:none}
 .title em{font-style:inherit;color:${entry.band ? ink : accent}}
 ${L.outline ? `.title{color:transparent;-webkit-text-stroke:5px ${ink}} .title em{color:${accent};-webkit-text-stroke:0}` : ""}
 .sub{margin-top:18px;font:600 27px/1.25 "Inter",sans-serif;opacity:.85}
 </style></head><body><div class="c ${tone} ${entry.band ? "band" : ""} ${dark && !photo ? "" : (bg === "ivory" && !photo ? "light" : "")}">
-${photo ? `<img class="p" src="${photo}">${tone === "red" ? `<div class="tint"></div>` : ""}${tone === "brand" ? `<div class="vignette"></div>` : ""}<div class="shade"></div>` : `<div class="halo"></div>`}
+${photo ? `<img class="p ${subject ? "bg" : ""}" src="${photo}">${subject ? `<img class="s" src="${subject}">` : ""}${tone === "red" ? `<div class="tint"></div>` : ""}${tone === "brand" ? `<div class="vignette"></div>` : ""}<div class="shade"></div>` : `<div class="halo"></div>`}
 <div class="grain"></div>
 <svg width="0" height="0" style="position:absolute"><filter id="brand" color-interpolation-filters="sRGB">
   <feColorMatrix type="saturate" values="0"/>
@@ -210,14 +228,20 @@ async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: SIZE, height: SIZE }, deviceScaleFactor: SCALE });
   for (const entry of entries) {
-    let photo = null;
+    let photo = null, subject = null;
     try {
-      if (entry.photo) photo = await toDataUri(entry.photo);
-      else if (entry.artist) photo = await toDataUri(await artistPhoto(entry.artist));
+      const src = entry.photo || (entry.artist ? await artistPhoto(entry.artist) : null);
+      if (src) {
+        const buf = /^https?:/.test(src) ? await fetchBuffer(src) : await readFile(path.resolve(src));
+        photo = `data:image/jpeg;base64,${buf.toString("base64")}`;
+        if ((entry.tone || "brand") === "brand" && entry.cutout !== false) {
+          try { subject = `data:image/png;base64,${(await cutout(buf)).toString("base64")}`; } catch (e) { console.error(`! détourage ${entry.title} : ${e.message} (photo entière en bichromie)`); }
+        }
+      }
     } catch (e) { console.error(`! photo ${entry.title} : ${e.message}`); }
     // Via un fichier (pas setContent) : depuis about:blank, Chromium refuse les polices en file://.
     const tmpHtml = path.join(opt.out, `.${entry.file || slug(entry.title)}.html`);
-    await writeFile(tmpHtml, html({ fonts, logos, entry, photo }));
+    await writeFile(tmpHtml, html({ fonts, logos, entry, photo, subject }));
     await page.goto(pathToFileURL(tmpHtml).href, { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
     const file = path.join(opt.out, `${entry.file || slug(entry.title)}.jpg`);
