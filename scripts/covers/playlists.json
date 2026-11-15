@@ -2,8 +2,6 @@
   {
     "file": "rap-fr-2026",
     "title": "rap fr\n*2026*",
-    "kicker": "Les incontournables",
-    "sub": "Ninho · SDM · Gazo · Tiakola · Jul",
     "lettering": "block",
     "artist": "Ninho",
     "tone": "color"
@@ -11,8 +9,6 @@
   {
     "file": "mood-triste",
     "title": "mood\ntriste",
-    "kicker": "Les incontournables",
-    "sub": "Damso · PLK · Nekfeu · Lomepal · Josman",
     "lettering": "script",
     "artist": "PLK",
     "tone": "bw"
@@ -20,8 +16,6 @@
   {
     "file": "rap-chretien",
     "title": "Rap\n*Chrétien*",
-    "kicker": "Les incontournables",
-    "sub": "Foi, espoir et bons sons",
     "lettering": "serif",
     "bg": "ivory",
     "logo": "word"
@@ -29,8 +23,6 @@
   {
     "file": "perdu-e",
     "title": "Perdu(e) ?",
-    "kicker": "Les incontournables",
-    "sub": "Nekfeu · Lomepal · Laylow · Luther",
     "lettering": "serif",
     "artist": "Nekfeu",
     "tone": "bw"
@@ -38,8 +30,6 @@
   {
     "file": "radar-sorties",
     "title": "radar\nsorties",
-    "kicker": "Rap français",
-    "sub": "Les nouveautés chaque vendredi",
     "lettering": "condensed",
     "artist": "Gazo",
     "tone": "color",
@@ -48,8 +38,6 @@
   {
     "file": "les-pepites",
     "title": "les\n*pépites*",
-    "kicker": "Rap français",
-    "sub": "Ceux qu'il faut écouter avant tout le monde",
     "lettering": "outline",
     "artist": "Bouss",
     "tone": "color"
@@ -57,8 +45,6 @@
   {
     "file": "new-gen",
     "title": "new\ngen",
-    "kicker": "Rap français",
-    "sub": "La relève : Bouss · Theodora · Jolagreen23 · Lybro",
     "lettering": "pixel",
     "artist": "Jolagreen23",
     "tone": "color",
@@ -67,8 +53,6 @@
   {
     "file": "hits-tiktok",
     "title": "hits\ntiktok",
-    "kicker": "France",
-    "sub": "Les sons qui tournent en ce moment",
     "lettering": "impact",
     "artist": "SDM",
     "tone": "color",
@@ -78,8 +62,6 @@
   {
     "file": "rap-ete",
     "title": "rap\n*été*",
-    "kicker": "Rap français",
-    "sub": "Fenêtres ouvertes, son à fond",
     "lettering": "hand",
     "artist": "Jul",
     "tone": "color",
@@ -88,7 +70,6 @@
   {
     "file": "nouvel-an",
     "title": "nouvel\nan",
-    "kicker": "Rap français · réveillon",
     "lettering": "shade",
     "bg": "red",
     "ink": "#F7EFE6"
@@ -96,8 +77,6 @@
   {
     "file": "booba-prime",
     "title": "Booba\n*Prime*",
-    "kicker": "Le meilleur de B2O",
-    "sub": "Temps mort · Ouest Side · Lunatic · Ultra",
     "lettering": "gothic",
     "artist": "Booba",
     "tone": "bw"
@@ -105,7 +84,6 @@
   {
     "file": "deutsch-rap",
     "title": "deutsch\nrap",
-    "kicker": "Le rap allemand",
     "lettering": "stencil",
     "artist": "Capital Bra",
     "tone": "color",
@@ -114,7 +92,6 @@
   {
     "file": "polak-rap",
     "title": "polak\nrap",
-    "kicker": "Le rap polonais",
     "lettering": "mono",
     "artist": "Mata",
     "tone": "bw",
@@ -123,7 +100,6 @@
   {
     "file": "chinese-rap",
     "title": "chinese\n*rap*",
-    "kicker": "Le rap chinois",
     "lettering": "pixel",
     "artist": "Higher Brothers",
     "tone": "red"
@@ -131,7 +107,6 @@
   {
     "file": "nigerian-songs",
     "title": "nigerian\nsongs",
-    "kicker": "Afrobeats · Naija",
     "lettering": "condensed",
     "artist": "Rema",
     "tone": "color",

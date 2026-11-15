@@ -130,7 +130,9 @@ async function loadFonts() {
 /*
  * Composition (ce que font les covers Spotify qui marchent) :
  *  · photo plein cadre, couleur ou N&B (`tone`: "color" | "bw" | "red"), visage dans le tiers haut ;
- *  · logo petit dans le coin haut-gauche (tuile DR ou wordmark — jamais les deux) ;
+ *  · logo petit dans le coin haut-gauche (tuile DR ou wordmark — jamais les deux), et rien
+ *    d'autre à côté : pas de kicker, pas de liste d'artistes (kicker/sub restent possibles
+ *    dans le JSON mais la série DailyRap ne les utilise pas) ;
  *  · le titre en gros, en bas à gauche, dans un lettrage adapté au mood (`lettering`) ;
  *  · option `band` : bandeau de couleur derrière le titre (New Music Friday, All Out) ;
  *  · `accent` : couleur du mot *accentué* / du bandeau (défaut rouge marque).
