@@ -146,5 +146,18 @@
     "tone": "color",
     "cutout": false,
     "size": 1
+  },
+  {
+    "file": "nederhop",
+    "title": "Nederlandse\n*Rap*",
+    "lettering": "shoulders",
+    "artist": "Frenna",
+    "tone": "brand",
+    "flag": [
+      "#AE1C28",
+      "#ffffff",
+      "#21468B"
+    ],
+    "focus": 5
   }
 ]
