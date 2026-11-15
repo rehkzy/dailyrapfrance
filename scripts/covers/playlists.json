@@ -51,15 +51,16 @@
     "tone": "brand"
   },
   {
-    "file": "new-gen",
-    "title": "GEN",
+    "file": "nouvelle-generation",
+    "title": "Nouvelle\n*Génération*",
     "lettering": "clash",
-    "artist": "Jolagreen23",
+    "artist": "La Mano 1.9",
     "tone": "brand",
     "accent": "#F0001C",
-    "badge": "NEW",
+    "badge": "Rap FR 2026",
     "badgeStyle": "outline",
-    "badgeDot": false
+    "badgeDot": false,
+    "size": 0.9
   },
   {
     "file": "hits-tiktok",
