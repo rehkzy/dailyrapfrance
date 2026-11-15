@@ -108,32 +108,13 @@ async function toDataUri(src, mime = "image/jpeg") {
   return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
-/*
- * Lettrages — un par ambiance, comme les couvertures éditoriales Spotify (Fresh Rap en
- * condensé italique, Westside en gothique, Peaceful Piano en script, Rap Diggers en pixel,
- * New Music Friday en bloc sur bandeau…). Toutes des Google Fonts, téléchargées une fois.
- */
-const LETTERINGS = {
-  block:     { fam: "Archivo Black",    css: "family=Archivo+Black",                 weights: [400], up: true,  ls: "-.02em", lh: .88, scale: .82 },
-  condensed: { fam: "Anton",            css: "family=Anton",                         weights: [400], up: true,  ls: ".01em",  lh: .9,  scale: 1.25, italic: true },
-  impact:    { fam: "Bebas Neue",       css: "family=Bebas+Neue",                    weights: [400], up: true,  ls: ".02em",  lh: .86, scale: 1.1 },
-  script:    { fam: "Pacifico",         css: "family=Pacifico",                      weights: [400], up: false, ls: "0",      lh: 1.15, scale: .78 },
-  hand:      { fam: "Caveat",           css: "family=Caveat:wght@700",               weights: [700], up: false, ls: "0",      lh: .95, scale: 1.15 },
-  serif:     { fam: "Playfair Display", css: "family=Playfair+Display:ital,wght@1,800", weights: [800], up: false, ls: "-.03em", lh: .95, scale: .95, italic: true },
-  gothic:    { fam: "Pirata One",       css: "family=Pirata+One",                    weights: [400], up: false, ls: "0",      lh: .9,  scale: 1.1 },
-  pixel:     { fam: "Press Start 2P",   css: "family=Press+Start+2P",                weights: [400], up: true,  ls: "0",      lh: 1.2, scale: .5 },
-  stencil:   { fam: "Black Ops One",    css: "family=Black+Ops+One",                 weights: [400], up: true,  ls: "0",      lh: .95, scale: .9 },
-  shade:     { fam: "Bungee Shade",     css: "family=Bungee+Shade",                  weights: [400], up: true,  ls: "0",      lh: 1,   scale: .7 },
-  outline:   { fam: "Bungee",           css: "family=Bungee",                        weights: [400], up: true,  ls: "0",      lh: .95, scale: .85, outline: true },
-  mono:      { fam: "Rubik Mono One",   css: "family=Rubik+Mono+One",                weights: [400], up: true,  ls: "-.02em", lh: .95, scale: .7 },
-  grotesk:   { fam: "Bricolage Grotesque", css: "family=Bricolage+Grotesque:wght@800", weights: [800], up: false, ls: "-.045em", lh: .9, scale: 1 },
-  sans:      { fam: "Figtree",          css: "family=Figtree:wght@800",              weights: [800], up: false, ls: "-.035em", lh: .95, scale: 1 },
-};
+import { TYPE } from "./type-library.mjs";
+const LETTERINGS = TYPE;
 
-async function loadFonts() {
+async function loadFonts(used) {
   const cacheDir = path.join(process.env.TMPDIR || "/tmp", "drf-fonts");
   await mkdir(cacheDir, { recursive: true });
-  const fams = [{ fam: "Inter", css: "family=Inter:wght@600;700", weights: [600, 700] }, ...Object.values(LETTERINGS)];
+  const fams = [{ fam: "Inter", src: "google", css: "family=Inter:wght@600;700", weights: [600, 700] }, ...used.map((k) => LETTERINGS[k]).filter(Boolean)];
   const faces = [];
   for (const f of fams) for (const w of f.weights) {
     const file = path.join(cacheDir, `${slug(f.fam)}-${w}${f.italic ? "i" : ""}.ttf`);
@@ -141,10 +122,14 @@ async function loadFonts() {
       await readFile(file);
     } catch {
       try {
-        const css = await (await fetch(`https://fonts.googleapis.com/css2?${f.css}&display=swap`, { headers: { "user-agent": "Mozilla/5.0 (X11; Linux x86_64) Chrome/60" } })).text();
-        const re = /font-weight:\s*(\d+);[^}]*?src:\s*url\(([^)]+\.ttf)\)/g;
-        let m, url = null;
-        while ((m = re.exec(css))) if (parseInt(m[1], 10) === w) url = m[2];
+        const url0 = f.src === "fontshare" ? `https://api.fontshare.com/v2/css?${f.css}` : `https://fonts.googleapis.com/css2?${f.css}&display=swap`;
+        const css = await (await fetch(url0, { headers: { "user-agent": "Mozilla/5.0 (X11; Linux x86_64) Chrome/60" } })).text();
+        // un bloc @font-face par graisse ; on prend l'URL .ttf du bloc dont le poids correspond
+        let url = null;
+        for (const block of css.split("@font-face")) {
+          const wm = block.match(/font-weight:\s*(\d+)/), um = block.match(/url\(['"]?([^'")]+\.ttf)['"]?\)/);
+          if (wm && um && parseInt(wm[1], 10) === w) url = um[1].startsWith("//") ? `https:${um[1]}` : um[1];
+        }
         if (!url) throw new Error("pas de TTF");
         await writeFile(file, await fetchBuffer(url));
       } catch (e) { console.error(`! police ${f.fam} ${w} : ${e.message} (fallback système)`); continue; }
@@ -246,7 +231,7 @@ async function main() {
   const [wordmark, tile, fonts] = await Promise.all([
     readFile(path.join(REPO_ROOT, "public", "logo.svg"), "utf8"),
     readFile(path.join(REPO_ROOT, "public", "icon-512.png")),
-    loadFonts(),
+    loadFonts([...new Set(entries.flatMap((e) => [e.lettering || "grotesk", e.lettering2].filter(Boolean)))]),
   ]);
   const logos = { wordmark: `data:image/svg+xml;base64,${Buffer.from(wordmark).toString("base64")}`, tile: `data:image/png;base64,${tile.toString("base64")}` };
   const browser = await chromium.launch();
