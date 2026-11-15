@@ -97,16 +97,13 @@
     "title": "Booba\n*Prime*",
     "lettering": "archivo",
     "tone": "color",
-    "album": 52475732,
     "lettering2": "pirata",
     "focus": 0,
     "cutout": false,
-    "zoom": 1.16,
-    "origin": "0 0",
-    "shift": 0,
-    "shadeStrong": true,
+    "zoom": 1.0,
+    "origin": "50% 0",
     "size": 0.85,
-    "shiftY": -2
+    "photo": "scripts/covers/assets/booba-trone.jpg"
   },
   {
     "file": "deutsch-rap",
