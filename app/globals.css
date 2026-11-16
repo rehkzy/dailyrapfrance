@@ -2602,6 +2602,52 @@ body { overscroll-behavior-y: none; }
 }
 @media (min-width: 640px) { .theme-poster-label { font-size: 1.25rem; } }
 
+/* Sélecteur v4 : rangées horizontales par catégorie (« Pour toi ») */
+.theme-row-wrap { scroll-margin-top: 140px; }
+.theme-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  margin: 0 -20px;
+  padding: 2px 20px 8px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.theme-row::-webkit-scrollbar { display: none; }
+.theme-row > * { flex: 0 0 clamp(124px, 34vw, 164px); scroll-snap-align: start; }
+.theme-row .theme-poster-label { font-size: 0.98rem; }
+.theme-row-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  aspect-ratio: 3 / 4;
+  border-radius: 18px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.theme-row-more:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.32); }
+/* Grille dense : une catégorie seule, ou les résultats de recherche */
+.theme-grid--dense { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.theme-grid--dense .theme-poster-label { font-size: clamp(0.82rem, 3.4vw, 1rem); left: 9px; right: 9px; bottom: 9px; }
+.theme-grid--dense .theme-poster-tag { font-size: 9px; padding: 3px 6px; top: 7px; left: 7px; }
+@media (min-width: 640px) { .theme-row { margin: 0 -24px; padding-left: 24px; padding-right: 24px; } .theme-row > * { flex-basis: 170px; } .theme-grid--dense { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; } .theme-grid--dense .theme-poster-label { font-size: 1rem; } }
+/* Ordinateur : pas de défilement horizontal à la souris — la rangée devient une ligne de grille
+   (6 puis 7 colonnes) et la carte « +N » prend la dernière case. */
+@media (min-width: 1024px) {
+  .theme-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; overflow: visible; margin: 0; padding: 0; }
+  .theme-row > * { flex: none; }
+  .theme-grid--dense { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+}
+@media (min-width: 1280px) {
+  .theme-row { gap: 14px; }
+  .theme-grid--dense { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+}
+
 /* « Devine le clip » — feed vertical façon Reels */
 .reel-feed {
   height: 100dvh;
