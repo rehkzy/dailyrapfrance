@@ -8,6 +8,7 @@ import DeleteAccount from "@/components/DeleteAccount";
 import AccountSecurity from "@/components/AccountSecurity";
 import HelpLinks from "@/components/HelpLinks";
 import SoundSettings from "@/components/SoundSettings";
+import ProfileViewsToggle from "@/components/ProfileViewsToggle";
 import SignInCta from "@/components/SignInCta";
 import ShareProfileCard from "@/components/ShareProfileCard";
 import { loadProfileBundle } from "@/lib/profileData";
@@ -36,10 +37,14 @@ export default async function ParametresPage() {
     );
   }
 
-  const [{ data: profile }, bundle] = await Promise.all([
-    supabase.from("profiles").select("id,username,display_name,avatar_url,banner,bio,showcase,verified,verification_requested_at").eq("id", user.id).maybeSingle(),
+  const [profRes, bundle] = await Promise.all([
+    supabase.from("profiles").select("id,username,display_name,avatar_url,banner,bio,showcase,verified,verification_requested_at,profile_views_on").eq("id", user.id).maybeSingle(),
     loadProfileBundle(supabase, user.id),
   ]);
+  // Migration « vues de profil » pas encore passée : on relit sans la colonne.
+  const profile = profRes.error
+    ? ((await supabase.from("profiles").select("id,username,display_name,avatar_url,banner,bio,showcase,verified,verification_requested_at").eq("id", user.id).maybeSingle()).data as (typeof profRes.data & { profile_views_on?: boolean }) | null)
+    : profRes.data;
   const displayName = profile?.display_name ?? user.user_metadata?.full_name ?? user.user_metadata?.name ?? "Joueur";
   const allBadges = [...bundle.badges.game, ...bundle.badges.fans];
 
@@ -77,6 +82,9 @@ export default async function ParametresPage() {
 
       <h2 className="stage-kicker mt-10 mb-2.5">Compte et connexion</h2>
       <AccountSecurity email={user.email ?? null} providers={(user.app_metadata?.providers as string[] | undefined) ?? [user.app_metadata?.provider ?? "email"]} />
+
+      <h2 className="stage-kicker mt-10 mb-2.5">Confidentialité</h2>
+      <ProfileViewsToggle userId={user.id} initialOn={profile?.profile_views_on !== false} />
 
       <h2 className="stage-kicker mt-10 mb-2.5">Son et notifications</h2>
       <SoundSettings />

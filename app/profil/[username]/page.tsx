@@ -1,4 +1,5 @@
 import HubLinks from "@/components/HubLinks";
+import ProfileViewPing from "@/components/ProfileViewPing";
 import { SPACE_LINKS } from "@/lib/sitemapNav";
 import { friendsLeaderboard } from "@/lib/friends";
 import { adminClient } from "@/lib/adminAuth";
@@ -56,6 +57,15 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const isMe = viewer?.id === profile.id;
   const board = isMe ? await friendsLeaderboard(adminClient(), profile.id).catch(() => null) : null;
 
+  // Vues de profil (30 j) — seulement pour soi, et si l'option est active (défaut : oui).
+  let views: number | null = null;
+  if (isMe) {
+    const { data: meRow } = await supabase.from("profiles").select("profile_views_on").eq("id", profile.id).maybeSingle();
+    if (meRow && meRow.profile_views_on !== false) {
+      const { count } = await supabase.from("profile_views").select("viewer_id", { count: "exact", head: true }).eq("profile_id", profile.id).gte("viewed_at", new Date(Date.now() - 30 * 86_400_000).toISOString());
+      views = count ?? 0;
+    }
+  }
   const bundle = await loadProfileBundle(supabase, profile.id);
   const { scores, customs, friends: friendsCount, badges } = bundle;
   const allBadges = [...badges.game, ...badges.fans];
@@ -77,6 +87,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   return (
     <>
+      {viewer && !isMe && <ProfileViewPing profileId={profile.id} />}
       <section className="max-w-2xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-32">
 
         {/* 1. Identité : bannière, avatar, bio, badges mis en avant */}
@@ -100,11 +111,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             ) : (
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full text-white flex items-center justify-center text-2xl font-extrabold shrink-0 border-4 border-[#0f0809]" style={{ background: "linear-gradient(135deg,#ff3b4e,#780101)" }}>{name.slice(0, 1).toUpperCase()}</div>
             )}
-            <div className="flex-1 grid grid-cols-3 gap-1 pb-1 pt-12 sm:pt-14">
+            <div className={`flex-1 grid ${views !== null ? "grid-cols-4" : "grid-cols-3"} gap-1 pb-1 pt-12 sm:pt-14`}>
               {[
                 { v: gamesPlayed, l: "Parties", href: undefined as string | undefined },
                 { v: bestScore, l: "Record", href: undefined as string | undefined },
                 { v: friendsCount ?? 0, l: (friendsCount ?? 0) > 1 ? "Amis" : "Ami", href: isMe ? "/amis" : undefined },
+                ...(views !== null ? [{ v: views, l: views > 1 ? "Vues" : "Vue", href: "/profil/vues" as string | undefined }] : []),
               ].map((c) => {
                 const inner = <><span className="block font-display text-xl sm:text-2xl font-extrabold leading-none">{c.v}</span><span className="block text-[11px] text-ink-faint mt-1">{c.l}</span></>;
                 return c.href ? <a key={c.l} href={c.href} className="text-center rounded-xl hover:bg-white/5 py-1">{inner}</a> : <span key={c.l} className="text-center py-1">{inner}</span>;

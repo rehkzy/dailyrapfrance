@@ -73,7 +73,7 @@ export default function ThemePicker({
       .catch(() => {});
     fetch(`/api/blindtest/theme-art?themes=${PHOTO_THEME_IDS.join(",")}`)
       .then((r) => r.json())
-      .then((data) => setThemePhotos(data.photos ?? {}))
+      .then((data) => setThemePhotos({ ...Object.fromEntries(THEME_OPTIONS.filter((t) => t.image).map((t) => [t.id, t.image!])), ...(data.photos ?? {}) }))
       .catch(() => {});
   }, []);
 
@@ -153,7 +153,8 @@ export default function ThemePicker({
         index={i}
         active={themeId === t.id}
         photoUrl={themePhotos[t.id]}
-        tag={trendingThemes.has(t.id) ? "Tendance" : t.category === "Artistes" ? "Artiste" : undefined}
+        plain={!!t.image}
+        tag={trendingThemes.has(t.id) ? "Tendance" : t.lang ? t.lang : t.category === "Playlists" ? "Playlist" : t.category === "Artistes" ? "Artiste" : undefined}
       />
     </button>
   );

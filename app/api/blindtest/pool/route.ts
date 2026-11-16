@@ -1,7 +1,11 @@
+// Les thèmes Playlists retrouvent chaque titre sur Deezer au premier appel (5–10 s), puis cache 6 h.
+export const maxDuration = 30;
+
 import { NextRequest, NextResponse } from "next/server";
 import { resolveArtist } from "@/lib/deezerArtist";
 import { deezerFetch, fetchTrackDetail, toGameTrack, isPlayableTrack, type DeezerTrackSummary, type DeezerTrackFull } from "@/lib/deezerTrack";
-import { THEME_PLAYLISTS, THEME_ARTISTS, ALL_DECADE_PLAYLISTS } from "@/lib/themeSources";
+import { THEME_PLAYLISTS, THEME_ARTISTS, ALL_DECADE_PLAYLISTS, THEME_SPOTIFY } from "@/lib/themeSources";
+import { spotifyPlaylistTracks } from "@/lib/spotifyPlaylist";
 import { isSoundbiteTheme, soundbitesFor } from "@/lib/gimmicks";
 
 // Pool de titres du blind test — 100% en direct depuis l'API Deezer, aucune base de données.
@@ -164,7 +168,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ tracks });
     }
 
-    if (THEME_PLAYLISTS[themeId] && themeId !== "90s" && themeId !== "2000s" && themeId !== "2010s" && themeId !== "recent") {
+    if (THEME_SPOTIFY[themeId]) {
+      // Playlists DailyRap : la playlist Spotify du compte, retrouvée titre par titre sur Deezer.
+      raw = await spotifyPlaylistTracks(THEME_SPOTIFY[themeId]);
+    } else if (THEME_PLAYLISTS[themeId] && themeId !== "90s" && themeId !== "2000s" && themeId !== "2010s" && themeId !== "recent") {
       const lists = await Promise.all(THEME_PLAYLISTS[themeId].map(fetchPlaylistTracks));
       raw = lists.flat();
     } else if (themeId.startsWith("classics-") && artistListsById[themeId]) {

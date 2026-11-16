@@ -11,9 +11,13 @@ export type ThemeOption = {
   category: (typeof THEME_CATEGORIES)[number];
   /** Mots-clés pour la recherche dans le sélecteur (noms d'artistes, synonymes). */
   keywords?: string;
+  /** Visuel fixe (covers des playlists) — prime sur la photo d'artiste cherchée en ligne. */
+  image?: string;
+  /** Les playlists ne sont pas que du rap FR : on le dit sur la carte. */
+  lang?: string;
 };
 
-export const THEME_CATEGORIES = ["Du moment", "Époques", "Styles", "Régions", "Artistes", "Classiques", "Gimmicks"] as const;
+export const THEME_CATEGORIES = ["Du moment", "Playlists", "Époques", "Styles", "Régions", "Artistes", "Classiques", "Gimmicks"] as const;
 
 // Catalogue unique — utilisé à la fois par le wizard solo/local, le salon en ligne, les pages
 // SEO (/blindtest/[slug]) et le défi de la semaine. Chaque id doit exister dans lib/themeSources.ts
@@ -28,6 +32,23 @@ export const THEME_OPTIONS: ThemeOption[] = [
   { id: "nouvelle-gen", label: "Nouvelle génération", text: "La Rvfleuze, Mauvais Djo, Lagui, Jolagreen23, R2...", Icon: Sparkles, category: "Du moment", keywords: "révélation 2026 nouvelle école" },
   { id: "albums-2026", label: "Albums 2026", text: "M.I.L.S IV, Grand Garçon, Numéro d'écrou, Karma...", Icon: Disc3, category: "Du moment", keywords: "sorties 2026" },
   { id: "duos", label: "Duos & groupes", text: "Bigflo & Oli, Djadja & Dinaz, PNL, L2B, 13 Organisé...", Icon: Users, category: "Du moment", keywords: "groupe duo collectif" },
+
+  // --- Playlists DailyRap (Spotify, mises à jour chaque semaine — cf. THEME_SPOTIFY)
+  { id: "pl-rap-fr-2026", label: "Rap Français 2026", text: "Les incontournables de l'année, mis à jour chaque semaine", Icon: Star, category: "Playlists", keywords: "playlist incontournables 2026", image: "/themes/playlists/pl-rap-fr-2026.jpg" },
+  { id: "pl-radar", label: "Radar Sorties", text: "Les nouveautés rap FR du moment, tous les jours", Icon: Sparkles, category: "Playlists", keywords: "playlist nouveautés sorties", image: "/themes/playlists/pl-radar.jpg" },
+  { id: "pl-nouvelle-gen", label: "Nouvelle Génération", text: "La Mano 1.9, Bouss, Favé, Kerchak, JRK 19, Josas...", Icon: Sparkles, category: "Playlists", keywords: "playlist new gen relève", image: "/themes/playlists/pl-nouvelle-gen.jpg" },
+  { id: "pl-tiktok", label: "Hits TikTok France", text: "Les sons viraux du moment — rap, pop, afro", Icon: TrendingUp, category: "Playlists", keywords: "playlist tiktok viral", image: "/themes/playlists/pl-tiktok.jpg", lang: "Tous genres" },
+  { id: "pl-mood-triste", label: "Mood Triste", text: "Damso, PLK, Nekfeu, Lomepal, Josman, Zamdane...", Icon: Cloud, category: "Playlists", keywords: "playlist triste mélancolie", image: "/themes/playlists/pl-mood-triste.jpg" },
+  { id: "pl-perdu", label: "Perdu(e) ?", text: "Rap introspectif : Nekfeu, Lomepal, Laylow, Luther, Zamdane...", Icon: Cloud, category: "Playlists", keywords: "playlist introspectif", image: "/themes/playlists/pl-perdu.jpg" },
+  { id: "pl-pepites", label: "Les Pépites", text: "Ceux qu'il faut écouter avant tout le monde", Icon: Sparkles, category: "Playlists", keywords: "playlist pépites découverte", image: "/themes/playlists/pl-pepites.jpg" },
+  { id: "pl-booba", label: "Booba Prime", text: "Le meilleur de B2O, de Temps Mort à aujourd'hui", Icon: Mic2, category: "Playlists", keywords: "playlist booba b2o duc", image: "/themes/playlists/pl-booba.jpg" },
+  { id: "pl-ete", label: "Rap Été", text: "Naps, Jul, Soolking, Alonzo, SCH... fenêtres ouvertes", Icon: Flame, category: "Playlists", keywords: "playlist été soleil", image: "/themes/playlists/pl-ete.jpg" },
+  { id: "pl-nouvel-an", label: "Nouvel An", text: "Les bangers du réveillon", Icon: Flame, category: "Playlists", keywords: "playlist nouvel an réveillon fête", image: "/themes/playlists/pl-nouvel-an.jpg" },
+  { id: "pl-chretien", label: "Rap Chrétien", text: "Foi, espoir et bons sons", Icon: Music, category: "Playlists", keywords: "playlist chrétien gospel", image: "/themes/playlists/pl-chretien.jpg" },
+  { id: "pl-deutsch", label: "Deutsch Rap", text: "Capital Bra, Apache 207, Luciano, RAF Camora...", Icon: Globe, category: "Playlists", keywords: "playlist allemand deutschrap", image: "/themes/playlists/pl-deutsch.jpg", lang: "Allemagne" },
+  { id: "pl-polak", label: "Polak Rap", text: "Mata, Taco Hemingway, Quebonafide, Białas...", Icon: Globe, category: "Playlists", keywords: "playlist polonais polski", image: "/themes/playlists/pl-polak.jpg", lang: "Pologne" },
+  { id: "pl-nigerian", label: "Nigerian Songs", text: "Burna Boy, Rema, Asake, Wizkid, Davido, Ayra Starr...", Icon: Globe, category: "Playlists", keywords: "playlist afrobeats naija nigeria", image: "/themes/playlists/pl-nigerian.jpg", lang: "Afrobeats" },
+  { id: "pl-nederhop", label: "Nederlandse Rap", text: "Mensa, SRNO, Frenna, Boef, Lijpe, Josylvio...", Icon: Globe, category: "Playlists", keywords: "playlist néerlandais nederhop pays-bas", image: "/themes/playlists/pl-nederhop.jpg", lang: "Pays-Bas" },
 
   // --- Époques
   { id: "recent", label: "2020s / Récent", text: "Ce qui tourne en ce moment", Icon: Clock, category: "Époques" },
@@ -210,7 +231,7 @@ export const FEATURED_THEME_IDS = ["hits-2026", "nouvelle-gen", "artist-rvfleuze
 
 // Thèmes pour lesquels on va chercher une vraie photo d'artiste (pas les thèmes par époque,
 // génériques par nature) — utilisé pour construire l'appel groupé à /api/blindtest/theme-art.
-export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époques" && t.id !== "pop" && t.id !== "viral" && t.category !== "Gimmicks").map(
+export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => !t.image && t.category !== "Époques" && t.id !== "pop" && t.id !== "viral" && t.category !== "Gimmicks").map(
   (t) => t.id
 );
 
@@ -219,7 +240,7 @@ export const PHOTO_THEME_IDS = THEME_OPTIONS.filter((t) => t.category !== "Époq
 // toujours le même thème pour tous les joueurs, et il change tout seul le lendemain.
 // Les thèmes à pool très restreint (régions à un seul nom) sont exclus du tirage.
 const DAILY_EXCLUDED = new Set(["mix", "78", "31", "lagui-sadek", "sorties", "gimmicks", "memes"]);
-const DAILY_POOL = THEME_OPTIONS.filter((t) => !DAILY_EXCLUDED.has(t.id));
+const DAILY_POOL = THEME_OPTIONS.filter((t) => !DAILY_EXCLUDED.has(t.id) && t.category !== "Playlists");
 
 function weekIndexParis(): number {
   const today = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(new Date());

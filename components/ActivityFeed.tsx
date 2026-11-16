@@ -17,8 +17,10 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 type Prof = { id: string; username: string | null; display_name: string | null; avatar_url: string | null; verified?: boolean | null };
 type ScoreRow = { id: string; user_id: string; theme: string; points: number; rounds: number; created_at: string; profiles: Prof | Prof[] | null };
 type CustomRow = { id: string; slug: string; title: string; track_ids: number[]; created_at: string; profiles: Prof | Prof[] | null };
+type RoomRow = { room_id: string; theme: string; format: string | null; is_public: boolean; players: { user_id: string; name: string; score: number }[]; winner_ids: string[]; finished_at: string };
 type Item =
   | { kind: "score"; id: string; at: string; who: Prof | null; theme: string; points: number; rounds: number }
+  | { kind: "room"; id: string; at: string; who: Prof | null; theme: string; points: number; rank: number; total: number; won: boolean; others: string[]; isPublic: boolean }
   | { kind: "custom"; id: string; at: string; who: Prof | null; slug: string; title: string; count: number };
 
 function one<T>(p: T | T[] | null): T | null { return Array.isArray(p) ? p[0] ?? null : p; }
@@ -65,16 +67,36 @@ export default function ActivityFeed() {
       const { data: fr } = await supabase.from("friendships").select("requester_id,addressee_id").eq("status", "accepted").or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
       const ids = Array.from(new Set((fr ?? []).map((f) => (f.requester_id === user.id ? f.addressee_id : f.requester_id))));
       setFriendCount(ids.length);
-      const [scores, customs] = await Promise.all([
+      // Parties en ligne (matchmaking, entre amis, soirée) : room_results garde joueurs et scores.
+      const roomsQ = ids.length
+        ? supabase.from("room_results").select("room_id,theme,format,is_public,players,winner_ids,finished_at").or(ids.slice(0, 40).map((id) => `players.cs.[{"user_id":"${id}"}]`).join(",")).order("finished_at", { ascending: false }).limit(10)
+        : Promise.resolve({ data: [] as RoomRow[] });
+      const [scores, customs, rooms] = await Promise.all([
         ids.length
           ? supabase.from("blindtest_scores").select("id,user_id,theme,points,rounds,created_at,profiles(id,username,display_name,avatar_url,verified)").in("user_id", ids).not("theme", "like", "jeu-%").order("created_at", { ascending: false }).limit(8)
           : Promise.resolve({ data: [] as ScoreRow[] }),
         supabase.from("custom_blindtests").select("id,slug,title,track_ids,created_at,profiles(id,username,display_name,avatar_url,verified)").eq("is_public", true).neq("user_id", user.id).order("created_at", { ascending: false }).limit(4),
+        roomsQ,
       ]);
+      // Profils des amis présents dans ces parties (une ligne par ami et par partie)
+      const roomRows = ((rooms.data ?? []) as unknown as RoomRow[]);
+      const friendIds = new Set(ids);
+      const needed = Array.from(new Set(roomRows.flatMap((r) => r.players.map((p) => p.user_id)).filter((id) => friendIds.has(id))));
+      const profs = needed.length ? (await supabase.from("profiles").select("id,username,display_name,avatar_url,verified").in("id", needed)).data ?? [] : [];
+      const profById = new Map((profs as Prof[]).map((p) => [p.id, p]));
+      const roomItems: Item[] = [];
+      for (const r of roomRows) {
+        const sorted = [...r.players].sort((a, b) => b.score - a.score);
+        const mine = r.players.filter((p) => friendIds.has(p.user_id));
+        for (const p of mine.slice(0, 2)) {
+          roomItems.push({ kind: "room", id: `r${r.room_id}-${p.user_id}`, at: r.finished_at, who: profById.get(p.user_id) ?? null, theme: r.theme, points: p.score, rank: sorted.findIndex((x) => x.user_id === p.user_id) + 1, total: r.players.length, won: r.winner_ids.includes(p.user_id), others: r.players.filter((x) => x.user_id !== p.user_id).map((x) => x.name).slice(0, 3), isPublic: r.is_public });
+        }
+      }
       const list: Item[] = [
         ...(((scores.data ?? []) as unknown as ScoreRow[]).map((s) => ({ kind: "score" as const, id: `s${s.id}`, at: s.created_at, who: one(s.profiles), theme: s.theme, points: s.points, rounds: s.rounds }))),
         ...(((customs.data ?? []) as unknown as CustomRow[]).map((c) => ({ kind: "custom" as const, id: `c${c.id}`, at: c.created_at, who: one(c.profiles), slug: c.slug, title: c.title, count: c.track_ids.length }))),
-      ].sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 8);
+        ...roomItems,
+      ].sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 10);
       setItems(list);
     })().catch(() => setItems([]));
   }, [user]);
@@ -113,6 +135,11 @@ export default function ActivityFeed() {
                     <a href={profileHref ?? "#"} className="font-semibold inline-flex items-center gap-1">{name}{who?.verified && <VerifiedBadge size={13} />}</a>{" "}
                     {it.kind === "score" ? (
                       <>a fait <span className="font-semibold text-glow">{it.points} pts</span> sur {themeLabel(it.theme)}</>
+                    ) : it.kind === "room" ? (
+                      <>
+                        {it.won ? <>a <span className="font-semibold text-glow">gagné</span></> : <>a fini <span className="font-semibold">{it.rank}{it.rank === 1 ? "er" : "e"}/{it.total}</span></>} sur {themeLabel(it.theme)} {it.isPublic ? "en matchmaking" : "entre potes"}
+                        {it.others.length > 0 && <> contre {it.others.join(", ")}</>} · {it.points} pts
+                      </>
                     ) : (
                       <>a publié <span className="font-semibold">« {it.title} »</span> · {it.count} titres</>
                     )}
@@ -121,6 +148,8 @@ export default function ActivityFeed() {
                 </div>
                 {it.kind === "score" ? (
                   <a href={replayHref(it.theme)} className="sticker sticker-ghost sticker-sm shrink-0 !h-9 !px-3 text-xs whitespace-nowrap">Je fais mieux</a>
+                ) : it.kind === "room" ? (
+                  <a href={it.isPublic ? "/jouer?mode=online&public=1" : `/jouer?mode=online&theme=${encodeURIComponent(it.theme)}`} className="sticker sticker-ghost sticker-sm shrink-0 !h-9 !px-3 text-xs whitespace-nowrap">Défier</a>
                 ) : (
                   <a href={`/b/${it.slug}?go=1`} className="sticker sticker-sm shrink-0 !h-9 !px-3 text-xs"><Play size={12} fill="currentColor" /> Jouer</a>
                 )}

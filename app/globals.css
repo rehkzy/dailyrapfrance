@@ -2548,6 +2548,11 @@ body { overscroll-behavior-y: none; }
   opacity: 0.9;
 }
 .theme-poster-photos[data-count="2"] img { width: 50%; }
+/* Cover de playlist : carrée, en haut, telle quelle ; le bas du poster porte le libellé sur fond marque */
+.theme-poster[data-plain] { background: #120808 !important; }
+.theme-poster[data-plain] .theme-poster-photos { inset: 0 0 auto 0; aspect-ratio: 1; }
+.theme-poster[data-plain] .theme-poster-photos img { filter: none; mix-blend-mode: normal; opacity: 1; }
+.theme-poster[data-plain] .theme-poster-shade { background: linear-gradient(180deg, transparent 60%, rgba(18,8,8,0.9) 78%, #120808 100%); }
 .theme-poster-icon {
   position: absolute;
   right: -18px;

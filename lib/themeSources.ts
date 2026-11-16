@@ -27,6 +27,26 @@ export const THEME_PLAYLISTS: Record<string, number[]> = {
   // Du moment — "Rap Français Viral 2026 / sons TikTok"
   viral: [7764652862],
 };
+// Playlists Spotify publiques du compte DailyRapFrance → thèmes « Playlists DailyRap ».
+// Les titres sont retrouvés sur Deezer pour l'extrait (lib/spotifyPlaylist.ts).
+export const THEME_SPOTIFY: Record<string, string> = {
+  "pl-rap-fr-2026": "41WncftfUDIPgKaQgLqoE8",
+  "pl-radar": "4v3Fs4airsfeUO6bLMc2St",
+  "pl-nouvelle-gen": "67ZnzomC0I0166qHeXUJGN",
+  "pl-tiktok": "10T9UiDOKGzp32Spgas4zl",
+  "pl-mood-triste": "6a9wyuAlGPMH4NwYSIdFUw",
+  "pl-perdu": "6zy9hpSPHEYCXvrPKDCgjN",
+  "pl-pepites": "5QEKv3715Vcq3TaMAnX9WB",
+  "pl-booba": "55Rf5L4ybvL2rQtqMRVqQr",
+  "pl-ete": "5vJueNhskJpWGCf3qzXJ7n",
+  "pl-nouvel-an": "2o87Om5AyHaOSjUSl8XUuq",
+  "pl-chretien": "029HD7FTZZGDRiCTWZZCIR",
+  "pl-deutsch": "51G4MhDKvsojKXCDtAyQp5",
+  "pl-polak": "09S0JJXyGCYAfjibTMYGlI",
+  "pl-nigerian": "1yXLoBWQcZphEEOFGjWMp5",
+  "pl-nederhop": "2iiyDFDAxfhMWlFHJBLeaH",
+};
+
 export const ALL_DECADE_PLAYLISTS = [1182010551, 4676814864, 5175061384, 9563400362];
 
 export const THEME_ARTISTS: Record<string, string[]> = {

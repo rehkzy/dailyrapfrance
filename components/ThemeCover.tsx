@@ -22,6 +22,7 @@ export default function ThemeCover({
   photoUrl,
   tag,
   size = 500,
+  plain = false,
 }: {
   Icon: LucideIcon;
   label: string;
@@ -31,16 +32,18 @@ export default function ThemeCover({
   tag?: string;
   /** Taille d'image demandée au CDN : 500 en tuile, 1000 en plein écran (swipe). */
   size?: ArtworkSize;
+  /** Cover déjà composée (playlists) : image carrée telle quelle, sans bichromie, libellé dessous. */
+  plain?: boolean;
 }) {
   const photos = Array.isArray(photoUrl) ? photoUrl.filter(Boolean) : photoUrl ? [photoUrl] : [];
   const clean = label.replace(/^Blind Test /i, "");
 
   return (
-    <div className="theme-poster" data-active={active} style={{ background: GRADIENTS[index % GRADIENTS.length] }}>
+    <div className="theme-poster" data-active={active} data-plain={plain || undefined} style={{ background: GRADIENTS[index % GRADIENTS.length] }}>
       {photos.length > 0 ? (
         <div className="theme-poster-photos" data-count={Math.min(photos.length, 2)}>
           {photos.slice(0, 2).map((src, i) => (
-            <img key={i} src={artworkAt(src, size)} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+            <img key={i} src={plain ? src : artworkAt(src, size)} alt="" aria-hidden="true" loading="lazy" decoding="async" />
           ))}
         </div>
       ) : (
