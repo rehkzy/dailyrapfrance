@@ -2539,13 +2539,15 @@ body { overscroll-behavior-y: none; }
 .theme-poster:active { transform: scale(0.98); }
 .theme-poster[data-active="true"] { border-color: #fff; }
 .theme-poster-photos { position: absolute; inset: 0; display: flex; }
+/* Photo en couleurs naturelles, traits marqués (contraste + légère saturation), comme les
+   covers Spotify de la marque — plus de bichromie rouge. */
 .theme-poster-photos img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(1) contrast(1.15);
-  mix-blend-mode: luminosity;
-  opacity: 0.9;
+  object-position: center 18%;
+  filter: contrast(1.14) saturate(1.08) brightness(1.02);
+  image-rendering: auto;
 }
 .theme-poster-photos[data-count="2"] img { width: 50%; }
 /* Cover de playlist : carrée, en haut, telle quelle ; le bas du poster porte le libellé sur fond marque */
@@ -2553,6 +2555,9 @@ body { overscroll-behavior-y: none; }
 .theme-poster[data-plain] .theme-poster-photos { inset: 0 0 auto 0; aspect-ratio: 1; }
 .theme-poster[data-plain] .theme-poster-photos img { filter: none; mix-blend-mode: normal; opacity: 1; }
 .theme-poster[data-plain] .theme-poster-shade { background: linear-gradient(180deg, transparent 60%, rgba(18,8,8,0.9) 78%, #120808 100%); }
+/* La cover porte déjà le logo en haut : l'étiquette (Playlist, pays) descend à côté du libellé */
+.theme-poster[data-plain] .theme-poster-tag { top: auto; left: auto; right: 9px; bottom: 11px; }
+.theme-poster[data-plain] .theme-poster-label { right: 64px; }
 .theme-poster-icon {
   position: absolute;
   right: -18px;
@@ -2563,7 +2568,7 @@ body { overscroll-behavior-y: none; }
 .theme-poster-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(240, 0, 28, 0.18), rgba(7, 4, 4, 0.1) 40%, rgba(7, 4, 4, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(7, 4, 4, 0.08), rgba(7, 4, 4, 0.02) 42%, rgba(7, 4, 4, 0.9) 100%);
 }
 .theme-poster-tag {
   position: absolute;
