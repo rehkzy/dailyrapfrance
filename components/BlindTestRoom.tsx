@@ -531,10 +531,12 @@ function BlindTestRoom({
     const r = roomRef.current;
     if (!r) return;
     const next = r.current_round + 1;
+    // Condition sur current_round : si l'écran TV (tenu par l'hôte) a déjà avancé, on ne
+    // repart pas une deuxième fois le chrono de la même manche.
     if (next >= r.tracks.length) {
-      await supabase.from("rooms").update({ status: "finished" }).eq("id", r.id);
+      await supabase.from("rooms").update({ status: "finished" }).eq("id", r.id).eq("current_round", r.current_round);
     } else {
-      await supabase.from("rooms").update({ current_round: next, round_started_at: new Date().toISOString() }).eq("id", r.id);
+      await supabase.from("rooms").update({ current_round: next, round_started_at: new Date().toISOString() }).eq("id", r.id).eq("current_round", r.current_round);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

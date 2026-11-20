@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Crown, Volume2, VolumeX, Maximize2, Play } from "lucide-react";
+import { Crown, Volume2, VolumeX, Maximize2, Play, SkipForward, RotateCcw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { DRMark3D } from "@/components/BlindTestLogo";
 import BrandMark from "@/components/BrandMark";
@@ -20,7 +20,9 @@ import SoundCheck from "@/components/SoundCheck";
  *  · C'est LUI qui joue le son : fort, pour toute la pièce, une seule source. Les téléphones
  *    des joueurs sont muets (bascule « casque » sur chacun pour ceux qui préfèrent).
  *    Le navigateur exige un geste avant de jouer : d'où l'écran « Appuie pour démarrer ».
- *  · Lecture seule : aucun bouton de jeu ici, le téléphone de l'hôte est la télécommande.
+ *  · Lecture seule pour les invités. Si c'est L'HÔTE qui regarde cet écran (même compte,
+ *    typiquement un ordi branché à la TV), il a ici les commandes : Démarrer, Passer, Rejouer.
+ *    Avant il fallait retourner sur l'autre onglet pour lancer — pas pratique.
  *  · Lobby : QR géant + code + joueurs qui arrivent. Manche : disque, décompte, classement.
  *    Révélation : pochette, titre, qui a trouvé. Final : podium, gage, QR pour rejouer.
  *  · Les réactions emoji et le chat des téléphones s'affichent ici, en direct.
@@ -35,6 +37,7 @@ type RoomRow = {
   id: string; code: string; host_id: string; theme: string; rounds: number; tracks: Track[];
   status: "lobby" | "playing" | "finished"; current_round: number; round_started_at: string | null;
   answer_mode: "text" | "qcm"; gages_enabled: boolean; gages_intensity: "soft" | "hard"; round_seconds?: number | null; custom_title?: string | null;
+  custom_ids?: string[] | null;
 };
 type PlayerRow = { room_id: string; user_id: string; display_name: string; ready?: boolean; spectator?: boolean };
 type SolveRow = { round_index: number; user_id: string; field: FieldKey; bonus?: number | null };
@@ -56,7 +59,12 @@ export default function PartyDisplay({ code }: { code: string }) {
   const [muted, setMuted] = useState(false);
   const [reactions, setReactions] = useState<{ id: number; emoji: string; from: string }[]>([]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [hostError, setHostError] = useState<string | null>(null);
   const idRef = useRef(0);
+  const roomRef = useRef<RoomRow | null>(null);
+  roomRef.current = room;
   const audio = useRef<HTMLAudioElement>(null);
   const fadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -66,6 +74,7 @@ export default function PartyDisplay({ code }: { code: string }) {
   /* ── Données ── */
   useEffect(() => {
     const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null)).catch(() => {});
     supabase.from("rooms").select("*").eq("code", code.toUpperCase()).maybeSingle().then(({ data }) => { if (!data) setNotFound(true); else setRoom(data as RoomRow); });
     const ch = supabase.channel(`display:${code}:${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `code=eq.${code.toUpperCase()}` }, (p) => setRoom(p.new as RoomRow))
@@ -163,6 +172,50 @@ export default function PartyDisplay({ code }: { code: string }) {
   }
   function fullscreen() { try { if (document.fullscreenElement) void document.exitFullscreen(); else void document.documentElement.requestFullscreen(); } catch {} }
 
+  /* ── Commandes de l'hôte (même logique que le salon sur téléphone) ── */
+  const isHost = !!userId && !!room && userId === room.host_id;
+  async function hostStart() {
+    const r = roomRef.current;
+    if (!r || busy) return;
+    const supabase = createClient();
+    setBusy(true); setHostError(null); sfx.click();
+    try {
+      void supabase.from("room_players").update({ ready: false, done_round: null }).eq("room_id", r.id);
+      void supabase.from("room_players").update({ spectator: false }).eq("room_id", r.id).eq("spectator", true).then(() => {});
+      const url = r.custom_ids?.length ? `/api/blindtest/pool?ids=${r.custom_ids.join(",")}&count=${r.custom_ids.length}` : `/api/blindtest/pool?theme=${r.theme}&count=${r.rounds}`;
+      const data = await fetch(url).then((x) => x.json());
+      const tracks: Track[] = data.tracks ?? [];
+      if (tracks.length < 3) { setHostError("Pas assez de titres pour ce thème."); return; }
+      if (r.status === "finished") await supabase.from("room_round_solves").delete().eq("room_id", r.id);
+      await supabase.from("rooms").update({ tracks, status: "playing", current_round: 0, round_started_at: new Date().toISOString() }).eq("id", r.id);
+      setSolves([]);
+    } catch { setHostError("Impossible de lancer — réessaie."); } finally { setBusy(false); }
+  }
+  async function hostSkip() {
+    const r = roomRef.current;
+    if (!r) return;
+    sfx.click();
+    await createClient().from("rooms").update({ round_started_at: new Date(Date.now() - roundSecs * 1000).toISOString() }).eq("id", r.id);
+  }
+  // Après la révélation, l'hôte fait avancer la manche. Le téléphone de l'hôte le fait aussi
+  // s'il est ouvert : la condition sur current_round rend le double appel inoffensif.
+  useEffect(() => {
+    if (!isHost || room?.status !== "playing" || !room.round_started_at) return;
+    const startedAt = new Date(room.round_started_at).getTime();
+    const cur = room.current_round;
+    const total = room.tracks.length;
+    const id = setInterval(async () => {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      if (elapsed < roundSecs + REVEAL_SECONDS + 0.6) return;
+      clearInterval(id);
+      const supabase = createClient();
+      if (cur + 1 >= total) await supabase.from("rooms").update({ status: "finished" }).eq("id", room.id).eq("current_round", cur);
+      else await supabase.from("rooms").update({ current_round: cur + 1, round_started_at: new Date().toISOString() }).eq("id", room.id).eq("current_round", cur);
+    }, 500);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, room?.status, room?.current_round, room?.round_started_at, roundSecs]);
+
   /* ── Dérivés ── */
   const scoreFor = (uid: string) => solves.filter((s) => s.user_id === uid).reduce((sum, s) => sum + (POINTS[s.field] ?? 0) + (s.bonus ?? 0), 0);
   const ranked = [...players].sort((a, b) => scoreFor(b.user_id) - scoreFor(a.user_id));
@@ -240,7 +293,17 @@ export default function PartyDisplay({ code }: { code: string }) {
               {players.length === 0 && <span className="tv-sub">En attente des premiers joueurs…</span>}
             </div>
             <SoundCheck screen="tv" className="mt-auto" />
-            <p className="tv-sub">{players.length} joueur{players.length > 1 ? "s" : ""} · l&apos;hôte lance depuis son téléphone</p>
+            {isHost ? (
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={hostStart} disabled={busy || players.length < 1} className="tv-arm !animate-none !text-[1.1em] self-start disabled:opacity-50">
+                  <Play size={22} fill="currentColor" />{busy ? "Chargement…" : `Démarrer la partie (${players.filter((p) => p.ready).length}/${players.length} prêts)`}
+                </button>
+                {hostError && <p className="tv-sub text-[#ff6b7a]">{hostError}</p>}
+                <p className="tv-sub">Tu es l&apos;hôte : tu peux lancer d&apos;ici ou depuis ton téléphone.</p>
+              </div>
+            ) : (
+              <p className="tv-sub">{players.length} joueur{players.length > 1 ? "s" : ""} · l&apos;hôte lance depuis son téléphone</p>
+            )}
           </section>
         </main>
       )}
@@ -258,6 +321,7 @@ export default function PartyDisplay({ code }: { code: string }) {
             </div>
             <p className="tv-h2">{applicable.includes("feat") ? "Titre, artiste… et le feat ?" : applicable.includes("artist") ? "C'est qui ? C'est quoi ?" : "Quel titre ?"}</p>
             <p className="tv-sub">{roundSolves.length === 0 ? "Personne n'a encore trouvé" : (() => { const n = new Set(roundSolves.map((s) => s.user_id)).size; return `${n} joueur${n > 1 ? "s ont" : " a"} déjà trouvé`; })()}</p>
+            {isHost && <button type="button" onClick={hostSkip} className="tv-pill mt-4 hover:bg-white/12"><SkipForward size={16} /> Personne ne trouve — passer</button>}
           </section>
           <aside className="tv-board">
             <p className="tv-kicker">Classement</p>
@@ -317,8 +381,14 @@ export default function PartyDisplay({ code }: { code: string }) {
             {room.gages_enabled && last && gageText && (
               <div className="tv-gage"><p className="tv-kicker">Gage pour {last.display_name}</p><p className="tv-gage-text">{gageText}</p></div>
             )}
-            {qr && <div className="tv-replay"><img src={qr} alt="" /><span>Nouveaux joueurs ? Scannez. L&apos;hôte relance depuis son téléphone.</span></div>}
+            {qr && <div className="tv-replay"><img src={qr} alt="" /><span>Nouveaux joueurs ? Scannez. {isHost ? "Relance quand tout le monde y est." : "L'hôte relance depuis son téléphone."}</span></div>}
           </div>
+          {isHost && (
+            <div className="flex items-center gap-4 mt-6">
+              <button type="button" onClick={hostStart} disabled={busy} className="tv-arm !animate-none !text-[1.1em] disabled:opacity-50"><RotateCcw size={22} />{busy ? "Chargement…" : "Rejouer — même thème"}</button>
+              {hostError && <p className="tv-sub text-[#ff6b7a]">{hostError}</p>}
+            </div>
+          )}
         </main>
       )}
     </div>
